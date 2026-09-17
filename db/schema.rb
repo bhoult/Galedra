@@ -10,9 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_204334) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "contributors", id: :uuid, default: nil, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "created_seq"
+    t.string "display_name"
+    t.text "encrypted_private_key"
+    t.string "identity_tier", default: "PSEUDONYMOUS", null: false
+    t.string "key_id", null: false
+    t.string "kind", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "public_key", null: false
+    t.bigint "revoked_seq"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["key_id"], name: "index_contributors_on_key_id", unique: true
+    t.index ["user_id"], name: "index_contributors_on_user_id"
+  end
 
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -202,6 +219,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_204334) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "contributors", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

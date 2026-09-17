@@ -29,6 +29,14 @@ gem "solid_cable"
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
+# RFC 8785 canonical JSON, the input to every hash and signature (spec 02 §6)
+gem "json-canonicalization"
+
+# Ruby 4.0 bundles json 3.x, whose JSON.parse takes keyword-only options;
+# ActiveSupport 8.1.3.1 still passes a positional hash, which breaks jsonb
+# columns and JSON request bodies. Pin 2.x until Rails catches up.
+gem "json", "~> 2.0"
+
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 

@@ -1,0 +1,224 @@
+{
+  "_about": "Canonicalization (RFC 8785), hashing, and Ed25519 (RFC 8032) vectors. Expected values were produced independently of the Ruby implementation; third-party clients should reproduce them byte for byte. Regenerate with: python3 spec/fixtures/gen_canonical_json_vectors.py spec/fixtures/canonical_json_vectors.json.",
+  "rfc8785": [
+    {
+      "name": "RFC 8785 section 3.2.3: literals, numbers, string escapes",
+      "input": {
+        "numbers": [
+          333333333.3333333,
+          1e+30,
+          4.5,
+          0.002,
+          1e-27
+        ],
+        "string": "€$\u000f\nA'B\"\\\\\"/",
+        "literals": [
+          null,
+          true,
+          false
+        ]
+      },
+      "expected": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+      "sha256": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb"
+    },
+    {
+      "name": "RFC 8785 section 3.2.3: property sorting by UTF-16 code units",
+      "input": {
+        "€": "Euro Sign",
+        "\r": "Carriage Return",
+        "דּ": "Hebrew Letter Dalet With Dagesh",
+        "1": "One",
+        "😀": "Emoji: Grinning Face",
+        "": "Control",
+        "ö": "Latin Small Letter O With Diaeresis"
+      },
+      "expected": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+    }
+  ],
+  "project": [
+    {
+      "name": "eir-result-v1 envelope without signature",
+      "input": {
+        "protocol": "eir-result-v1",
+        "action_type": "TASK_RESULT",
+        "task_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+        "task_packet_hash": "sha256:abababababababababababababababababababababababababababababababab",
+        "contributor_key_id": "ed25519:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "delegation_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6c",
+        "client_created_at": "2026-09-16T21:04:10Z",
+        "software": {
+          "agent_name": "example-agent",
+          "version": "0.1.0",
+          "model_provider": "stub",
+          "model_id": "none",
+          "prompt_version": "verify-v1"
+        },
+        "payload": {
+          "outcome": "CONFIRMED",
+          "ops": [
+            {
+              "op": "LINK_EVIDENCE",
+              "evidence_item_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6d",
+              "claim_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6e",
+              "direction": "SUPPORT",
+              "relevance_strength": "DIRECT",
+              "interpretive_steps": 0,
+              "note": "Release states the same figure."
+            }
+          ]
+        },
+        "payload_hash": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
+      },
+      "expected": "{\"action_type\":\"TASK_RESULT\",\"client_created_at\":\"2026-09-16T21:04:10Z\",\"contributor_key_id\":\"ed25519:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"delegation_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6c\",\"payload\":{\"ops\":[{\"claim_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6e\",\"direction\":\"SUPPORT\",\"evidence_item_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6d\",\"interpretive_steps\":0,\"note\":\"Release states the same figure.\",\"op\":\"LINK_EVIDENCE\",\"relevance_strength\":\"DIRECT\"}],\"outcome\":\"CONFIRMED\"},\"payload_hash\":\"sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\",\"protocol\":\"eir-result-v1\",\"software\":{\"agent_name\":\"example-agent\",\"model_id\":\"none\",\"model_provider\":\"stub\",\"prompt_version\":\"verify-v1\",\"version\":\"0.1.0\"},\"task_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b\",\"task_packet_hash\":\"sha256:abababababababababababababababababababababababababababababababab\"}",
+      "sha256": "cd04ea556cfa503e1f51d2c46270ece06943e6eab31a6be03f90cbea1369d32e"
+    },
+    {
+      "name": "eir-task-v1 packet without server_signature",
+      "input": {
+        "protocol": "eir-task-v1",
+        "task_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+        "task_type": "EVIDENCE_VERIFICATION",
+        "domain": "general",
+        "issued_at": "2026-09-16T21:00:00Z",
+        "lease_expires_at": "2026-09-16T23:00:00Z",
+        "snapshot_seq": 9,
+        "target": {
+          "claim_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6e",
+          "claim_type": "TEXTUAL",
+          "claim_text": "The Journal of Distributed Work Research (2025) reports that 62% of remote workers report higher productivity."
+        },
+        "objective": "Decide whether the excerpt directly supports the claim. Do not infer beyond the excerpt.",
+        "context": {
+          "source_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6f",
+          "source_location_id": "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a70",
+          "locator": {
+            "type": "CHAR_RANGE",
+            "start": 0,
+            "end": 102
+          },
+          "untrusted_excerpt": "Acme press release: 62% of remote workers report higher productivity, according to Acme's 2026 survey.",
+          "excerpt_hash": "sha256:1212121212121212121212121212121212121212121212121212121212121212",
+          "known_qualifiers": {}
+        },
+        "constraints": {
+          "allowed_ops": [
+            "LINK_EVIDENCE",
+            "CREATE_EVIDENCE"
+          ],
+          "max_ops": 3,
+          "require_exact_location": true
+        },
+        "return_schema": "eir-result-v1",
+        "server_key_id": "ed25519:3434343434343434343434343434343434343434343434343434343434343434"
+      },
+      "expected": "{\"constraints\":{\"allowed_ops\":[\"LINK_EVIDENCE\",\"CREATE_EVIDENCE\"],\"max_ops\":3,\"require_exact_location\":true},\"context\":{\"excerpt_hash\":\"sha256:1212121212121212121212121212121212121212121212121212121212121212\",\"known_qualifiers\":{},\"locator\":{\"end\":102,\"start\":0,\"type\":\"CHAR_RANGE\"},\"source_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6f\",\"source_location_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a70\",\"untrusted_excerpt\":\"Acme press release: 62% of remote workers report higher productivity, according to Acme's 2026 survey.\"},\"domain\":\"general\",\"issued_at\":\"2026-09-16T21:00:00Z\",\"lease_expires_at\":\"2026-09-16T23:00:00Z\",\"objective\":\"Decide whether the excerpt directly supports the claim. Do not infer beyond the excerpt.\",\"protocol\":\"eir-task-v1\",\"return_schema\":\"eir-result-v1\",\"server_key_id\":\"ed25519:3434343434343434343434343434343434343434343434343434343434343434\",\"snapshot_seq\":9,\"target\":{\"claim_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6e\",\"claim_text\":\"The Journal of Distributed Work Research (2025) reports that 62% of remote workers report higher productivity.\",\"claim_type\":\"TEXTUAL\"},\"task_id\":\"0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b\",\"task_type\":\"EVIDENCE_VERIFICATION\"}",
+      "sha256": "3368d2544ac22202f14964eb62795977be2e4f1850a1a32a37a5507867680745"
+    },
+    {
+      "name": "score trace (spec 03 section 10)",
+      "input": {
+        "claim": "C2",
+        "snapshot_seq": 31,
+        "model": "ledger-default@0.1.0",
+        "config_hash": "sha256:5656565656565656565656565656565656565656565656565656565656565656",
+        "claim_type": "QUANTITATIVE",
+        "prior": "0.50",
+        "prior_log_odds": "0.000000",
+        "links": [
+          {
+            "link": "L3",
+            "evidence": "E1",
+            "direction": "SUPPORT",
+            "group": "G1",
+            "relevance": "STRONG",
+            "observation": "DATASET_RESULT",
+            "interpretive_steps": 1,
+            "magnitude": "0.918000",
+            "effective_weight": "0.918000"
+          },
+          {
+            "link": "L4",
+            "evidence": "E2",
+            "direction": "SUPPORT",
+            "group": "G1",
+            "relevance": "MODERATE",
+            "observation": "DIRECT_TEXT",
+            "interpretive_steps": 1,
+            "magnitude": "0.459000",
+            "effective_weight": "0.000000",
+            "reason": "dependent_strongest_only",
+            "kept": "L3"
+          }
+        ],
+        "evidence_sum": "0.918000",
+        "posterior_log_odds": "0.918000",
+        "probability": "0.7146",
+        "rounding_boundary": false,
+        "variants": {
+          "conservative": "0.6553",
+          "permissive": "0.7673",
+          "spread": "0.1120"
+        },
+        "stability": "MEDIUM",
+        "assessment_state": "LEANS_SUPPORTED",
+        "support_groups": 1,
+        "contradict_groups": 0,
+        "independence_unreviewed": 0,
+        "contested": false,
+        "provisional": false,
+        "model_dependent": false,
+        "not_applicable_reason": null,
+        "review_checklist": {
+          "primary_source_reviewed": {
+            "ok": true,
+            "by": [
+              "L3"
+            ]
+          },
+          "opposing_search_done": {
+            "ok": false,
+            "by": []
+          },
+          "independence_reviewed": {
+            "ok": true,
+            "by": [
+              "T3"
+            ]
+          },
+          "qualifiers_reviewed": {
+            "ok": false,
+            "by": []
+          }
+        },
+        "review_coverage": "0.50"
+      },
+      "expected": "{\"assessment_state\":\"LEANS_SUPPORTED\",\"claim\":\"C2\",\"claim_type\":\"QUANTITATIVE\",\"config_hash\":\"sha256:5656565656565656565656565656565656565656565656565656565656565656\",\"contested\":false,\"contradict_groups\":0,\"evidence_sum\":\"0.918000\",\"independence_unreviewed\":0,\"links\":[{\"direction\":\"SUPPORT\",\"effective_weight\":\"0.918000\",\"evidence\":\"E1\",\"group\":\"G1\",\"interpretive_steps\":1,\"link\":\"L3\",\"magnitude\":\"0.918000\",\"observation\":\"DATASET_RESULT\",\"relevance\":\"STRONG\"},{\"direction\":\"SUPPORT\",\"effective_weight\":\"0.000000\",\"evidence\":\"E2\",\"group\":\"G1\",\"interpretive_steps\":1,\"kept\":\"L3\",\"link\":\"L4\",\"magnitude\":\"0.459000\",\"observation\":\"DIRECT_TEXT\",\"reason\":\"dependent_strongest_only\",\"relevance\":\"MODERATE\"}],\"model\":\"ledger-default@0.1.0\",\"model_dependent\":false,\"not_applicable_reason\":null,\"posterior_log_odds\":\"0.918000\",\"prior\":\"0.50\",\"prior_log_odds\":\"0.000000\",\"probability\":\"0.7146\",\"provisional\":false,\"review_checklist\":{\"independence_reviewed\":{\"by\":[\"T3\"],\"ok\":true},\"opposing_search_done\":{\"by\":[],\"ok\":false},\"primary_source_reviewed\":{\"by\":[\"L3\"],\"ok\":true},\"qualifiers_reviewed\":{\"by\":[],\"ok\":false}},\"review_coverage\":\"0.50\",\"rounding_boundary\":false,\"snapshot_seq\":31,\"stability\":\"MEDIUM\",\"support_groups\":1,\"variants\":{\"conservative\":\"0.6553\",\"permissive\":\"0.7673\",\"spread\":\"0.1120\"}}",
+      "sha256": "dbe668629d30bac60218201e3009015333f944fc57e825050f8676b8c0136b1a"
+    }
+  ],
+  "ed25519": [
+    {
+      "name": "RFC 8032 test 1 (empty message)",
+      "private_key_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+      "public_key_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "message_hex": "",
+      "signature_hex": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b",
+      "private_key": "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A",
+      "public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+      "signature": "5VZDAMNgrHKQhuLMgG6CioSHfx645dl02HPgZSJJAVVfuIIVkKM7rMYeOXAc-bRr0lv18FlbviRlUUFDjnoQCw",
+      "key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
+    },
+    {
+      "name": "RFC 8032 test 2 (one byte)",
+      "private_key_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
+      "public_key_hex": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "message_hex": "72",
+      "signature_hex": "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00",
+      "private_key": "TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs",
+      "public_key": "PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw",
+      "signature": "kqAJqfDUyrhyDoILX2QlQKKye1QWUD-Ps3YiI-vbadoIWsHkPhWZbkWPNhPQ8R2MOHsurrQwKu6wDSkWErsMAA",
+      "key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f"
+    }
+  ]
+}

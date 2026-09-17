@@ -1,6 +1,14 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
+# The test system key is RFC 8032 test vector 1 (public, non-secret).
+require "base64"
+ENV["LEDGER_SYSTEM_PRIVATE_KEY"] ||= Base64.urlsafe_encode64(
+  [ "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60" ].pack("H*"), padding: false
+)
+ENV["LEDGER_SYSTEM_PUBLIC_KEY"] ||= Base64.urlsafe_encode64(
+  [ "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a" ].pack("H*"), padding: false
+)
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?

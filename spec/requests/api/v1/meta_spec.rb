@@ -16,4 +16,11 @@ RSpec.describe "GET /api/v1/meta", type: :request do
     hex = Digest::SHA256.file(Rails.root.join("CONSTITUTION.md")).hexdigest
     expect(response.parsed_body["constitution_hash"]).to eq("sha256:#{hex}")
   end
+
+  it "publishes the system key id and public key" do
+    get "/api/v1/meta"
+
+    expect(response.parsed_body["system_key_id"]).to eq(Crypto::SystemKey.key_id)
+    expect(response.parsed_body["system_public_key"]).to eq(Crypto::SystemKey.public_key)
+  end
 end

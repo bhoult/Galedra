@@ -22,6 +22,11 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.cache_store = :null_store
 
+  # Fixed, non-secret encryption keys so the suite runs without a .env or CI secrets.
+  config.active_record.encryption.primary_key = "galedra-test-primary-key"
+  config.active_record.encryption.deterministic_key = "galedra-test-deterministic-key"
+  config.active_record.encryption.key_derivation_salt = "galedra-test-salt"
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

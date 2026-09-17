@@ -28,6 +28,18 @@ module Galedra
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Ledger tables use UUIDv7 primary keys (assigned in ApplicationRecord).
+    config.generators do |g|
+      g.orm :active_record, primary_key_type: :uuid
+    end
+
+    # Active Record Encryption keys come from the environment (see .env.example;
+    # generate with bin/rails db:encryption:init). Server-custodied contributor
+    # keys are encrypted with them.
+    config.active_record.encryption.primary_key = ENV["ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY"]
+    config.active_record.encryption.deterministic_key = ENV["ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY"]
+    config.active_record.encryption.key_derivation_salt = ENV["ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT"]
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
