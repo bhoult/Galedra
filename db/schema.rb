@@ -10,25 +10,75 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_220002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
+  create_table "agent_delegations", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "created_seq", null: false
+    t.uuid "delegate_contributor_id", null: false
+    t.string "delegation_signature", null: false
+    t.integer "max_tasks_per_day"
+    t.jsonb "permissions", default: {}, null: false
+    t.uuid "principal_contributor_id", null: false
+    t.bigint "revoked_seq"
+    t.timestamptz "valid_from", null: false
+    t.timestamptz "valid_until", null: false
+    t.index ["delegate_contributor_id"], name: "index_agent_delegations_on_delegate_contributor_id"
+    t.index ["principal_contributor_id"], name: "index_agent_delegations_on_principal_contributor_id"
+  end
+
+  create_table "contributions", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "action_class", null: false
+    t.string "action_type", null: false
+    t.timestamptz "client_created_at", null: false
+    t.uuid "contributor_id"
+    t.string "current_status", null: false
+    t.string "custody", null: false
+    t.string "entry_hash", null: false
+    t.jsonb "envelope"
+    t.string "envelope_hash", null: false
+    t.string "idempotency_key", null: false
+    t.jsonb "payload"
+    t.string "payload_hash", null: false
+    t.string "prev_hash", null: false
+    t.timestamptz "received_at", null: false
+    t.bigint "redacted_by_seq"
+    t.bigint "seq", null: false
+    t.string "server_signature", null: false
+    t.string "signature", null: false
+    t.string "signer_key_id", null: false
+    t.jsonb "software"
+    t.uuid "task_id"
+    t.string "task_packet_hash"
+    t.index ["action_type"], name: "index_contributions_on_action_type"
+    t.index ["contributor_id", "seq"], name: "index_contributions_on_contributor_id_and_seq"
+    t.index ["entry_hash"], name: "index_contributions_on_entry_hash", unique: true
+    t.index ["idempotency_key"], name: "index_contributions_on_idempotency_key", unique: true
+    t.index ["seq"], name: "index_contributions_on_seq", unique: true
+    t.index ["signer_key_id"], name: "index_contributions_on_signer_key_id"
+  end
+
   create_table "contributors", id: :uuid, default: nil, force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "created_seq"
     t.string "display_name"
-    t.text "encrypted_private_key"
     t.string "identity_tier", default: "PSEUDONYMOUS", null: false
     t.string "key_id", null: false
     t.string "kind", null: false
     t.jsonb "metadata", default: {}, null: false
     t.string "public_key", null: false
     t.bigint "revoked_seq"
-    t.datetime "updated_at", null: false
-    t.bigint "user_id"
     t.index ["key_id"], name: "index_contributors_on_key_id", unique: true
-    t.index ["user_id"], name: "index_contributors_on_user_id"
+  end
+
+  create_table "custodied_keys", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "contributor_id", null: false
+    t.datetime "created_at", null: false
+    t.text "encrypted_private_key", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["contributor_id"], name: "index_custodied_keys_on_contributor_id", unique: true
+    t.index ["user_id"], name: "index_custodied_keys_on_user_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -219,7 +269,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_210000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
-  add_foreign_key "contributors", "users"
+  add_foreign_key "custodied_keys", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

@@ -17,6 +17,9 @@ development:
 test:
   <<: *default
   database: galedra_test
+  # The concurrency spec runs 50 appending threads against the append lock;
+  # give them time to obtain a pooled connection.
+  checkout_timeout: 60
 
 production:
   <<: *default

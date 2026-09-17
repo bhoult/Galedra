@@ -1,9 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Contributor, type: :model do
-  it "gets a UUIDv7 primary key assigned in Ruby" do
-    contributor = create(:contributor)
-    expect(contributor.id).to match(/\A\h{8}-\h{4}-7\h{3}-[89ab]\h{3}-\h{12}\z/)
+  it "is a projection: writable only inside Ledger::Apply" do
+    _, contributor = register_key
+    expect { contributor.update!(display_name: "renamed") }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { contributor.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { build(:contributor).save }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    Ledger.applying { expect(contributor.update(display_name: "renamed")).to be(true) }
   end
 
   it "requires the key id to match the public key" do

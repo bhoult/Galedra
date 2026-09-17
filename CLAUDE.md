@@ -153,7 +153,7 @@ bash docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/build-full-spec.sh
 python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/reference_scorer.py
 ```
 
-Once Stage 0 exists: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:verify`,
+Once Stage 0 exists: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:verify`,
 `bin/rails ledger:replay`, `bin/demo`, `bin/demo --example watchers`.
 
 ## Git

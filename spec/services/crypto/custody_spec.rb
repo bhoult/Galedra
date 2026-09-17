@@ -4,19 +4,23 @@ RSpec.describe Crypto::Custody do
   let(:user) { create(:user) }
 
   describe ".create_server_custodied" do
-    it "creates a HUMAN contributor whose private key is stored encrypted" do
+    it "registers the key through the log with SERVER custody and stores the private key encrypted" do
       contributor = described_class.create_server_custodied(user: user, display_name: "Curator")
 
       expect(contributor).to be_persisted
       expect(contributor.kind).to eq(Contributor::HUMAN)
-      expect(contributor.user).to eq(user)
+      expect(contributor.display_name).to eq("Curator")
       expect(contributor).to be_server_custodied
-      expect(contributor.key_id).to eq(Crypto::Ed25519.key_id(contributor.public_key))
+      expect(contributor.custodied_key.user).to eq(user)
 
-      ciphertext = Contributor.connection.select_value(
-        "SELECT encrypted_private_key FROM contributors WHERE id = '#{contributor.id}'"
+      registration = Contribution.find_by!(signer_key_id: contributor.key_id, action_type: "REGISTER_KEY")
+      expect(registration.custody).to eq(described_class::SERVER)
+      expect(registration.contributor_id).to be_nil
+
+      ciphertext = CustodiedKey.connection.select_value(
+        "SELECT encrypted_private_key FROM custodied_keys WHERE contributor_id = '#{contributor.id}'"
       )
-      expect(ciphertext).not_to include(contributor.encrypted_private_key)
+      expect(ciphertext).not_to include(contributor.custodied_key.encrypted_private_key)
       expect(ciphertext).to include('"p":')
     end
   end
@@ -35,8 +39,7 @@ RSpec.describe Crypto::Custody do
       expect { described_class.signer_for(nil) }.to raise_error(described_class::NotAuthenticated)
     end
 
-    it "refuses for a user with only self-custodied keys" do
-      create(:contributor, user: user)
+    it "refuses for a user with no server-custodied key" do
       expect { described_class.signer_for(user) }.to raise_error(described_class::NoServerKey)
     end
   end

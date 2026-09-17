@@ -37,13 +37,23 @@ require 'rspec/rails'
 # If there are pending migrations it will invoke `db:test:prepare` to
 # recreate the test database by loading the schema.
 # If you are not using ActiveRecord, you can remove these lines.
+# Schema maintenance needs the owner role; runtime connections then switch to
+# the restricted application role, which the grants below (re)create.
 begin
-  ActiveRecord::Migration.maintain_test_schema!
+  Ledger::DatabaseRole.privileged_process { ActiveRecord::Migration.maintain_test_schema! }
 rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
+Ledger::DatabaseRole.ensure_all!
+
+Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
+  config.include LedgerHelpers
+
+  # seq 0 must exist before anything can be appended. Transactional tests never
+  # roll it back because it is committed before the suite starts.
+  config.before(:suite) { Ledger::Genesis.ensure! }
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [

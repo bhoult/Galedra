@@ -1,6 +1,9 @@
 # A signing identity: human, agent, or the system itself (spec 02 §3.1).
-# Rows are created by REGISTER_KEY contributions from Stage 2 onward.
+# Projection: rows are created by REGISTER_KEY and revoked by REVOKE_KEY
+# through Ledger::Apply. Server-held key material lives in CustodiedKey.
 class Contributor < ApplicationRecord
+  include Projection
+
   HUMAN = "HUMAN"
   AGENT = "AGENT"
   SYSTEM = "SYSTEM"
@@ -8,19 +11,27 @@ class Contributor < ApplicationRecord
 
   IDENTITY_TIERS = %w[PSEUDONYMOUS ESTABLISHED EXTERNALLY_VERIFIED INSTITUTIONAL].freeze
 
-  belongs_to :user, optional: true
-
-  encrypts :encrypted_private_key
+  has_one :custodied_key, dependent: nil
+  has_many :contributions, dependent: nil
+  has_many :delegations_as_principal, class_name: "AgentDelegation",
+           foreign_key: :principal_contributor_id, inverse_of: :principal, dependent: nil
+  has_many :delegations_as_delegate, class_name: "AgentDelegation",
+           foreign_key: :delegate_contributor_id, inverse_of: :delegate, dependent: nil
 
   validates :key_id, presence: true, uniqueness: true, format: { with: Crypto::Ed25519::KEY_ID_FORMAT }
   validates :public_key, presence: true
   validates :kind, inclusion: { in: KINDS }
   validates :identity_tier, inclusion: { in: IDENTITY_TIERS }
   validate :key_id_matches_public_key
-  validate :system_key_is_never_custodied
+
+  def human? = kind == HUMAN
+  def agent? = kind == AGENT
+  def system? = kind == SYSTEM
+
+  def revoked? = revoked_seq.present?
 
   def server_custodied?
-    encrypted_private_key.present?
+    custodied_key.present?
   end
 
   private
@@ -32,11 +43,5 @@ class Contributor < ApplicationRecord
     errors.add(:key_id, "does not match the public key")
   rescue ArgumentError
     errors.add(:public_key, "is not valid base64url")
-  end
-
-  def system_key_is_never_custodied
-    return unless kind == SYSTEM && encrypted_private_key.present?
-
-    errors.add(:encrypted_private_key, "must be absent for the system key; it lives only in the environment")
   end
 end

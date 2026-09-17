@@ -7,6 +7,10 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       get "meta", to: "meta#show"
+      get "log", to: "log#index"
+      resources :contributions, only: [ :create, :show ] do
+        get :verify, on: :member
+      end
     end
   end
 

@@ -23,19 +23,11 @@ RSpec.describe Crypto::SystemKey do
     end
   end
 
-  it "is never stored in the contributors table" do
-    contributor = Contributor.new(kind: Contributor::SYSTEM, public_key: described_class.public_key,
-                                  key_id: described_class.key_id, encrypted_private_key: "anything")
-    expect(contributor).not_to be_valid
-    expect(contributor.errors[:encrypted_private_key]).to be_present
-    expect(Contributor.where(kind: Contributor::SYSTEM).where.not(encrypted_private_key: nil)).to be_empty
-  end
-
-  def with_env(overrides)
-    saved = overrides.keys.to_h { |k| [ k, ENV[k] ] }
-    overrides.each { |k, v| v.nil? ? ENV.delete(k) : ENV[k] = v }
-    yield
-  ensure
-    saved.each { |k, v| v.nil? ? ENV.delete(k) : ENV[k] = v }
+  it "is never stored as a custodied key" do
+    system = Contributor.find_by!(kind: Contributor::SYSTEM)
+    custodied = CustodiedKey.new(contributor: system, user: create(:user), encrypted_private_key: "anything")
+    expect(custodied).not_to be_valid
+    expect(custodied.errors[:contributor]).to be_present
+    expect(CustodiedKey.joins(:contributor).where(contributors: { kind: Contributor::SYSTEM })).to be_empty
   end
 end
