@@ -74,29 +74,29 @@ RSpec.describe Ledger::Append do
     it "rejects when signer_key_id and the signing key disagree" do
       alice, = register_key
       mallory, = register_key
-      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: mallory, payload: { "canonical_text" => "x" })
+      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: mallory, payload: claim_payload("x"))
       envelope["signer_key_id"] = alice.key_id
       expect_rejected("SIGNATURE_INVALID") { Ledger::Append.call(envelope) }
     end
 
     it "rejects unknown keys and tampered envelopes" do
-      expect_rejected("KEY_UNKNOWN") { append(action_type: "CREATE_CLAIM", key_pair: key_pair, payload: { "canonical_text" => "x" }) }
+      expect_rejected("KEY_UNKNOWN") { append(action_type: "CREATE_CLAIM", key_pair: key_pair, payload: claim_payload("x")) }
 
       pair, = register_key
-      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: { "canonical_text" => "x" })
-      tampered = envelope.merge("payload" => { "canonical_text" => "y" }, "payload_hash" => Crypto::Hashing.json({ "canonical_text" => "y" }))
+      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("x"))
+      tampered = envelope.merge("payload" => claim_payload("y"), "payload_hash" => Crypto::Hashing.json(claim_payload("y")))
       expect_rejected("SIGNATURE_INVALID") { Ledger::Append.call(tampered) }
-      expect_rejected("PAYLOAD_HASH_MISMATCH") { Ledger::Append.call(envelope.merge("payload" => { "canonical_text" => "y" })) }
+      expect_rejected("PAYLOAD_HASH_MISMATCH") { Ledger::Append.call(envelope.merge("payload" => claim_payload("y"))) }
     end
 
     it "rejects floats, unknown action types, unknown fields, and not-yet-supported actions" do
       pair, = register_key
-      with_float = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: {}).merge("payload" => { "weight" => 0.5 })
+      with_float = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("x")).merge("payload" => { "weight" => 0.5 })
       expect_rejected("FLOAT_PRESENT") { Ledger::Append.call(with_float) }
       expect_rejected("UNKNOWN_ACTION_TYPE") { append(action_type: "DELETE_EVERYTHING", key_pair: pair, payload: {}) }
-      expect_rejected("UNSUPPORTED_ACTION") { append(action_type: "ACCEPT", key_pair: pair, payload: {}) }
+      expect_rejected("UNSUPPORTED_ACTION") { append(action_type: "AUDIT", key_pair: pair, payload: {}) }
       expect_rejected("UNSUPPORTED_ACTION") { append(action_type: "TASK_RESULT", key_pair: pair, payload: {}) }
-      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: {}).merge("extra" => 1)
+      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("x")).merge("extra" => 1)
       expect_rejected("SCHEMA_INVALID") { Ledger::Append.call(envelope) }
     end
   end
@@ -104,27 +104,37 @@ RSpec.describe Ledger::Append do
   describe "custody" do
     it "reserves SYSTEM custody for the system key and refuses the system key elsewhere" do
       pair, = register_key
-      expect_rejected("NOT_AUTHORIZED") { append(action_type: "CREATE_CLAIM", key_pair: pair, payload: {}, custody: Crypto::Custody::SYSTEM) }
-      expect_rejected("NOT_AUTHORIZED") { append(action_type: "CREATE_CLAIM", key_pair: Crypto::SystemKey.key_pair, payload: {}, custody: Crypto::Custody::SELF) }
+      expect_rejected("NOT_AUTHORIZED") { append(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("x"), custody: Crypto::Custody::SYSTEM) }
+      expect_rejected("NOT_AUTHORIZED") { append(action_type: "CREATE_CLAIM", key_pair: Crypto::SystemKey.key_pair, payload: claim_payload("x"), custody: Crypto::Custody::SELF) }
     end
   end
 
   describe "epistemic contributions" do
-    it "are logged PENDING without projections until Stage 3" do
+    it "are logged and, for a human's own work, accepted by the system in the same transaction" do
       pair, contributor = register_key
-      result = append(action_type: "CREATE_CLAIM", key_pair: pair, payload: { "canonical_text" => "The sky is blue." })
+      result = append(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("The sky is blue."))
       c = result.contribution
       expect(result.created).to be(true)
       expect(c.action_class).to eq(Contribution::EPISTEMIC)
-      expect(c.current_status).to eq(Contribution::PENDING)
       expect(c.contributor_id).to eq(contributor.id)
+      expect(c.reload.current_status).to eq(Contribution::ACCEPTED)
+      expect(result.acceptance.action_type).to eq("ACCEPT")
+      expect(result.acceptance.custody).to eq(Crypto::Custody::SYSTEM)
+      expect(result.acceptance.seq).to eq(c.seq + 1)
+    end
+
+    it "stay PENDING as proposals when made by an agent" do
+      _, agent_pair, _, delegation = principal_with_agent
+      result = append(action_type: "CREATE_CLAIM", key_pair: agent_pair, delegation_id: delegation.id, payload: claim_payload("Proposed."))
+      expect(result.contribution.current_status).to eq(Contribution::PENDING)
+      expect(result.acceptance).to be_nil
     end
   end
 
   describe "idempotency (07 Phase 1 #7)" do
     it "returns the original contribution for a duplicate submission" do
       pair, = register_key
-      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: { "canonical_text" => "once" })
+      envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("once"))
       first = Ledger::Append.call(envelope)
       again = Ledger::Append.call(envelope)
       expect(again.created).to be(false)

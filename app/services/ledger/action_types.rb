@@ -21,16 +21,16 @@ module Ledger
 
     # Types whose server-side handling exists yet. Others are rejected with
     # UNSUPPORTED_ACTION rather than logged unchecked. TASK_RESULT arrives in
-    # Stage 8 with its own eir-result-v1 protocol.
-    IMPLEMENTED = %w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION].freeze
-    LOGGED_UNAPPLIED = (EPISTEMIC - %w[TASK_RESULT]).freeze
+    # Stage 8 with its own eir-result-v1 protocol; AUDIT in Stage 7; the
+    # moderation and governance actions in Stages 4 and 5.
+    IMPLEMENTED = (%w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION ACCEPT INVALIDATE] + (EPISTEMIC - %w[TASK_RESULT])).freeze
 
     def self.class_for(type)
       CONTROL.include?(type) ? Contribution::CONTROL : Contribution::EPISTEMIC
     end
 
     def self.supported?(type)
-      IMPLEMENTED.include?(type) || LOGGED_UNAPPLIED.include?(type)
+      IMPLEMENTED.include?(type)
     end
   end
 end

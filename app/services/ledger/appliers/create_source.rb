@@ -1,0 +1,48 @@
+# frozen_string_literal: true
+
+module Ledger
+  module Appliers
+    # CREATE_SOURCE (spec 02 §3.2). Content travels in the payload; its hash is
+    # over the UTF-8 bytes and is independent of any storage backend.
+    module CreateSource
+      extend Epistemic
+
+      def self.authorize!(validated)
+        p = validated.payload
+        enum!(p, "source_type", Source::TYPES)
+        string!(p, "title", max: 1_000)
+        %w[creator publisher canonical_uri license lineage_key].each { |k| string_or_nil!(p, k) }
+        publication_date!(p)
+        hash!(p, "external_ids", default: {})
+        hash!(p, "metadata", default: {})
+        time_or_nil!(p, "retrieved_at")
+        content = string!(p, "content", max: Source::MAX_CONTENT_CHARS)
+        unless p["content_hash"] == Crypto::Hashing.bytes(content)
+          reject("CONTENT_HASH_MISMATCH", path("content_hash"), "does not equal sha256 of the content bytes")
+        end
+        live!(Source, p, "previous_version_id") unless p["previous_version_id"].nil?
+      end
+
+      def self.publication_date!(p)
+        value = p["publication_date"]
+        return if value.nil?
+
+        Date.iso8601(value.to_s)
+      rescue Date::Error
+        reject("SCHEMA_INVALID", path("publication_date"), "expected YYYY-MM-DD")
+      end
+
+      def self.apply(c)
+        p = c.payload
+        Source.create!(
+          id: Ids.derive(c.id, "source"), contribution_id: c.id, created_seq: c.seq,
+          source_type: p["source_type"], title: p["title"], creator: p["creator"], publisher: p["publisher"],
+          publication_date: p["publication_date"], canonical_uri: p["canonical_uri"],
+          external_ids: p.fetch("external_ids", {}), content: p["content"], content_hash: p["content_hash"],
+          retrieved_at: p["retrieved_at"], license: p["license"], previous_version_id: p["previous_version_id"],
+          lineage_key: p["lineage_key"], metadata: p.fetch("metadata", {})
+        )
+      end
+    end
+  end
+end

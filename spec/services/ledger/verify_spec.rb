@@ -3,8 +3,8 @@ require "rails_helper"
 RSpec.describe Ledger::Verify do
   before do
     pair, = register_key
-    append(action_type: "CREATE_CLAIM", key_pair: pair, payload: { "canonical_text" => "a" })
-    append(action_type: "CREATE_CLAIM", key_pair: pair, payload: { "canonical_text" => "b" })
+    create_claim(pair, "a")
+    create_claim(pair, "b")
   end
 
   it "verifies an intact chain from the log alone" do
@@ -16,7 +16,7 @@ RSpec.describe Ledger::Verify do
   end
 
   it "detects a corrupted payload and reports its seq (07 Phase 1 #6)" do
-    target = Contribution.find_by!(action_type: "CREATE_CLAIM", seq: Contribution.maximum(:seq) - 1)
+    target = Contribution.where(action_type: "CREATE_CLAIM").in_order.last
     as_owner { Contribution.where(id: target.id).update_all("payload = jsonb_set(payload, '{canonical_text}', '\"forged\"')") }
 
     result = described_class.call

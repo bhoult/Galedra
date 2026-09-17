@@ -8,7 +8,9 @@ module Api
 
       def create
         result = Ledger::Append.call(envelope_from_body)
-        render json: { contribution: Contributions::Presenter.summary(result.contribution) },
+        render json: { contribution: Contributions::Presenter.summary(result.contribution),
+                       warnings: result.warnings,
+                       acceptance: result.acceptance && Contributions::Presenter.summary(result.acceptance) },
                status: result.created ? :created : :ok
       end
 

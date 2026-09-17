@@ -1,0 +1,47 @@
+# frozen_string_literal: true
+
+module Ledger
+  module Appliers
+    # CREATE_CLAIM (spec 02 §3.3, 01 §4). A human's own claim is accepted on
+    # append; an agent's claim is a proposal until a different principal accepts
+    # it (04 §4.3). Atomicity is a warning, never a block (02 §4).
+    module CreateClaim
+      extend Epistemic
+
+      def self.authorize!(validated)
+        claim_fields!(validated.payload)
+      end
+
+      def self.claim_fields!(p)
+        string!(p, "canonical_text", max: Claim::MAX_TEXT_CHARS)
+        type = enum!(p, "claim_type", Claim::TYPES)
+        hash!(p, "qualifiers", default: {})
+        evaluable = p.key?("truth_evaluable") ? boolean!(p, "truth_evaluable") : Claim.default_truth_evaluable(type)
+        if evaluable
+          reject("SCHEMA_INVALID", path("not_evaluable_reason"), "must be absent when truth_evaluable is true") unless p["not_evaluable_reason"].nil?
+        else
+          enum!(p, "not_evaluable_reason", Claim::NOT_EVALUABLE_REASONS, default: Claim::DEFAULT_NOT_EVALUABLE[type])
+        end
+      end
+
+      def self.warnings(validated)
+        Claims::Atomicity.warnings(validated.payload["canonical_text"])
+      end
+
+      def self.apply(c)
+        create_claim(c, c.payload)
+      end
+
+      def self.create_claim(c, p, supersedes_claim_id: nil)
+        type = p["claim_type"]
+        evaluable = p.key?("truth_evaluable") ? p["truth_evaluable"] : Claim.default_truth_evaluable(type)
+        Claim.create!(
+          id: Ids.derive(c.id, "claim"), contribution_id: c.id, created_seq: c.seq,
+          canonical_text: p["canonical_text"], claim_type: type, truth_evaluable: evaluable,
+          not_evaluable_reason: evaluable ? nil : (p["not_evaluable_reason"] || Claim::DEFAULT_NOT_EVALUABLE[type]),
+          qualifiers: p.fetch("qualifiers", {}), status: "ACTIVE", supersedes_claim_id: supersedes_claim_id
+        )
+      end
+    end
+  end
+end

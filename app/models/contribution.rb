@@ -38,6 +38,25 @@ class Contribution < ApplicationRecord
     Ledger::Entry.timestamp(received_at)
   end
 
+  # The accountable identity: a human is its own principal, an agent's
+  # principal is the delegation it acted under, the system is itself.
+  def principal_contributor
+    return nil if contributor.nil?
+    return contributor unless contributor.agent?
+
+    AgentDelegation.find_by(id: envelope&.dig("delegation_id"))&.principal
+  end
+
+  def principal_contributor_id = principal_contributor&.id
+
+  PROJECTION_MODELS = %w[Source SourceLocation Claim ClaimEdge IndependenceGroup IndependenceGroupAssignment
+                         EvidenceItem EvidenceClaimLink ClaimMerge ClaimEvaluabilitySetting].freeze
+
+  # Every projection row this contribution created.
+  def projection_rows
+    PROJECTION_MODELS.flat_map { |name| name.constantize.where(contribution_id: id).to_a }
+  end
+
   private
 
   def allow_only_cached_columns

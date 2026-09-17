@@ -31,3 +31,76 @@ module LedgerHelpers
     expect { yield }.to raise_error(Ledger::Rejected) { |e| expect(e.errors.map { |x| x[:code] }).to include(code) }
   end
 end
+
+# Evidence-graph builders. Each appends one valid contribution through the real
+# write path and returns the projection row it created.
+module GraphHelpers
+  def row_for(result, kind, model)
+    model.find(Ledger::Ids.derive(result.contribution.id, kind))
+  end
+
+  def create_source(pair, title: "Source", content: "The quick brown fox jumps over the lazy dog.", type: "PRIMARY_TEXT", delegation: nil, **extra)
+    payload = { "source_type" => type, "title" => title, "content" => content, "content_hash" => Crypto::Hashing.bytes(content) }.merge(extra.stringify_keys)
+    row_for(append(action_type: "CREATE_SOURCE", key_pair: pair, payload: payload, delegation_id: delegation&.id), "source", Source)
+  end
+
+  def create_location(pair, source, start: 0, finish: nil, delegation: nil, **extra)
+    finish ||= source.content_length
+    excerpt = source.slice(start, finish)
+    payload = { "source_id" => source.id, "locator_type" => "CHAR_RANGE", "locator" => { "start" => start, "end" => finish },
+                "excerpt" => excerpt, "excerpt_hash" => Crypto::Hashing.bytes(excerpt) }.merge(extra.stringify_keys)
+    row_for(append(action_type: "CREATE_SOURCE_LOCATION", key_pair: pair, payload: payload, delegation_id: delegation&.id), "location", SourceLocation)
+  end
+
+  def claim_payload(text, type: "TEXTUAL", **extra)
+    { "canonical_text" => text, "claim_type" => type }.merge(extra.stringify_keys)
+  end
+
+  def create_claim(pair, text, type: "TEXTUAL", delegation: nil, **extra)
+    row_for(append(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload(text, type: type, **extra), delegation_id: delegation&.id), "claim", Claim)
+  end
+
+  def create_evidence(pair, location, statement: "The passage states it.", observation: "DIRECT_TEXT", delegation: nil, **extra)
+    payload = { "source_location_id" => location.id, "observation_type" => observation, "statement" => statement }.merge(extra.stringify_keys)
+    row_for(append(action_type: "CREATE_EVIDENCE", key_pair: pair, payload: payload, delegation_id: delegation&.id), "evidence", EvidenceItem)
+  end
+
+  def link_evidence(pair, evidence, claim, direction: "SUPPORT", strength: "DIRECT", steps: 0, delegation: nil, **extra)
+    payload = { "evidence_item_id" => evidence.id, "claim_id" => claim.id, "direction" => direction,
+                "relevance_strength" => strength, "interpretive_steps" => steps }.merge(extra.stringify_keys)
+    row_for(append(action_type: "LINK_EVIDENCE", key_pair: pair, payload: payload, delegation_id: delegation&.id), "link", EvidenceClaimLink)
+  end
+
+  def create_edge(pair, from, to, type: "NARROWS", delegation: nil)
+    payload = { "from_claim_id" => from.id, "to_claim_id" => to.id, "relationship_type" => type }
+    row_for(append(action_type: "CREATE_CLAIM_EDGE", key_pair: pair, payload: payload, delegation_id: delegation&.id), "edge", ClaimEdge)
+  end
+
+  def create_group(pair, type: "SAME_DATASET", description: nil, delegation: nil)
+    payload = { "group_type" => type, "description" => description }
+    row_for(append(action_type: "CREATE_INDEPENDENCE_GROUP", key_pair: pair, payload: payload, delegation_id: delegation&.id), "group", IndependenceGroup)
+  end
+
+  def assign_group(pair, evidence, group, delegation: nil)
+    payload = { "evidence_item_id" => evidence.id, "independence_group_id" => group.id }
+    row_for(append(action_type: "ASSIGN_INDEPENDENCE_GROUP", key_pair: pair, payload: payload, delegation_id: delegation&.id), "assignment", IndependenceGroupAssignment)
+  end
+
+  def accept(pair, contribution, delegation: nil)
+    append(action_type: "ACCEPT", key_pair: pair, payload: { "contribution_id" => contribution.id }, delegation_id: delegation&.id).contribution
+  end
+
+  def invalidate(pair, contribution, reason: "withdrawn", delegation: nil)
+    append(action_type: "INVALIDATE", key_pair: pair, payload: { "contribution_id" => contribution.id, "reason" => reason }, delegation_id: delegation&.id).contribution
+  end
+
+  # A human principal with a delegated agent: [principal_pair, agent_pair, agent, delegation].
+  def principal_with_agent(**delegation_options)
+    principal_pair, = register_key
+    agent_pair, agent = register_key(kind: Contributor::AGENT)
+    delegation = delegate(principal_pair, agent, **delegation_options)
+    [ principal_pair, agent_pair, agent, delegation ]
+  end
+end
+
+RSpec.configure { |c| c.include GraphHelpers }

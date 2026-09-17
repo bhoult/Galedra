@@ -772,3 +772,69 @@ spec with reasons, and Constitutional Test answers where the stage requires them
   (`spec/services/ledger/*`, `spec/requests/api/v1/contributions_spec.rb`);
   `bundle exec rspec`, RuboCop, and Brakeman pass; the Compose stack runs genesis on
   boot and `ledger:verify` reports `CHAIN_VERIFIED` inside the container.
+
+### Stage 3 — Evidence graph projections (2026-09-17)
+
+- Tables per `02 §3.2–3.3` plus three additions: every projection row carries
+  `contribution_id` (attribution and the target of ACCEPT / INVALIDATE), and two small
+  windowed tables, `claim_merges` and `independence_group_assignments`, hold MERGE_CLAIMS
+  and ASSIGN_INDEPENDENCE_GROUP as rows of their own. `claim_evaluability_settings` does
+  the same for SET_TRUTH_EVALUABLE. A claim created by SUPERSEDE_CLAIM records
+  `supersedes_claim_id`.
+- **Merges, supersessions, and evaluability are derived from windows, never by
+  rewriting the affected row.** "Claim X is merged at S" means an accepted, active
+  `claim_merges` row exists at S; "link L is superseded at S" means an accepted, active
+  link with `supersedes_link_id = L` exists at S. INVALIDATE-ing the merge or the
+  revision therefore reverses it with no row restoration, which is what `02 §3.3`
+  promises for merges. `claims.status`, `superseded_by_id`, `merged_into_id`,
+  `truth_evaluable`, `not_evaluable_reason` and `evidence_items.independence_group_id`
+  are the cached current view, recomputed by `Projections::Refresh` after every ACCEPT
+  and INVALIDATE and rebuilt by replay. `*_at(seq)` methods answer history.
+- Counted links (the scoring input from Stage 5) are `EvidenceClaimLink.effective_at(S)`:
+  active, accepted, and not superseded at S. Evidence and location activity are checked
+  by the scorer's input builder in Stage 6, as `03 §4` Step 1 lists them.
+- **Source content is text in the CREATE_SOURCE payload.** `content_hash` is over the
+  UTF-8 bytes and CHAR_RANGE offsets are Unicode code points. This keeps the log
+  self-contained (a mirror of `GET /log` rebuilds every source) and makes replay
+  trivial. `11 §8` names Active Storage; it is deferred to a binary-source import flow
+  (P1), and the `content` column would then hold extracted text. Recorded for the owner.
+- Acceptance per `02 §1.1a`, implemented as a system-signed ACCEPT appended in the same
+  transaction: a human's own sources, locations, claims, evidence, links, edges,
+  groups, and assignments; own-principal supersessions and merges. Never for
+  SET_TRUTH_EVALUABLE. Agent contributions made outside a task (possible from Stage 2,
+  no task packets yet) are proposals; Stage 8 adds the automatic acceptance of
+  object-adding task results. ACCEPT by a human of a different principal, or by an
+  agent whose delegation lists `"ACCEPT"` under `permissions.allowed_actions`; never by
+  the same principal. INVALIDATE by the contribution's own principal (including a
+  principal withdrawing its agent's work) or by the system.
+- Proposed claims cannot receive links or edges (`CLAIM_NOT_ACCEPTED`), nor can merged,
+  superseded, retired, or invalidated ones (`CLAIM_NOT_CURRENT`, `TARGET_INVALIDATED`).
+- **Idempotency consequence (spec `02 §3.1`):** the key is the signer, task, and payload
+  hash, so a signer resubmitting a byte-identical payload always gets the original back,
+  even after it was invalidated or the claim it targets changed state. To make a second,
+  distinct identical claim a contributor changes something (qualifiers, note) or a
+  different contributor makes it. Whether `client_created_at` should enter the key is a
+  question for the owner; the code follows the spec.
+- Atomicity (`02 §4`) is `Claims::Atomicity`: warnings for length over 25 words, a
+  conjunction joining clauses, a comma-separated series, and inference words. Returned
+  with the POST response and on claim reads; never a block.
+- Near-duplicate suggestions use `pg_trgm` similarity at 0.3 (`Claims::Duplicates`),
+  exposed as `GET /claims?similar_to=<id>` rather than a new route.
+- Reads (`06 §2`) render as of `?snapshot_seq=` (default head): claim with history-aware
+  status, evaluability, edges, counted and pending counts; claim evidence grouped into
+  counted, pending, and superseded; evidence with its location and source; sources with
+  content; locations; contributors. Lists show accepted, live claims; proposals are
+  reachable by id. `assessment` and `card` blocks arrive in Stages 6 and 9.
+- `Ledger::TableDigest` hashes every projection table (rows ordered by id, attributes as
+  JSON) for the replay-equivalence test and the later snapshot digest. Renamed from
+  `Ledger::Digest` because that shadowed Ruby's `Digest` inside the namespace.
+- Foreign keys exist among projection tables; none point at them from outside, so a
+  single `TRUNCATE` of the whole set is valid.
+- Constitutional Test (history and visibility touched): 1 yes, excerpt and content
+  hashes bind evidence to bytes; 2 yes, contradicting links and edges coexist; 3 no,
+  acceptance is by a different principal or the system after validation, both logged;
+  4 no; 5 yes, `truth_evaluable` overrides are themselves contributions; 6 yes, replay
+  digest test; 7 yes; 8 yes, every state answers at any seq; 9 n/a; 10 yes.
+- Acceptance: 07 Phase 2 #1–#7 each have specs (`spec/requests/api/v1/graph_spec.rb`,
+  `spec/models/projection_spec.rb`, `spec/services/graph/*`, `spec/services/ledger/replay_spec.rb`);
+  `bundle exec rspec`, RuboCop, and Brakeman pass.

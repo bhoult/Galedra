@@ -5,7 +5,7 @@ module Ledger
   # rule 3). Refuses to run over a broken chain. Cached columns on contributions
   # are reset first so they too are rebuilt from the log.
   class Replay
-    PROJECTIONS = [ AgentDelegation, Contributor ].freeze
+    PROJECTIONS = Ledger::TableDigest::MODELS.map(&:constantize).freeze
 
     Result = Struct.new(:status, :applied, keyword_init: true)
 

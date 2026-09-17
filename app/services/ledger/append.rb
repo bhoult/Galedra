@@ -6,7 +6,7 @@ module Ledger
   # persists, and applies projections in the same transaction. A duplicate
   # (same idempotency key) returns the original contribution.
   class Append
-    Result = Struct.new(:contribution, :created, keyword_init: true)
+    Result = Struct.new(:contribution, :created, :warnings, :acceptance, keyword_init: true)
 
     def self.call(envelope, custody: Crypto::Custody::SELF)
       new(envelope, custody).call
@@ -19,7 +19,7 @@ module Ledger
 
     def call
       if (existing = duplicate)
-        return Result.new(contribution: existing, created: false)
+        return Result.new(contribution: existing, created: false, warnings: [], acceptance: nil)
       end
 
       validated = Contributions::ValidateEnvelope.call(@envelope)
@@ -28,7 +28,7 @@ module Ledger
       Contribution.transaction do
         lock!
         if (existing = Contribution.find_by(idempotency_key: validated.idempotency_key))
-          next Result.new(contribution: existing, created: false)
+          next Result.new(contribution: existing, created: false, warnings: [], acceptance: nil)
         end
 
         head = Contribution.in_order.last
@@ -66,11 +66,26 @@ module Ledger
         )
 
         Apply.call(contribution)
-        Result.new(contribution: contribution, created: true)
+        warnings = applier.respond_to?(:warnings) ? applier.warnings(validated) : []
+        acceptance = auto_accept(contribution, validated, applier)
+        Result.new(contribution: contribution, created: true, warnings: warnings, acceptance: acceptance)
       end
     end
 
     private
+
+    # Spec 02 §1.1a: after validation the system accepts a contributor's own
+    # direct work by appending an ACCEPT signed with the system key, inside the
+    # same transaction. Proposals stay PENDING for a different principal.
+    def auto_accept(contribution, validated, applier)
+      return nil unless contribution.epistemic? && applier.respond_to?(:auto_accept?) && applier.auto_accept?(validated)
+
+      envelope = Contributions::Envelope.build(
+        action_type: "ACCEPT", key_pair: Crypto::SystemKey.key_pair,
+        payload: { "contribution_id" => contribution.id, "basis" => "AUTOMATIC_AFTER_VALIDATION" }
+      )
+      Append.call(envelope, custody: Crypto::Custody::SYSTEM).contribution
+    end
 
     def reject(code, path, detail)
       raise Rejected.new([ { code: code, path: path, detail: detail } ])

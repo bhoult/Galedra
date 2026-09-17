@@ -11,6 +11,14 @@ Rails.application.routes.draw do
       resources :contributions, only: [ :create, :show ] do
         get :verify, on: :member
       end
+      resources :sources, only: [ :show ] do
+        get :locations, on: :member
+      end
+      resources :claims, only: [ :index, :show ] do
+        get :evidence, on: :member
+      end
+      resources :evidence, only: [ :show ]
+      resources :contributors, only: [ :show ]
     end
   end
 
