@@ -1,0 +1,121 @@
+{
+  "name": "ledger-strict",
+  "semantic_version": "0.1.0",
+  "claim_types": [
+    "OBSERVATIONAL",
+    "QUANTITATIVE",
+    "HISTORICAL",
+    "TEXTUAL",
+    "COMPARATIVE",
+    "CAUSAL",
+    "FORECAST",
+    "LEGAL",
+    "INTERPRETIVE",
+    "DEFINITIONAL",
+    "ATTRIBUTED_BELIEF",
+    "NORMATIVE",
+    "RHETORICAL",
+    "METAPHYSICAL"
+  ],
+  "scored_types": [
+    "OBSERVATIONAL",
+    "QUANTITATIVE",
+    "HISTORICAL",
+    "TEXTUAL",
+    "COMPARATIVE",
+    "DEFINITIONAL",
+    "ATTRIBUTED_BELIEF"
+  ],
+  "model_dependent_types": [],
+  "prior": {
+    "OBSERVATIONAL": "0.50",
+    "QUANTITATIVE": "0.50",
+    "HISTORICAL": "0.50",
+    "TEXTUAL": "0.50",
+    "COMPARATIVE": "0.50",
+    "DEFINITIONAL": "0.50",
+    "ATTRIBUTED_BELIEF": "0.50"
+  },
+  "relevance_weight": {
+    "DIRECT": "2.0",
+    "STRONG": "1.2",
+    "MODERATE": "0.6",
+    "WEAK": "0.2",
+    "CONTEXT_ONLY": "0.0"
+  },
+  "observation_weight": {
+    "MEASUREMENT": "1.0",
+    "DATASET_RESULT": "0.9",
+    "DIRECT_TEXT": "0.9",
+    "ARCHAEOLOGICAL": "0.9",
+    "CALCULATION": "0.7",
+    "EYEWITNESS": "0.4",
+    "EXPERT_ANALYSIS": "0.0",
+    "HEARSAY": "0.1",
+    "OTHER": "0.1",
+    "MODEL_OUTPUT": "0.0"
+  },
+  "interpretive_step_penalty": "0.15",
+  "authenticity_factor": {
+    "VERIFIED": "1.0",
+    "UNVERIFIED": "1.0",
+    "DOUBTFUL": "0.3"
+  },
+  "extraction_factor": {
+    "VERIFIED": "1.0",
+    "UNVERIFIED": "1.0"
+  },
+  "direction_sign": {
+    "SUPPORT": 1,
+    "CONTRADICT": -1,
+    "QUALIFY": 0,
+    "NEUTRAL": 0
+  },
+  "independence_strategy": "strongest_only_per_group_and_direction",
+  "state_thresholds": {
+    "SUPPORTED": "0.80",
+    "LEANS_SUPPORTED": "0.60",
+    "UNRESOLVED_ABOVE": "0.40",
+    "LEANS_CONTRADICTED_ABOVE": "0.20"
+  },
+  "stability": {
+    "variants": {
+      "conservative": "0.7",
+      "permissive": "1.3"
+    },
+    "spread_high_max": "0.10",
+    "spread_medium_max": "0.25",
+    "min_groups_for_high": 2,
+    "model_dependent_cap": "LOW"
+  },
+  "review_checklist": [
+    "primary_source_reviewed",
+    "opposing_search_done",
+    "independence_reviewed",
+    "qualifiers_reviewed"
+  ],
+  "primary_source_types": [
+    "PRIMARY_TEXT",
+    "DATASET",
+    "MEASUREMENT",
+    "LEGAL_DOCUMENT"
+  ],
+  "task_type_cost": {
+    "CLAIM_EXTRACTION": "2",
+    "EVIDENCE_VERIFICATION": "1",
+    "OPPOSING_EVIDENCE_SEARCH": "3",
+    "SOURCE_INDEPENDENCE_CHECK": "2",
+    "QUALIFIER_CHECK": "2"
+  },
+  "rounding": {
+    "weights": 6,
+    "probability": 4,
+    "coverage": 2,
+    "mode": "half_even",
+    "boundary_guard": "1e-6"
+  },
+  "review_checklist_note": "Every declared check must be satisfiable by a task type released in the same tier as the model (enforced at model release). review_coverage = satisfied / len(review_checklist).",
+  "state_rules": {
+    "directional_states_require_matching_groups": true
+  }
+}
