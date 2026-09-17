@@ -20,7 +20,7 @@ Status: **P0** implemented in POC · **P1** planned after P0 · **Partial** P0 i
 | XII Resist capture | 02 §1.2 chain, 05 §5, §9 deterministic sampling, §13 visible moderation, 03 §13 multiple models | P0 | Two scoring models ship in P0 so "alternative models over the same evidence" is exercised, not just promised. Governance of the system key is open (09 §15) |
 | XIII Corrections keep history | 02 §1.3, §5; snapshot views | P0 | Legal removal via visible `TAKEDOWN`; replay reports `CHAIN_VERIFIED_WITH_REDACTIONS` rather than claiming completeness — see proposed amendment P-2 |
 | XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification | P0 | Humans are audited by the same rules as agents |
-| XV Shared vs. personal belief | 02 §3.7 reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
+| XV Shared vs. personal belief | 02 §3.6a reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
 | XVI Localized disagreement | 06 `/compare` (model vs. model) | Partial | P0 shows *which links and config keys* explain a difference between two models. Localizing disagreement between people needs lenses (P1) |
 | XVII Normative ≠ empirical | 01 §4, 03 §11 | P0 | `NOT_APPLICABLE` with a stated reason |
 | XVIII Political neutrality | 06 §6 | P1 view, rule P0 | No speaker/party scores anywhere; same pipeline for all claims |

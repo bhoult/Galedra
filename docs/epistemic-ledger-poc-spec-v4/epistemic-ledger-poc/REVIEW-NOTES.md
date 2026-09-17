@@ -129,6 +129,10 @@ The v4 review notes described seven fixes as "already made" but arrived without 
 64. **New bug found while building the demo:** with a non-0.50 prior, the v3 state rule labeled a claim with only supporting evidence "leans contradicted" (08 `C6`). Directional states now require evidence in that direction (03 §4 Step 5). Watchers golden values are unaffected.
 65. **Supersession needed a real mechanism.** The qualifier story requires revising other contributors' links; `SUPERSEDE_LINK` was added, and it requires acceptance by a different principal.
 
+## I. Post-v4 consistency pass
+
+66. Cross-reference and path fixes only; no semantic change. `04 §7` and `05 §2, §5` now use the versioned `/api/v1/` paths that `06` defines. `04 §4.2` derives `idempotency_key` from `signer_key_id`, matching the `02 §3.1` schema (it said `contributor_id`). `13` Article XV points at `02 §3.6a` (it said §3.7). `05 §16` no longer implies an `anomaly` factor already exists in the §9 formula. The reference scorer's docstring cites `08 §8` for the golden table.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-1 through P-4?

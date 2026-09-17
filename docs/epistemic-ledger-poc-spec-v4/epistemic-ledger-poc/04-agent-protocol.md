@@ -128,7 +128,7 @@ Ops use the same shape as the corresponding contribution action payloads in 02 �
 
 ### 4.2 Idempotency
 
-`idempotency_key = sha256(contributor_id | task_id | payload_hash)`. A duplicate submission returns the original contribution (HTTP 200) and creates nothing.
+`idempotency_key = sha256(signer_key_id | task_id | payload_hash)` (02 §3.1). A duplicate submission returns the original contribution (HTTP 200) and creates nothing.
 
 ### 4.3 Claim extraction is proposal-only
 
@@ -187,7 +187,7 @@ Passing validation proves the result is well-formed and attributable — not tha
 ## 7. Leases
 
 ```text
-POST /api/tasks/next?types=…&domains=…   -> leases one task (or 204)
+POST /api/v1/tasks/next?types=…&domains=…   -> leases one task (or 204)
 ```
 
 - Lease length: 2 hours default, per-type configurable.

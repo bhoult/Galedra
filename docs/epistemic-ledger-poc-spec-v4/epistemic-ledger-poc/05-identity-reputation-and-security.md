@@ -42,7 +42,7 @@ Ed25519 for everything. `key_id = "ed25519:" + hex(sha256(raw_public_key))`.
 
 The previous draft required every contribution to be signed but gave UI users no way to sign. Server custody is an honest, labeled compromise for a POC; the UI shows a "server-held key" badge, and users can later register a self-custodied key and delegate (P1: browser WebCrypto Ed25519).
 
-The system key lives outside the database (environment/credentials), and its public key is published in `GET /api/meta`.
+The system key lives outside the database (environment/credentials), and its public key is published in `GET /api/v1/meta`.
 
 Use a maintained library (the `ed25519` gem or Ruby OpenSSL 3 Ed25519 support). Never hand-roll primitives.
 
@@ -73,7 +73,7 @@ Reputation events are recorded on the delegate **and** rolled up to the principa
 
 Defined in 02 §1.2. Additions:
 
-- `GET /api/log?after_seq=` streams entries so third parties can mirror and verify the chain.
+- `GET /api/v1/log?after_seq=` streams entries so third parties can mirror and verify the chain.
 - `bin/rails ledger:verify` recomputes every `entry_hash`, checks every client and server signature, and reports the first break.
 - The chain head hash can later be anchored externally (e.g., published in a signed git repo). No blockchain.
 
@@ -207,4 +207,4 @@ Contributors are never required to expose real name, location, employer, or IP h
 
 ## 16. Suspicious Contribution Clusters (P1)
 
-Constitution Article XXII asks the system to expose suspicious clusters. P1 adds a read-only report: audit-failure rates grouped by principal, declared model family, prompt version, and time window; groups of new keys whose results agree unusually often on the same tasks. The report raises audit rates through the `anomaly` factor (§9); it never invalidates anything by itself.
+Constitution Article XXII asks the system to expose suspicious clusters. P1 adds a read-only report: audit-failure rates grouped by principal, declared model family, prompt version, and time window; groups of new keys whose results agree unusually often on the same tasks. The report raises audit rates through an additional `anomaly` factor added to the §9 formula in P1; it never invalidates anything by itself.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reference implementation of ledger-default@0.1.0 and ledger-strict@0.1.0
 (spec 03 §4, §8, §9, §13). Not production code: an independent cross-check that
-reproduces the golden values in 08 §7 (public demo) and
+reproduces the golden values in 08 §8 (public demo) and
 examples/watchers/README.md §7 (stress test). Run: python3 reference_scorer.py
 """
 import json, math, os

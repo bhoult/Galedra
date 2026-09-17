@@ -1803,7 +1803,7 @@ Ops use the same shape as the corresponding contribution action payloads in 02 �
 
 ### 4.2 Idempotency
 
-`idempotency_key = sha256(contributor_id | task_id | payload_hash)`. A duplicate submission returns the original contribution (HTTP 200) and creates nothing.
+`idempotency_key = sha256(signer_key_id | task_id | payload_hash)` (02 §3.1). A duplicate submission returns the original contribution (HTTP 200) and creates nothing.
 
 ### 4.3 Claim extraction is proposal-only
 
@@ -1862,7 +1862,7 @@ Passing validation proves the result is well-formed and attributable — not tha
 ## 7. Leases
 
 ```text
-POST /api/tasks/next?types=…&domains=…   -> leases one task (or 204)
+POST /api/v1/tasks/next?types=…&domains=…   -> leases one task (or 204)
 ```
 
 - Lease length: 2 hours default, per-type configurable.
@@ -1990,7 +1990,7 @@ Ed25519 for everything. `key_id = "ed25519:" + hex(sha256(raw_public_key))`.
 
 The previous draft required every contribution to be signed but gave UI users no way to sign. Server custody is an honest, labeled compromise for a POC; the UI shows a "server-held key" badge, and users can later register a self-custodied key and delegate (P1: browser WebCrypto Ed25519).
 
-The system key lives outside the database (environment/credentials), and its public key is published in `GET /api/meta`.
+The system key lives outside the database (environment/credentials), and its public key is published in `GET /api/v1/meta`.
 
 Use a maintained library (the `ed25519` gem or Ruby OpenSSL 3 Ed25519 support). Never hand-roll primitives.
 
@@ -2021,7 +2021,7 @@ Reputation events are recorded on the delegate **and** rolled up to the principa
 
 Defined in 02 §1.2. Additions:
 
-- `GET /api/log?after_seq=` streams entries so third parties can mirror and verify the chain.
+- `GET /api/v1/log?after_seq=` streams entries so third parties can mirror and verify the chain.
 - `bin/rails ledger:verify` recomputes every `entry_hash`, checks every client and server signature, and reports the first break.
 - The chain head hash can later be anchored externally (e.g., published in a signed git repo). No blockchain.
 
@@ -2155,7 +2155,7 @@ Contributors are never required to expose real name, location, employer, or IP h
 
 ## 16. Suspicious Contribution Clusters (P1)
 
-Constitution Article XXII asks the system to expose suspicious clusters. P1 adds a read-only report: audit-failure rates grouped by principal, declared model family, prompt version, and time window; groups of new keys whose results agree unusually often on the same tasks. The report raises audit rates through the `anomaly` factor (§9); it never invalidates anything by itself.
+Constitution Article XXII asks the system to expose suspicious clusters. P1 adds a read-only report: audit-failure rates grouped by principal, declared model family, prompt version, and time window; groups of new keys whose results agree unusually often on the same tasks. The report raises audit rates through an additional `anomaly` factor added to the §9 formula in P1; it never invalidates anything by itself.
 
 ---
 
@@ -3213,7 +3213,7 @@ Status: **P0** implemented in POC · **P1** planned after P0 · **Partial** P0 i
 | XII Resist capture | 02 §1.2 chain, 05 §5, §9 deterministic sampling, §13 visible moderation, 03 §13 multiple models | P0 | Two scoring models ship in P0 so "alternative models over the same evidence" is exercised, not just promised. Governance of the system key is open (09 §15) |
 | XIII Corrections keep history | 02 §1.3, §5; snapshot views | P0 | Legal removal via visible `TAKEDOWN`; replay reports `CHAIN_VERIFIED_WITH_REDACTIONS` rather than claiming completeness — see proposed amendment P-2 |
 | XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification | P0 | Humans are audited by the same rules as agents |
-| XV Shared vs. personal belief | 02 §3.7 reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
+| XV Shared vs. personal belief | 02 §3.6a reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
 | XVI Localized disagreement | 06 `/compare` (model vs. model) | Partial | P0 shows *which links and config keys* explain a difference between two models. Localizing disagreement between people needs lenses (P1) |
 | XVII Normative ≠ empirical | 01 §4, 03 §11 | P0 | `NOT_APPLICABLE` with a stated reason |
 | XVIII Political neutrality | 06 §6 | P1 view, rule P0 | No speaker/party scores anywhere; same pipeline for all claims |
