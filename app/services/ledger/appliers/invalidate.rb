@@ -4,7 +4,8 @@ module Ledger
   module Appliers
     # INVALIDATE (spec 02 §5): a correction that closes the target's projection
     # windows at this seq. By the system key (audit outcomes, Stage 7) or by
-    # the target's own principal withdrawing its work (or its agent's work).
+    # the target's own principal withdrawing its work (or its agent's work), or
+    # a moderator (spec 05 §13).
     module Invalidate
       extend Checks
 
@@ -18,7 +19,7 @@ module Ledger
         string!(payload, "reason")
 
         signer = validated.contributor
-        return if signer&.system?
+        return if signer&.system? || Governance::Moderators.moderator?(signer)
 
         principal = signer&.human? ? signer : validated.delegation&.principal
         return if principal && principal.id == target.principal_contributor_id

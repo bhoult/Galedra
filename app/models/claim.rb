@@ -24,13 +24,25 @@ class Claim < ApplicationRecord
   has_many :merges_into, class_name: "ClaimMerge", foreign_key: :into_claim_id, inverse_of: :into_claim, dependent: nil
   has_many :evaluability_settings, class_name: "ClaimEvaluabilitySetting", dependent: nil
 
-  validates :canonical_text, presence: true, length: { maximum: MAX_TEXT_CHARS }
+  validates :canonical_text, presence: true, length: { maximum: MAX_TEXT_CHARS }, unless: :redacted?
   validates :claim_type, inclusion: { in: TYPES }
   validates :status, inclusion: { in: STATUSES }
   validates :not_evaluable_reason, inclusion: { in: NOT_EVALUABLE_REASONS }, if: -> { !truth_evaluable }
   validates :not_evaluable_reason, absence: true, if: -> { truth_evaluable }
 
   def self.default_truth_evaluable(claim_type) = !DEFAULT_NOT_EVALUABLE.key?(claim_type)
+
+  def redacted? = redacted_by_seq.present?
+
+  def status_at(seq)
+    return nil unless created_seq <= seq
+    return "QUARANTINED" if Governance::Quarantines.quarantined_at?("CLAIM", id, seq)
+    return "MERGED" if merge_at(seq)
+    return "SUPERSEDED" if superseded_by_at(seq)
+    return "RETIRED" unless active_at?(seq)
+
+    "ACTIVE"
+  end
 
   # The claim that supersedes this one as of S, if any.
   def superseded_by_at(seq)
@@ -46,15 +58,6 @@ class Claim < ApplicationRecord
     counted_at?(seq) && superseded_by_at(seq).nil? && merge_at(seq).nil?
   end
 
-  def status_at(seq)
-    return nil unless active_at?(seq) || (created_seq <= seq)
-    return "MERGED" if merge_at(seq)
-    return "SUPERSEDED" if superseded_by_at(seq)
-    return "RETIRED" unless active_at?(seq)
-
-    "ACTIVE"
-  end
-
   def evaluability_at(seq)
     setting = evaluability_settings.counted_at(seq).order(accepted_seq: :desc).first
     if setting
@@ -64,12 +67,17 @@ class Claim < ApplicationRecord
     end
   end
 
+  # After a TAKEDOWN the payload is gone; the retained column values stand in.
   def original_truth_evaluable
-    contribution.payload.key?("truth_evaluable") ? contribution.payload["truth_evaluable"] : Claim.default_truth_evaluable(claim_type)
+    payload = contribution.payload
+    return truth_evaluable if payload.nil?
+
+    payload.key?("truth_evaluable") ? payload["truth_evaluable"] : Claim.default_truth_evaluable(claim_type)
   end
 
   def original_not_evaluable_reason
     return nil if original_truth_evaluable
+    return not_evaluable_reason if contribution.payload.nil?
 
     contribution.payload["not_evaluable_reason"] || DEFAULT_NOT_EVALUABLE[claim_type]
   end

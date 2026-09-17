@@ -53,7 +53,7 @@ module GraphHelpers
   end
 
   def claim_payload(text, type: "TEXTUAL", **extra)
-    { "canonical_text" => text, "claim_type" => type }.merge(extra.stringify_keys)
+    { "canonical_text" => text, "claim_type" => type, "affirms_not_private_individual" => true }.merge(extra.stringify_keys)
   end
 
   def create_claim(pair, text, type: "TEXTUAL", delegation: nil, **extra)
@@ -92,6 +92,26 @@ module GraphHelpers
 
   def invalidate(pair, contribution, reason: "withdrawn", delegation: nil)
     append(action_type: "INVALIDATE", key_pair: pair, payload: { "contribution_id" => contribution.id, "reason" => reason }, delegation_id: delegation&.id).contribution
+  end
+
+  # Registers a key and designates it a moderator for the rest of the example.
+  def register_moderator(**payload)
+    pair, contributor = register_key(display_name: "Moderator", **payload)
+    ENV[Governance::Moderators::ENV_KEY] = [ ENV[Governance::Moderators::ENV_KEY], pair.key_id ].compact.reject(&:empty?).join(",")
+    [ pair, contributor ]
+  end
+
+  def quarantine(pair, target, reason: "PRIVATE_INDIVIDUAL", note: nil)
+    type = target.is_a?(Claim) ? "CLAIM" : "SOURCE"
+    result = append(action_type: "QUARANTINE", key_pair: pair, payload: { "target_type" => type, "target_id" => target.id, "reason" => reason, "note" => note })
+    Quarantine.find(Ledger::Ids.derive(result.contribution.id, "quarantine"))
+  end
+
+  def takedown(pair, contribution, legal_basis: "Court order 2026-17", removed: nil)
+    manifest = Ledger::Redaction.manifest_for(contribution, removed: removed)
+    append(action_type: "TAKEDOWN", key_pair: pair,
+           payload: { "contribution_id" => contribution.id, "legal_basis" => legal_basis, "requested_at" => Date.today.iso8601,
+                      "redaction_manifest" => manifest }).contribution
   end
 
   # A human principal with a delegated agent: [principal_pair, agent_pair, agent, delegation].

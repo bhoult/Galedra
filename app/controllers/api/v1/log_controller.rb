@@ -11,7 +11,8 @@ module Api
         after_seq = params.fetch(:after_seq, -1).to_i
         limit = params.fetch(:limit, DEFAULT_LIMIT).to_i.clamp(1, MAX_LIMIT)
         entries = Contribution.where("seq > ?", after_seq).in_order.limit(limit)
-        render json: { entries: entries.map { |c| Contributions::Presenter.entry(c) }, current_seq: Contribution.maximum(:seq) }
+        withheld = Governance::Quarantines.withheld_contribution_ids
+        render json: { entries: entries.map { |c| Contributions::Presenter.entry(c, withheld_ids: withheld) }, current_seq: Contribution.maximum(:seq) }
       end
     end
   end

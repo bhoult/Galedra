@@ -25,7 +25,7 @@ RSpec.describe "Evidence graph over the API (07 Phase 2 #1–#3)", type: :reques
                                                                   "excerpt" => excerpt, "excerpt_hash" => Crypto::Hashing.bytes(excerpt) })
     location_id = created_id(location_body, "location")
 
-    claim_body = post_contribution("CREATE_CLAIM", { "canonical_text" => "The Acme press release states that 62% of remote workers report higher productivity.", "claim_type" => "TEXTUAL" })
+    claim_body = post_contribution("CREATE_CLAIM", { "canonical_text" => "The Acme press release states that 62% of remote workers report higher productivity.", "claim_type" => "TEXTUAL", "affirms_not_private_individual" => true })
     claim_id = created_id(claim_body, "claim")
     expect(claim_body["warnings"]).to eq([])
 
@@ -83,7 +83,7 @@ RSpec.describe "Evidence graph over the API (07 Phase 2 #1–#3)", type: :reques
   end
 
   it "reports atomicity warnings without blocking" do
-    body = post_contribution("CREATE_CLAIM", { "canonical_text" => "Acme's survey shows remote workers are more productive and happier and save two hours a day, so companies should adopt remote work.", "claim_type" => "TEXTUAL" })
+    body = post_contribution("CREATE_CLAIM", { "canonical_text" => "Acme's survey shows remote workers are more productive and happier and save two hours a day, so companies should adopt remote work.", "claim_type" => "TEXTUAL", "affirms_not_private_individual" => true })
     expect(body["warnings"].map { |w| w["code"] }).to include("ATOMICITY_CONJUNCTION", "ATOMICITY_INFERENCE")
     expect(Claim.find(created_id(body, "claim"))).to be_persisted
   end

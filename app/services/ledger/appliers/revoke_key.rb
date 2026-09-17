@@ -19,6 +19,8 @@ module Ledger
         string_or_nil!(payload, "reason")
 
         signer = validated.contributor
+        return if Governance::Moderators.moderator?(signer) # suspension (spec 05 §13)
+
         self_revocation = signer && signer.id == target.id
         principal = signer&.human? && AgentDelegation.where(principal_contributor_id: signer.id, delegate_contributor_id: target.id, revoked_seq: nil).exists?
         return if self_revocation || principal

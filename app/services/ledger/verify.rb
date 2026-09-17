@@ -6,10 +6,11 @@ module Ledger
   # met, never from projections. Reports the first break with its seq.
   class Verify
     CHAIN_VERIFIED = "CHAIN_VERIFIED"
+    CHAIN_VERIFIED_WITH_REDACTIONS = "CHAIN_VERIFIED_WITH_REDACTIONS"
     CHAIN_BROKEN = "CHAIN_BROKEN"
     BATCH = 500
 
-    Result = Struct.new(:status, :checked, :head_seq, :head_hash, :first_break, keyword_init: true) do
+    Result = Struct.new(:status, :checked, :head_seq, :head_hash, :first_break, :redacted_seqs, keyword_init: true) do
       def ok? = first_break.nil?
     end
 
@@ -49,19 +50,22 @@ module Ledger
       prev_hash = Contribution::GENESIS_PREV_HASH
       checked = 0
       head = nil
+      redacted = []
 
       each_entry do |c|
         reason = check(c, expected_seq, prev_hash, keys)
         return broken(c, reason, checked) if reason
 
         keys[c.signer_key_id] = c.payload["public_key"] if c.action_type == "REGISTER_KEY"
+        redacted << c.seq if c.redacted?
         expected_seq += 1
         prev_hash = c.entry_hash
         head = c
         checked += 1
       end
 
-      Result.new(status: CHAIN_VERIFIED, checked: checked, head_seq: head&.seq, head_hash: head&.entry_hash, first_break: nil)
+      Result.new(status: redacted.empty? ? CHAIN_VERIFIED : CHAIN_VERIFIED_WITH_REDACTIONS, checked: checked,
+                 head_seq: head&.seq, head_hash: head&.entry_hash, first_break: nil, redacted_seqs: redacted)
     end
 
     private
@@ -79,7 +83,7 @@ module Ledger
 
     def broken(contribution, reason, checked)
       Result.new(status: CHAIN_BROKEN, checked: checked, head_seq: nil, head_hash: nil,
-                 first_break: { seq: contribution.seq, reason: reason })
+                 first_break: { seq: contribution.seq, reason: reason }, redacted_seqs: [])
     end
 
     def check(c, expected_seq, prev_hash, keys)
@@ -89,7 +93,15 @@ module Ledger
         return "genesis is not the pinned system key's REGISTER_KEY" unless c.action_type == "REGISTER_KEY" &&
                                                                           c.payload&.dig("public_key") == Crypto::SystemKey.public_key
       end
-      unless c.redacted?
+      if c.redacted?
+        return "redacted bytes still present" unless c.payload.nil? && c.envelope.nil?
+        return "redacted control contribution" if c.control?
+
+        takedown = Contribution.find_by(seq: c.redacted_by_seq)
+        unless takedown&.action_type == "TAKEDOWN" && takedown.payload&.dig("contribution_id") == c.id
+          return "redacted without a matching TAKEDOWN at seq #{c.redacted_by_seq}"
+        end
+      else
         return "envelope_hash does not match the stored envelope" unless Contributions::Envelope.hash(c.envelope) == c.envelope_hash
         return "payload_hash does not match the stored payload" unless Crypto::Hashing.json(c.payload) == c.payload_hash &&
                                                                        c.envelope["payload_hash"] == c.payload_hash

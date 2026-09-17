@@ -8,4 +8,13 @@ module EnvHelpers
   end
 end
 
-RSpec.configure { |c| c.include EnvHelpers }
+RSpec.configure do |c|
+  c.include EnvHelpers
+  # Examples may designate moderators; never let that leak between examples.
+  c.around(:each) do |example|
+    saved = ENV["LEDGER_MODERATOR_KEY_IDS"]
+    example.run
+  ensure
+    saved.nil? ? ENV.delete("LEDGER_MODERATOR_KEY_IDS") : ENV["LEDGER_MODERATOR_KEY_IDS"] = saved
+  end
+end

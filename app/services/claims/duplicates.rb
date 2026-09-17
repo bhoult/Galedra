@@ -9,7 +9,8 @@ module Claims
 
     def self.candidates(text, exclude_id: nil, limit: LIMIT, threshold: THRESHOLD)
       quoted = Claim.connection.quote(text)
-      scope = Claim.live.accepted.where("similarity(canonical_text, #{quoted}) >= ?", threshold)
+      scope = Claim.live.accepted.where.not(id: Governance::Quarantines.quarantined_claim_ids)
+                   .where("similarity(canonical_text, #{quoted}) >= ?", threshold)
       scope = scope.where.not(id: exclude_id) if exclude_id
       scope.select("claims.*, similarity(canonical_text, #{quoted}) AS similarity")
            .order(Arel.sql("similarity DESC, created_seq ASC")).limit(limit)

@@ -5,6 +5,11 @@ module Ledger
   # contribution and the current projections, so replay reproduces every row.
   module Apply
     def self.call(contribution)
+      if contribution.redacted?
+        Ledger.applying { Redaction.rebuild!(contribution) }
+        return
+      end
+
       applier = Appliers.for(contribution.action_type)
       return if applier.nil?
 

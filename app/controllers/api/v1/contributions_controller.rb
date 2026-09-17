@@ -23,6 +23,16 @@ module Api
         render json: Ledger::Verify.entry(Contribution.find(params[:id]))
       end
 
+      # A moderator convenience: the default redaction manifest for a TAKEDOWN
+      # of this contribution, to be edited and signed by the moderator.
+      def redaction_manifest
+        c = Contribution.find(params[:id])
+        raise Ledger::Rejected.new([ { code: "NOT_REDACTABLE", path: "$", detail: "only epistemic contributions can be taken down" } ]) unless c.epistemic?
+
+        render json: { contribution_id: c.id, redaction_manifest: Ledger::Redaction.manifest_for(c),
+                       redactable_fields: Ledger::Redaction::REDACTABLE }
+      end
+
       private
 
       def envelope_from_body

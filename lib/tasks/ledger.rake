@@ -17,6 +17,7 @@ namespace :ledger do
   task verify: :environment do
     result = Ledger::Verify.call
     puts "#{result.status}: #{result.checked} entries, head seq #{result.head_seq.inspect}, head #{result.head_hash.inspect}"
+    puts "redacted seqs: #{result.redacted_seqs.join(', ')}" if result.redacted_seqs.present?
     if result.first_break
       puts "first break at seq #{result.first_break[:seq]}: #{result.first_break[:reason]}"
       exit 1

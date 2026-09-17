@@ -10,7 +10,7 @@ module Api
         claims = if params[:similar_to].present?
           Claims::Duplicates.candidates(Claim.find(params[:similar_to]).canonical_text, exclude_id: params[:similar_to])
         else
-          scope = Claim.counted_at(seq).order(created_seq: :desc)
+          scope = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids).order(created_seq: :desc)
           scope = scope.where(claim_type: params[:type]) if params[:type].present?
           scope = scope.where(status: params[:status]) if params[:status].present?
           scope = scope.where("to_tsvector('english', canonical_text) @@ plainto_tsquery('english', ?)", params[:q]) if params[:q].present?

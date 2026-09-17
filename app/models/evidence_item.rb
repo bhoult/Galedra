@@ -13,7 +13,9 @@ class EvidenceItem < ApplicationRecord
   has_many :assignments, class_name: "IndependenceGroupAssignment", dependent: nil
 
   validates :observation_type, inclusion: { in: OBSERVATION_TYPES }
-  validates :statement, presence: true
+  validates :statement, presence: true, unless: :redacted?
+
+  def redacted? = redacted_by_seq.present?
 
   def independence_group_at(seq)
     assignments.counted_at(seq).order(accepted_seq: :desc).first&.independence_group

@@ -14,6 +14,10 @@ module Ledger
 
       def self.claim_fields!(p)
         string!(p, "canonical_text", max: Claim::MAX_TEXT_CHARS)
+        unless p["affirms_not_private_individual"] == true
+          reject("PRIVATE_INDIVIDUAL_AFFIRMATION_REQUIRED", path("affirms_not_private_individual"),
+                 "claims about identifiable private individuals are out of scope; affirm this claim is not one (spec 01 §7)")
+        end
         type = enum!(p, "claim_type", Claim::TYPES)
         hash!(p, "qualifiers", default: {})
         evaluable = p.key?("truth_evaluable") ? boolean!(p, "truth_evaluable") : Claim.default_truth_evaluable(type)

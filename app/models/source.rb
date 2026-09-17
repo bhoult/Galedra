@@ -10,8 +10,10 @@ class Source < ApplicationRecord
   has_many :source_locations, dependent: nil
 
   validates :source_type, inclusion: { in: TYPES }
-  validates :title, presence: true
+  validates :title, presence: true, unless: :redacted?
   validates :content_hash, presence: true, if: -> { content.present? }
+
+  def redacted? = redacted_by_seq.present?
 
   def content_length
     content&.length || 0

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_240000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -35,6 +35,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.bigint "created_seq", null: false
     t.uuid "from_claim_id", null: false
     t.bigint "invalidated_seq"
+    t.bigint "redacted_by_seq"
     t.string "relationship_type", null: false
     t.uuid "to_claim_id", null: false
     t.index ["contribution_id"], name: "index_claim_edges_on_contribution_id"
@@ -51,6 +52,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.bigint "created_seq", null: false
     t.bigint "invalidated_seq"
     t.string "not_evaluable_reason"
+    t.bigint "redacted_by_seq"
     t.boolean "truth_evaluable", null: false
     t.index ["claim_id"], name: "index_claim_evaluability_settings_on_claim_id"
     t.index ["contribution_id"], name: "index_claim_evaluability_settings_on_contribution_id"
@@ -63,6 +65,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.uuid "from_claim_id", null: false
     t.uuid "into_claim_id", null: false
     t.bigint "invalidated_seq"
+    t.bigint "redacted_by_seq"
     t.index ["contribution_id"], name: "index_claim_merges_on_contribution_id"
     t.index ["from_claim_id"], name: "index_claim_merges_on_from_claim_id"
     t.index ["into_claim_id"], name: "index_claim_merges_on_into_claim_id"
@@ -70,7 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
 
   create_table "claims", id: :uuid, default: nil, force: :cascade do |t|
     t.bigint "accepted_seq"
-    t.text "canonical_text", null: false
+    t.text "canonical_text"
     t.string "claim_type", null: false
     t.uuid "contribution_id", null: false
     t.bigint "created_seq", null: false
@@ -78,6 +81,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.uuid "merged_into_id"
     t.string "not_evaluable_reason"
     t.jsonb "qualifiers", default: {}, null: false
+    t.bigint "redacted_by_seq"
     t.string "status", default: "ACTIVE", null: false
     t.uuid "superseded_by_id"
     t.uuid "supersedes_claim_id"
@@ -155,6 +159,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.integer "interpretive_steps", default: 0, null: false
     t.bigint "invalidated_seq"
     t.text "note"
+    t.bigint "redacted_by_seq"
     t.string "relevance_strength", null: false
     t.uuid "supersedes_link_id"
     t.index ["claim_id", "created_seq"], name: "index_evidence_claim_links_on_claim_id_and_created_seq"
@@ -172,8 +177,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.uuid "independence_group_id"
     t.bigint "invalidated_seq"
     t.string "observation_type", null: false
+    t.bigint "redacted_by_seq"
     t.uuid "source_location_id", null: false
-    t.text "statement", null: false
+    t.text "statement"
     t.jsonb "structured_value"
     t.index ["contribution_id"], name: "index_evidence_items_on_contribution_id"
     t.index ["created_seq"], name: "index_evidence_items_on_created_seq"
@@ -189,6 +195,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.uuid "evidence_item_id", null: false
     t.uuid "independence_group_id", null: false
     t.bigint "invalidated_seq"
+    t.bigint "redacted_by_seq"
     t.index ["contribution_id"], name: "index_independence_group_assignments_on_contribution_id"
     t.index ["created_seq"], name: "index_independence_group_assignments_on_created_seq"
     t.index ["evidence_item_id"], name: "index_independence_group_assignments_on_evidence_item_id"
@@ -202,9 +209,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.text "description"
     t.string "group_type", null: false
     t.bigint "invalidated_seq"
+    t.bigint "redacted_by_seq"
     t.index ["contribution_id"], name: "index_independence_groups_on_contribution_id"
     t.index ["created_seq"], name: "index_independence_groups_on_created_seq"
     t.index ["invalidated_seq"], name: "index_independence_groups_on_invalidated_seq"
+  end
+
+  create_table "quarantines", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.text "note"
+    t.string "reason", null: false
+    t.uuid "release_contribution_id"
+    t.bigint "released_seq"
+    t.uuid "target_id", null: false
+    t.string "target_type", null: false
+    t.index ["contribution_id"], name: "index_quarantines_on_contribution_id"
+    t.index ["released_seq"], name: "index_quarantines_on_released_seq"
+    t.index ["target_type", "target_id"], name: "index_quarantines_on_target_type_and_target_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -395,6 +417,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.bigint "invalidated_seq"
     t.jsonb "locator", default: {}, null: false
     t.string "locator_type", null: false
+    t.bigint "redacted_by_seq"
     t.uuid "source_id", null: false
     t.index ["contribution_id"], name: "index_source_locations_on_contribution_id"
     t.index ["created_seq"], name: "index_source_locations_on_created_seq"
@@ -417,9 +440,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
     t.uuid "previous_version_id"
     t.date "publication_date"
     t.string "publisher"
+    t.bigint "redacted_by_seq"
     t.timestamptz "retrieved_at"
     t.string "source_type", null: false
-    t.string "title", null: false
+    t.string "title"
     t.index ["contribution_id"], name: "index_sources_on_contribution_id"
     t.index ["created_seq"], name: "index_sources_on_created_seq"
     t.index ["invalidated_seq"], name: "index_sources_on_invalidated_seq"
@@ -429,6 +453,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_230000) do
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email_address", null: false
+    t.boolean "moderator", default: false, null: false
     t.string "password_digest", null: false
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true

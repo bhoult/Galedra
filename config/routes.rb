@@ -10,7 +10,9 @@ Rails.application.routes.draw do
       get "log", to: "log#index"
       resources :contributions, only: [ :create, :show ] do
         get :verify, on: :member
+        get :redaction_manifest, on: :member
       end
+      get "moderation", to: "moderation#index"
       resources :sources, only: [ :show ] do
         get :locations, on: :member
       end

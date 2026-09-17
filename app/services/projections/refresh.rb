@@ -30,7 +30,7 @@ module Projections
 
       merge = claim.merges_from.live.accepted.order(accepted_seq: :desc).first
       superseder = Claim.live.accepted.where(supersedes_claim_id: claim.id).order(accepted_seq: :desc).first
-      status = if claim.status == "QUARANTINED" then "QUARANTINED"
+      status = if Governance::Quarantines.live_for("CLAIM", claim.id) then "QUARANTINED"
       elsif merge then "MERGED"
       elsif superseder then "SUPERSEDED"
       elsif claim.invalidated? then "RETIRED"
