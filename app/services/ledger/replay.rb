@@ -19,6 +19,7 @@ module Ledger
       Ledger.applying do
         Contribution.transaction do
           Contribution.with_connection { |c| c.execute("TRUNCATE #{PROJECTIONS.map(&:table_name).join(', ')}") }
+          ClaimScore.delete_all
           Contribution.where(action_class: Contribution::CONTROL).update_all(current_status: Contribution::ACCEPTED)
           Contribution.where(action_class: Contribution::EPISTEMIC).update_all(current_status: Contribution::PENDING)
           last = -1

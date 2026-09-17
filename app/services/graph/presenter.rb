@@ -6,11 +6,12 @@ module Graph
   module Presenter
     module_function
 
-    def claim(claim, seq)
+    def claim(claim, seq, model: nil)
       if (quarantine = Governance::Quarantines.live_for("CLAIM", claim.id))
         return claim_stub(claim, seq, quarantine)
       end
 
+      model ||= Scoring::Registry.default_model
       evaluable, reason = claim.evaluability_at(seq)
       links = claim.evidence_claim_links.active_at(seq)
       counted = links.effective_at(seq)
@@ -30,7 +31,20 @@ module Graph
         edges: {
           outgoing: claim.outgoing_edges.counted_at(seq).map { |e| edge(e) },
           incoming: claim.incoming_edges.counted_at(seq).map { |e| edge(e) }
-        }
+        },
+        assessment: model && assessment(Scoring::Score.call(claim, seq, model), seq, model)
+      }
+    end
+
+    # The assessment block (spec 06 §3): always with snapshot and model.
+    def assessment(result, seq, model)
+      {
+        snapshot_seq: seq, model: model.full_name, assessment_state: result.assessment_state,
+        probability: result.probability, model_dependent: result.model_dependent, stability: result.stability,
+        review_coverage: result.review_coverage, review_checklist: result.review_checklist,
+        support_groups: result.support_groups, contradict_groups: result.contradict_groups,
+        independence_unreviewed: result.independence_unreviewed, contested: result.contested,
+        provisional: result.provisional, not_applicable_reason: result.not_applicable_reason, trace_hash: result.trace_hash
       }
     end
 

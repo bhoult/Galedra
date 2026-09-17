@@ -18,7 +18,15 @@ Rails.application.routes.draw do
       end
       resources :claims, only: [ :index, :show ] do
         get :evidence, on: :member
+        get :score, on: :member, to: "scores#score"
+        get :trace, on: :member, to: "scores#trace"
+        get :compare, on: :member, to: "scores#compare"
       end
+      get "snapshots", to: "snapshots#index"
+      get "snapshots/:seq", to: "snapshots#show", as: :snapshot
+      get "scoring-models", to: "scoring_models#index"
+      post "admin/snapshots", to: "admin#create_snapshot"
+      post "admin/recompute", to: "admin#recompute"
       resources :evidence, only: [ :show ]
       resources :contributors, only: [ :show ]
     end

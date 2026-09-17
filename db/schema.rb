@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_250000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_260000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -69,6 +69,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_250000) do
     t.index ["contribution_id"], name: "index_claim_merges_on_contribution_id"
     t.index ["from_claim_id"], name: "index_claim_merges_on_from_claim_id"
     t.index ["into_claim_id"], name: "index_claim_merges_on_into_claim_id"
+  end
+
+  create_table "claim_scores", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "assessment_state", null: false
+    t.uuid "claim_id", null: false
+    t.timestamptz "computed_at", null: false
+    t.boolean "contested", null: false
+    t.integer "contradict_groups", null: false
+    t.decimal "probability", precision: 5, scale: 4
+    t.boolean "provisional", null: false
+    t.decimal "review_coverage", precision: 3, scale: 2, null: false
+    t.uuid "scoring_model_id", null: false
+    t.bigint "snapshot_seq", null: false
+    t.string "stability"
+    t.integer "support_groups", null: false
+    t.jsonb "trace", null: false
+    t.string "trace_hash", null: false
+    t.index ["claim_id", "snapshot_seq", "scoring_model_id"], name: "idx_on_claim_id_snapshot_seq_scoring_model_id_48d9ffea91", unique: true
+    t.index ["snapshot_seq", "scoring_model_id"], name: "index_claim_scores_on_snapshot_seq_and_scoring_model_id"
   end
 
   create_table "claims", id: :uuid, default: nil, force: :cascade do |t|
@@ -186,6 +205,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_250000) do
     t.index ["independence_group_id"], name: "index_evidence_items_on_independence_group_id"
     t.index ["invalidated_seq"], name: "index_evidence_items_on_invalidated_seq"
     t.index ["source_location_id"], name: "index_evidence_items_on_source_location_id"
+  end
+
+  create_table "graph_snapshots", id: :uuid, default: nil, force: :cascade do |t|
+    t.timestamptz "created_at", null: false
+    t.string "entry_hash", null: false
+    t.string "label"
+    t.bigint "seq", null: false
+    t.index ["seq"], name: "index_graph_snapshots_on_seq", unique: true
   end
 
   create_table "independence_group_assignments", id: :uuid, default: nil, force: :cascade do |t|

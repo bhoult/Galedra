@@ -14,6 +14,8 @@ module Api
           system_key_id: Crypto::SystemKey.configured? ? Crypto::SystemKey.key_id : nil,
           system_public_key: Crypto::SystemKey.configured? ? Crypto::SystemKey.public_key : nil,
           moderator_key_ids: Governance::Moderators.key_ids,
+          scoring_models: Scoring::Registry.released.map(&:full_name),
+          default_model: Scoring::Registry.default_model&.full_name,
           current_seq: head&.seq,
           chain_head: head&.entry_hash,
           protocol: Ledger::PROTOCOL

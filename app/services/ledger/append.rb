@@ -66,6 +66,7 @@ module Ledger
         )
 
         Apply.call(contribution)
+        enqueue_recompute(contribution)
         warnings = applier.respond_to?(:warnings) ? applier.warnings(validated) : []
         acceptance = auto_accept(contribution, validated, applier)
         Result.new(contribution: contribution, created: true, warnings: warnings, acceptance: acceptance)
@@ -73,6 +74,17 @@ module Ledger
     end
 
     private
+
+    NO_SCORE_EFFECT = %w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION RELEASE_SCORING_MODEL AMEND_CONSTITUTION].freeze
+
+    # Incremental recompute (spec 11 §7), after every enclosing transaction
+    # has committed so the job sees the rows.
+    def enqueue_recompute(contribution)
+      return if NO_SCORE_EFFECT.include?(contribution.action_type)
+
+      seq = contribution.seq
+      ActiveRecord.after_all_transactions_commit { RecomputeAffectedScoresJob.perform_later(seq) }
+    end
 
     # Spec 02 §1.1a: after validation the system accepts a contributor's own
     # direct work by appending an ACCEPT signed with the system key, inside the
