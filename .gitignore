@@ -1,0 +1,17 @@
+# See https://help.github.com/articles/ignoring-files for more about ignoring files.
+
+# Node.js
+node_modules/
+npm-debug.log
+.env
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+
+# OS / editor
+.DS_Store
+*.swp
