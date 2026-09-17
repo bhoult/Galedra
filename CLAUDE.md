@@ -10,11 +10,11 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: specification complete (v4), implementation not started.** The repo holds
-`README.md`, `LICENSE`, the spec under `docs/`, and `IMPLEMENTATION.md`, which is the
-staged plan and decision log. Work proceeds one stage at a time, only when the owner asks
-for that stage, and every stage ends with an annotated tag `stage-NN-slug`. Read the
-stage's section and its listed spec references before starting it.
+**Status: specification complete (v4), implementation in progress.** `IMPLEMENTATION.md`
+is the staged plan and decision log; its Decision Log says which stage is done. Work
+proceeds one stage at a time, only when the owner asks for that stage, and every stage
+ends with an annotated tag `stage-NN-slug`. Read the stage's section and its listed spec
+references before starting it.
 
 ## Layout
 

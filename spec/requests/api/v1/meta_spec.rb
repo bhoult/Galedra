@@ -1,0 +1,19 @@
+require "rails_helper"
+
+RSpec.describe "GET /api/v1/meta", type: :request do
+  it "publishes the constitution version and hash" do
+    get "/api/v1/meta"
+
+    expect(response).to have_http_status(:ok)
+    body = response.parsed_body
+    expect(body["constitution_version"]).to eq("1.0.0")
+    expect(body["constitution_hash"]).to eq(Governance::Constitution.new.digest)
+  end
+
+  it "matches sha256sum of CONSTITUTION.md" do
+    get "/api/v1/meta"
+
+    hex = Digest::SHA256.file(Rails.root.join("CONSTITUTION.md")).hexdigest
+    expect(response.parsed_body["constitution_hash"]).to eq("sha256:#{hex}")
+  end
+end

@@ -1,0 +1,44 @@
+# Development topology (spec 11 §2): exactly two services, app and db.
+# The app service runs Puma with the Solid Queue supervisor in-process
+# (SOLID_QUEUE_IN_PUMA), so web and jobs share one container.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bash -c "rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails server -b 0.0.0.0"
+    environment:
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      SOLID_QUEUE_IN_PUMA: "true"
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - bundle:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  bundle:

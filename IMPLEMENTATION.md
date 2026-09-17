@@ -599,3 +599,41 @@ spec with reasons, and Constitutional Test answers where the stage requires them
 - Ruby and Rails: latest stable at each stage's start, per the owner's instruction on
   2026-09-17. Planning-time values: Ruby 4.0.7, Rails 8.1.3.1. The spec's "Rails 8.x" is
   satisfied by 8.1.
+
+### Stage 0 — Skeleton (2026-09-17)
+
+- Versions: Ruby 4.0.7 (asdf, YJIT off: no rustc on the build machine), Rails 8.1.3.1,
+  Bundler 4.0.20, Node 24.21.0 (asdf, current LTS; 26.x is not LTS until October 2026),
+  PostgreSQL 16 (`postgres:16` image), pg 1.6, Solid Queue 1.7.0, RSpec via rspec-rails.
+  Rails pinned `~> 8.1.3, >= 8.1.3.1`.
+- `rails new` was run with `--skip-bundle`, which also skipped the after-bundle installers.
+  importmap, Turbo, Stimulus, Solid Cache, Solid Queue, and Solid Cable were installed
+  afterwards with their own generators.
+- Test framework: RSpec, FactoryBot, Capybara, selenium-webdriver. Minitest skipped at
+  generation. A system-test driver is present but no system tests run before Stage 10.
+- Single database. The Solid installers' `db/*_schema.rb` files were folded into one
+  migration (`create_solid_tables`) and deleted, and the production multi-database
+  `connects_to` wiring removed, so development, test, and production each use one
+  PostgreSQL database as 11 §2 requires. Solid Queue runs inside Puma via the
+  `solid_queue` Puma plugin (`SOLID_QUEUE_IN_PUMA=true`) rather than a second process,
+  so the `app` service is one container and one process tree.
+- Database connection settings come from `DB_HOST`, `DB_PORT`, `DB_USERNAME`,
+  `DB_PASSWORD` (documented in `.env.example`, loaded by dotenv locally and by Compose).
+  CI sets the same variables against a Postgres 16 service.
+- Docker Compose plugin was missing and sudo is unavailable to the agent; Compose v5.5.1
+  was installed as a user-level CLI plugin in `~/.docker/cli-plugins/`. `Dockerfile.dev`
+  is the development image; the generated `Dockerfile` remains the production image.
+- `CONSTITUTION.md` is a byte-identical copy of `12-constitution.md`, asserted by a spec.
+  `Governance::Constitution` parses the version from the file's header table and hashes
+  the raw bytes. `GET /api/v1/meta` returns `constitution_version` and
+  `constitution_hash`. API controllers inherit `Api::V1::BaseController`
+  (`ActionController::API`), outside the session-based `Authentication` concern that the
+  Rails 8 generator adds to `ApplicationController`.
+- Rails 8 authentication generator was run (`users`, `sessions`, password reset). The
+  home page is public via `allow_unauthenticated_access`.
+- UUIDv7 primary keys are deferred to Stage 1, where the first ledger table is created.
+- Deviation: `07` Phase 0 names `IMPLEMENTATION.md` as a deliverable; it already existed
+  as the plan. `10` names `test/fixtures/`; RSpec uses `spec/fixtures/` (Stage 1).
+- CI workflow triggers on `master` (the repo's branch), not the generated `main`.
+- Acceptance: `docker compose up` serves the home page on port 3000; `bundle exec rspec`
+  passes; `/api/v1/meta` hash equals `sha256sum CONSTITUTION.md`.
