@@ -49,7 +49,8 @@ RSpec.describe Crypto::Ed25519 do
     it "fails when the signature or key is altered or malformed" do
       other = described_class::KeyPair.generate
       expect(described_class.verify(other.public_key, signature, canonical)).to be(false)
-      expect(described_class.verify(pair.public_key, signature.sub(/\A./, "A"), canonical)).to be(false)
+      flipped = (signature[0] == "A" ? "B" : "A") + signature[1..]
+      expect(described_class.verify(pair.public_key, flipped, canonical)).to be(false)
       expect(described_class.verify(pair.public_key, "not-a-signature", canonical)).to be(false)
       expect(described_class.verify("short", signature, canonical)).to be(false)
     end

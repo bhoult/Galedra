@@ -691,3 +691,6 @@ spec with reasons, and Constitutional Test answers where the stage requires them
   implementations; 7 yes, anyone can verify; 8 n/a until the log exists; 9 n/a; 10 yes.
 - Acceptance: all four Stage 1 items have specs; `bundle exec rspec`, RuboCop, and
   Brakeman pass; the Compose stack publishes the system key at `/api/v1/meta`.
+- The tag was moved once: the first tagged commit had a tampering spec that replaced a
+  signature's first character with "A" and so passed vacuously when the signature already
+  began with "A" (about one run in 64). Fixed, and the suite now runs in random order.
