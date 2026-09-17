@@ -17,6 +17,7 @@ module Ledger
       "QUARANTINE" => "Ledger::Appliers::Quarantine",
       "RELEASE_QUARANTINE" => "Ledger::Appliers::ReleaseQuarantine",
       "TAKEDOWN" => "Ledger::Appliers::Takedown",
+      "RELEASE_SCORING_MODEL" => "Ledger::Appliers::ReleaseScoringModel",
       "CREATE_SOURCE" => "Ledger::Appliers::CreateSource",
       "CREATE_SOURCE_LOCATION" => "Ledger::Appliers::CreateSourceLocation",
       "CREATE_CLAIM" => "Ledger::Appliers::CreateClaim",

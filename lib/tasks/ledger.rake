@@ -13,6 +13,22 @@ namespace :ledger do
     puts "genesis seq #{contribution.seq} entry_hash #{contribution.entry_hash} key #{contribution.signer_key_id}"
   end
 
+  desc "Release every model in config/scoring/*.json that is not yet released (signed by the system key)"
+  task release_models: :environment do
+    Scoring::Registry.config_files.each do |path|
+      config = Scoring::Registry.load_config(path)
+      name = Scoring::Registry.model_name(config)
+      if ScoringModel.exists?(name: config["name"], semantic_version: config["semantic_version"])
+        puts "#{name}: already released"
+        next
+      end
+      envelope = Contributions::Envelope.build(action_type: "RELEASE_SCORING_MODEL", key_pair: Crypto::SystemKey.key_pair,
+                                               payload: Scoring::Registry.release_payload(config))
+      result = Ledger::Append.call(envelope, custody: Crypto::Custody::SYSTEM)
+      puts "#{name}: released at seq #{result.contribution.seq} (code_hash #{Scoring::Registry.code_hash})"
+    end
+  end
+
   desc "Recompute every hash and check every signature in the log"
   task verify: :environment do
     result = Ledger::Verify.call

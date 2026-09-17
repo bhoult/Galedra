@@ -890,3 +890,56 @@ spec with reasons, and Constitutional Test answers where the stage requires them
   stands, mitigated by visibility and appeal, not eliminated.
 - Acceptance: the five Stage 4 items have specs in `spec/services/governance/`;
   `bundle exec rspec`, RuboCop, and Brakeman pass.
+
+### Stage 5 — Deterministic scoring (2026-09-17)
+
+- `Scoring::Calculate` implements `03 §4` Steps 0–5, `03 §8` (checklist), `03 §9`
+  (stability), and `03 §10` (trace) as a pure function of the `11 §12` input and a model
+  config. `BigDecimal` throughout; half-even rounding at 6 (weights), 4 (probability),
+  2 (coverage); decimals serialized as fixed-place strings; `ln` and `exp` via
+  `BigMath` at 40 digits, then rounded.
+- **Golden fixture generated from the spec's reference scorer.**
+  `spec/fixtures/gen_scoring_golden.py` imports `reference/reference_scorer.py` and emits
+  every row of `08 §8` and Watchers `§7` for both models (20 cases, 40 expectations) as
+  scorer inputs with expected outputs, so the Ruby scorer is checked against an
+  independent implementation. Fixture link ids are zero-padded (`L03`) so string order
+  equals the reference's integer order; `contested` and `provisional` expectations come
+  from the golden tables' flags, with the unaudited links (`L10`, Watchers `L2`, `L5`)
+  marked `audit_confirmed: false` at the checkpoints where the tables say `provisional`.
+- Input shape: `claim {id, type, truth_evaluable, not_evaluable_reason}`, `snapshot_seq`,
+  `links [{id, evidence_id, direction, relevance_strength, interpretive_steps,
+  audit_confirmed, evidence {observation_type, independence_group_id, source_type,
+  assessment}}]`, `task_checks [{check, by}]`. Stage 6 builds it from the graph;
+  Stage 7 supplies `audit_confirmed`; Stage 8 supplies task checks. `provisional` is
+  true when any counted link's contribution lacks a confirming audit.
+- `independence_unreviewed` counts distinct counted evidence items without a group;
+  the reference counts links, and the two agree on every golden row.
+- `rounding_boundary` applies the absolute guard (1e-6) to the 4-place probability and
+  its two variants only. At 6 places an absolute 1e-6 guard equals a whole unit and
+  would flag every value; the 6-place prior log-odds is a per-type constant every
+  implementation can pin. Recorded as an interpretation of `03 §10`.
+- The trace carries `code_hash` alongside `config_hash` (03 §1: a probability is never
+  shown without both), plus per-link authenticity, extraction, source type, and audit
+  state. Golden tests compare output fields, not trace hashes, so a scorer refactor
+  changes `code_hash` without invalidating the goldens.
+- `Scoring::Registry` validates configs exhaustively (`03 §4` Step 2: a missing enum
+  key is a release error), requires every declared review check to be satisfiable by a
+  P0 task type (`03 §8`), hashes `app/services/scoring/**/*.rb` for `code_hash`, and
+  exposes `verify_code_hash!` so a code change without a new version fails.
+  `RELEASE_SCORING_MODEL` is signed only by the system key and rejects a stale
+  `code_hash`, a wrong `config_hash`, an invalid config, or a duplicate version.
+  `bin/rails ledger:release_models` releases every `config/scoring/*.json` not yet
+  released. `scoring_models` carries `released_seq` instead of the spec's `created_at`
+  so replay reproduces it.
+- `Scoring::Compare` reports the config-key paths that differ, the links whose
+  effective weights differ with the responsible keys, and any state change; an
+  applicability change names `scored_types` (07 scenario H).
+- `Tasks::Priority` implements `03 §14` as a pure function with `BigDecimal`.
+- Constitutional Test (scoring): 1 unchanged; 2 yes, two models and `/compare`
+  localize disagreement to config keys; 3 no, the scorer is open code with published
+  hashes; 4 no, reputation is not an input; 5 yes, null probabilities and directional
+  states requiring evidence; 6 yes, byte-identical traces and cross-implementation
+  goldens; 7 yes; 8 yes, traces cite snapshot and model; 9 n/a; 10 yes.
+- Acceptance: 07 Phase 3 #1 (pure-scorer form), #3–#11 have specs in
+  `spec/services/scoring/` and `spec/services/tasks/`; `bundle exec rspec`, RuboCop,
+  and Brakeman pass; the reference scorer still prints ALL PASS.

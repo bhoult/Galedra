@@ -1,0 +1,1530 @@
+{
+  "_about": "Golden scoring cases for both P0 models, generated from the spec's reference scorer (08 section 8 and examples/watchers section 7). Inputs follow spec 11 section 12.",
+  "models": {
+    "default": "ledger-default@0.1.0",
+    "strict": "ledger-strict@0.1.0"
+  },
+  "cases": [
+    {
+      "suite": "public-demo",
+      "checkpoint": "S1",
+      "claim_handle": "C1",
+      "input": {
+        "claim": {
+          "id": "C1",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L01",
+            "handle": "L1",
+            "evidence_id": "E2",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S1",
+      "claim_handle": "C2",
+      "input": {
+        "claim": {
+          "id": "C2",
+          "type": "QUANTITATIVE",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L03",
+            "handle": "L3",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "STRONG",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L04",
+            "handle": "L4",
+            "evidence_id": "E2",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L05",
+            "handle": "L5",
+            "evidence_id": "E3",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": null,
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L06",
+            "handle": "L6",
+            "evidence_id": "E4",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": null,
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L07",
+            "handle": "L7",
+            "evidence_id": "E5",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": null,
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9085",
+          "stability": "MEDIUM",
+          "review_coverage": "0.25",
+          "support_groups": 4,
+          "contradict_groups": 0,
+          "independence_unreviewed": 3,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9085",
+          "stability": "MEDIUM",
+          "review_coverage": "0.25",
+          "support_groups": 4,
+          "contradict_groups": 0,
+          "independence_unreviewed": 3,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S1",
+      "claim_handle": "C3",
+      "input": {
+        "claim": {
+          "id": "C3",
+          "type": "QUANTITATIVE",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L02",
+            "handle": "L2",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S1",
+      "claim_handle": "C4",
+      "input": {
+        "claim": {
+          "id": "C4",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L08",
+            "handle": "L8",
+            "evidence_id": "E7",
+            "direction": "CONTRADICT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G2",
+              "source_type": "WEBSITE",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": [
+          {
+            "check": "opposing_search_done",
+            "by": "T-opposing"
+          }
+        ]
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S1",
+      "claim_handle": "C5",
+      "input": {
+        "claim": {
+          "id": "C5",
+          "type": "NORMATIVE",
+          "truth_evaluable": false,
+          "not_evaluable_reason": "NORMATIVE_OR_VALUE"
+        },
+        "snapshot_seq": 0,
+        "links": [],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S1",
+      "claim_handle": "C6",
+      "input": {
+        "claim": {
+          "id": "C6",
+          "type": "CAUSAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L09",
+            "handle": "L9",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "WEAK",
+            "interpretive_steps": 2,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.3792",
+          "stability": "LOW",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NOT_SCORED_BY_MODEL",
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S2",
+      "claim_handle": "C4",
+      "input": {
+        "claim": {
+          "id": "C4",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L08",
+            "handle": "L8",
+            "evidence_id": "E7",
+            "direction": "CONTRADICT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G2",
+              "source_type": "WEBSITE",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L10",
+            "handle": "L10",
+            "evidence_id": "E2",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": false,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": [
+          {
+            "check": "opposing_search_done",
+            "by": "T-opposing"
+          }
+        ]
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7790",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": true,
+          "provisional": true
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7790",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": true,
+          "provisional": true
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S3",
+      "claim_handle": "C4",
+      "input": {
+        "claim": {
+          "id": "C4",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L08",
+            "handle": "L8",
+            "evidence_id": "E7",
+            "direction": "CONTRADICT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G2",
+              "source_type": "WEBSITE",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": [
+          {
+            "check": "opposing_search_done",
+            "by": "T-opposing"
+          }
+        ]
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S4",
+      "claim_handle": "C2",
+      "input": {
+        "claim": {
+          "id": "C2",
+          "type": "QUANTITATIVE",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L03",
+            "handle": "L3",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "STRONG",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L04",
+            "handle": "L4",
+            "evidence_id": "E2",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L05",
+            "handle": "L5",
+            "evidence_id": "E3",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L06",
+            "handle": "L6",
+            "evidence_id": "E4",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L07",
+            "handle": "L7",
+            "evidence_id": "E5",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": [
+          {
+            "check": "independence_reviewed",
+            "by": "T-independence"
+          }
+        ]
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7146",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7146",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S5",
+      "claim_handle": "C2",
+      "input": {
+        "claim": {
+          "id": "C2",
+          "type": "QUANTITATIVE",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L11",
+            "handle": "L11",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "WEAK",
+            "interpretive_steps": 3,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L12",
+            "handle": "L12",
+            "evidence_id": "E2",
+            "direction": "SUPPORT",
+            "relevance_strength": "WEAK",
+            "interpretive_steps": 3,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L13",
+            "handle": "L13",
+            "evidence_id": "E3",
+            "direction": "SUPPORT",
+            "relevance_strength": "WEAK",
+            "interpretive_steps": 3,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L14",
+            "handle": "L14",
+            "evidence_id": "E4",
+            "direction": "SUPPORT",
+            "relevance_strength": "WEAK",
+            "interpretive_steps": 3,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L15",
+            "handle": "L15",
+            "evidence_id": "E5",
+            "direction": "SUPPORT",
+            "relevance_strength": "WEAK",
+            "interpretive_steps": 3,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L16",
+            "handle": "L16",
+            "evidence_id": "E6",
+            "direction": "QUALIFY",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": [
+          {
+            "check": "independence_reviewed",
+            "by": "T-independence"
+          },
+          {
+            "check": "qualifiers_reviewed",
+            "by": "T-qualifier"
+          }
+        ]
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.5247",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.5247",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "public-demo",
+      "checkpoint": "S5",
+      "claim_handle": "C3",
+      "input": {
+        "claim": {
+          "id": "C3",
+          "type": "QUANTITATIVE",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L02",
+            "handle": "L2",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DATASET_RESULT",
+              "independence_group_id": "G1",
+              "source_type": "DATASET",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S1",
+      "claim_handle": "C1",
+      "input": {
+        "claim": {
+          "id": "C1",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L01",
+            "handle": "L1",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S1",
+      "claim_handle": "C2",
+      "input": {
+        "claim": {
+          "id": "C2",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L02",
+            "handle": "L2",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": false,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S1",
+      "claim_handle": "C3",
+      "input": {
+        "claim": {
+          "id": "C3",
+          "type": "INTERPRETIVE",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L03",
+            "handle": "L3",
+            "evidence_id": "E2",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 1,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "EXPERT_ANALYSIS",
+              "independence_group_id": null,
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.5382",
+          "stability": "LOW",
+          "review_coverage": "0.00",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 1,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 1,
+          "not_applicable_reason": "NOT_SCORED_BY_MODEL",
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S1",
+      "claim_handle": "C4",
+      "input": {
+        "claim": {
+          "id": "C4",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L04",
+            "handle": "L4",
+            "evidence_id": "E3",
+            "direction": "CONTRADICT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": [
+          {
+            "check": "opposing_search_done",
+            "by": "T-opposing"
+          }
+        ]
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S1",
+      "claim_handle": "C6",
+      "input": {
+        "claim": {
+          "id": "C6",
+          "type": "NORMATIVE",
+          "truth_evaluable": false,
+          "not_evaluable_reason": "NORMATIVE_OR_VALUE"
+        },
+        "snapshot_seq": 0,
+        "links": [],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S2",
+      "claim_handle": "C5",
+      "input": {
+        "claim": {
+          "id": "C5",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L05",
+            "handle": "L5",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": false,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S3",
+      "claim_handle": "C5",
+      "input": {
+        "claim": {
+          "id": "C5",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "INSUFFICIENT_EVIDENCE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "INSUFFICIENT_EVIDENCE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S4",
+      "claim_handle": "C1",
+      "input": {
+        "claim": {
+          "id": "C1",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L01",
+            "handle": "L1",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L06",
+            "handle": "L6",
+            "evidence_id": "E4",
+            "direction": "SUPPORT",
+            "relevance_strength": "STRONG",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": null,
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L07",
+            "handle": "L7",
+            "evidence_id": "E5",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": null,
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9683",
+          "stability": "HIGH",
+          "review_coverage": "0.25",
+          "support_groups": 3,
+          "contradict_groups": 0,
+          "independence_unreviewed": 2,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9683",
+          "stability": "HIGH",
+          "review_coverage": "0.25",
+          "support_groups": 3,
+          "contradict_groups": 0,
+          "independence_unreviewed": 2,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    },
+    {
+      "suite": "watchers",
+      "checkpoint": "S5",
+      "claim_handle": "C1",
+      "input": {
+        "claim": {
+          "id": "C1",
+          "type": "TEXTUAL",
+          "truth_evaluable": true,
+          "not_evaluable_reason": null
+        },
+        "snapshot_seq": 0,
+        "links": [
+          {
+            "id": "L01",
+            "handle": "L1",
+            "evidence_id": "E1",
+            "direction": "SUPPORT",
+            "relevance_strength": "DIRECT",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G1",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L06",
+            "handle": "L6",
+            "evidence_id": "E4",
+            "direction": "SUPPORT",
+            "relevance_strength": "STRONG",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G2",
+              "source_type": "PRIMARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          },
+          {
+            "id": "L07",
+            "handle": "L7",
+            "evidence_id": "E5",
+            "direction": "SUPPORT",
+            "relevance_strength": "MODERATE",
+            "interpretive_steps": 0,
+            "audit_confirmed": true,
+            "evidence": {
+              "observation_type": "DIRECT_TEXT",
+              "independence_group_id": "G2",
+              "source_type": "SECONDARY_TEXT",
+              "assessment": {
+                "authenticity": "UNVERIFIED",
+                "extraction": "UNVERIFIED"
+              }
+            }
+          }
+        ],
+        "task_checks": []
+      },
+      "expected": {
+        "ledger-default@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9468",
+          "stability": "HIGH",
+          "review_coverage": "0.50",
+          "support_groups": 2,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9468",
+          "stability": "HIGH",
+          "review_coverage": "0.50",
+          "support_groups": 2,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        }
+      }
+    }
+  ]
+}

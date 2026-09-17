@@ -124,3 +124,34 @@ module GraphHelpers
 end
 
 RSpec.configure { |c| c.include GraphHelpers }
+
+module ScoringHelpers
+  def default_config = Scoring::Registry.load_config(Rails.root.join("config/scoring/ledger-default-0.1.0.json"))
+  def strict_config = Scoring::Registry.load_config(Rails.root.join("config/scoring/ledger-strict-0.1.0.json"))
+
+  def release_models
+    Scoring::Registry.config_files.map do |path|
+      config = Scoring::Registry.load_config(path)
+      next Scoring::Registry.find(Scoring::Registry.model_name(config)) if ScoringModel.exists?(name: config["name"], semantic_version: config["semantic_version"])
+
+      result = append(action_type: "RELEASE_SCORING_MODEL", key_pair: Crypto::SystemKey.key_pair, custody: Crypto::Custody::SYSTEM,
+                      payload: Scoring::Registry.release_payload(config))
+      ScoringModel.find(Ledger::Ids.derive(result.contribution.id, "scoring_model"))
+    end
+  end
+
+  def golden
+    @golden ||= JSON.parse(File.read(Rails.root.join("spec/fixtures/scoring_golden.json")))
+  end
+
+  def golden_fields(result)
+    {
+      "assessment_state" => result.assessment_state, "probability" => result.probability, "stability" => result.stability,
+      "review_coverage" => result.review_coverage, "support_groups" => result.support_groups,
+      "contradict_groups" => result.contradict_groups, "independence_unreviewed" => result.independence_unreviewed,
+      "not_applicable_reason" => result.not_applicable_reason, "contested" => result.contested, "provisional" => result.provisional
+    }
+  end
+end
+
+RSpec.configure { |c| c.include ScoringHelpers }

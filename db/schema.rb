@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_240000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_250000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -227,6 +227,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_240000) do
     t.index ["contribution_id"], name: "index_quarantines_on_contribution_id"
     t.index ["released_seq"], name: "index_quarantines_on_released_seq"
     t.index ["target_type", "target_id"], name: "index_quarantines_on_target_type_and_target_id"
+  end
+
+  create_table "scoring_models", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "code_hash", null: false
+    t.jsonb "config", null: false
+    t.string "config_hash", null: false
+    t.uuid "contribution_id", null: false
+    t.string "name", null: false
+    t.string "release_signature", null: false
+    t.bigint "released_seq", null: false
+    t.string "semantic_version", null: false
+    t.string "test_suite_result_hash"
+    t.index ["contribution_id"], name: "index_scoring_models_on_contribution_id"
+    t.index ["name", "semantic_version"], name: "index_scoring_models_on_name_and_semantic_version", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
