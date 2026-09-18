@@ -1,0 +1,32 @@
+<% content_for :title, "Constitution" %>
+<% content_for :body_class, "document" %>
+<h1>Constitutional Principles of the Epistemic Ledger</h1>
+<p class="meta">Version <%= @constitution.version %> · integrity <code><%= @constitution.digest %></code>, published at <%= link_to "the metadata endpoint", api_v1_meta_path %>. The text below is rendered from the same bytes the hash covers.</p>
+
+<nav class="toc" aria-label="Articles">
+  <ol>
+    <% @constitution.articles.each do |a| %><li><a href="#article-<%= a.numeral.downcase %>"><%= a.title %></a></li><% end %>
+  </ol>
+</nav>
+
+<section class="preamble">
+  <h2><%= @constitution.preamble.title %></h2>
+  <%= @constitution.preamble.html %>
+</section>
+
+<% @constitution.articles.each do |a| %>
+  <section class="article" id="article-<%= a.numeral.downcase %>">
+    <h2><span class="numeral">Article <%= a.numeral %></span> <%= a.title %></h2>
+    <%= a.html %>
+  </section>
+<% end %>
+
+<section class="test">
+  <h2><%= @constitution.test.title %></h2>
+  <%= @constitution.test.html %>
+</section>
+
+<section class="statement">
+  <h2><%= @constitution.foundational_statement.title %></h2>
+  <%= @constitution.foundational_statement.html %>
+</section>

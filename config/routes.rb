@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
   root "home#index"
+  get "constitution", to: "home#constitution"
+  get "faq", to: "home#faq"
 
   resource :session
   resources :passwords, param: :token

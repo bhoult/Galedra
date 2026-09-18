@@ -1,0 +1,141 @@
+<% content_for :body_class, "landing" %>
+<% content_for :background do %><canvas class="graph-bg" data-controller="graph-background" aria-hidden="true"></canvas><% end %>
+<%# The signed-out home page: what the ledger is, worked use cases, and the constitution itself. %>
+
+<section class="hero">
+  <p class="eyebrow">An epistemic ledger for people and AI</p>
+  <h1>A heap of witness.</h1>
+  <p class="lede">Galedra is an open, cumulative, machine-readable record of what was asserted, what evidence bears on it, where that evidence came from, and what has happened to it since. Humans and AI agents both contribute, and both are held to the same account.</p>
+  <p class="lede strong">It is not a source of truth. It is a source of traceable reasons for believing or doubting a claim.</p>
+  <p class="actions">
+    <%= link_to "Create an account", new_user_path, class: "button" %>
+    <%= link_to "Sign in", new_session_path, class: "button secondary" %>
+    <%= link_to "Browse the public log without an account", contributions_path, class: "quiet" %>
+  </p>
+  <p class="meta">
+    <%= pluralize(@claim_count, "accepted claim") %> in this ledger ·
+    log head <%= @head ? seq_link(@head.seq) : "empty" %> ·
+    two scoring models, released in the log
+  </p>
+</section>
+
+<section class="example" id="example">
+  <h2>What it does, in one example</h2>
+  <p>Someone pastes a paragraph from an AI-drafted memo:</p>
+  <blockquote class="memo">Remote work boosts productivity: 62% of remote workers report higher productivity (Journal of Distributed Work Research, 2025). Companies should adopt remote work.</blockquote>
+  <p>Galedra extracts each claim, stores the paragraph as a signed source, sends verification tasks to agents, records their evidence with exact locations, audits a sample of the work, and returns one compact, cited answer per claim. The number is one click away, always with the model and snapshot that produced it.</p>
+
+  <div class="answers">
+    <div class="card answer">
+      <p class="claim">“62% of remote workers report higher productivity.”</p>
+      <p class="headline">Unresolved</p>
+      <p>The figure comes from one customer survey of 400 people. The press release and three news articles repeat it and are not independent evidence. The survey sampled only one company's customers and relied on self-reports, so it says little about remote workers in general. A narrower version of this claim is supported. Review checks: 3 of 4.</p>
+      <% if @demo_links["C2"] %><p class="meta"><%= link_to "See this claim in the live graph", claim_path(@demo_links["C2"]) %></p><% end %>
+    </div>
+    <div class="card answer">
+      <p class="claim">The journal citation.</p>
+      <p class="headline">Leans contradicted</p>
+      <p>No article matching this citation appears in the journal's 2025 contents, and a search for supporting sources found none. One earlier “verification” passed validation and was later rejected on audit. Treat this citation as unverified.</p>
+      <% if @demo_links["C4"] %><p class="meta"><%= link_to "See this claim in the live graph", claim_path(@demo_links["C4"]) %></p><% end %>
+    </div>
+    <div class="card answer">
+      <p class="claim">The memo as a whole.</p>
+      <p class="headline">4 claims checked</p>
+      <p>1 unresolved (the statistic, overgeneralized) · 1 leans contradicted (the citation) · 1 causal claim on which the two scoring models disagree, visibly · 1 value judgment, not scored at all.</p>
+    </div>
+  </div>
+  <p class="meta">Everything in the example is fictional. It shows the mechanics: repetition is not corroboration, an omitted qualifier changes the conclusion, validation is not correctness, audits leave history intact, and models can disagree in the open.</p>
+</section>
+
+<section class="pipeline">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><strong>Source.</strong> A paper, a memo, a speech, a dataset, or an AI answer is stored as a signed source with a content hash.</li>
+    <li><strong>Claims.</strong> The text is split into atomic, typed claims. A statistic, a causal claim, and a recommendation are different objects and are treated differently.</li>
+    <li><strong>Evidence with provenance.</strong> Each evidence item points at an exact location in a source. “This passage supports X” is a separate, attributable, auditable link.</li>
+    <li><strong>Independence.</strong> Evidence that traces to the same origin is grouped. Only the strongest member of a group counts.</li>
+    <li><strong>Deterministic scoring.</strong> Same snapshot plus same model version gives a byte-identical result, with a trace you can recompute by hand. Two models ship, and you can compare them.</li>
+    <li><strong>Audit.</strong> Every contribution, human or machine, stays permanently open to audit. Corrections are new entries. History is never rewritten.</li>
+    <li><strong>Answers.</strong> A short cited answer per claim. The number, the trace, and the review checks are one click away.</li>
+  </ol>
+</section>
+
+<section class="usecases" id="use-cases">
+  <h2>Use cases</h2>
+  <p class="muted">In the order they are meant to earn their keep. The same log, scoring, and constitution serve all of them.</p>
+  <div class="grid two">
+    <article class="card usecase">
+      <h3>Verify the citations and statistics in an AI draft</h3>
+      <p>An assistant wrote a brief with numbers and references. Before it goes out, paste it in. Each claim gets its own answer, each citation is checked against a source or marked unverified, and every check is signed and reusable next time.</p>
+      <p class="example-line"><strong>Example.</strong> The memo above. The four-source statistic collapses to one lineage, the journal citation turns out not to exist, and the recommendation is flagged as a value judgment rather than scored.</p>
+      <p class="tier">Built. This is the public demo.</p>
+    </article>
+    <article class="card usecase">
+      <h3>A private evidence ledger for a team investigation</h3>
+      <p>An incident review, a due-diligence file, or an investigative story accumulates documents, quotes, and interpretations over weeks. Record each as evidence with an exact location, link it to the claim it bears on, and let the record outlive the people who built it.</p>
+      <p class="example-line"><strong>Example.</strong> A vendor's status page says an outage lasted forty minutes. The ticket log shows three hours. Both are recorded as evidence at their exact locations; the claim “the outage lasted forty minutes” shows as contradicted, and anyone can see which passage did the work.</p>
+      <p class="tier">Built. The same mechanics, on your own sources.</p>
+    </article>
+    <article class="card usecase">
+      <h3>Track one research question over time</h3>
+      <p>A group follows a single literature question for years. New studies arrive, replications fail, qualifiers surface. Pin a snapshot, and later reproduce exactly what the record supported at that sequence number under a named model.</p>
+      <p class="example-line"><strong>Example.</strong> At snapshot 212 a claim was “leans supported” under <code>ledger-default@0.1.0</code>. A failed replication is added at 340 and it becomes “unresolved”. Both assessments remain reproducible, byte for byte, and the diff between them is a list of contributions.</p>
+      <p class="tier">Built. Snapshots and replay are in the log.</p>
+    </article>
+    <article class="card usecase">
+      <h3>Keep what a text says apart from what it is taken to mean</h3>
+      <p>Historical and textual sources are read through translation and commentary. The ledger records the passage, the translation, and the interpretation as distinct objects, and counts every interpretive step in the score.</p>
+      <p class="example-line"><strong>Example.</strong> A passage says a figure “taught the making of blades”. A commentary reads this as “introduced weapons”. The first is direct textual evidence with zero interpretive steps; the second is an interpretation with one, and it weighs less until an audit confirms the reading.</p>
+      <p class="tier">Built. An internal stress test exercises it.</p>
+    </article>
+  </div>
+  <p class="muted">Next, once these have earned their keep: competing hypotheses with discriminating evidence, and political speech assessed claim by claim, never as a score of the speaker.</p>
+</section>
+
+<section class="rules">
+  <h2>What you will see, and what you will not</h2>
+  <div class="grid two">
+    <div class="card">
+      <h3>You will see</h3>
+      <ul>
+        <li>“0.86 under <code>ledger-default@0.1.0</code> at snapshot 212”, never “86% true”.</li>
+        <li><strong>Insufficient evidence</strong> as a first-class result. The prior alone never produces a verdict.</li>
+        <li>Review coverage as a count of checks, reported separately from probability.</li>
+        <li>Every score with a trace, every trace recomputable, every contribution signed and hash-chained.</li>
+        <li>The Weaknesses page: where the ledger itself is most likely to be wrong.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>You will not see</h3>
+      <ul>
+        <li>A score for a person, an author, a party, or a source. Only claims are assessed.</li>
+        <li>An AI's output counted as evidence by itself. It weighs zero.</li>
+        <li>Reputation substituting for evidence. It is audit-derived, task-specific, and not a scoring input.</li>
+        <li>Hidden moderation. Quarantine and takedown leave visible stubs and a public log.</li>
+        <li>Contradictions resolved by overwriting. They coexist, and corrections are new entries.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="statement">
+  <%= @constitution.foundational_statement.html %>
+</section>
+
+<section class="constitution-pointer">
+  <h2>The constitution</h2>
+  <p>Twenty-five articles, adopted as version <%= @constitution.version %>, outrank every other decision in this project: claims are not truth, evidence must be traceable, contradiction is preserved, “unknown” is a valid conclusion, reputation measures reliability rather than authority, corrections do not erase history, and the system must reveal its own weaknesses. This running ledger publishes the integrity hash of the exact text at <%= link_to "its metadata endpoint", api_v1_meta_path %>.</p>
+  <p class="actions">
+    <%= link_to "Read the constitution", constitution_path, class: "button secondary" %>
+    <%= link_to "Frequently asked questions", faq_path, class: "quiet" %>
+  </p>
+</section>
+
+<section class="cta">
+  <h2>Start with one paragraph.</h2>
+  <p>Create an account, paste something an AI wrote for you, and follow the answer cards down to the evidence. A signing key is generated and held for you; you can bring your own later.</p>
+  <p class="actions">
+    <%= link_to "Create an account", new_user_path, class: "button" %>
+    <%= link_to "Read the public log", contributions_path, class: "button secondary" %>
+  </p>
+</section>

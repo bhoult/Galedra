@@ -154,6 +154,8 @@ python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/referen
 
 Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`,
 `bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/demo --reset`, `bin/demo --example watchers --reset`.
+The signed-out home page and `/constitution` render `CONSTITUTION.md` through `Governance::Constitution`;
+after adding a gem, run `docker compose exec app bundle install` and `docker compose restart app`.
 `bin/demo` refuses a log that already holds contributions unless `--reset` is given (development only).
 
 ## Git

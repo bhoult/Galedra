@@ -1,0 +1,70 @@
+<% content_for :title, "FAQ" %>
+<% content_for :body_class, "document" %>
+<h1>Frequently asked questions</h1>
+<p class="lede">Short answers. The <%= link_to "constitution", constitution_path %> is the long one.</p>
+
+<section class="faq">
+  <h2>What it is</h2>
+
+  <h3>Is Galedra a fact-checker?</h3>
+  <p>No. It stores claims, not verdicts. For each claim it keeps the evidence for and against, where each piece came from, who linked it and why, what audits found, and what a named scoring model concludes from all that at a given point in the log. It tells you why you might believe or doubt something. It never tells you what is true.</p>
+
+  <h3>What is the “log”?</h3>
+  <p>An append-only record. Every write, whether a new claim, a piece of evidence, a link, an audit, or a moderation action, is a signed contribution with a gap-free sequence number and a hash that chains to the previous entry. Claims, evidence, and scores are projections of that log: drop them, replay the log, and the same hashes and scores come back.</p>
+
+  <h3>Why “a heap of witness”?</h3>
+  <p>From <em>Galeed</em>, the cairn Jacob and Laban piled up at the end of a bargain neither trusted the other to keep. Two parties, no shared authority, and a durable marker left in the open so that later neither could claim the agreement had been otherwise:</p>
+  <blockquote class="verse">
+    <p>And Laban said, This heap is a witness between me and thee this day. Therefore was the name of it called Galeed.</p>
+    <footer>Genesis 31:48 (KJV)</footer>
+  </blockquote>
+  <p>Galedra is that cairn for claims rather than covenants: a durable public marker of what was asserted and what bore on it.</p>
+
+  <h2>Scores</h2>
+
+  <h3>What does the number mean?</h3>
+  <p>It is always shown as “0.86 under <code>ledger-default@0.1.0</code> at snapshot 212”: a probability produced by a named, versioned model from the evidence graph as it stood at one sequence number. Change the model or the snapshot and you may get a different number. It is deterministic and reproducible. It is not objective, and it is never “86% true”.</p>
+
+  <h3>Why do I see a headline like “Unresolved” and no number?</h3>
+  <p>Answers come first and numbers on request. Every claim page leads with a short assessment and a cited explanation. The probability, the full trace, and the review checklist are behind “Show calculation”. Two states carry no number at all: <strong>Insufficient evidence</strong>, because nothing counted bears on the claim, and <strong>Not assessed</strong>, for value judgments, metaphysical claims, forecasts, and other statements a probability would misrepresent.</p>
+
+  <h3>Why did four sources count as one?</h3>
+  <p>Repetition is not corroboration. Evidence that traces to the same origin, such as a press release and three articles quoting it, is placed in one independence group, and only the strongest member counts. The suppressed members are still listed on the claim page, marked as dependent.</p>
+
+  <h3>What are “review checks”?</h3>
+  <p>A count of four things a careful reviewer would do: read the primary source, search for opposing evidence, review independence, and review qualifiers. They are reported as “3 of 4”, never as a percentage, and they are separate from the probability. A claim can be well reviewed and unresolved, or barely reviewed and provisionally supported.</p>
+
+  <h3>Why are there two scoring models?</h3>
+  <p>So that no single model can be mistaken for the truth. Both ship in the log, both run on the same graph, and the compare view shows where they disagree and why. A claim whose assessment changes between models is labelled as depending heavily on modelling choices.</p>
+
+  <h2>People and agents</h2>
+
+  <h3>Can an AI add evidence?</h3>
+  <p>An AI agent can lease a signed task packet, do the work, and submit a signed result. The result is validated against a closed set of operations, accepted into the log, and left permanently open to audit. An AI's own output is never evidence by itself: it weighs zero. Evidence is a passage at an exact location in a source.</p>
+
+  <h3>What is reputation?</h3>
+  <p>Audited reliability at specific tasks in specific domains, computed from audit history and reproducible from it. It is not authority, it is not a score of the person, and in this version it is not an input to any claim score.</p>
+
+  <h3>Who moderates, and can moderation hide things?</h3>
+  <p>Moderators are designated keys, listed publicly at the metadata endpoint. Quarantine withholds content but leaves a visible stub. Takedown removes bytes but keeps the hashes and the chain. Every action is a signed contribution in the public moderation log. Disagreement with a claim is never a reason.</p>
+
+  <h3>Is my data public?</h3>
+  <p>In this version, yes: the log is a single shared record and every contribution in it is readable. Personal assessments that live outside the shared log are planned and not yet built. Claims about identifiable private individuals are out of scope, and you affirm that for every claim you add.</p>
+
+  <h2>Using it</h2>
+
+  <h3>How do I start?</h3>
+  <p>Create an account and paste a paragraph under Analyze text. A signing key is generated and held for you. The stub extractor proposes atomic claims, you edit and type them, and each gets an answer card as evidence arrives.</p>
+
+  <h3>How do I connect my own agent?</h3>
+  <p>Register an agent key, have your account delegate to it, and run the example client in <code>examples/agent/</code> against the server. Any task page shows the exact command. The client depends only on Ruby's standard library and answers from a fixture file, so it is a template, not an intelligence.</p>
+
+  <h3>What is a snapshot?</h3>
+  <p>A sequence number in the log, optionally pinned with a label. Any score can be recomputed at any past sequence number under any released model, byte for byte, and two snapshots can be compared claim by claim.</p>
+
+  <h3>How do I check that nothing has been tampered with?</h3>
+  <p>Every contribution page shows whether the client and server signatures verify and whether the chain is intact. The API exposes the same checks, the constitution's integrity hash, and the public keys, so you can verify the whole log with your own code.</p>
+
+  <h3>What will it never do?</h3>
+  <p>Determine ultimate truth, build one universal probability model, arbitrate values, replace courts, scientists, journalists, or analysts, score people or parties, prevent every coordinated attack, act as a blockchain, or index the web.</p>
+</section>

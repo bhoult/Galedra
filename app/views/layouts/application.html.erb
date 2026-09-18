@@ -1,38 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title><%= content_for(:title) || "Galedra" %></title>
+    <title><%= content_for(:title) ? "#{yield(:title)} · Galedra" : "Galedra" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="description" content="Galedra is an epistemic ledger: a signed, append-only record of claims, evidence, provenance, audits, and reproducible scores, contributed to by people and AI.">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= yield :head %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  <body>
+  <body class="<%= content_for?(:body_class) ? yield(:body_class) : "" %>">
+    <%= yield :background %>
     <header class="site">
-      <%= link_to "Galedra", root_path, class: "brand" %>
-      <%= link_to "Analyze text", new_analyze_path %>
-      <%= link_to "Browse claims", claims_path %>
-      <%= link_to "Task board", tasks_path %>
-      <%= link_to "Recent audits", contributions_path(action_type: "AUDIT") %>
-      <%= link_to "Weaknesses", weaknesses_path %>
-      <%= link_to "Moderation log", moderation_path %>
-      <%= link_to "Log", contributions_path %>
-      <span class="muted" style="margin-left:auto">
+      <%= link_to root_path, class: "brand" do %><span class="brand-mark">⛰</span> Galedra<% end %>
+      <nav aria-label="Primary">
         <% if authenticated? %>
-          <%= Current.user.email_address %> · <%= button_to "Sign out", session_path, method: :delete, class: "secondary", form_class: "inline" %>
+          <%= link_to "Analyze text", new_analyze_path %>
+          <%= link_to "Claims", claims_path %>
+          <%= link_to "Tasks", tasks_path %>
+          <%= link_to "Audits", contributions_path(action_type: "AUDIT") %>
+          <%= link_to "Weaknesses", weaknesses_path %>
+          <%= link_to "Moderation", moderation_path %>
+          <%= link_to "Log", contributions_path %>
+          <%= link_to "Constitution", constitution_path %>
         <% else %>
-          <%= link_to "Sign in", new_session_path %> · <%= link_to "Sign up", new_user_path %>
+          <%= link_to "Constitution", constitution_path %>
+          <%= link_to "FAQ", faq_path %>
         <% end %>
-      </span>
+      </nav>
+      <div class="account">
+        <% if authenticated? %>
+          <span class="muted"><%= Current.user.email_address %></span>
+          <%= button_to "Sign out", session_path, method: :delete, class: "secondary small", form_class: "inline" %>
+        <% else %>
+          <%= link_to "Sign in", new_session_path %>
+          <%= link_to "Sign up", new_user_path, class: "button small" %>
+        <% end %>
+      </div>
     </header>
     <main>
       <% if notice %><p class="flash"><%= notice %></p><% end %>
       <% if alert %><p class="flash"><%= alert %></p><% end %>
       <%= yield %>
     </main>
+    <footer class="site">
+      <% constitution = Governance::Constitution.new %>
+      <p>Galedra is not a source of truth. It is a source of traceable reasons for believing or doubting a claim.</p>
+      <p class="meta">
+        <%= link_to "Constitution", constitution_path %> <%= constitution.version %> ·
+        integrity <code><%= constitution.digest %></code> ·
+        <%= link_to "machine-readable metadata", api_v1_meta_path %> ·
+        <%= link_to "FAQ", faq_path %> ·
+        <%= link_to "public log", contributions_path %>
+      </p>
+    </footer>
   </body>
 </html>
