@@ -176,7 +176,7 @@ module Investigations
       add.call("#{path}.type", "expected one of #{Source::TYPES.join(', ')}") unless Source::TYPES.include?(s["type"])
       add.call("#{path}.title", "required") unless s["title"].is_a?(String) && s["title"].present?
       add.call("#{path}.url", "required: the link to what was read") unless s["url"].is_a?(String) && s["url"].present?
-      add.call("#{path}.content_hash", "required: sha256:<hex> of the bytes that were read") unless Crypto::Hashing.valid?(s["content_hash"].to_s)
+      add.call("#{path}.content_hash", "sha256:<hex> of the bytes that were read, or omit it") unless s["content_hash"].nil? || Crypto::Hashing.valid?(s["content_hash"].to_s)
       add.call("#{path}.retrieved_at", "required: RFC 3339 time the source was read") unless (Time.iso8601(s["retrieved_at"].to_s) rescue nil)
     end
 

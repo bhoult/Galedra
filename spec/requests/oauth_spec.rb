@@ -49,6 +49,19 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
     response.parsed_body
   end
 
+  it "matches loopback redirects with the port ignored, as Claude Code needs" do
+    post "/oauth/register", params: { client_name: "Claude Code", redirect_uris: [ "http://localhost/callback", "http://127.0.0.1/callback" ] }.to_json, headers: json
+    client = response.parsed_body
+    record = OauthClient.find_by!(client_id: client["client_id"])
+    expect(record.redirect_uri_allowed?("http://localhost:3118/callback")).to be(true)
+    expect(record.redirect_uri_allowed?("http://127.0.0.1:52001/callback")).to be(true)
+    expect(record.redirect_uri_allowed?("http://localhost:3118/other")).to be(false)
+    expect(record.redirect_uri_allowed?("https://evil.example/callback")).to be(false)
+    get "/oauth/authorize", params: { client_id: client["client_id"], redirect_uri: "http://localhost:3118/callback", response_type: "code", code_challenge: challenge, code_challenge_method: "S256", scope: "galedra offline_access" }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("return to <strong>localhost</strong>")
+  end
+
   it "publishes valid discovery documents (#1)" do
     get "/.well-known/oauth-authorization-server"
     doc = response.parsed_body
@@ -67,6 +80,7 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
     post "/mcp/connect", params: { jsonrpc: "2.0", id: 1, method: "initialize", params: {} }.to_json, headers: json
     expect(response).to have_http_status(:unauthorized)
     expect(response.headers["WWW-Authenticate"]).to include('resource_metadata="http://www.example.com/.well-known/oauth-protected-resource/mcp/connect"')
+    expect(response.headers["WWW-Authenticate"]).to include('scope="galedra"')
   end
 
   it "registers, authorizes after sign-in, exchanges the code, and records attributed to the person (#2)" do

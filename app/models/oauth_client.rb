@@ -16,7 +16,22 @@ class OauthClient < ApplicationRecord
 
   def public? = token_endpoint_auth_method == "none"
   def secret_matches?(secret) = client_secret_digest.present? && ActiveSupport::SecurityUtils.secure_compare(client_secret_digest, self.class.digest(secret))
-  def redirect_uri_allowed?(uri) = redirect_uris.include?(uri.to_s)
+  # Exact match, except that loopback redirects (RFC 8252 §7.3, and Claude
+  # Code's localhost form) match with the port ignored, since the port is
+  # chosen per session.
+  def redirect_uri_allowed?(uri)
+    return true if redirect_uris.include?(uri.to_s)
+
+    given = URI.parse(uri.to_s) rescue nil
+    return false unless given.is_a?(URI::HTTP) && LOOPBACK.include?(given.host)
+
+    redirect_uris.any? do |registered|
+      r = URI.parse(registered) rescue nil
+      r.is_a?(URI::HTTP) && LOOPBACK.include?(r.host) && r.scheme == given.scheme && r.host == given.host && r.path == given.path
+    end
+  end
+
+  LOOPBACK = %w[localhost 127.0.0.1 ::1].freeze
 
   # Which assistant provider a connector name maps to, for the software field.
   def provider
@@ -35,7 +50,7 @@ class OauthClient < ApplicationRecord
     errors.add(:redirect_uris, "must not be empty") if redirect_uris.blank?
     redirect_uris.each do |uri|
       parsed = URI.parse(uri) rescue nil
-      ok = parsed.is_a?(URI::HTTPS) || (parsed.is_a?(URI::HTTP) && %w[localhost 127.0.0.1 ::1].include?(parsed.host)) || parsed&.scheme.to_s.match?(/\A[a-z][a-z0-9+.-]*\z/i) && !parsed.is_a?(URI::HTTP)
+      ok = parsed.is_a?(URI::HTTPS) || (parsed.is_a?(URI::HTTP) && LOOPBACK.include?(parsed.host)) || parsed&.scheme.to_s.match?(/\A[a-z][a-z0-9+.-]*\z/i) && !parsed.is_a?(URI::HTTP)
       errors.add(:redirect_uris, "#{uri} must be https, a loopback http address, or a custom scheme") unless ok && parsed.fragment.nil?
     end
   end

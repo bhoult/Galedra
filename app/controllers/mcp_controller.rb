@@ -33,7 +33,7 @@ class McpController < ActionController::API
   # protected resource metadata, which names the authorization server.
   def unauthorized
     resource = auth_required? ? "#{request.base_url}/.well-known/oauth-protected-resource/mcp/connect" : "#{request.base_url}/.well-known/oauth-protected-resource/mcp"
-    response.set_header("WWW-Authenticate", %(Bearer resource_metadata="#{resource}"))
+    response.set_header("WWW-Authenticate", %(Bearer resource_metadata="#{resource}", scope="galedra"))
     render json: { jsonrpc: "2.0", id: nil, error: { code: Mcp::Server::TOKEN_REQUIRED, message: "authentication required: complete OAuth at #{request.base_url}/.well-known/oauth-authorization-server" } }, status: :unauthorized
   end
 end

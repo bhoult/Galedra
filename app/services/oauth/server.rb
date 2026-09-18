@@ -5,7 +5,9 @@ module Oauth
   # (Stage 16). Metadata documents, client registration, code issuance, and
   # token exchange live here; the controllers are thin.
   module Server
-    SCOPES = %w[galedra galedra:read].freeze
+    # offline_access is accepted so clients that ask for it (Claude appends it when
+    # listed) get refresh semantics; every grant already includes a refresh token.
+    SCOPES = %w[galedra galedra:read offline_access].freeze
     DEFAULT_SCOPE = "galedra"
 
     class Error < StandardError
@@ -82,6 +84,7 @@ module Oauth
       raise Error.new("invalid_request", "code_challenge is required") if params[:code_challenge].blank?
       scope = params[:scope].presence || DEFAULT_SCOPE
       raise Error.new("invalid_scope", "scopes supported: #{SCOPES.join(', ')}") unless (scope.split - SCOPES).empty?
+      scope = "galedra" if scope.split == [ "offline_access" ]
 
       { client: client, redirect_uri: params[:redirect_uri].to_s, code_challenge: params[:code_challenge].to_s, scope: scope, state: params[:state].to_s, resource: params[:resource].presence }
     end

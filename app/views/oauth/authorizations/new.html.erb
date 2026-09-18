@@ -7,7 +7,7 @@
       <li>search claims and read cards, evidence, and explanations</li>
       <% if @request[:scope].split.include?("galedra") %><li>record investigations and attach evidence, up to a daily cap</li><% end %>
     </ul>
-    <p class="meta">It never sees a password; it gets a token it can only use for the above. Disconnect it at any time from <%= link_to "Connect an assistant", new_assistant_path %>; both the connection and the disconnection are public log entries.</p>
+    <p class="meta">It never sees a password; it gets a token it can only use for the above. Afterwards you return to <strong><%= URI.parse(@request[:redirect_uri]).host %></strong>. Disconnect it at any time from <%= link_to "Connect an assistant", new_assistant_path %>; both the connection and the disconnection are public log entries.</p>
   </div>
 
   <%# A plain form post: the redirect goes to another site, which Turbo cannot follow. %>

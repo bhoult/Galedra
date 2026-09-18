@@ -105,6 +105,25 @@ RSpec.describe "Record an investigation (Stage 13)", type: :request do
     expect(Ledger::TableDigest.projections).to eq(before)
   end
 
+  it "records a source without a page hash when the reader only saw a rendering, and still refuses a malformed hash (#4b)" do
+    bundle = fixture_bundle
+    bundle["sources"].each { |s| s.delete("content_hash") }
+    post_bundle(bundle)
+    expect(response).to have_http_status(:created)
+    source = Source.find(response.parsed_body["ids"]["minutes"])
+    expect(source).to have_attributes(content_hash: nil, retrieval_pending: true, content: nil)
+    expect(SourceLocation.where(source_id: source.id).pluck(:excerpt_hash)).to all(start_with("sha256:"))
+    get "/sources/#{source.id}"
+    expect(response.body).to include("no page hash")
+
+    bad = fixture_bundle
+    bad["sources"].first["content_hash"] = "md5:abc"
+    bad["claims"].each { |c| c["text"] = "#{c['text']} (again)" if c["text"] }
+    post_bundle(bad)
+    expect(response).to have_http_status(422)
+    expect(response.parsed_body["errors"].map { |e| e["path"] }).to include("$.sources[0].content_hash")
+  end
+
   it "gives plain say_instead only when the graph supports one (#5)" do
     curator, = register_key(display_name: "Curator")
     model = Scoring::Registry.default_model
