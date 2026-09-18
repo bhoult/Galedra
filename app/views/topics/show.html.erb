@@ -1,0 +1,15 @@
+<% content_for :title, @node.label %>
+<p class="eyebrow"><%= link_to "Topics", topics_path %><% if @node.parent %> · <%= link_to @node.parent.label, topic_path(@node.parent.path) %><% end %></p>
+<h1><%= @node.label %></h1>
+<% if @node.scope %><p class="muted"><%= @node.scope %></p><% end %>
+<% if @child_counts.any? %>
+  <p><% @child_counts.each do |child, n| %><%= link_to child.label, topic_path(child.path) %> <span class="badge"><%= n %></span> <% end %></p>
+<% end %>
+<p class="meta">As of snapshot <%= @seq %><%= " under #{selected_model.full_name}" if selected_model %>. Counts by assessment state, descriptive only: no topic is scored.
+  <% @state_counts.each do |state, n| %><span class="badge"><%= n %> <%= state_label(state) %></span><% end %></p>
+<% if @rows.any? %>
+  <table><tr><th>Claim</th><th>Type</th><th>Assessment</th></tr>
+  <% @rows.each do |claim, result| %>
+    <tr><td><%= link_to claim.canonical_text, claim_path(claim, snapshot_seq: @seq) %></td><td><%= claim.claim_type %></td><td><%= result ? state_label(result.assessment_state) : "" %></td></tr>
+  <% end %></table>
+<% else %><p class="muted">No claims under this topic yet.</p><% end %>

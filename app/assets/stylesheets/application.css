@@ -121,6 +121,8 @@ body.landing main { max-width: 72rem; }
 .paste textarea.code { font-family: var(--mono); font-size: 0.82rem; max-width: none; }
 .paste .errors ul { margin: 0.4rem 0; }
 .choice { display: block; margin: 0.35rem 0; color: var(--ink); }
+.topic h3 { margin: 0 0 0.3rem; }
+.topic .badge { font-weight: 400; }
 .faq h3 { margin: 1.4rem 0 0.3rem; font-size: 1.15rem; }
 .faq p { max-width: 46rem; }
 .verse { font-family: var(--serif); font-size: 1.1rem; max-width: 40rem; }

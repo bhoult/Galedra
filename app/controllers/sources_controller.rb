@@ -22,12 +22,14 @@ class SourcesController < ApplicationController
     source = Source.find(params[:id])
     created = 0
     params.fetch(:claims, {}).each_value do |entry|
-      attrs = entry.permit(:include, :canonical_text, :claim_type, :affirms_not_private_individual)
+      attrs = entry.permit(:include, :canonical_text, :claim_type, :affirms_not_private_individual, topics: [])
       next unless attrs["include"] == "1"
 
       payload = { "canonical_text" => attrs["canonical_text"].to_s.strip, "claim_type" => attrs["claim_type"],
                   "affirms_not_private_individual" => attrs["affirms_not_private_individual"] == "1", "source_id" => source.id }
-      Ui::Write.call(Current.user, "CREATE_CLAIM", payload)
+      result = Ui::Write.call(Current.user, "CREATE_CLAIM", payload)
+      topics = Array(attrs["topics"]).reject(&:blank?).first(Topics::MAX_PER_CLAIM)
+      Ui::Write.call(Current.user, "TAG_CLAIM", { "claim_id" => Ledger::Ids.derive(result.contribution.id, "claim"), "topics" => topics }) if topics.any?
       created += 1
     end
     redirect_to source_path(source), notice: "#{created} claim#{'s' unless created == 1} recorded as signed contributions."

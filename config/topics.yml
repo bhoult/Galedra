@@ -1,0 +1,108 @@
+# The topic vocabulary (IMPLEMENTATION.md Stage 15): closed, two levels deep.
+# A tag is a signed TAG_CLAIM contribution carrying paths like science/biology.
+# Each top level names the audit/reputation domain it maps to; a child may
+# override it (history/ancient keeps the spec's ancient_near_east domain).
+# Adding or renaming a topic is a code change reviewed like any other; the
+# owner has reserved whether it should become a signed config release.
+topics:
+  - slug: science
+    label: Science
+    scope: Natural science, its methods, and its findings.
+    domain: science
+    children:
+      - { slug: biology, label: Biology }
+      - { slug: medicine, label: Medicine }
+      - { slug: neuroscience, label: Neuroscience }
+      - { slug: psychology, label: Psychology }
+      - { slug: physics, label: Physics }
+      - { slug: chemistry, label: Chemistry }
+      - { slug: earth, label: Earth science }
+  - slug: mathematics
+    label: Mathematics
+    scope: Numbers, statistics, and quantitative reasoning.
+    domain: mathematics
+    children:
+      - { slug: statistics, label: Statistics }
+      - { slug: numeracy, label: Numeracy }
+  - slug: technology
+    label: Technology
+    scope: Software, hardware, AI, and security.
+    domain: technology
+    children:
+      - { slug: software, label: Software }
+      - { slug: ai, label: AI }
+      - { slug: security, label: Security }
+  - slug: health
+    label: Health
+    scope: Personal and public health, nutrition, vaccines.
+    domain: health
+    children:
+      - { slug: nutrition, label: Nutrition }
+      - { slug: vaccines, label: Vaccines }
+      - { slug: public-health, label: Public health }
+  - slug: environment
+    label: Environment
+    scope: Climate, energy, and wildlife.
+    domain: environment
+    children:
+      - { slug: climate, label: Climate }
+      - { slug: energy, label: Energy }
+      - { slug: wildlife, label: Wildlife }
+  - slug: politics
+    label: Politics
+    scope: Elections, policy, government, and international affairs. Claims, never speakers, are assessed.
+    domain: politics
+    children:
+      - { slug: elections, label: Elections }
+      - { slug: policy, label: Policy }
+      - { slug: government, label: Government }
+      - { slug: geopolitics, label: Geopolitics }
+  - slug: economics
+    label: Economics
+    scope: Markets, work, prices, and business.
+    domain: us_economics
+    children:
+      - { slug: markets, label: Markets }
+      - { slug: employment, label: Employment }
+      - { slug: prices, label: Prices and inflation }
+      - { slug: business, label: Business }
+  - slug: law
+    label: Law
+    scope: Courts and legislation. No legal scoring model exists yet.
+    domain: law
+    children:
+      - { slug: courts, label: Courts }
+      - { slug: legislation, label: Legislation }
+  - slug: history
+    label: History
+    scope: What happened, and what the sources say happened.
+    domain: history
+    children:
+      - { slug: ancient, label: Ancient, domain: ancient_near_east }
+      - { slug: modern, label: Modern }
+      - { slug: archaeology, label: Archaeology }
+  - slug: religion
+    label: Religion
+    scope: Theology, scripture, and church history, kept distinct from empirical claims.
+    domain: religion
+    children:
+      - { slug: theology, label: Theology }
+      - { slug: scripture, label: Scripture }
+      - { slug: church-history, label: Church history }
+  - slug: society
+    label: Society
+    scope: Media, education, crime, and migration.
+    domain: society
+    children:
+      - { slug: media, label: Media }
+      - { slug: education, label: Education }
+      - { slug: crime, label: Crime }
+      - { slug: immigration, label: Immigration }
+  - slug: culture
+    label: Culture
+    scope: Memes, entertainment, and sport. A meme is a source; this is for claims about culture itself.
+    domain: culture
+    children:
+      - { slug: memes, label: Memes }
+      - { slug: entertainment, label: Entertainment }
+      - { slug: sports, label: Sports }

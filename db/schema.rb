@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_240000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_250000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -140,6 +140,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_240000) do
     t.string "trace_hash", null: false
     t.index ["claim_id", "snapshot_seq", "scoring_model_id"], name: "idx_on_claim_id_snapshot_seq_scoring_model_id_48d9ffea91", unique: true
     t.index ["snapshot_seq", "scoring_model_id"], name: "index_claim_scores_on_snapshot_seq_and_scoring_model_id"
+  end
+
+  create_table "claim_topics", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "accepted_seq"
+    t.uuid "claim_id", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.bigint "invalidated_seq"
+    t.string "note"
+    t.uuid "principal_contributor_id"
+    t.bigint "replaced_seq"
+    t.string "topic", null: false
+    t.index ["claim_id", "topic"], name: "index_claim_topics_on_claim_id_and_topic"
+    t.index ["contribution_id"], name: "index_claim_topics_on_contribution_id"
+    t.index ["topic"], name: "index_claim_topics_on_topic"
   end
 
   create_table "claims", id: :uuid, default: nil, force: :cascade do |t|

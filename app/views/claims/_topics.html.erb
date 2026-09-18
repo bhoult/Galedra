@@ -1,0 +1,16 @@
+<%# Topics on a claim (Stage 15): each tag names who set it. %>
+<h2>Topics</h2>
+<% if topics.any? %>
+  <p><% topics.each do |row| %><span class="badge"><%= link_to Topics.label(row.topic), topic_path(row.topic) %> · <%= link_to short_id(row.contribution.signer_key_id), contribution_path(row.contribution_id) %></span> <% end %></p>
+<% else %><p class="muted">Not filed under any topic yet.</p><% end %>
+<% if authenticated? %>
+  <details>
+    <summary>Suggest a different topic</summary>
+    <%= form_with url: topics_claim_path(claim), method: :post, class: "filters" do |f| %>
+      <label>Topic <%= select_tag "topics[]", options_for_select(Topics.index.values.map { |n| [ n.top? ? n.label : "#{n.parent.label} / #{n.label}", n.path ] }), multiple: true, size: 6 %></label>
+      <label>Why (optional) <%= text_field_tag :note %></label>
+      <%= f.submit "Tag it", class: "secondary" %>
+    <% end %>
+    <p class="meta">Your tag is a signed contribution. On your own claim it counts at once; on someone else's it waits for acceptance.</p>
+  </details>
+<% end %>

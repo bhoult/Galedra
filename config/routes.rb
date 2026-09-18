@@ -13,7 +13,10 @@ Rails.application.routes.draw do
 
   resources :claims, only: [ :index, :show ] do
     get :card, on: :member
+    post :topics, on: :member, to: "claims#tag"
   end
+  get "topics", to: "topics#index", as: :topics
+  get "topics/*path", to: "topics#show", as: :topic
   post "mcp", to: "mcp#create"
   get "mcp", to: "mcp#show"
   # The authenticated door: answers 401 with resource metadata until the
@@ -54,6 +57,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       get "meta", to: "meta#show"
       get "openapi", to: "openapi#show"
+      get "topics", to: "topics#index"
       get "log", to: "log#index"
       resources :contributions, only: [ :create, :show ] do
         get :verify, on: :member

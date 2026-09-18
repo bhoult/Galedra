@@ -10,7 +10,7 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–14 (connected assistants, record an investigation, MCP and the skill) and 16 (OAuth for connectors) tagged; Stage 15 (topics) is planned.** `IMPLEMENTATION.md` is the
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors).** `IMPLEMENTATION.md` is the
 staged plan and decision log. P1 is planned there as Stages 12–14 (assistants as
 contributors: tokens and custodied writes, the investigation bundle, MCP and the skill),
 built one stage per tag only when the owner asks. Read the relevant spec sections and the
@@ -156,6 +156,7 @@ python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/referen
 Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`,
 `bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/demo --reset`, `bin/demo --example watchers --reset`,
 `bin/demo --example check --reset`, `bin/rails skills:build` (after editing `skills/galedra.md`).
+The topic vocabulary is `config/topics.yml`; tags are `TAG_CLAIM` contributions, never edited columns.
 The signed-out home page and `/constitution` render `CONSTITUTION.md` through `Governance::Constitution`;
 after adding a gem, run `docker compose exec app bundle install` and `docker compose restart app`.
 `bin/demo` refuses a log that already holds contributions unless `--reset` is given (development only).

@@ -78,6 +78,8 @@ module Investigations
         end
         payload = { "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => c.fetch("qualifiers", {}) }
         write.call("CREATE_CLAIM", payload, c["handle"], "claim", Claim)
+        topics = Array(c["topics"]).reject(&:blank?)
+        write.call("TAG_CLAIM", { "claim_id" => ids[c["handle"]], "topics" => topics }, nil, nil, nil) if topics.any?
       end
       bundle.fetch("evidence", []).each do |ev|
         payload = { "source_location_id" => ids.fetch(ev["excerpt"]), "observation_type" => ev.fetch("observation_type", "DIRECT_TEXT"), "statement" => ev["statement"] }
@@ -123,15 +125,16 @@ module Investigations
         next if c["attach_to"]
 
         claim = Claim.find(ids[c["handle"]])
+        domain = Topics.domain_for_claim(claim, Contribution.maximum(:seq)) || Audits::Policy.default_domain
         %w[OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK].each do |type|
-          Tasks::Create.call(task_type: type, target: claim, created_by: token.agent, priority_factor: factor)
+          Tasks::Create.call(task_type: type, target: claim, domain: domain, created_by: token.agent, priority_factor: factor)
           opened += 1
         end
         link = bundle.fetch("links", []).find { |l| l["claim"] == c["handle"] }
         excerpt = link && bundle.fetch("evidence", []).find { |e| e["handle"] == link["evidence"] }&.dig("excerpt")
         next if excerpt.nil?
 
-        Tasks::Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, location: SourceLocation.find(ids.fetch(excerpt)), created_by: token.agent, priority_factor: factor)
+        Tasks::Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, domain: domain, location: SourceLocation.find(ids.fetch(excerpt)), created_by: token.agent, priority_factor: factor)
         opened += 1
       end
       opened
@@ -190,6 +193,10 @@ module Investigations
         add.call("#{path}.text", "required: one atomic assertion") unless c["text"].is_a?(String) && c["text"].present?
         add.call("#{path}.type", "expected one of #{Claim::TYPES.join(', ')}") unless Claim::TYPES.include?(c["type"])
       end
+      topics = Array(c["topics"])
+      unknown = topics.reject { |t| Topics.valid?(t) }
+      add.call("#{path}.topics", "not in the vocabulary: #{unknown.join(', ')}; see /api/v1/topics") if unknown.any?
+      add.call("#{path}.topics", "at most #{Topics::MAX_PER_CLAIM} topics") if topics.size > Topics::MAX_PER_CLAIM
     end
 
     def check_evidence(ev, path, handles, add, _bundle)

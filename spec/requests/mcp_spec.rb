@@ -35,7 +35,7 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     expect(response).to have_http_status(:accepted)
 
     tools = rpc("tools/list").dig("result", "tools").map { |t| t["name"] }
-    expect(tools).to contain_exactly("search_claims", "get_claim", "record_investigation", "add_evidence", "explain", "share_card", "search", "fetch")
+    expect(tools).to contain_exactly("search_claims", "get_claim", "record_investigation", "add_evidence", "explain", "share_card", "search", "fetch", "tag_claim", "list_topics")
 
     data, err = call_tool("search_claims", { query: "Brackenridge bicycles" })
     expect(err).to be(false)

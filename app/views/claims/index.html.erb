@@ -5,6 +5,7 @@
   <label>Type <%= f.select :type, [ [ "any", "" ] ] + Claim::TYPES.map { |t| [ t, t ] }, { selected: params[:type] } %></label>
   <label>State <%= f.select :state, [ [ "any", "" ] ] + %w[SUPPORTED LEANS_SUPPORTED UNRESOLVED LEANS_CONTRADICTED CONTRADICTED INSUFFICIENT_EVIDENCE NOT_APPLICABLE].map { |s| [ state_label(s), s ] }, { selected: params[:state] } %></label>
   <label>Status <%= f.select :status, [ [ "any", "" ] ] + Claim::STATUSES.map { |s| [ s, s ] }, { selected: params[:status] } %></label>
+  <label>Topic <%= f.select :topic, [ [ "any", "" ] ] + Topics.index.values.map { |n| [ n.top? ? n.label : "#{n.parent.label} / #{n.label}", n.path ] }, { selected: params[:topic] } %></label>
   <label>Model <%= f.select :model, released_models.map { |m| [ m.full_name, m.full_name ] }, { selected: selected_model&.full_name } %></label>
   <%= f.hidden_field :snapshot_seq, value: params[:snapshot_seq] %>
   <%= f.submit "Filter", class: "secondary" %>

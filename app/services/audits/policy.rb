@@ -10,7 +10,8 @@ module Audits
     end
 
     def version = config.fetch("policy_version")
-    def domains = config.fetch("domains")
+    # The configured domains plus every domain the topic vocabulary maps to (Stage 15).
+    def domains = (config.fetch("domains") + Topics.domains).uniq
     def default_domain = config.fetch("default_domain")
     def manual_task_type = config.fetch("manual_task_type")
 

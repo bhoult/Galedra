@@ -39,7 +39,7 @@ module Mcp
         inputSchema: { type: "object", properties: {
           sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "sha256:<hex> of the bytes you read" }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url content_hash retrieved_at] } },
           excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION] }, text: { type: "string" } }, required: %w[handle source text] } },
-          claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, attach_to: { type: "string", description: "An existing claim id instead of text and type" } }, required: [ "handle" ] } },
+          claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type" } }, required: [ "handle" ] } },
           evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string" }, statement: { type: "string" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
           links: { type: "array", items: { type: "object", properties: { evidence: { type: "string" }, claim: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer", minimum: 0, maximum: EvidenceClaimLink::MAX_STEPS }, note: { type: "string" } }, required: %w[evidence claim direction] } },
           groups: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: IndependenceGroup::TYPES }, members: { type: "array", items: { type: "string" } } }, required: %w[handle members] } },
@@ -55,6 +55,12 @@ module Mcp
       { name: "share_card", annotations: { readOnlyHint: true, openWorldHint: false }, description: "A link and image for pasting into a social post: the plain headline, what to say instead, and the claim URL. The card never shows a number.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" } }, required: [ "claim_id" ] },
         outputSchema: { type: "object", properties: { url: { type: "string" }, card_url: { type: "string" }, image_url: { type: "string" }, headline: { type: "string" }, say_instead: { type: [ "string", "null" ] }, text: { type: "string" } } } },
+      { name: "tag_claim", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "File an existing claim under one to five topics from the vocabulary (e.g. health/vaccines). A tag is a signed, challengeable judgment; on someone else's claim it waits for acceptance. Never invent a topic; list_topics shows the vocabulary.",
+        inputSchema: { type: "object", properties: { claim_id: { type: "string" }, topics: { type: "array", items: { type: "string", enum: Topics.all }, minItems: 1, maxItems: Topics::MAX_PER_CLAIM }, note: { type: "string" } }, required: %w[claim_id topics] },
+        outputSchema: { type: "object", properties: { claim_id: { type: "string" }, topics: { type: "array", items: { type: "string" } }, status: { type: "string" }, url: { type: "string" } } } },
+      { name: "list_topics", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The topic vocabulary: two levels of subjects with the paths to use in record_investigation and tag_claim.",
+        inputSchema: { type: "object", properties: {} },
+        outputSchema: { type: "object", properties: { topics: { type: "array", items: { type: "object", properties: { path: { type: "string" }, label: { type: "string" }, children: { type: "array", items: { type: "object" } } } } } } } },
       # OpenAI's read-and-fetch connector shape (ChatGPT search and deep research): a
       # `search` returning ids, titles, and URLs, and a `fetch` returning one document.
       { name: "search", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Search Galedra's accepted claims. Returns ids, titles (the claim text with its plain headline), and URLs. Use fetch on an id for the full card, evidence, and why.",
@@ -131,7 +137,7 @@ module Mcp
       model = Scoring::Registry.default_model
       card = Cards::ClaimCard.call(claim, seq, model)
       evidence = Graph::Presenter.claim_evidence(claim, seq) if Graph::Presenter.respond_to?(:claim_evidence)
-      { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card,
+      { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card, topics: Topics.for_claim(claim, seq),
         evidence: evidence, provisional_note: "Everything here stays open to audit; treat it as provisional." }
     end
 
@@ -152,6 +158,17 @@ module Mcp
         "links" => [ { "evidence" => "e", "claim" => "c", "direction" => args["direction"], "strength" => args.fetch("strength", "DIRECT"), "steps" => args.fetch("steps", 0), "note" => args["note"] }.compact ]
       }
       Investigations::Record.call(@token, bundle, base_url: @base_url)
+    end
+
+    def tool_tag_claim(args)
+      require_token!
+      claim = find_claim(args)
+      result = Assistants::Write.call(@token, "TAG_CLAIM", { "claim_id" => claim.id, "topics" => Array(args["topics"]), "note" => args["note"] }.compact)
+      { claim_id: claim.id, topics: Array(args["topics"]), status: result.contribution.current_status, url: url_for(claim) }
+    end
+
+    def tool_list_topics(_args)
+      { topics: Topics.tree.map { |t| { path: t.path, label: t.label, scope: t.scope, children: t.children.map { |c| { path: c.path, label: c.label } } } } }
     end
 
     def tool_explain(args)

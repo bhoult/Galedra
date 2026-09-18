@@ -1866,3 +1866,38 @@ json gem pin (Stage 1). Each is explained in its stage above.
   no; 5 yes; 6 yes; 7 yes; 8 yes; 9 yes, OAuth stores no profile data, only the link
   between a client and a key; 10 yes.
 
+### Stage 15 — Topics (2026-09-18)
+
+- The vocabulary is `config/topics.yml`: twelve top-level subjects with children, each
+  naming the audit/reputation domain it maps to (`history/ancient` keeps
+  `ancient_near_east`, `economics/*` keeps `us_economics`). `Topics` reads it once and
+  offers lookup, the domain for a path, a keyword guess for the Analyze form, and a
+  claim's current topics at a seq. `Audits::Policy.domains` is the configured list plus
+  every mapped domain, so delegations and tasks accept them without a second vocabulary.
+- `TAG_CLAIM` is a new epistemic contribution: `claim_id`, one to five distinct paths,
+  an optional note. Unknown paths are `TOPIC_UNKNOWN`. It projects to `claim_topics`
+  (one row per topic, in `PROJECTION_MODELS`, so digests, replay, ACCEPT, and
+  INVALIDATE cover it). A later tag by the same principal sets `replaced_seq` on that
+  principal's earlier rows, deterministically at apply time; `ClaimTopic.current_at`
+  reads the window. Auto-accepted only for the claim's own principal (human, or a
+  connected assistant acting for them); a tag on someone else's claim stays `PENDING`
+  until accepted, like a proposal. A delegation may carry `permissions.topics`, a list
+  of allowed prefixes; tags outside it are `DELEGATION_INVALID`.
+- Bundles take `claims[].topics`, appended as one `TAG_CLAIM` after the claim; the
+  MCP schema enumerates the paths, `tag_claim` and `list_topics` were added, and
+  `get_claim` and the claim API carry `topics`. Tasks opened for a tagged claim take the
+  first topic's domain, so reputation buckets follow the subject (acceptance #4 audits
+  a result into `ancient_near_east`).
+- Pages: `/topics` (the tree with counts), `/topics/<top>` and `/topics/<top>/<child>`
+  with claims and counts by assessment state rolled up from children and never a
+  probability; `?topic=` on the claims index and the API; `/api/v1/topics`. The claim
+  page lists topics with who set them and lets a signed-in person suggest others
+  (a `TAG_CLAIM` of their own). The Analyze form pre-selects guesses from surface cues.
+- Demo goldens, reputation tables, and replay checks are unchanged (acceptance #5).
+- Reserved decisions unchanged: an untagged claim is scored and sits in `general`;
+  `culture/memes` exists for claims about memes as a phenomenon, while a meme itself is
+  a source; adding a topic is a code change for now.
+- Constitutional Test (visibility): 1 more traceable; 2 yes, competing tags coexist and
+  name their contributors; 3 no; 4 no; 5 yes; 6 yes; 7 yes, anyone can propose a tag;
+  8 yes; 9 yes; 10 yes.
+

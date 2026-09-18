@@ -15,6 +15,7 @@ module Api
           scope = scope.where(claim_type: params[:type]) if params[:type].present?
           scope = scope.where(status: params[:status]) if params[:status].present?
           scope = scope.where("to_tsvector('english', canonical_text) @@ plainto_tsquery('english', ?)", params[:q]) if params[:q].present?
+          scope = scope.where(id: ClaimTopic.current_at(seq).where(topic: Topics.paths_under(params[:topic])).select(:claim_id)) if params[:topic].present?
           scope.limit(limit_param(default: 50, max: 200))
         end
         rendered = claims.map { |c| Graph::Presenter.claim(c, seq, model: model).merge(similarity: c.try(:similarity)).compact }

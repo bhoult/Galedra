@@ -21,6 +21,7 @@ module Graph
         status: claim.status_at(seq), qualifiers: claim.qualifiers, snapshot_seq: seq, redacted: claim.redacted?,
         created_seq: claim.created_seq, accepted_seq: claim.accepted_seq, invalidated_seq: claim.invalidated_seq,
         contribution_id: claim.contribution_id,
+        topics: Topics.for_claim(claim, seq),
         supersedes_claim_id: claim.supersedes_claim_id, superseded_by_id: claim.superseded_by_at(seq)&.id,
         merged_into_id: claim.merge_at(seq)&.into_claim_id,
         evidence_counts: {

@@ -24,6 +24,7 @@
         <% if authenticated? %>
           <%= link_to "Analyze text", new_analyze_path %>
           <%= link_to "Claims", claims_path %>
+          <%= link_to "Topics", topics_path %>
           <%= link_to "Tasks", tasks_path %>
           <%= link_to "Audits", contributions_path(action_type: "AUDIT") %>
           <%= link_to "Weaknesses", weaknesses_path %>

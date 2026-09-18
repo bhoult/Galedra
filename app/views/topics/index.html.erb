@@ -1,0 +1,12 @@
+<% content_for :title, "Topics" %>
+<h1>Topics</h1>
+<p class="muted">What claims are about, as of snapshot <%= @seq %>. Counts of claims, never a score for a subject. A topic is a signed, challengeable judgment like everything else here.</p>
+<div class="grid two">
+  <% Topics.tree.each do |top| %>
+    <div class="card topic">
+      <h3><%= link_to top.label, topic_path(top.path) %> <span class="badge"><%= @counts[top.path][:total] %></span></h3>
+      <p class="meta"><%= top.scope %></p>
+      <p><% top.children.each do |child| %><%= link_to child.label, topic_path(child.path) %> <span class="badge"><%= @counts[top.path][:children][child.path] %></span> <% end %></p>
+    </div>
+  <% end %>
+</div>

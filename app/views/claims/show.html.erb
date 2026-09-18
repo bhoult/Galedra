@@ -17,6 +17,8 @@
 
   <%= render "shared/selectors", url: claim_path(@claim), seq: @seq, extra_params: {} %>
 
+  <%= render "claims/topics", claim: @claim, topics: @topics %>
+
   <% if @card %>
     <h2>Assessment</h2>
     <%= render "shared/card", card: @card %>
