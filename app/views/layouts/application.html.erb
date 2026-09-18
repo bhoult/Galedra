@@ -8,6 +8,10 @@
     <meta name="description" content="Galedra is an epistemic ledger: a signed, append-only record of claims, evidence, provenance, audits, and reproducible scores, contributed to by people and AI.">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <meta name="theme-color" content="#2c5a86">
     <%= yield :head %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
@@ -15,7 +19,7 @@
   <body class="<%= content_for?(:body_class) ? yield(:body_class) : "" %>">
     <%= yield :background %>
     <header class="site">
-      <%= link_to root_path, class: "brand" do %><span class="brand-mark">⛰</span> Galedra<% end %>
+      <%= link_to root_path, class: "brand" do %><%= image_tag "logo.svg", alt: "", class: "brand-mark", width: 26, height: 26 %> Galedra<% end %>
       <nav aria-label="Primary">
         <% if authenticated? %>
           <%= link_to "Analyze text", new_analyze_path %>
