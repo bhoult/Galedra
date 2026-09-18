@@ -8,8 +8,12 @@
   </div>
 
   <h2>Set up your assistant</h2>
-  <h3>Claude, or any MCP client</h3>
-  <p class="muted">Add this server. Claude Desktop and Claude Code take it in their MCP settings; Claude.ai takes it under Connectors.</p>
+  <h3>Claude.ai and Claude Desktop (Settings → Connectors → Add custom connector)</h3>
+  <p class="muted">Those screens take only a URL, so the token rides in it. Treat this URL as the secret; disconnect the assistant to revoke it.</p>
+  <pre><%= mcp_with_token_url(@plaintext) %></pre>
+  <h3>Claude Code, or any MCP client that can send headers</h3>
+  <pre>claude mcp add --transport http galedra <%= mcp_url %> --header "Authorization: Bearer <%= @plaintext %>"</pre>
+  <p class="muted">Or as a config block:</p>
   <pre>{
   "mcpServers": {
     "galedra": {

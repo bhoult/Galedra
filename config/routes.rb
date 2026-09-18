@@ -13,6 +13,9 @@ Rails.application.routes.draw do
   end
   post "mcp", to: "mcp#create"
   get "mcp", to: "mcp#show"
+  # The token may travel in the URL for connector screens that take only a URL.
+  post "mcp/:token", to: "mcp#create", as: :mcp_with_token
+  get "mcp/:token", to: "mcp#show"
   resources :sources, only: [ :show ] do
     member do
       get :analyze

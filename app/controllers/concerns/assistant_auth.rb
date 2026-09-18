@@ -9,6 +9,7 @@ module AssistantAuth
 
     header = request.authorization.to_s
     plaintext = header.delete_prefix("Bearer ").strip if header.start_with?("Bearer ")
+    plaintext ||= request.path_parameters[:token].presence
     @current_assistant_token = AssistantToken.find_by_token(plaintext)
   end
 

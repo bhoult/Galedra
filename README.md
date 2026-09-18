@@ -151,6 +151,20 @@ records what it found in one call (`POST /api/v1/investigations`, or the `/mcp`
 server), and hands back a plain headline, what to say instead, and a share card.
 `bin/demo --example check --reset` runs that flow end to end with a fixture agent.
 
+**Serving it from home.** Hosted assistants (Claude.ai, ChatGPT) must reach your ledger
+over HTTPS at a public name. `compose.production.yaml` runs the production image with
+Thruster in front, which obtains and renews a Let's Encrypt certificate for
+`TLS_DOMAIN` on its own. Point a domain (or a dynamic-DNS name) at your public
+address, forward TCP 80 and 443 on the router to this machine, set `TLS_DOMAIN`,
+`LEDGER_ALLOWED_HOSTS`, and `RAILS_MASTER_KEY` in `.env`, and run:
+
+```bash
+docker compose -f compose.production.yaml up -d --build
+```
+
+Then connect an assistant at `https://<your domain>/assistants/new`. Claude.ai's
+connector screen takes only a URL, so it is given the MCP URL with the token in it.
+
 ---
 
 ## The specification

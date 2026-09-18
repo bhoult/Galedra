@@ -42,7 +42,7 @@ module Skills
 
         # Galedra
 
-        Connect: an MCP server at `#{PLACEHOLDER}/mcp`. Send the assistant token from `#{PLACEHOLDER}/assistants/new` as `Authorization: Bearer <token>`. Reads work without a token; recording needs one.
+        Connect: an MCP server at `#{PLACEHOLDER}/mcp`. Send the assistant token from `#{PLACEHOLDER}/assistants/new` as `Authorization: Bearer <token>`, or, where the client takes only a URL (Claude.ai connectors), use `#{PLACEHOLDER}/mcp/<token>`. Reads work without a token; recording needs one.
 
         #{source.strip}
       MD

@@ -5,7 +5,7 @@ description: Check a claim, statistic, or meme in Galedra before repeating it, a
 
 # Galedra
 
-Connect: an MCP server at `GALEDRA_URL/mcp`. Send the assistant token from `GALEDRA_URL/assistants/new` as `Authorization: Bearer <token>`. Reads work without a token; recording needs one.
+Connect: an MCP server at `GALEDRA_URL/mcp`. Send the assistant token from `GALEDRA_URL/assistants/new` as `Authorization: Bearer <token>`, or, where the client takes only a URL (Claude.ai connectors), use `GALEDRA_URL/mcp/<token>`. Reads work without a token; recording needs one.
 
 Galedra is an epistemic ledger: a signed, append-only record of claims, the evidence that bears on them, where that evidence came from, and what has happened to it since. It is not a source of truth. It gives traceable reasons for believing or doubting a claim. When the user asks you to check something in Galedra, follow this procedure.
 

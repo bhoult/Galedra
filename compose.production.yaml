@@ -1,0 +1,54 @@
+# Serving Galedra from your own machine or a small server (README "Serving it
+# from home"). Same two services as development, but the production image,
+# a production database, and Thruster in front of Puma terminating TLS with a
+# certificate it obtains itself for TLS_DOMAIN. Forward TCP 80 and 443 to
+# this host.
+#
+#   docker compose -f compose.production.yaml up -d --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - pgdata_production:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash -c "bin/rails db:prepare ledger:genesis ledger:release_models && exec ./bin/thrust ./bin/rails server"
+    environment:
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-galedra_production}
+      SOLID_QUEUE_IN_PUMA: "true"
+      TLS_DOMAIN: ${TLS_DOMAIN}
+      LEDGER_ALLOWED_HOSTS: ${LEDGER_ALLOWED_HOSTS:-${TLS_DOMAIN}}
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - storage_production:/rails/storage
+      - certs_production:/rails/storage/thruster
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata_production:
+  storage_production:
+  certs_production:

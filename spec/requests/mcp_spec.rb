@@ -87,4 +87,15 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     get "/mcp"
     expect(response).to have_http_status(:method_not_allowed)
   end
+
+  it "accepts the token in the URL for connector screens that take only a URL" do
+    post "/mcp/#{token}", params: { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "record_investigation", arguments: bundle } }.to_json,
+                          headers: { "CONTENT_TYPE" => "application/json" }
+    expect(response.parsed_body.dig("result", "isError")).to be(false)
+    expect(response.parsed_body.dig("result", "structuredContent", "recorded")).to be(true)
+
+    post "/mcp/gal_wrong", params: { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "record_investigation", arguments: bundle } }.to_json,
+                           headers: { "CONTENT_TYPE" => "application/json" }
+    expect(response.parsed_body.dig("result", "structuredContent", "errors").first["code"]).to eq("TOKEN_INVALID")
+  end
 end
