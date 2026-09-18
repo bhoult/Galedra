@@ -136,7 +136,10 @@ module Scoring
     end
 
     # Step 3 — within each (group, sign) keep the largest magnitude; ties go
-    # to the lowest evidence id, then the lowest link id.
+    # to the lowest evidence id, then the lowest link id (03 §4). "Lowest id"
+    # assumes time-ordered ids; projection ids here are hash-derived, so the
+    # rows' created_seq (when the input carries it) is compared first, which is
+    # the order UUIDv7 ids would have given and the reference's handles encode.
     def select_strongest(weighted)
       kept = {}
       weighted.each do |w|
@@ -145,11 +148,14 @@ module Scoring
         key = [ w[:group], w[:sign] ]
         current = kept[key]
         better = current.nil? || w[:magnitude] > current[:magnitude] ||
-                 (w[:magnitude] == current[:magnitude] &&
-                  ([ w[:link]["evidence_id"].to_s, w[:link]["id"].to_s ] <=> [ current[:link]["evidence_id"].to_s, current[:link]["id"].to_s ]).negative?)
+                 (w[:magnitude] == current[:magnitude] && (tie_key(w[:link]) <=> tie_key(current[:link])).negative?)
         kept[key] = w if better
       end
       kept
+    end
+
+    def tie_key(link)
+      [ link.dig("evidence", "created_seq") || 0, link["evidence_id"].to_s, link["created_seq"] || 0, link["id"].to_s ]
     end
 
     def link_trace(w, effective:, reason:, kept: nil)

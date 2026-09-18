@@ -26,7 +26,10 @@ Rails.application.routes.draw do
         get :score, on: :member, to: "scores#score"
         get :trace, on: :member, to: "scores#trace"
         get :compare, on: :member, to: "scores#compare"
+        get :why, on: :member, to: "scores#why"
+        get :summary, on: :member, to: "scores#summary"
       end
+      get "weaknesses", to: "weaknesses#index"
       get "snapshots", to: "snapshots#index"
       get "snapshots/:seq", to: "snapshots#show", as: :snapshot
       get "scoring-models", to: "scoring_models#index"

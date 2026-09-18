@@ -30,12 +30,14 @@ module Scoring
         {
           "id" => link.id, "evidence_id" => item.id, "direction" => link.direction,
           "relevance_strength" => link.relevance_strength, "interpretive_steps" => link.interpretive_steps,
+          "created_seq" => link.created_seq,
           "audit_confirmed" => Audits::Status.confirmed?(link.contribution_id, seq),
           "evidence" => {
             "observation_type" => item.observation_type,
             "independence_group_id" => item.independence_group_at(seq)&.id,
             "source_type" => location.source.source_type,
-            "assessment" => item.assessment
+            "assessment" => item.assessment,
+            "created_seq" => item.created_seq
           }
         }
       end

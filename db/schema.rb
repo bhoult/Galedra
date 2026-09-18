@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_280000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_290000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -536,6 +536,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_280000) do
     t.index ["created_seq"], name: "index_sources_on_created_seq"
     t.index ["invalidated_seq"], name: "index_sources_on_invalidated_seq"
     t.index ["lineage_key"], name: "index_sources_on_lineage_key"
+  end
+
+  create_table "summaries", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "claim_id", null: false
+    t.timestamptz "created_at", null: false
+    t.string "generator", null: false
+    t.string "input_hash", null: false
+    t.uuid "scoring_model_id", null: false
+    t.jsonb "sentences", null: false
+    t.bigint "snapshot_seq", null: false
+    t.string "summary_type", null: false
+    t.index ["claim_id", "snapshot_seq", "scoring_model_id", "summary_type"], name: "index_summaries_on_claim_seq_model_type", unique: true
   end
 
   create_table "task_assignments", id: :uuid, default: nil, force: :cascade do |t|

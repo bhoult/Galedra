@@ -4,8 +4,11 @@ module Api
   module V1
     class SourcesController < BaseController
       def show
+        seq = snapshot_seq
         source = Source.find(params[:id])
-        render json: { source: Graph::Presenter.source(source) }
+        model = Scoring::Registry.default_model
+        cards = model && !Governance::Quarantines.live_for("SOURCE", source.id) ? Cards::SourceCard.call(source, seq, model) : nil
+        render json: { source: Graph::Presenter.source(source), cards: cards }
       end
 
       def locations

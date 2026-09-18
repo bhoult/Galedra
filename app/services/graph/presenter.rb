@@ -32,7 +32,8 @@ module Graph
           outgoing: claim.outgoing_edges.counted_at(seq).map { |e| edge(e) },
           incoming: claim.incoming_edges.counted_at(seq).map { |e| edge(e) }
         },
-        assessment: model && assessment(Scoring::Score.call(claim, seq, model), seq, model)
+        assessment: model && assessment(Scoring::Score.call(claim, seq, model), seq, model),
+        card: model && Cards::ClaimCard.call(claim, seq, model)
       }
     end
 

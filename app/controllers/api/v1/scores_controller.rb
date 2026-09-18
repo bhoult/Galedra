@@ -37,6 +37,21 @@ module Api
                         .merge(Scoring::Compare.call(ra, rb, config_a: a.config, config_b: b.config))
       end
 
+      def why
+        return render json: stub if @quarantine
+
+        render json: Cards::Why.call(@claim, @seq, model)
+      end
+
+      def summary
+        return render json: stub if @quarantine
+
+        type = params.fetch(:type, "STANDARD").to_s.upcase
+        raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.type", detail: "expected SHORT or STANDARD" } ]) unless Summary::TYPES.include?(type)
+
+        render json: Summaries::Generate.call(@claim, @seq, model, type: type)
+      end
+
       private
 
       def load_claim
