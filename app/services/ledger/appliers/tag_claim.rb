@@ -27,7 +27,11 @@ module Ledger
         reject("DELEGATION_INVALID", path("topics"), "this delegation may not tag #{outside.join(', ')}") if outside.any?
       end
 
+      # The system's own backfill tags are accepted too: they are guesses, say so
+      # in their note, and are as visible and replaceable as any other tag.
       def self.auto_accept?(validated)
+        return true if validated.contributor&.system?
+
         claim = Claim.find(validated.payload["claim_id"])
         principal = validated.contributor&.human? ? validated.contributor&.id : validated.delegation&.principal_contributor_id
         principal.present? && claim.contribution.principal_contributor_id == principal

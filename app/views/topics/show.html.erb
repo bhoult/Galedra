@@ -2,8 +2,9 @@
 <p class="eyebrow"><%= link_to "Topics", topics_path %><% if @node.parent %> · <%= link_to @node.parent.label, topic_path(@node.parent.path) %><% end %></p>
 <h1><%= @node.label %></h1>
 <% if @node.scope %><p class="muted"><%= @node.scope %></p><% end %>
-<% if @child_counts.any? %>
-  <p><% @child_counts.each do |child, n| %><%= link_to child.label, topic_path(child.path) %> <span class="badge"><%= n %></span> <% end %></p>
+<% present = @child_counts.select { |_, n| n.positive? } %>
+<% if present.any? %>
+  <p><% present.each do |child, n| %><%= link_to child.label, topic_path(child.path) %> <span class="badge"><%= n %></span> <% end %></p>
 <% end %>
 <p class="meta">As of snapshot <%= @seq %><%= " under #{selected_model.full_name}" if selected_model %>. Counts by assessment state, descriptive only: no topic is scored.
   <% @state_counts.each do |state, n| %><span class="badge"><%= n %> <%= state_label(state) %></span><% end %></p>

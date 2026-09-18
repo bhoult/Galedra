@@ -17,6 +17,7 @@ topics:
       - { slug: physics, label: Physics }
       - { slug: chemistry, label: Chemistry }
       - { slug: earth, label: Earth science }
+      - { slug: space, label: Astronomy and space }
   - slug: mathematics
     label: Mathematics
     scope: Numbers, statistics, and quantitative reasoning.

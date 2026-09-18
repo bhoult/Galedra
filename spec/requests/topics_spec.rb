@@ -82,6 +82,9 @@ RSpec.describe "Topics (Stage 15)", type: :request do
     get "/topics"
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Science")
+    expect(response.body).to include("Biology")
+    expect(response.body).not_to include("Religion")
+    expect(response.body).not_to include("Neuroscience")
 
     get "/topics/science"
     expect(response.body).to include("Cells divide.")
@@ -126,6 +129,26 @@ RSpec.describe "Topics (Stage 15)", type: :request do
     audit(auditor_pair, submission.contribution, result: "CONFIRMED", type: "SOURCE_CHECK")
     buckets = Reputation::Calculate.buckets(contributor_id: reviewer.id, snapshot_seq: Contribution.maximum(:seq))
     expect(buckets.map { |b| b[:domain] }).to include("ancient_near_east")
+  end
+
+  it "backfills untagged claims through system-signed tags that anyone can replace" do
+    stat = create_claim(curator, "62% of remote workers report higher productivity.", type: "QUANTITATIVE")
+    blank = create_claim(curator, "Nothing to see.")
+    out = StringIO.new
+    result = Topics::Backfill.call(out: out)
+    expect(result[:tagged].map { |claim, _| claim.id }).to eq([ stat.id ])
+    expect(result[:skipped].map(&:id)).to eq([ blank.id ])
+    seq = Contribution.maximum(:seq)
+    expect(Topics.for_claim(stat, seq)).to contain_exactly("mathematics/statistics", "economics/employment")
+    entry = Contribution.find_by!(action_type: "TAG_CLAIM")
+    expect(entry.custody).to eq("SYSTEM")
+    expect(entry.current_status).to eq("ACCEPTED")
+    expect(entry.payload["note"]).to include("guessed")
+    expect(out.string).to include("1 claims tagged, 1 left untagged")
+
+    expect(Topics::Backfill.call[:tagged]).to be_empty
+    tag(curator, stat, [ "economics/employment" ])
+    expect(Topics.for_claim(stat, Contribution.maximum(:seq))).to contain_exactly("mathematics/statistics", "economics/employment")
   end
 
   it "restricts tagging through a delegation and keeps the demo goldens (#5)" do

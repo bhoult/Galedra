@@ -1900,4 +1900,11 @@ json gem pin (Stage 1). Each is explained in its stage above.
 - Constitutional Test (visibility): 1 more traceable; 2 yes, competing tags coexist and
   name their contributors; 3 no; 4 no; 5 yes; 6 yes; 7 yes, anyone can propose a tag;
   8 yes; 9 yes; 10 yes.
+- Backfill (owner request, same day): `bin/rails topics:backfill` files untagged claims
+  under topics guessed from wording as system-signed `TAG_CLAIM` entries whose note says
+  they are guesses; the applier accepts the system's own tags. `REPLACE=1` re-guesses
+  claims whose only current tags are earlier backfills and never touches tags set by
+  people or assistants. The topics page shows only populated subjects. `science/space`
+  was added and the law and markets cues tightened after the first pass mis-filed
+  "bandstand" and "Market Street".
 

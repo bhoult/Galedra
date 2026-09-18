@@ -1,12 +1,17 @@
 <% content_for :title, "Topics" %>
 <h1>Topics</h1>
 <p class="muted">What claims are about, as of snapshot <%= @seq %>. Counts of claims, never a score for a subject. A topic is a signed, challengeable judgment like everything else here.</p>
+<% shown = Topics.tree.select { |top| @counts[top.path][:total].positive? } %>
+<% if shown.empty? %>
+  <p class="muted">No claims have been filed under a topic yet. Tags arrive with recorded investigations, from the Analyze form, or from a claim's page.</p>
+<% end %>
 <div class="grid two">
-  <% Topics.tree.each do |top| %>
+  <% shown.each do |top| %>
     <div class="card topic">
       <h3><%= link_to top.label, topic_path(top.path) %> <span class="badge"><%= @counts[top.path][:total] %></span></h3>
       <p class="meta"><%= top.scope %></p>
-      <p><% top.children.each do |child| %><%= link_to child.label, topic_path(child.path) %> <span class="badge"><%= @counts[top.path][:children][child.path] %></span> <% end %></p>
+      <% children = top.children.select { |c| @counts[top.path][:children][c.path].positive? } %>
+      <% if children.any? %><p><% children.each do |child| %><%= link_to child.label, topic_path(child.path) %> <span class="badge"><%= @counts[top.path][:children][child.path] %></span> <% end %></p><% end %>
     </div>
   <% end %>
 </div>
