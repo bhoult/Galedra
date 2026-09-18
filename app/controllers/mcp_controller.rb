@@ -11,7 +11,7 @@ class McpController < ActionController::API
     return unauthorized if presented_invalid_credential?
 
     message = JSON.parse(request.raw_post.presence || "")
-    status, body = Mcp::Server.new(token: current_assistant_token, base_url: request.base_url).handle(message)
+    status, body = Mcp::Server.new(token: current_assistant_token, base_url: request.base_url, read_only: read_only_assistant?).handle(message)
     response.set_header("MCP-Protocol-Version", Mcp::Server::PROTOCOL_VERSION)
     body.nil? ? head(status) : render(json: body, status: status)
   rescue JSON::ParserError => e

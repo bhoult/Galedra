@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_240000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -336,7 +336,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_230000) do
   create_table "oauth_tokens", id: :uuid, default: nil, force: :cascade do |t|
     t.uuid "assistant_token_id", null: false
     t.datetime "created_at", null: false
-    t.timestamptz "expires_at", null: false
+    t.timestamptz "expires_at"
     t.uuid "family_id", null: false
     t.string "kind", null: false
     t.uuid "oauth_client_id", null: false

@@ -146,7 +146,7 @@ module Oauth
     end
 
     def token_response(access, refresh, scope)
-      { access_token: access, token_type: "Bearer", expires_in: OauthToken::ACCESS_LIFETIME.to_i, refresh_token: refresh, scope: scope }
+      { access_token: access, token_type: "Bearer", refresh_token: refresh, scope: scope }.tap { |r| r[:expires_in] = OauthToken::ACCESS_LIFETIME.to_i if OauthToken::ACCESS_LIFETIME }
     end
   end
 end

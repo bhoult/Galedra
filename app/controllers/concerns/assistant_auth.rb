@@ -12,7 +12,12 @@ module AssistantAuth
     plaintext ||= request.path_parameters[:token].presence || request.query_parameters["token"].presence
     @presented_credential = plaintext
     # An OAuth access token (Stage 16) maps onto the person's assistant token.
-    @current_assistant_token = plaintext.to_s.start_with?("gat_") ? OauthToken.find_usable("access", plaintext)&.assistant_token : AssistantToken.find_by_token(plaintext)
+    if plaintext.to_s.start_with?("gat_")
+      @oauth_token = OauthToken.find_usable("access", plaintext)
+      @current_assistant_token = @oauth_token&.assistant_token
+    else
+      @current_assistant_token = AssistantToken.find_by_token(plaintext)
+    end
     @current_assistant_token ||= Assistants::Connect.for_source(request.remote_ip) if plaintext.blank? && anonymous_assistant_allowed?
     @current_assistant_token
   end
@@ -27,6 +32,14 @@ module AssistantAuth
       response.set_header("WWW-Authenticate", %(Bearer resource_metadata="#{request.base_url}/.well-known/oauth-protected-resource"))
       render json: { errors: [ { code: "TOKEN_INVALID", path: "$", detail: "send a valid assistant token as Authorization: Bearer <token>; mint one at /assistants/new or connect with OAuth" } ] }, status: :unauthorized
     end
+  end
+
+  # A galedra:read OAuth token may not write (owner decision: connectors may ask for read-only).
+  def read_only_assistant? = @oauth_token&.read_only? || false
+
+  def insufficient_scope
+    response.set_header("WWW-Authenticate", 'Bearer error="insufficient_scope", scope="galedra"')
+    render json: { errors: [ { code: "INSUFFICIENT_SCOPE", path: "$", detail: "this connection was granted read-only access; reconnect with the galedra scope to record" } ] }, status: :forbidden
   end
 
   # A credential was presented but is not valid (expired access token, revoked

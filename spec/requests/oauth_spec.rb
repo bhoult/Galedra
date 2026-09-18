@@ -136,12 +136,32 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
     expect(response).to have_http_status(:bad_request)
     expect(response.body).to include("not registered")
 
-    travel_to(2.hours.from_now) do
+    # Owner decision: tokens do not expire.
+    travel_to(2.years.from_now) do
       mcp(good["access_token"], "initialize", {})
-      expect(response).to have_http_status(:unauthorized)
-      post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "initialize", params: {} }.to_json, headers: json.merge("Authorization" => "Bearer #{good['access_token']}")
-      expect(response).to have_http_status(:unauthorized)
+      expect(response).to have_http_status(:ok)
     end
+    expect(good).not_to have_key("expires_in")
+  end
+
+  it "honours a read-only grant: reads work, writes are refused with insufficient_scope" do
+    client = register
+    sign_in
+    post "/oauth/authorize", params: { client_id: client["client_id"], redirect_uri: client["redirect_uris"].first, response_type: "code",
+                                       code_challenge: challenge, code_challenge_method: "S256", scope: "galedra:read", state: "s", decision: "approve" }
+    code = URI.decode_www_form(URI.parse(response.headers["Location"]).query).to_h["code"]
+    tokens = exchange(client, code)
+    expect(tokens["scope"]).to eq("galedra:read")
+
+    listing = mcp(tokens["access_token"], "tools/list", {})
+    expect(listing.dig("result", "tools").size).to be >= 8
+    result = mcp(tokens["access_token"], "tools/call", { name: "record_investigation", arguments: { "claims" => [ { "handle" => "c", "text" => "Read only.", "type" => "TEXTUAL" } ] } })
+    expect(result.dig("result", "isError")).to be(true)
+    expect(result.dig("result", "structuredContent", "errors").first["code"]).to eq("INSUFFICIENT_SCOPE")
+
+    post "/api/v1/investigations", params: { claims: [ { handle: "c", text: "Read only.", type: "TEXTUAL" } ] }.to_json, headers: json.merge("Authorization" => "Bearer #{tokens['access_token']}")
+    expect(response).to have_http_status(:forbidden)
+    expect(response.headers["WWW-Authenticate"]).to include("insufficient_scope")
   end
 
   it "rotates refresh tokens and revokes the family on replay (#4)" do

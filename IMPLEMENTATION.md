@@ -1856,8 +1856,11 @@ json gem pin (Stage 1). Each is explained in its stage above.
   revokes every OAuth token for it.
 - The consent page is the only new UI: one screen naming the client and what it can
   do, Allow or Cancel, after sign-in. Scopes: `galedra` (read and write, default) and
-  `galedra:read`. Reserved: token lifetimes; whether connectors should be able to ask
-  for read-only by default.
+  `galedra:read`. Owner decisions (2026-09-18): tokens do not expire, and neither do
+  connected-assistant delegations (100 years); revocation is the only end. A connector
+  may ask for `galedra:read`, and that grant is enforced: writes over REST answer 403
+  `INSUFFICIENT_SCOPE` with the RFC 6750 challenge, and MCP writing tools return a tool
+  error naming the scope to reconnect with.
 - Constitutional Test (identity): 1 more traceable (attributed, logged delegation);
   2 yes; 3 no hidden authority (the grant and its revocation are public entries); 4
   no; 5 yes; 6 yes; 7 yes; 8 yes; 9 yes, OAuth stores no profile data, only the link

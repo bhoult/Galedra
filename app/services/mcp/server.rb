@@ -65,9 +65,10 @@ module Mcp
         outputSchema: { type: "object", properties: { id: { type: "string" }, title: { type: "string" }, text: { type: "string" }, url: { type: "string" }, metadata: { type: "object" } } } }
     ].freeze
 
-    def initialize(token:, base_url:)
+    def initialize(token:, base_url:, read_only: false)
       @token = token
       @base_url = base_url
+      @read_only = read_only
     end
 
     # Returns [http_status, body_or_nil].
@@ -217,6 +218,7 @@ module Mcp
     def url_for(claim) = "#{@base_url}/claims/#{claim.id}"
 
     def require_token!
+      raise Ledger::Rejected.new([ { code: "INSUFFICIENT_SCOPE", path: "$", detail: "this connection was granted read-only access (galedra:read); reconnect with the galedra scope to record" } ]) if @read_only
       return if @token&.usable?
 
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "this tool writes to the log; connect an assistant at #{@base_url}/assistants/new and send its token as Authorization: Bearer" } ])

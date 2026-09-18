@@ -7,7 +7,8 @@ module Assistants
   # registered anonymous key when there is no account. Returns
   # [token_record, plaintext_token]; the plaintext is never stored.
   module Connect
-    VALIDITY = 1.year
+    # Owner decision: delegations to connected assistants do not expire on their own.
+    VALIDITY = 100.years
     DEFAULT_DAILY_CAP = 200
 
     module_function

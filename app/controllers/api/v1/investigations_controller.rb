@@ -19,6 +19,7 @@ module Api
       include AssistantAuth
 
       before_action :authenticate_assistant!
+      before_action { insufficient_scope if read_only_assistant? }
       rate_limit to: 20, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore
 
       rescue_from Assistants::CapReached do |e|
