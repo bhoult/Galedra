@@ -1,0 +1,25 @@
+# Audit policy (spec 05 §7–§10). Values are placeholders the spec says live in
+# config; changing them changes future sampling decisions but never past ones,
+# which are stored with their inputs in audit_schedules.
+shared:
+  policy_version: "audit-policy-v0.1"
+  base_rate: "0.10"
+  new_identity_n: 10
+  new_identity_factor: "5"
+  low_reliability_mean: "0.8"
+  low_reliability_factor: "2"
+  impact_divisor: "5"
+  unusual_factor: "2"
+  # Confirming audits (from distinct principals) needed before provisional clears,
+  # by downstream_count band (05 §10). The last band also needs an accepted
+  # OPPOSING_EVIDENCE_SEARCH (Stage 8).
+  high_impact:
+    - { max_downstream: 2, confirming_audits: 1, opposing_search: false }
+    - { max_downstream: 9, confirming_audits: 2, opposing_search: false }
+    - { max_downstream: ~, confirming_audits: 2, opposing_search: true }
+  auditor_min_n: 5
+  auditor_min_mean: "0.8"
+  established_tiers: [ESTABLISHED, EXTERNALLY_VERIFIED, INSTITUTIONAL]
+  domains: [general, ancient_near_east, us_economics]
+  default_domain: general
+  manual_task_type: MANUAL

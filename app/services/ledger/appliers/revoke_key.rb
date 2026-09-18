@@ -36,9 +36,10 @@ module Ledger
         compromised_since = payload["compromised_since"]
         return if compromised_since.nil?
 
-        Contribution.where(signer_key_id: target.key_id)
-                    .where("seq >= ? AND seq < ?", compromised_since, contribution.seq)
-                    .update_all(current_status: Contribution::CHALLENGED)
+        challenged = Contribution.where(signer_key_id: target.key_id, action_class: Contribution::EPISTEMIC)
+                                 .where("seq >= ? AND seq < ?", compromised_since, contribution.seq)
+        challenged.update_all(current_status: Contribution::CHALLENGED)
+        challenged.each { |c| Audits::Sample.force!(c, contribution.seq) }
       end
     end
   end

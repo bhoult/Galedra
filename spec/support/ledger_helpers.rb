@@ -114,6 +114,17 @@ module GraphHelpers
                       "redaction_manifest" => manifest }).contribution
   end
 
+  def audit(pair, target, result: "CONFIRMED", type: "SOURCE_CHECK", note: nil, effort_seconds: nil, delegation: nil)
+    target = target.contribution if target.respond_to?(:contribution) && !target.is_a?(Contribution)
+    payload = { "target_contribution_id" => target.id, "audit_type" => type, "result" => result, "note" => note, "effort_seconds" => effort_seconds }.compact
+    result = append(action_type: "AUDIT", key_pair: pair, payload: payload, delegation_id: delegation&.id)
+    Audit.find(Ledger::Ids.derive(result.contribution.id, "audit"))
+  end
+
+  def register_reviewer(**payload)
+    register_key(display_name: "Reviewer", identity_tier: "ESTABLISHED", **payload)
+  end
+
   # A human principal with a delegated agent: [principal_pair, agent_pair, agent, delegation].
   def principal_with_agent(**delegation_options)
     principal_pair, = register_key

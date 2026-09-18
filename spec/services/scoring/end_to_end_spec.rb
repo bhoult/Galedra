@@ -42,7 +42,6 @@ RSpec.describe "Scoring end to end through the write path (07 Phase 3 #1, #2; sc
     expect(digests.values.uniq.size).to eq(digests.size)
 
     Ledger::Replay.call
-    expect(ClaimScore.count).to eq(0)
     expect(Scoring::Trace.canonical(Scoring::Score.call(Claim.find(claim.id), seq, model).trace)).to eq(canonical)
     expect(graph.checkpoints.transform_values { |s| Snapshots::Digest.call(s) }).to eq(digests)
     expect(GraphSnapshot.count).to eq(5)

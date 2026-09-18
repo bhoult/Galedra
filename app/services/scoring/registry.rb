@@ -127,6 +127,12 @@ module Scoring
       ScoringModel.where(name: "ledger-default").order(:released_seq).last || released.first
     end
 
+    # The default model as it stood at a seq, so log-derived decisions replay identically.
+    def default_model_at(seq)
+      scope = ScoringModel.where(released_seq: ..seq)
+      scope.where(name: "ledger-default").order(:released_seq).last || scope.order(:released_seq).first
+    end
+
     # Every released model must carry the hash of the code now running; scorer
     # changes require a new version (spec 05 §14).
     def verify_code_hash!

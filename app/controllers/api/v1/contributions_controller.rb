@@ -16,7 +16,8 @@ module Api
 
       def show
         c = Contribution.find(params[:id])
-        render json: { contribution: Contributions::Presenter.entry(c), audits: [] }
+        render json: { contribution: Contributions::Presenter.entry(c), audits: Contributions::Presenter.audits(c),
+                       audit_schedule: Contributions::Presenter.audit_schedule(c), status_history: Contributions::Presenter.status_history(c) }
       end
 
       def verify

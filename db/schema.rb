@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_260000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_270000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -27,6 +27,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_260000) do
     t.timestamptz "valid_until", null: false
     t.index ["delegate_contributor_id"], name: "index_agent_delegations_on_delegate_contributor_id"
     t.index ["principal_contributor_id"], name: "index_agent_delegations_on_principal_contributor_id"
+  end
+
+  create_table "audit_schedules", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "audit_probability", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "evaluated_at_seq", null: false
+    t.bigint "forced_by_seq"
+    t.jsonb "inputs", default: {}, null: false
+    t.string "policy_version", null: false
+    t.bigint "rescheduled_by_seq"
+    t.boolean "sampled", null: false
+    t.index ["contribution_id"], name: "index_audit_schedules_on_contribution_id", unique: true
+    t.index ["sampled"], name: "index_audit_schedules_on_sampled"
+  end
+
+  create_table "audits", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "audit_type", null: false
+    t.uuid "auditor_contributor_id", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.string "domain", null: false
+    t.integer "effort_seconds"
+    t.bigint "invalidated_seq"
+    t.text "note"
+    t.string "result", null: false
+    t.uuid "target_contribution_id", null: false
+    t.string "task_type", null: false
+    t.index ["auditor_contributor_id"], name: "index_audits_on_auditor_contributor_id"
+    t.index ["contribution_id"], name: "index_audits_on_contribution_id", unique: true
+    t.index ["target_contribution_id"], name: "index_audits_on_target_contribution_id"
   end
 
   create_table "claim_edges", id: :uuid, default: nil, force: :cascade do |t|
@@ -254,6 +284,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_260000) do
     t.index ["contribution_id"], name: "index_quarantines_on_contribution_id"
     t.index ["released_seq"], name: "index_quarantines_on_released_seq"
     t.index ["target_type", "target_id"], name: "index_quarantines_on_target_type_and_target_id"
+  end
+
+  create_table "reputation_events", id: :uuid, default: nil, force: :cascade do |t|
+    t.decimal "alpha_delta", precision: 6, scale: 2, null: false
+    t.uuid "audit_id", null: false
+    t.decimal "beta_delta", precision: 6, scale: 2, null: false
+    t.uuid "contribution_id", null: false
+    t.uuid "contributor_id", null: false
+    t.bigint "created_seq", null: false
+    t.string "domain", null: false
+    t.bigint "invalidated_seq"
+    t.uuid "principal_contributor_id"
+    t.string "task_type", null: false
+    t.index ["audit_id"], name: "index_reputation_events_on_audit_id"
+    t.index ["contributor_id", "task_type", "domain"], name: "idx_on_contributor_id_task_type_domain_f317753e89"
+    t.index ["principal_contributor_id", "task_type", "domain"], name: "idx_on_principal_contributor_id_task_type_domain_8c73a2ddc9"
   end
 
   create_table "scoring_models", id: :uuid, default: nil, force: :cascade do |t|

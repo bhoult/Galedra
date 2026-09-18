@@ -25,6 +25,7 @@ module Scoring
         location = item.source_location
         next unless item.active_at?(seq) && location.active_at?(seq) && location.source.active_at?(seq)
         next if Governance::Quarantines.quarantined_at?("SOURCE", location.source_id, seq)
+        next if Audits::Status.challenged?(link.contribution, seq)
 
         {
           "id" => link.id, "evidence_id" => item.id, "direction" => link.direction,

@@ -21,10 +21,10 @@ module Ledger
 
     # Types whose server-side handling exists yet. Others are rejected with
     # UNSUPPORTED_ACTION rather than logged unchecked. TASK_RESULT arrives in
-    # Stage 8 with its own eir-result-v1 protocol; AUDIT in Stage 7; the
-    # AMEND_CONSTITUTION with the amendment process.
+    # Stage 8 with its own eir-result-v1 protocol; AMEND_CONSTITUTION with the
+    # amendment process.
     IMPLEMENTED = (%w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION ACCEPT INVALIDATE QUARANTINE RELEASE_QUARANTINE TAKEDOWN
-                       RELEASE_SCORING_MODEL] + (EPISTEMIC - %w[TASK_RESULT])).freeze
+                       RELEASE_SCORING_MODEL AUDIT] + (EPISTEMIC - %w[TASK_RESULT])).freeze
 
     def self.class_for(type)
       CONTROL.include?(type) ? Contribution::CONTROL : Contribution::EPISTEMIC

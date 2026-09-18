@@ -94,7 +94,7 @@ RSpec.describe Ledger::Append do
       with_float = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("x")).merge("payload" => { "weight" => 0.5 })
       expect_rejected("FLOAT_PRESENT") { Ledger::Append.call(with_float) }
       expect_rejected("UNKNOWN_ACTION_TYPE") { append(action_type: "DELETE_EVERYTHING", key_pair: pair, payload: {}) }
-      expect_rejected("UNSUPPORTED_ACTION") { append(action_type: "AUDIT", key_pair: pair, payload: {}) }
+      expect_rejected("UNSUPPORTED_ACTION") { append(action_type: "AMEND_CONSTITUTION", key_pair: pair, payload: {}) }
       expect_rejected("UNSUPPORTED_ACTION") { append(action_type: "TASK_RESULT", key_pair: pair, payload: {}) }
       envelope = build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("x")).merge("extra" => 1)
       expect_rejected("SCHEMA_INVALID") { Ledger::Append.call(envelope) }

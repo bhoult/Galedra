@@ -6,14 +6,20 @@ module Ledger
   module Apply
     def self.call(contribution)
       if contribution.redacted?
-        Ledger.applying { Redaction.rebuild!(contribution) }
+        Ledger.applying do
+          Redaction.rebuild!(contribution)
+          Audits::Sample.schedule!(contribution) if contribution.epistemic?
+        end
         return
       end
 
       applier = Appliers.for(contribution.action_type)
       return if applier.nil?
 
-      Ledger.applying { applier.apply(contribution) }
+      Ledger.applying do
+        applier.apply(contribution)
+        Audits::Sample.schedule!(contribution) if contribution.epistemic?
+      end
     end
   end
 end

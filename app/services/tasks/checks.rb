@@ -8,5 +8,10 @@ module Tasks
     def self.for(_claim_id, _seq)
       []
     end
+
+    # Whether an accepted opposing search covers a contribution's claims (05 §10).
+    def self.opposing_search_done?(_contribution_id, _seq)
+      false
+    end
   end
 end

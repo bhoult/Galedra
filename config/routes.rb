@@ -28,7 +28,9 @@ Rails.application.routes.draw do
       post "admin/snapshots", to: "admin#create_snapshot"
       post "admin/recompute", to: "admin#recompute"
       resources :evidence, only: [ :show ]
-      resources :contributors, only: [ :show ]
+      resources :contributors, only: [ :show ] do
+        get :reputation, on: :member
+      end
     end
   end
 
