@@ -25,7 +25,8 @@ larger phases split so each stage is a bounded unit of work that ends in a git t
    ```
 
    Tag names are zero-padded so they sort: `stage-00-skeleton` … `stage-11-demo`.
-   Stage 11 additionally gets `v0.1.0`, marking the P0 Definition of Done.
+   Stage 11 additionally gets `v0.1.0`, marking the P0 Definition of Done. P1 stages
+   continue the numbering (`stage-12-assistants` …).
 6. A stage is not done until its tag exists. The next stage does not start until asked.
 
 **Ruby and Rails: always the latest stable release.** At planning time that is Ruby 4.0.7
@@ -573,12 +574,169 @@ Acceptance:
 
 ---
 
-## After P0
+## P1 — Assistants as contributors
 
-Not planned in stages. `07` Phase 8 (P1) work such as the real LLM adapter, questions and
-hypotheses, dedup candidate edges, export mappings, embeddable cards, and personal
-assessments is built only when asked, one feature per tag, after the First Experiments in
-`EXPERIMENTS.md` have results.
+Planned 2026-09-18, after `v0.1.0`. Same rules as P0: one stage at a time, tagged, only
+when asked. `07` Phase 8 items not listed here (questions and hypotheses, dedup edges,
+export mappings, personal assessments, the political-speech view) stay unplanned.
+
+**The target user.** Someone reads a claim or a meme on social media and is about to
+repost it. They are not a researcher and will not learn a vocabulary. The pitch is one
+sentence: *take your favourite AI, tell it to check this in Galedra before you post it.*
+The assistant they already use (Claude, ChatGPT, Grok, or anything that speaks MCP or
+plain HTTP) does the work; Galedra records it so the next person does not have to.
+
+**Design rules for every P1 stage.**
+
+- One instruction, one link back. The user says "check this in Galedra"; the assistant
+  returns an answer card and a URL. Nothing else is required of the user.
+- Assistants cannot hold keys, so the server signs for them. Every such write is a
+  server-custodied contribution under a delegation that names the assistant in the
+  `software` field. Same log, same rules, same audit sampling.
+- Galedra stores claims, excerpts, and a link plus a content hash to the source. It
+  never fetches URLs and never stores a page's full text (`01 §7`). The assistant
+  quotes the passage it read; the hash lets anyone later check the page is unchanged.
+- Anonymous contributions are allowed. They are weighted in audit sampling, task
+  priority, rate limits, and labelling, never in claim scores: identity does not
+  replace evidence (Art. XI) and reputation is not a scoring input in v0.1
+  (Invariant 8). Changing that is an owner decision, recorded before it is built.
+- Assume the reader has thirty seconds. Every result leads with a plain-language
+  headline and a "what to say instead" line before any number.
+
+## Stage 12 — Connected assistants
+
+**Tag:** `stage-12-assistants` · **Spec:** 05 §2 (custody), 05 §4 (delegation), 04 §9
+(agent defaults), 02 §3.1, Art. XI, XIV
+
+Goal: a user, or nobody at all, can connect an assistant in under a minute, and every
+write the assistant makes is a signed, delegated, attributable contribution.
+
+Deliverables:
+
+- `ANONYMOUS` added below `PSEUDONYMOUS` in the identity tiers. An anonymous contributor
+  is a server-custodied key with no account; its contributor page says so.
+- Assistant tokens. `POST /api/v1/assistants` mints a bearer token, registers a
+  server-custodied `AGENT` key named for the assistant (`software.agent_name`,
+  `model_provider`, `model_id`), and appends a `DELEGATE` from the principal: the
+  signed-in user's key, or a freshly registered anonymous key when there is no account.
+  Revoking a token appends `REVOKE_DELEGATION`. Tokens are shown once and stored hashed.
+- `POST /api/v1/custodied/contributions` with `Authorization: Bearer`: the server builds,
+  signs, and appends the envelope through `Ledger::Append` exactly as `Ui::Write` does,
+  custody `SERVER`, with the token's delegation and software metadata. Every applier and
+  rejection code is unchanged; the only new failure is `TOKEN_INVALID`.
+- Weighting for anonymous and unaudited work, none of it in scores: a higher audit
+  sampling probability for `ANONYMOUS` principals in `config/audit_policy.yml`; a
+  per-token daily cap and rate limit; the `provisional` label reads "not yet audited;
+  anonymous contributor" on cards; contributions from anonymous keys open verification
+  tasks at raised priority (Stage 13).
+- "Connect an assistant" page: pick the assistant, mint, copy. Works signed out.
+
+Acceptance:
+
+1. A token minted signed out yields an `ANONYMOUS` principal, an `AGENT` delegate, and a
+   `DELEGATE` entry in the log; a token minted signed in delegates from the user's key.
+2. A custodied write produces a contribution whose signature verifies against the agent
+   key, whose `software` names the assistant, and which `ledger:verify` accepts.
+3. A revoked token gets `TOKEN_INVALID`; its `REVOKE_DELEGATION` appears in the log.
+4. The audit schedule samples an anonymous principal's contribution at the raised
+   probability, and claim scores are byte-identical whether the same links came from an
+   anonymous or an established contributor.
+5. Rate limit and daily cap return 429 with a plain message.
+
+Owner decisions to record: whether evidence from `ANONYMOUS` principals should be
+held out of counting until audited (a counting rule, not a weight; conservative reading
+is "counts, labelled provisional"); the daily cap.
+
+---
+
+## Stage 13 — Record an investigation
+
+**Tag:** `stage-13-investigate` · **Spec:** 02 §2 (sources), 02 §4 (atomicity),
+03 §8 (review checks), 04 §6 step 9, 06 §3 (cards), 01 §7
+
+Goal: one call records everything an assistant found, and returns what the user should
+say. No id threading, no vocabulary the assistant has to learn beyond the enums.
+
+Deliverables:
+
+- Sources by link and hash. `CREATE_SOURCE` outside a task accepts `canonical_uri` plus
+  `content_hash` with no `content` when `retrieved_at` is given; the row is
+  `retrieval_pending` and the excerpt lives on the location. Source types gain
+  `SOCIAL_POST` and `IMAGE` (a meme: the post link, the image bytes' hash, and the
+  transcribed text as the excerpt, marked as a transcription with one interpretive step).
+- `POST /api/v1/investigations` (bearer): a bundle of `sources`, `claims`, `evidence`,
+  `links`, and `groups` with local handles instead of ids. The server validates the whole
+  bundle first, then appends in dependency order, opens verification tasks for every new
+  claim (raised priority for anonymous principals), and returns handle-to-id maps, one
+  answer card per claim, and each claim's URL. A bundle that fails validation appends
+  nothing.
+- Duplicate check first. The response's `existing` section lists similar accepted claims
+  (`Claims::Duplicates`) so the assistant attaches evidence to an existing claim rather
+  than creating a twin; `GET /api/v1/claims?q=` is documented as the required first call.
+- Plain-language result. Each card gains `plain` fields: `headline` in everyday words,
+  `say_instead` (a one-sentence corrected or qualified version when one is supported by
+  the graph, else null), and `share_url`. Generated by rules from the trace, like the stub
+  summary; no LLM.
+- The example agent gains an `investigate` command that posts a bundle from a fixture,
+  so the flow is exercised without any hosted model.
+
+Acceptance:
+
+1. A bundle with one social-post source, two claims, two excerpts, and two links appends
+   exactly the expected contributions in order and returns two cards with URLs.
+2. A bundle whose second link is invalid appends nothing.
+3. A bundle for the demo statistic returns C2 under `existing` with its card and no new
+   claim is created when the assistant chooses `attach`.
+4. A source recorded by link and hash renders with the link, the hash, and the excerpt,
+   and never with page text; `ledger:replay` reproduces it.
+5. `plain.say_instead` is null for an `INSUFFICIENT_EVIDENCE` claim and present for the
+   demo's narrower supported claim.
+
+---
+
+## Stage 14 — MCP, OpenAPI, and the skill
+
+**Tag:** `stage-14-mcp` · **Spec:** 06 §2 (API), 06 §5 (embeddable cards), 04 §9
+
+Goal: any assistant can be pointed at Galedra in one step, and the instruction "check
+this in Galedra before you post it" produces the same procedure everywhere.
+
+Deliverables:
+
+- An MCP endpoint served by Rails over streamable HTTP at `/mcp`, bearer-authenticated,
+  with a small tool set: `search_claims`, `get_claim`, `record_investigation`,
+  `add_evidence`, `explain` (why plus the calculation on request), and `share_card`.
+  Tool descriptions carry the rules, not just the schemas.
+- An OpenAPI 3.1 document at `/api/v1/openapi.json` covering the public reads and the
+  bearer writes, for GPT Actions and plain HTTP clients.
+- The skill text, one file per host format (Claude skill, ChatGPT GPT instructions, a
+  generic system-prompt block), all generated from a single source in `skills/`. It says:
+  search Galedra first; do your own reading, Galedra never fetches; quote the exact
+  passage and its link; one assertion per claim, typed; your own reasoning is not
+  evidence; look for what would count against it before recording; never record claims
+  about private individuals; report the headline and the link, and say it is provisional.
+- Share card: `GET /claims/:id/card` renders a compact answer card page with Open Graph
+  tags so the link previews correctly when pasted into a social post, and
+  `/claims/:id/card.png` renders it as an image. No number on the card; model and
+  snapshot in small print.
+- The connect page shows copy-paste setup for Claude (MCP), ChatGPT (Actions), and a
+  generic MCP client, using the token from Stage 12.
+
+Acceptance:
+
+1. An MCP client run in the suite lists the tools, searches, records a bundle, and reads
+   back the card, all under one token.
+2. The OpenAPI document validates and every path in it responds.
+3. The generated skill files are byte-identical to their source rendering (a spec fails
+   when they drift).
+4. The share card page carries Open Graph title, description, and image, and the image
+   renders for a claim in each assessment state without a probability.
+5. The end-to-end "check before you post" scenario runs from `bin/demo --example
+   check`: a meme source, an investigation bundle from the fixture agent, a share card.
+
+Reserved for the owner: the licence line shown on share cards (CC0 vs CC-BY, already
+reserved); whether share cards may be requested for quarantined claims (conservative
+reading: they render the public stub).
 
 ---
 
