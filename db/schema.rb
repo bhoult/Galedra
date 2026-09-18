@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_250000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_260000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -321,6 +321,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_250000) do
   end
 
   create_table "oauth_authorization_codes", id: :uuid, default: nil, force: :cascade do |t|
+    t.boolean "anonymous", default: false, null: false
     t.string "code_challenge", null: false
     t.string "code_digest", null: false
     t.datetime "created_at", null: false
@@ -331,7 +332,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_250000) do
     t.string "scope"
     t.datetime "updated_at", null: false
     t.timestamptz "used_at"
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["code_digest"], name: "index_oauth_authorization_codes_on_code_digest", unique: true
     t.index ["oauth_client_id"], name: "index_oauth_authorization_codes_on_oauth_client_id"
   end

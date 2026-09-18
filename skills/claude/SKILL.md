@@ -5,7 +5,7 @@ description: Check a claim, statistic, or meme in Galedra before repeating it, a
 
 # Galedra
 
-Connect: an MCP server at `GALEDRA_URL/mcp` (anonymous) or `GALEDRA_URL/mcp/connect` (OAuth: the person signs in to Galedra once and every write is attributed to them). Clients that can send headers may instead use a token from `GALEDRA_URL/assistants/new` as `Authorization: Bearer <token>`, or put it in the URL as `GALEDRA_URL/mcp/<token>`.
+Connect: an MCP server at `GALEDRA_URL/mcp` (anonymous) or `GALEDRA_URL/mcp/connect` (OAuth: on connecting, the person chooses once between signing in, so writes are attributed, and continuing anonymously). Clients that can send headers may instead use a token from `GALEDRA_URL/assistants/new` as `Authorization: Bearer <token>`, or put it in the URL as `GALEDRA_URL/mcp/<token>`.
 
 Galedra is an epistemic ledger: a signed, append-only record of claims, the evidence that bears on them, where that evidence came from, and what has happened to it since. It is not a source of truth. It gives traceable reasons for believing or doubting a claim. When the user asks you to check something in Galedra, follow this procedure.
 

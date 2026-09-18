@@ -1,20 +1,38 @@
 <% content_for :title, "Connect #{@request[:client].name}" %>
 <div class="auth consent">
-  <h1>Connect <%= @request[:client].name %> to your Galedra account?</h1>
-  <p class="lede">Everything it records will be under your name, as an assistant acting for you. You can disconnect it at any time from <%= link_to "Connect an assistant", new_assistant_path %>; the disconnection goes in the public log like the connection.</p>
+  <h1>Connect <%= @request[:client].name %> to Galedra?</h1>
   <div class="card">
     <p><strong><%= @request[:client].name %></strong> will be able to:</p>
     <ul>
       <li>search claims and read cards, evidence, and explanations</li>
-      <% if @request[:scope].split.include?("galedra") %><li>record investigations and attach evidence, signed for you, up to the daily cap</li><% end %>
+      <% if @request[:scope].split.include?("galedra") %><li>record investigations and attach evidence, up to a daily cap</li><% end %>
     </ul>
-    <p class="meta">Signed in as <%= Current.user.email_address %>. It never sees your password; it gets a token it can only use for the above.</p>
+    <p class="meta">It never sees a password; it gets a token it can only use for the above. Disconnect it at any time from <%= link_to "Connect an assistant", new_assistant_path %>; both the connection and the disconnection are public log entries.</p>
   </div>
-  <%= form_with url: oauth_authorize_path, method: :post, class: "actions" do |f| %>
+
+  <%# A plain form post: the redirect goes to another site, which Turbo cannot follow. %>
+  <%= form_with url: oauth_authorize_path, method: :post, data: { turbo: false } do |f| %>
     <% %i[client_id redirect_uri response_type code_challenge code_challenge_method scope state resource].each do |key| %>
       <%= hidden_field_tag key, params[key] if params[key].present? %>
     <% end %>
-    <%= f.submit "Allow", name: "decision", value: "approve" %>
-    <%= f.submit "Cancel", name: "decision", value: "deny", class: "secondary" %>
+    <% if authenticated? %>
+      <p><strong>Your choice.</strong> You are signed in as <strong><%= Current.user.email_address %></strong>, but connecting under your name is optional.</p>
+      <ul>
+        <li><strong>Under your name:</strong> what it records is attributed to you and counts toward your audited reliability.</li>
+        <li><strong>Anonymously:</strong> it is recorded under a fresh anonymous key, checked more often and labelled as such. You can put it under your name later, from any card it produces.</li>
+      </ul>
+      <p class="actions">
+        <%= f.submit "Connect under my name", name: "decision", value: "approve" %>
+        <%= f.submit "Connect anonymously", name: "decision", value: "anonymous", class: "secondary" %>
+      </p>
+      <p class="meta"><%= button_tag "Cancel", name: "decision", value: "deny", class: "quiet-button" %> · Either choice can be undone by disconnecting.</p>
+    <% else %>
+      <p><strong>Your choice.</strong> Under your name, the work is attributed to you and counts toward your audited reliability. Anonymously, it is recorded under a fresh anonymous key, checked more often and labelled as such; you can put it under your name later from any card it produces.</p>
+      <p class="actions">
+        <%= f.submit "Sign in and connect under my name", name: "decision", value: "approve" %>
+        <%= f.submit "Continue anonymously", name: "decision", value: "anonymous", class: "secondary" %>
+      </p>
+      <p class="meta"><%= link_to "Cancel", "#", onclick: "history.back(); return false;" %> · No account yet? Signing in offers sign-up.</p>
+    <% end %>
   <% end %>
 </div>

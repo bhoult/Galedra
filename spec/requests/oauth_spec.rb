@@ -34,6 +34,7 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
     expect(location.host).to eq("chatgpt.com")
     query = URI.decode_www_form(location.query).to_h
     expect(query["state"]).to eq("xyz")
+    expect(query["iss"]).to eq("http://www.example.com")
     query["code"]
   end
 
@@ -55,6 +56,10 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
                            "token_endpoint" => "http://www.example.com/oauth/token", "registration_endpoint" => "http://www.example.com/oauth/register",
                            "revocation_endpoint" => "http://www.example.com/oauth/revoke", "code_challenge_methods_supported" => [ "S256" ])
     expect(doc["grant_types_supported"]).to contain_exactly("authorization_code", "refresh_token")
+    expect(doc).to include("authorization_response_iss_parameter_supported" => true, "client_id_metadata_document_supported" => false)
+
+    get "/.well-known/openid-configuration"
+    expect(response.parsed_body["token_endpoint"]).to eq("http://www.example.com/oauth/token")
 
     get "/.well-known/oauth-protected-resource/mcp/connect"
     expect(response.parsed_body).to include("resource" => "http://www.example.com/mcp/connect", "authorization_servers" => [ "http://www.example.com" ])
@@ -70,12 +75,18 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
     expect(client).not_to have_key("client_secret")
 
     authorize(client)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Connect ChatGPT to Galedra?")
+    expect(response.body).to include("Sign in and connect under my name")
+    post "/oauth/authorize", params: { client_id: client["client_id"], redirect_uri: client["redirect_uris"].first, response_type: "code",
+                                       code_challenge: challenge, code_challenge_method: "S256", scope: "galedra", state: "xyz", decision: "approve" }
     expect(response).to redirect_to("/session/new")
     sign_in
     expect(response.headers["Location"]).to include("/oauth/authorize?")
     authorize(client)
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Connect ChatGPT to your Galedra account?")
+    expect(response.body).to include("Connect under my name")
+    expect(response.body).to include("Connect anonymously")
+    expect(response.body).to include("optional")
     expect(response.body).to include("record investigations")
 
     code = approve(client)
@@ -142,6 +153,39 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
       expect(response).to have_http_status(:ok)
     end
     expect(good).not_to have_key("expires_in")
+  end
+
+  it "lets the person continue anonymously on the consent page, with an adoptable anonymous key" do
+    client = register(name: "Claude")
+    authorize(client)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Continue anonymously")
+    expect(response.body).to include("Sign in and connect under my name")
+
+    post "/oauth/authorize", params: { client_id: client["client_id"], redirect_uri: client["redirect_uris"].first, response_type: "code",
+                                       code_challenge: challenge, code_challenge_method: "S256", scope: "galedra", state: "anon", decision: "anonymous" }
+    location = URI.parse(response.headers["Location"])
+    code = URI.decode_www_form(location.query).to_h["code"]
+    tokens = exchange(client, code)
+    expect(response).to have_http_status(:ok)
+
+    bundle = JSON.parse(File.read(Rails.root.join("examples/agent/investigation.json"))).except("_about")
+    bundle["sources"].each { |s| s["retrieved_at"] = "2026-09-18T12:00:00Z" }
+    result = mcp(tokens["access_token"], "tools/call", { name: "record_investigation", arguments: bundle }).dig("result", "structuredContent")
+    expect(result["recorded"]).to be(true)
+    expect(result["attribution"]["anonymous"]).to be(true)
+    expect(result["attribution"]["adopt_url"]).to include("/adopt/")
+    assistant = OauthToken.find_by!(kind: "access", token_digest: OauthToken.digest(tokens["access_token"])).assistant_token
+    expect(assistant.principal).to be_anonymous
+    expect(assistant.software["agent_name"]).to eq("Claude")
+
+    # Choosing to sign in first sends the person to sign-in and back to the same request.
+    post "/oauth/authorize", params: { client_id: client["client_id"], redirect_uri: client["redirect_uris"].first, response_type: "code",
+                                       code_challenge: challenge, code_challenge_method: "S256", scope: "galedra", state: "later", decision: "approve" }
+    expect(response).to redirect_to("/session/new")
+    sign_in
+    expect(response.headers["Location"]).to include("/oauth/authorize?")
+    expect(response.headers["Location"]).to include("state=later")
   end
 
   it "honours a read-only grant: reads work, writes are refused with insufficient_scope" do

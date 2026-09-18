@@ -1,6 +1,6 @@
 # Galedra: check before you post
 
-Set up as a ChatGPT plugin: Settings → Plugins → add, server URL `GALEDRA_URL/mcp/connect` with OAuth (the person signs in to Galedra once; every write is attributed to them), or `GALEDRA_URL/mcp` with no authentication for anonymous use. Developer mode must be on. Custom GPTs are retired; a GPT that still exists can instead import `GALEDRA_URL/api/v1/openapi.json` as an Action.
+Set up as a ChatGPT plugin: Settings → Plugins → add, server URL `GALEDRA_URL/mcp/connect` with OAuth: when it connects, Galedra asks the person once whether to sign in (attributed) or continue anonymously. Clients without OAuth use `GALEDRA_URL/mcp` with no authentication. Developer mode must be on. Custom GPTs are retired; a GPT that still exists can instead import `GALEDRA_URL/api/v1/openapi.json` as an Action.
 
 Galedra is an epistemic ledger: a signed, append-only record of claims, the evidence that bears on them, where that evidence came from, and what has happened to it since. It is not a source of truth. It gives traceable reasons for believing or doubting a claim. When the user asks you to check something in Galedra, follow this procedure.
 

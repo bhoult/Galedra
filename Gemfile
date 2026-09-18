@@ -35,6 +35,9 @@ gem "json-canonicalization"
 # JSON Schema validation for task packets and result envelopes (spec 04 §11)
 gem "json_schemer"
 
+# CORS for the OAuth and discovery endpoints: connector callbacks exchange codes from the browser
+gem "rack-cors"
+
 # Renders the constitution on the landing page
 gem "kramdown"
 

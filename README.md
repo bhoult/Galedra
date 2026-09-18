@@ -144,11 +144,13 @@ Then open http://localhost:3000, sign up, paste the memo paragraph from the demo
 **Analyze text**, and follow the answer cards down to signatures, hash chain, score
 traces, audits, and snapshots. `examples/agent/` is the standalone agent client.
 
-**Check before you post.** Connect the assistant you already use at `/assistants/new`
-(no account needed), paste the matching skill from `skills/`, and say *"check this in
-Galedra before I post it"*. The assistant searches first, reads the sources itself,
-records what it found in one call (`POST /api/v1/investigations`, or the `/mcp`
-server), and hands back a plain headline, what to say instead, and a share card.
+**Check before you post.** Give ChatGPT, Claude, or any MCP client the address on
+`/assistants/new` (`https://<host>/mcp/connect`, OAuth). When it connects, Galedra asks
+one question: connect under your name, or continue anonymously. Then say *"check this
+in Galedra before I post it"*. The assistant searches first, reads the sources itself,
+records what it found in one call (the `record_investigation` tool, or
+`POST /api/v1/investigations`), and hands back Galedra's headline, what to say instead,
+and a share card. Anonymous work can be put under a name later with one click.
 `bin/demo --example check --reset` runs that flow end to end with a fixture agent.
 
 **Serving it from home.** Hosted assistants (Claude.ai, ChatGPT) must reach your ledger
@@ -169,8 +171,9 @@ create a named tunnel in the Cloudflare dashboard pointed at `http://app:80`, pu
 token in `CLOUDFLARE_TUNNEL_TOKEN`, leave `TLS_DOMAIN` unset, and start with
 `--profile tunnel`.
 
-Then connect an assistant at `https://<your domain>/assistants/new`. Claude.ai's
-connector screen takes only a URL, so it is given the MCP URL with the token in it.
+Then connect an assistant at `https://<your domain>/assistants/new`: ChatGPT (Settings →
+Plugins, Developer mode on, add with OAuth) and Claude.ai (Settings → Connectors) both
+take `https://<your domain>/mcp/connect` and complete OAuth against Galedra itself.
 
 ---
 

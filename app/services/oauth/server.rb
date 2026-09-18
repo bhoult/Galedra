@@ -33,8 +33,16 @@ module Oauth
         response_types_supported: [ "code" ],
         grant_types_supported: %w[authorization_code refresh_token],
         code_challenge_methods_supported: [ "S256" ],
+        # RFC 9207: every authorization response carries iss, equal to issuer.
+        authorization_response_iss_parameter_supported: true,
+        # Clients register dynamically (RFC 7591); metadata-document client ids are not used.
+        client_id_metadata_document_supported: false,
         token_endpoint_auth_methods_supported: OauthClient::AUTH_METHODS,
         revocation_endpoint_auth_methods_supported: OauthClient::AUTH_METHODS,
+        # Fields OpenID discovery parsers expect; there are no ID tokens.
+        jwks_uri: "#{base_url}/oauth/jwks",
+        subject_types_supported: [ "public" ],
+        id_token_signing_alg_values_supported: [ "none" ],
         service_documentation: "#{base_url}/faq"
       }
     end
@@ -105,7 +113,7 @@ module Oauth
       raise Error.new("invalid_grant", "PKCE verification failed") unless code.verifier_matches?(params[:code_verifier])
 
       code.update!(used_at: Time.current)
-      assistant = assistant_for(code.user, client)
+      assistant = code.anonymous? ? anonymous_assistant_for(client) : assistant_for(code.user, client)
       access, refresh = OauthToken.issue_pair!(client: client, assistant_token: assistant, scope: code.scope)
       token_response(access, refresh, code.scope)
     end
@@ -141,6 +149,13 @@ module Oauth
       return existing if existing
 
       record, = Assistants::Connect.call(user: user, name: client.name, provider: client.provider, model: "oauth")
+      record.update!(software: record.software.merge("oauth_client_id" => client.client_id))
+      record
+    end
+
+    # An anonymous grant: a fresh anonymous key per grant, adoptable later.
+    def anonymous_assistant_for(client)
+      record, = Assistants::Connect.call(name: client.name, provider: client.provider, model: "oauth")
       record.update!(software: record.software.merge("oauth_client_id" => client.client_id))
       record
     end

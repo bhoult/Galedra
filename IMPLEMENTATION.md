@@ -1907,4 +1907,22 @@ json gem pin (Stage 1). Each is explained in its stage above.
   people or assistants. The topics page shows only populated subjects. `science/space`
   was added and the law and markets cues tightened after the first pass mis-filed
   "bandstand" and "Market Street".
+- One plugin, the person decides (owner decision, 2026-09-18): the consent page no
+  longer requires sign-in up front. A signed-out person sees "Sign in and connect under
+  my name" (sign-in, then straight back to the same request) or "Continue
+  anonymously"; a signed-in person can still choose anonymous. An anonymous grant
+  issues a fresh anonymous assistant key per grant, adoptable later, so a single
+  `/mcp/connect` plugin serves both attributed and anonymous use, and reinstalling a
+  plugin is never needed to switch.
+- Making it work with ChatGPT (2026-09-18), three fixes found by watching the log:
+  ChatGPT fetches `/.well-known/openid-configuration` first, so the same metadata is
+  served there with `jwks_uri` and the OpenID fields; it requires
+  `authorization_response_iss_parameter_supported` and `client_id_metadata_document_supported`
+  in the metadata and verifies `iss` before exchanging a code (RFC 9207, now sent on every
+  authorization response); and the consent form was submitted by Turbo, which cannot
+  follow a redirect to another site, so approvals went nowhere until the form was made a
+  plain page submission. CORS is enabled on the OAuth, discovery, and MCP endpoints for
+  clients that exchange codes from a browser. Cloudflare passed everything except a
+  default Python user agent. The website's connect page, FAQ, landing page, and README
+  now describe OAuth as the way in, with tokens under "Advanced".
 

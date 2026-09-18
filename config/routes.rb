@@ -29,6 +29,8 @@ Rails.application.routes.draw do
 
   # OAuth 2.1 for connectors (Stage 16)
   get "/.well-known/oauth-authorization-server", to: "oauth/metadata#authorization_server"
+  # Some clients look for OpenID discovery first; the same document answers.
+  get "/.well-known/openid-configuration", to: "oauth/metadata#authorization_server"
   get "/.well-known/oauth-protected-resource", to: "oauth/metadata#protected_resource"
   get "/.well-known/oauth-protected-resource/mcp", to: "oauth/metadata#protected_resource"
   get "/.well-known/oauth-protected-resource/mcp/connect", to: "oauth/metadata#protected_resource"
@@ -37,6 +39,7 @@ Rails.application.routes.draw do
   post "oauth/authorize", to: "oauth/authorizations#create"
   post "oauth/token", to: "oauth/tokens#create"
   post "oauth/revoke", to: "oauth/tokens#revoke"
+  get "oauth/jwks", to: "oauth/metadata#jwks"
   resources :sources, only: [ :show ] do
     member do
       get :analyze

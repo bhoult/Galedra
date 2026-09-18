@@ -4,13 +4,13 @@ class OauthAuthorizationCode < ApplicationRecord
   LIFETIME = 10.minutes
 
   belongs_to :oauth_client
-  belongs_to :user
+  belongs_to :user, optional: true
 
   def self.digest(code) = Digest::SHA256.hexdigest(code.to_s)
 
-  def self.issue!(client:, user:, redirect_uri:, code_challenge:, scope:, resource:)
+  def self.issue!(client:, user:, redirect_uri:, code_challenge:, scope:, resource:, anonymous: false)
     code = "gac_#{SecureRandom.urlsafe_base64(32)}"
-    create!(id: SecureRandom.uuid_v7, code_digest: digest(code), oauth_client: client, user: user, redirect_uri: redirect_uri,
+    create!(id: SecureRandom.uuid_v7, code_digest: digest(code), oauth_client: client, user: user, anonymous: anonymous, redirect_uri: redirect_uri,
             code_challenge: code_challenge, scope: scope, resource: resource, expires_at: LIFETIME.from_now)
     code
   end

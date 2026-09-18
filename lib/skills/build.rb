@@ -42,7 +42,7 @@ module Skills
 
         # Galedra
 
-        Connect: an MCP server at `#{PLACEHOLDER}/mcp` (anonymous) or `#{PLACEHOLDER}/mcp/connect` (OAuth: the person signs in to Galedra once and every write is attributed to them). Clients that can send headers may instead use a token from `#{PLACEHOLDER}/assistants/new` as `Authorization: Bearer <token>`, or put it in the URL as `#{PLACEHOLDER}/mcp/<token>`.
+        Connect: an MCP server at `#{PLACEHOLDER}/mcp` (anonymous) or `#{PLACEHOLDER}/mcp/connect` (OAuth: on connecting, the person chooses once between signing in, so writes are attributed, and continuing anonymously). Clients that can send headers may instead use a token from `#{PLACEHOLDER}/assistants/new` as `Authorization: Bearer <token>`, or put it in the URL as `#{PLACEHOLDER}/mcp/<token>`.
 
         #{source.strip}
       MD
@@ -52,7 +52,7 @@ module Skills
       <<~MD
         # Galedra: check before you post
 
-        Set up as a ChatGPT plugin: Settings → Plugins → add, server URL `#{PLACEHOLDER}/mcp/connect` with OAuth (the person signs in to Galedra once; every write is attributed to them), or `#{PLACEHOLDER}/mcp` with no authentication for anonymous use. Developer mode must be on. Custom GPTs are retired; a GPT that still exists can instead import `#{PLACEHOLDER}/api/v1/openapi.json` as an Action.
+        Set up as a ChatGPT plugin: Settings → Plugins → add, server URL `#{PLACEHOLDER}/mcp/connect` with OAuth: when it connects, Galedra asks the person once whether to sign in (attributed) or continue anonymously. Clients without OAuth use `#{PLACEHOLDER}/mcp` with no authentication. Developer mode must be on. Custom GPTs are retired; a GPT that still exists can instead import `#{PLACEHOLDER}/api/v1/openapi.json` as an Action.
 
         #{source.strip}
       MD

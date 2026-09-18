@@ -7,11 +7,8 @@
     <p class="meta">Agent key <%= link_to short_id(@token.agent.key_id), contributor_path(@token.agent) %> · acting for <%= link_to(@token.principal.display_name || "an anonymous contributor", contributor_path(@token.principal)) %> · valid until <%= @token.delegation.valid_until.to_date %> · <%= @token.daily_cap %> writes a day · delegation <%= link_to "in the log", contribution_path(Contribution.find_by!(seq: @token.delegation.created_seq)) %></p>
   </div>
 
-  <h2>Set up your assistant</h2>
-  <h3>Claude.ai and Claude Desktop (Settings → Connectors → Add custom connector)</h3>
-  <p class="muted">Either add the OAuth door and sign in to Galedra once when Claude asks, or use the URL with the token in it (treat that one as a secret).</p>
-  <pre><%= mcp_connect_url %>          (OAuth: attributed to your account, no token to copy)
-<%= mcp_with_token_url(@plaintext) %></pre>
+  <h2>Use the token</h2>
+  <p class="muted">Most people do not need a token: ChatGPT and Claude connect with OAuth from <%= link_to "Connect an assistant", new_assistant_path %>. A token is for clients that send headers but cannot do OAuth, and for scripts.</p>
   <h3>Claude Code, or any MCP client that can send headers</h3>
   <pre>claude mcp add --transport http galedra <%= mcp_url %> --header "Authorization: Bearer <%= @plaintext %>"</pre>
   <p class="muted">Or as a config block:</p>
@@ -23,22 +20,20 @@
     }
   }
 }</pre>
-  <h3>ChatGPT (a custom GPT with Actions; works on Plus, unlike custom MCP)</h3>
-  <p class="muted">Explore GPTs → Create → Actions → Import from URL, then set authentication to API key with the Authorization header. ChatGPT's servers must be able to reach this address.</p>
-  <pre>Import from URL: <%= api_v1_openapi_url(format: :json) %>
-Authentication:  API key · Auth type: Custom · Header name: Authorization
-Key:             Bearer <%= @plaintext %></pre>
-  <h3>Anything else</h3>
+  <h3>A connector screen that takes only a URL</h3>
+  <p class="muted">The token rides in the address; treat it as a secret and disconnect the assistant to revoke it.</p>
+  <pre><%= mcp_with_token_url(@plaintext) %></pre>
+  <h3>Plain HTTP</h3>
   <pre>Base URL: <%= request.base_url %>
 Read:     GET  /api/v1/claims?q=&lt;words&gt;            (search first)
 Record:   POST /api/v1/investigations                (Authorization: Bearer <%= @plaintext %>)
 OpenAPI:  <%= api_v1_openapi_url(format: :json) %></pre>
   <h3>Browsing only (it can open links it composes, but has no tools)</h3>
-  <p class="muted">Give it this write link. It appends the bundle as base64url JSON and opens the link; the answer is the cards. Same bundle twice records once. Without the token part the link still works, as an anonymous contributor.</p>
-  <pre><%= api_v1_record_investigation_url %>?token=<%= @plaintext %>&amp;bundle=&lt;base64url JSON&gt;</pre>
+  <p class="muted">A write link: the assistant appends the bundle as base64url JSON and opens it; the answer is the cards. The same bundle twice records once. Without the token it still works, anonymously. ChatGPT's browser refuses long links, so this suits Claude and similar hosts.</p>
+  <pre><%= api_v1_record_investigation_url %>/&lt;base64url JSON&gt;?token=<%= @plaintext %></pre>
   <h3>No tools at all?</h3>
-  <p class="muted">Ask any assistant to draft the investigation bundle as JSON and paste it at <%= link_to new_investigation_url, new_investigation_url %>. It is recorded under this same delegation model, no account needed.</p>
-  <h3>Then paste the skill</h3>
+  <p class="muted">Ask any assistant to draft the investigation bundle as JSON and paste it at <%= link_to new_investigation_url, new_investigation_url %>. No account needed.</p>
+  <h3>The skill</h3>
   <p class="muted">The instructions your assistant follows, in the format your host expects: <%= link_to "Claude skill", "https://github.com/bhoult/Galedra/blob/master/skills/claude/SKILL.md" %>, <%= link_to "ChatGPT instructions", "https://github.com/bhoult/Galedra/blob/master/skills/chatgpt/instructions.md" %>, or a <%= link_to "generic system prompt", "https://github.com/bhoult/Galedra/blob/master/skills/generic/system-prompt.md" %>. Replace <code>GALEDRA_URL</code> with <code><%= request.base_url %></code>. Then say: <em>"check this in Galedra before I post it"</em>.</p>
   <p><%= link_to "Back to Connect an assistant", new_assistant_path %></p>
 </div>

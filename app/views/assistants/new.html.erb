@@ -1,29 +1,37 @@
 <% content_for :title, "Connect an assistant" %>
 <div class="connect">
   <h1>Connect an assistant</h1>
-  <p class="lede">Tell your AI to check a claim in Galedra before you post it. Pick the assistant you use, and you get a token to paste into it. That is the whole setup.</p>
+  <p class="lede">Tell the AI you already use to check a claim in Galedra before you post it. One address, one click to approve, and it can search, read, and record here from then on.</p>
+
   <% if ENV["LEDGER_CHATGPT_GPT_URL"].present? %>
     <div class="card">
       <p class="headline">Use ChatGPT? Nothing to set up.</p>
-      <p>Open the Galedra GPT and say <em>"check this before I post it"</em>. It reads the sources, records what it finds here as an anonymous contribution, and gives you the card and link.</p>
-      <p><%= link_to "Open the Galedra GPT", ENV["LEDGER_CHATGPT_GPT_URL"], class: "button", rel: "noopener", target: "_blank" %></p>
+      <p>Open the Galedra plugin and say <em>"check this before I post it"</em>.</p>
+      <p><%= link_to "Open Galedra in ChatGPT", ENV["LEDGER_CHATGPT_GPT_URL"], class: "button", rel: "noopener", target: "_blank" %></p>
     </div>
   <% end %>
 
-  <%= form_with url: assistants_path, method: :post, class: "card" do |f| %>
-    <fieldset class="choices">
-      <legend>Which assistant?</legend>
-      <% AssistantsController::ASSISTANTS.each_with_index do |(label, provider), i| %>
-        <label class="choice"><%= radio_button_tag "assistant[provider]", provider, i.zero? %> <%= label %></label>
-      <% end %>
-    </fieldset>
-    <label>Name it (optional) <%= text_field_tag "assistant[name]", nil, placeholder: "My Claude" %></label>
-    <label>Model, if you know it (optional) <%= text_field_tag "assistant[model]", nil, placeholder: "claude-sonnet-5" %></label>
-    <% unless authenticated? %>
-      <p class="meta">You are not signed in, so the assistant will write as an <strong>anonymous contributor</strong>. Anonymous work is checked more often and labelled as such. <%= link_to "Sign in", new_session_path %> first if you want it under your name.</p>
-    <% end %>
-    <%= f.submit "Get my token" %>
-  <% end %>
+  <div class="card">
+    <p class="headline">The address to give your assistant</p>
+    <pre><%= mcp_connect_url %></pre>
+    <p>When it connects, Galedra opens one page and asks you a single question: <strong>connect under your name</strong> (sign in, or sign up, and the work is attributed to you) or <strong>continue anonymously</strong> (a fresh anonymous key, checked more often and labelled as such, which you can put under your name later). Either way it works from then on, and you can disconnect it here at any time.</p>
+    <h3>ChatGPT</h3>
+    <ol>
+      <li>Settings → Plugins. At the bottom, under Advanced, turn on <strong>Developer mode</strong> once.</li>
+      <li>Back on Plugins, click <strong>+</strong>. Name: Galedra. Server URL: the address above. Authentication: <strong>OAuth</strong>. Create.</li>
+      <li>Answer Galedra's question in the window that opens. The plugin then lists its tools.</li>
+      <li>In a chat, enable Galedra in the tools menu and say <em>"check this in Galedra before I post it"</em>.</li>
+    </ol>
+    <h3>Claude.ai and Claude Desktop</h3>
+    <ol>
+      <li>Settings → Connectors → <strong>Add custom connector</strong>. Name: Galedra. URL: the address above. Add.</li>
+      <li>Click Connect and answer Galedra's question.</li>
+      <li>In a chat, enable Galedra under connectors and say <em>"check this in Galedra before I post it"</em>.</li>
+    </ol>
+    <h3>Claude Code, Cursor, and other MCP clients</h3>
+    <pre>claude mcp add --transport http galedra <%= mcp_connect_url %></pre>
+    <p class="meta">Any client that speaks MCP over HTTP with OAuth works the same way. One that cannot do OAuth can use <code><%= mcp_url %></code> with no authentication, anonymously, or a token from below.</p>
+  </div>
 
   <% if @tokens.any? %>
     <h2>Your assistants</h2>
@@ -37,21 +45,34 @@
         <td><% if t.usable? %><%= button_to "Disconnect", assistant_path(t), method: :delete, class: "secondary small" %><% end %></td>
       </tr>
     <% end %></table>
+    <p class="meta">Disconnecting appends a revocation to the public log and stops every token the assistant holds.</p>
   <% end %>
 
-  <div class="card">
-    <p class="headline">Or connect with OAuth, no token to copy</p>
-    <p>In ChatGPT (Settings → Plugins → add, choose OAuth) or Claude.ai (Settings → Connectors → add custom connector), give this address and sign in to Galedra once when asked. Everything the assistant records is then under your name.</p>
-    <pre><%= mcp_connect_url %></pre>
-    <p class="meta">Anonymous use needs nothing at all: the same address without <code>/connect</code>.</p>
-  </div>
-  <p class="meta">Assistant with no tools, or a plan without connectors? You can still <%= link_to "paste a bundle it drafted", new_investigation_path %>.</p>
+  <details class="card">
+    <summary>Advanced: a token instead of OAuth</summary>
+    <p class="muted">For clients that send headers but cannot do OAuth, or for scripts. The token is shown once.</p>
+    <%= form_with url: assistants_path, method: :post do |f| %>
+      <fieldset class="choices">
+        <legend>Which assistant?</legend>
+        <% AssistantsController::ASSISTANTS.each_with_index do |(label, provider), i| %>
+          <label class="choice"><%= radio_button_tag "assistant[provider]", provider, i.zero? %> <%= label %></label>
+        <% end %>
+      </fieldset>
+      <label>Name it (optional) <%= text_field_tag "assistant[name]", nil, placeholder: "My Claude" %></label>
+      <label>Model, if you know it (optional) <%= text_field_tag "assistant[model]", nil, placeholder: "claude-sonnet-5" %></label>
+      <% unless authenticated? %>
+        <p class="meta">You are not signed in, so the token writes as an <strong>anonymous contributor</strong>. <%= link_to "Sign in", new_session_path %> first to have it under your name.</p>
+      <% end %>
+      <%= f.submit "Get my token", class: "secondary" %>
+    <% end %>
+  </details>
+  <p class="meta">Assistant with no tools at all, or a plan without connectors? You can still <%= link_to "paste a bundle it drafted", new_investigation_path %>.</p>
 
   <h2>What the assistant will do</h2>
   <ol>
     <li>Search Galedra for the claim first. If it is already there, you get the answer card and a link.</li>
     <li>If not, it reads the sources itself, quotes the exact passages, and records them with links and hashes. Galedra never fetches pages and never stores full text.</li>
-    <li>It reports a plain headline and a link, and says the result is provisional until someone audits it.</li>
+    <li>It reports Galedra's plain headline, what to say instead, and a link, and says the result is provisional until someone audits it.</li>
   </ol>
   <p class="meta">The assistant's own reasoning is never evidence. Only quoted passages count. Every write is signed, attributed to your assistant acting for you (or for an anonymous key), and open to audit in the public log.</p>
 </div>

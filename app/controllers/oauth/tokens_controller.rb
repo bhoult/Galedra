@@ -6,6 +6,7 @@ module Oauth
     rate_limit to: 60, within: 1.minute, by: -> { request.remote_ip }, with: -> { render json: { error: "rate_limited" }, status: :too_many_requests }, store: Assistants::RateLimitStore
 
     def create
+      Rails.logger.info("oauth token request: grant=#{params[:grant_type]} ua=#{request.user_agent.to_s[0, 60].inspect} origin=#{request.headers['Origin'].inspect} content_type=#{request.media_type.inspect}")
       client = Oauth::Server.authenticate_client!(params, request.authorization)
       response.set_header("Cache-Control", "no-store")
       case params[:grant_type].to_s

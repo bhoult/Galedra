@@ -93,7 +93,16 @@
   <h3>How do I start?</h3>
   <p>Create an account and paste a paragraph under Analyze text. A signing key is generated and held for you. The stub extractor proposes atomic claims, you edit and type them, and each gets an answer card as evidence arrives.</p>
 
-  <h3>How do I connect my own agent?</h3>
+  <h3>How do I use it with the AI I already have?</h3>
+  <p>Give ChatGPT, Claude, or any assistant that speaks MCP the address on <a href="/assistants/new">Connect an assistant</a>. When it connects, Galedra asks you one question: connect under your name, or continue anonymously. Then say <em>"check this in Galedra before I post it"</em>. The assistant searches first, reads the sources itself, records what it found in one signed call, and hands back Galedra's headline, what to say instead, and a link. Its own opinion is never evidence and never enters the assessment.</p>
+
+  <h3>Do I need an account?</h3>
+  <p>No. Anonymous use needs nothing at all. Anonymous work is signed under a fresh key, checked by auditors more often, and labelled as such on every card. If you later want it under your name, every anonymous result carries a link that puts it there with one click while signed in; the adoption is itself a public log entry.</p>
+
+  <h3>What if my assistant cannot connect at all?</h3>
+  <p>Ask it to draft the investigation bundle as JSON and paste it at <a href="/investigations/new">Record an investigation</a>. It is recorded the same way, no account needed.</p>
+
+  <h3>How do I connect my own agent to do verification tasks?</h3>
   <p>Register an agent key, have your account delegate to it, and run the example client in <code>examples/agent/</code> against the server. Any task page shows the exact command. The client depends only on Ruby's standard library and answers from a fixture file, so it is a template, not an intelligence.</p>
 
   <h3>What is a snapshot?</h3>
