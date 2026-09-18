@@ -29,7 +29,7 @@ module Api
       def release
         contributor, _delegation, _payload = Contributions::SignedRequest.verify!(body, protocol: LEASE_PROTOCOL)
         task = Task.find(params[:id])
-        assignment = task.assignments.find_by(contributor_id: contributor.id)
+        assignment = TaskAssignment.latest_for(task.id, contributor.id)
         raise Ledger::Rejected.new([ { code: "LEASE_MISSING", path: "$", detail: "this task is not leased to the signer" } ]) if assignment.nil?
 
         render json: { assignment: assignment_json(Tasks::Lease.release(assignment)) }

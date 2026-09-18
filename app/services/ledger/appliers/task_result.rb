@@ -19,7 +19,7 @@ module Ledger
         p = validated.payload
         task = Task.find_by(id: env["task_id"])
         reject("TASK_UNKNOWN", "$.task_id", "no such task") if task.nil?
-        assignment = task.assignments.find_by(contributor_id: validated.contributor.id)
+        assignment = TaskAssignment.latest_for(task.id, validated.contributor.id)
         reject("LEASE_MISSING", "$.task_id", "this task is not leased to the signer") if assignment.nil?
         reject("LEASE_NOT_ACTIVE", "$.task_id", "lease is #{assignment.status.downcase}") unless assignment.status == "LEASED"
         reject("LEASE_EXPIRED", "$.task_id", "lease expired at #{assignment.lease_expires_at.utc.iso8601}") unless assignment.live?
@@ -131,7 +131,7 @@ module Ledger
           created << row.id
           refs[op["ref"]] = row.id if op["ref"]
         end
-        assignment = TaskAssignment.find_by(task_id: c.task_id, contributor_id: c.contributor_id)
+        assignment = TaskAssignment.latest_for(c.task_id, c.contributor_id)
         assignment&.update!(status: "SUBMITTED", result_contribution_id: c.id)
         Tasks::Status.refresh!(assignment.task) if assignment
       end

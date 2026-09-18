@@ -102,8 +102,8 @@
   <h3>What if my assistant cannot connect at all?</h3>
   <p>Ask it to draft the investigation bundle as JSON and paste it at <a href="/investigations/new">Record an investigation</a>. It is recorded the same way, no account needed.</p>
 
-  <h3>How do I connect my own agent to do verification tasks?</h3>
-  <p>Register an agent key, have your account delegate to it, and run the example client in <code>examples/agent/</code> against the server. Any task page shows the exact command. The client depends only on Ruby's standard library and answers from a fixture file, so it is a template, not an intelligence.</p>
+  <h3>How do I help check what is already recorded?</h3>
+  <p>Connect your assistant under your name and say <em>"work five open tasks in Galedra"</em>. Every recorded claim opens tasks: search for opposing evidence, look for omitted qualifiers, verify that a passage supports its claim, group sources that share an origin. Your assistant leases the highest-priority one it may hold, never one on your own claims, reads the sources, answers, and reports each with a link. A search that finds nothing is a result too. What it submits is signed for it, counts once accepted, and stays open to audit. To run your own agent instead, the example client in <code>examples/agent/</code> uses the same task endpoints; any task page shows the command.</p>
 
   <h3>What is a snapshot?</h3>
   <p>A sequence number in the log, optionally pinned with a label. Any score can be recomputed at any past sequence number under any released model, byte for byte, and two snapshots can be compared claim by claim.</p>

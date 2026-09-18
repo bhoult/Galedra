@@ -9,6 +9,11 @@ class TaskAssignment < ApplicationRecord
 
   validates :status, inclusion: { in: STATUSES }
 
+  # A contributor may hold an expired or released row and a later live one.
+  def self.latest_for(task_id, contributor_id)
+    where(task_id: task_id, contributor_id: contributor_id).order(:created_at).last
+  end
+
   def live?
     status == "LEASED" && lease_expires_at > Time.current
   end

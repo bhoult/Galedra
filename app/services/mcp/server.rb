@@ -22,6 +22,7 @@ module Mcp
               "or against, and attach what you find. Every write is signed and stays open to audit; nothing here is ever " \
               "presented as settled truth. When a person asks what they can do with Galedra, say these three things in plain " \
               "words before listing tools. If a search finds nothing, say so plainly and offer to investigate and record it."
+    WORK = "Working open tasks: when the person says \"work N open tasks in Galedra\", call next_task, read the sources yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat N times or until next_task says nothing is available. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to have something to submit."
     RULES = "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
             "Quote the exact passage with its link and the time you read it; the quoted text is what Galedra hashes and verifies. Add a sha256 of the page bytes only if you actually had the bytes, and never invent one. One assertion per claim, typed. " \
             "Your own reasoning is never evidence; only quoted passages are. Look for what would count against a claim before recording it. " \
@@ -69,6 +70,33 @@ module Mcp
       { name: "list_topics", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The topic vocabulary: two levels of subjects with the paths to use in record_investigation and tag_claim.",
         inputSchema: { type: "object", properties: {} },
         outputSchema: { type: "object", properties: { topics: { type: "array", items: { type: "object", properties: { path: { type: "string" }, label: { type: "string" }, children: { type: "array", items: { type: "object" } } } } } } } },
+      # Stage 18: working open tasks from a connector.
+      { name: "list_tasks", annotations: { readOnlyHint: true, openWorldHint: false },
+        description: "What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
+        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, limit: { type: "integer", default: 5 } } },
+        outputSchema: { type: "object", properties: { open: { type: "integer" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
+      { name: "next_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        description: "Lease the next open task for this assistant: highest priority first, never one on a claim your own principal recorded. Returns the task in plain form with answer_with saying exactly what to send to submit_task, and the lease expiry. Do the reading yourself. Optional filters: types, domains, claim_id. Needs a connected (non-anonymous) assistant.",
+        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" } } },
+        outputSchema: { type: "object", properties: { available: { type: "boolean" }, reason: { type: "string" }, task_id: { type: "string" }, task_type: { type: "string" }, domain: { type: "string" }, objective: { type: "string" }, target: { type: "object" }, context: { type: "object" }, outcomes: { type: "array", items: { type: "string" } }, lease_expires_at: { type: "string" }, task_url: { type: "string" }, answer_with: { type: "string" }, rules: { type: "string" } } } },
+      { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim and excerpt: \"packet\" for the task's passage. An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. " + Tasks::Answer::RULES,
+        inputSchema: { type: "object", properties: { task_id: { type: "string" }, outcome: { type: "string" },
+                                                     answer: { type: "object", properties: {
+                                                       sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
+                                                       excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, text: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" } }, required: %w[handle source text] } },
+                                                       claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES } }, required: %w[handle text type] } },
+                                                       edges: { type: "array", items: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, type: { type: "string", enum: ClaimEdge::TYPES, default: "NARROWS" } }, required: %w[from to] } },
+                                                       evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string", description: "an excerpt handle, or \"packet\"" }, statement: { type: "string", description: "one plain sentence, at most 25 words" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
+                                                       links: { type: "array", items: { type: "object", properties: { evidence: { type: "string" }, claim: { type: "string", description: "a claim handle, a claim id, or \"target\"" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS, default: "DIRECT" }, steps: { type: "integer", default: 0 }, note: { type: "string" } }, required: %w[evidence claim direction] } },
+                                                       groups: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: IndependenceGroup::TYPES }, description: { type: "string" }, members: { type: "array", items: { type: "string" }, description: "evidence_item_id values from the packet" } }, required: %w[handle type members] } },
+                                                       supersede: { type: "array", items: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction] } } } } },
+                       required: %w[task_id outcome] },
+        outputSchema: { type: "object", properties: { task_id: { type: "string" }, contribution_id: { type: "string" }, accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, items: { type: "integer" }, task_url: { type: "string" }, claim: { type: "object" } } } },
+      { name: "release_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Give back a task you leased and will not finish, so someone else can take it.",
+        inputSchema: { type: "object", properties: { task_id: { type: "string" } }, required: [ "task_id" ] },
+        outputSchema: { type: "object", properties: { task_id: { type: "string" }, status: { type: "string" } } } },
       # OpenAI's read-and-fetch connector shape (ChatGPT search and deep research): a
       # `search` returning ids, titles, and URLs, and a `fetch` returning one document.
       { name: "search", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Search Galedra's accepted claims. Returns ids, titles (the claim text with its plain headline), and URLs. Use fetch on an id for the full card, evidence, and why.",
@@ -113,7 +141,7 @@ module Mcp
     def initialize_result
       { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "galedra", version: VERSION },
-        instructions: "#{PURPOSE} #{RULES}" }
+        instructions: "#{PURPOSE} #{RULES} #{WORK}" }
     end
 
     def call_tool(params)
@@ -228,7 +256,84 @@ module Mcp
         headline: card[:plain][:headline], say_instead: card[:plain][:say_instead], text: claim.canonical_text }
     end
 
+    def tool_list_tasks(args)
+      Tasks::Lease.expire_stale!
+      scope = Task.where(status: %w[OPEN LEASED])
+      scope = scope.where(task_type: Array(args["types"]).map(&:to_s)) if args["types"].present?
+      scope = scope.where(domain: Array(args["domains"]).map(&:to_s)) if args["domains"].present?
+      open = scope.order(priority: :desc, created_at: :asc).to_a.select { |t| t.open_slots.positive? }
+      top = open.first(args.fetch("limit", 5).to_i.clamp(1, 20)).map do |t|
+        { task_id: t.id, task_type: t.task_type, domain: t.domain, priority: t.priority.to_s("F"),
+          target: t.packet["target"].slice("claim_id", "claim_text", "claim_type", "source_id", "title"), url: "#{@base_url}/tasks/#{t.id}" }
+      end
+      { open: open.size, by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
+        how: "Say \"work N open tasks in Galedra\": the assistant then calls next_task and submit_task N times. Leasing needs a connected, non-anonymous assistant." }
+    end
+
+    def tool_next_task(args)
+      require_delegation!
+      types = Array(args["types"]).map(&:to_s)
+      domains = Array(args["domains"]).map(&:to_s)
+      target_id = args["claim_id"].presence && find_claim("claim_id" => args["claim_id"]).id
+      assignment = Tasks::Lease.next(contributor: @token.agent, delegation: @token.delegation, types: types, domains: domains, target_id: target_id)
+      return { available: false, reason: nothing_available(types, domains, target_id) } if assignment.nil?
+
+      { available: true }.merge(Tasks::Answer.present(assignment.task, assignment, base_url: @base_url))
+    end
+
+    def tool_submit_task(args)
+      require_delegation!
+      task = find_task(args)
+      result = Tasks::Answer.submit(@token, task, outcome: args["outcome"], answer: args["answer"])
+      accepted = result.acceptance.present?
+      out = { task_id: task.id, contribution_id: result.contribution.id, accepted: accepted, status: accepted ? "ACCEPTED" : result.contribution.current_status,
+              items: result.contribution.payload["ops"].size, task_url: "#{@base_url}/tasks/#{task.id}",
+              note: accepted ? "Counted now, and open to audit." : "Recorded as a proposal; it counts once a different principal accepts it." }
+      out[:claim] = brief(Claim.find(task.target_id), Contribution.maximum(:seq), Scoring::Registry.default_model) if task.target_type == "CLAIM"
+      out
+    end
+
+    def tool_release_task(args)
+      require_delegation!
+      task = find_task(args)
+      assignment = TaskAssignment.latest_for(task.id, @token.agent_contributor_id)
+      raise Ledger::Rejected.new([ { code: "LEASE_MISSING", path: "$.task_id", detail: "this task is not leased to this assistant" } ]) if assignment.nil?
+
+      { task_id: task.id, status: Tasks::Lease.release(assignment).status }
+    end
+
     private
+
+    def find_task(args)
+      id = args["task_id"].to_s
+      raise ArgumentError, "task_id is required" if id.empty?
+
+      Task.find_by(id: id) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.task_id", detail: "no such task" } ]))
+    end
+
+    # Leasing needs a delegation with a principal someone can hold to account (Stage 18 owner decision).
+    def require_delegation!
+      require_token!
+      return unless @token.anonymous?
+
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "working tasks needs a connected assistant with a person behind it; connect under a name at #{@base_url}/assistants/new (OAuth or a token), then try again" } ])
+    end
+
+    def nothing_available(types, domains, target_id)
+      perms = @token.delegation.permissions
+      allowed_types = Array(perms["allowed_task_types"])
+      allowed_domains = Array(perms["domains"])
+      scope = Task.where(status: %w[OPEN LEASED], task_type: (types.presence || allowed_types) & allowed_types, domain: (domains.presence || allowed_domains) & allowed_domains)
+      scope = scope.where(target_id: target_id) if target_id
+      open = scope.to_a.select { |t| t.open_slots.positive? }
+      if open.empty?
+        "no open tasks in the types (#{(types.presence || allowed_types).join(', ')}) and domains this assistant may work; nothing to do right now"
+      elsif open.all? { |t| Tasks::Lease.own_target?(t, @token.principal) }
+        "the only open tasks are on claims your own principal recorded; a different person's assistant must check those"
+      else
+        "every open task is already leased or submitted by this principal, or the daily lease limit is reached"
+      end
+    end
 
     def brief(claim, seq, model)
       card = Cards::ClaimCard.call(claim, seq, model)

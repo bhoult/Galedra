@@ -657,8 +657,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_260000) do
     t.datetime "updated_at", null: false
     t.index ["contributor_id", "created_at"], name: "index_task_assignments_on_contributor_id_and_created_at"
     t.index ["status", "lease_expires_at"], name: "index_task_assignments_on_status_and_lease_expires_at"
-    t.index ["task_id", "contributor_id"], name: "index_task_assignments_on_task_id_and_contributor_id", unique: true
-    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_on_task_id_and_principal_contributor_id", unique: true
+    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
+    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
   end
 
   create_table "tasks", id: :uuid, default: nil, force: :cascade do |t|

@@ -9,7 +9,7 @@ module Ledger
       def self.authorize!(validated)
         p = validated.payload
         live!(EvidenceItem, p, "evidence_item_id")
-        current_claim!(p, "claim_id")
+        current_claim!(p, "claim_id", created_ids: Appliers.same_result_ids(validated))
         link_fields!(p)
       end
 

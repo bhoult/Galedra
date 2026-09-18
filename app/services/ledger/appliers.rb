@@ -130,12 +130,18 @@ module Ledger
 
       # A claim that can receive links and edges: live, accepted, not merged
       # or superseded.
-      def current_claim!(payload, key)
+      def current_claim!(payload, key, created_ids: [])
         claim = live!(Claim, payload, key)
-        reject("CLAIM_NOT_ACCEPTED", path(key), "claim is a proposal awaiting acceptance by a different principal") unless claim.accepted?
+        reject("CLAIM_NOT_ACCEPTED", path(key), "claim is a proposal awaiting acceptance by a different principal") unless claim.accepted? || created_ids.include?(claim.id)
         reject("CLAIM_NOT_CURRENT", path(key), "claim is #{claim.status.downcase}") unless claim.status == "ACTIVE"
         claim
       end
+    end
+
+    # Ids of rows created earlier in the same TASK_RESULT (Stage 18): the result
+    # is accepted or held as one, so its own new claims are current for its edges and links.
+    def self.same_result_ids(validated)
+      validated.respond_to?(:in_task) && validated.in_task && validated.respond_to?(:created_ids) ? Array(validated.created_ids) : []
     end
 
     # Defaults for epistemic appliers: rows are created with accepted_seq

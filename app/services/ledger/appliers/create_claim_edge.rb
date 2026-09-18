@@ -8,8 +8,9 @@ module Ledger
 
       def self.authorize!(validated)
         p = validated.payload
-        from = current_claim!(p, "from_claim_id")
-        to = current_claim!(p, "to_claim_id")
+        created = Appliers.same_result_ids(validated)
+        from = current_claim!(p, "from_claim_id", created_ids: created)
+        to = current_claim!(p, "to_claim_id", created_ids: created)
         reject("SCHEMA_INVALID", path("to_claim_id"), "must differ from from_claim_id") if from.id == to.id
         enum!(p, "relationship_type", ClaimEdge::TYPES)
       end

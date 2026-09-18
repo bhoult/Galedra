@@ -9,14 +9,16 @@ module Tasks
 
     module_function
 
-    def next(contributor:, delegation:, types: [], domains: [])
+    def next(contributor:, delegation:, types: [], domains: [], target_id: nil)
       principal = contributor.agent? ? delegation&.principal : contributor
       reject("DELEGATION_REQUIRED", "$.delegation_id", "agents lease under a delegation") if contributor.agent? && delegation.nil?
       reject("LEASE_LIMIT", "$", "daily task limit reached for this delegation") if delegation && over_daily_limit?(contributor, delegation)
 
       expire_stale!
-      candidates(contributor, principal, delegation, types, domains).each do |task|
+      candidates(contributor, principal, delegation, types, domains, target_id).each do |task|
         next if task.open_slots <= 0
+        # Stage 18: a principal never checks its own claim (04 §3.1, Article XI).
+        next if own_target?(task, principal)
 
         assignment = TaskAssignment.create!(
           task: task, contributor: contributor, principal: principal, delegation_id: delegation&.id,
@@ -27,11 +29,13 @@ module Tasks
       end
       nil
     rescue ActiveRecord::RecordNotUnique
-      retry
+      # Two leases raced for the last slot; look again, a bounded number of times.
+      (attempts = (attempts || 0) + 1) < 3 ? retry : nil
     end
 
-    def candidates(contributor, principal, delegation, types, domains)
+    def candidates(contributor, principal, delegation, types, domains, target_id = nil)
       scope = Task.where(status: %w[OPEN LEASED]).order(priority: :desc, created_at: :asc)
+      scope = scope.where(target_id: target_id) if target_id
       allowed_types = delegation ? Array(delegation.permissions["allowed_task_types"]) : Types::ALL
       allowed_domains = delegation ? Array(delegation.permissions["domains"]) : Audits::Policy.domains
       types = types.presence || allowed_types
@@ -39,6 +43,21 @@ module Tasks
       scope = scope.where(task_type: types & allowed_types, domain: domains & allowed_domains)
       taken = TaskAssignment.where(status: %w[LEASED SUBMITTED]).where("contributor_id = :c OR principal_contributor_id = :p", c: contributor.id, p: principal.id).select(:task_id)
       scope.where.not(id: taken).limit(50)
+    end
+
+    # The task's target stands on this principal's own say-so: recorded by it
+    # (directly or through an agent) and not accepted by a different principal.
+    # A proposal that another principal accepted (the demo's extracted claims)
+    # is that principal's responsibility too, so its author may still work it.
+    def own_target?(task, principal)
+      return false if principal.nil?
+
+      row = task.target_type == "CLAIM" ? Claim.find_by(id: task.target_id) : Source.find_by(id: task.target_id)
+      contribution = row&.contribution
+      return false if contribution.nil? || ![ contribution.contributor_id, contribution.principal_contributor_id ].compact.include?(principal.id)
+
+      accept = Contribution.where(action_type: "ACCEPT").where("payload->>'contribution_id' = ?", contribution.id).order(:seq).first
+      accept.nil? || accept.contributor.nil? || accept.contributor.system? || [ accept.contributor_id, accept.principal_contributor_id ].compact.include?(principal.id)
     end
 
     def over_daily_limit?(contributor, delegation)

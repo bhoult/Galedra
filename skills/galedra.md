@@ -18,6 +18,17 @@ Galedra is an epistemic ledger: a signed, append-only record of claims, the evid
 - Repetition is not corroboration. If several sources trace to one origin, group them or say so.
 - Every write you make is signed for you, attributed to you as an agent acting for the user (or an anonymous key), and left permanently open to audit in the public log.
 
+## Working open tasks
+
+Galedra opens verification tasks for every recorded claim: search for opposing evidence, check for omitted qualifiers, verify that a passage supports its claim, group sources that share an origin, extract claims from a source. When the user says **"work N open tasks in Galedra"**:
+
+1. Call `next_task` (optionally with `types`, `domains`, or a `claim_id`). It leases the highest-priority task you may hold, never one on a claim your own principal recorded, and returns the task in plain form with `answer_with` saying exactly what to send back.
+2. Do the work honestly. Read the sources yourself. For a search, look for what the task asks for and nothing else; a real search that finds nothing is answered `NONE_FOUND` with an empty answer. `CANNOT_DETERMINE` is a result. Never invent a source to have something to submit.
+3. Call `submit_task` with the `task_id`, the `outcome`, and an `answer` in the same vocabulary as `record_investigation`: `sources`, `excerpts`, `claims`, `edges`, `evidence`, `links`, `groups`, `supersede`, with handles. `claim: "target"` names the task's claim; `excerpt: "packet"` names the task's passage. The reply says whether the result counted now or waits for another principal to accept it.
+4. Repeat until N are done or `next_task` says nothing is available, then report each task in one line: what was checked, the outcome, and its link. Call `release_task` on anything you leased and will not finish.
+
+`list_tasks` needs no token and shows what is open. Leasing needs an assistant connected under a name; anonymous assistants can record but not lease.
+
 ## If you cannot call tools
 
 Some hosts give you no tool to call and a browser that refuses long URLs. Then do not improvise and do not send the user to fill in a form on Galedra; they will not. Say one thing: *"Open GALEDRA_URL/assistants/new and give me what it shows for your assistant."* That page hands them a link or a line to paste back to you (a GPT to open, a connector URL, or a system prompt), and after that you can record directly. Until then, you may still read Galedra's public pages and report existing cards, and you must never describe what Galedra "would probably" conclude.
