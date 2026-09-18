@@ -1229,8 +1229,13 @@ spec with reasons, and Constitutional Test answers where the stage requires them
   `§7` into `Demo::Report`. All match: 11 public and 9 Watchers rows under both models,
   plus 6 and 5 reputation buckets.
 - `bin/demo` refuses a log that already holds contributions unless `--reset` truncates
-  every table under the owner role first (development only); `01 §7`'s "runs on a clean
-  database" is enforced rather than assumed.
+  every table under the owner role first; `01 §7`'s "runs on a clean database" is
+  enforced rather than assumed. `--reset` raises outside development and test
+  (`Rails.env.local?`), and unknown arguments or examples abort with usage, so a typo
+  cannot truncate a log or seed the wrong demo. Model releases share
+  `Ledger::ReleaseModels` with `ledger:release_models`; the two scripts share
+  `Demo::Script` (cast, checkpoints, result); the report takes its models from the
+  golden fixture rather than from every released model.
 - CI gains a `demo` job that prepares a fresh Postgres and runs both demos with
   `--reset` under the test environment, using RFC 8032 test vector 1 as the system key.
 - Two bugs found by the demos: the example agent's canonicalizer turned `false` into

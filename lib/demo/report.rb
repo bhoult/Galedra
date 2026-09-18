@@ -51,9 +51,18 @@ module Demo
       @out.puts "#{ok ? 'PASS' : 'FAIL'} #{label}#{detail && !ok ? "\n     #{detail}" : ''}"
     end
 
+    # The golden fixture names the models it covers; further releases are not the demo's concern.
+    def golden
+      @golden ||= JSON.parse(File.read(GOLDEN))
+    end
+
+    def models
+      @models ||= golden["models"].values.map { |name| Scoring::Registry.find(name) }
+    end
+
     def golden_tables
-      cases = JSON.parse(File.read(GOLDEN))["cases"].select { |k| k["suite"] == @suite }
-      Scoring::Registry.released.each do |model|
+      cases = golden["cases"].select { |k| k["suite"] == @suite }
+      models.each do |model|
         @out.puts "\n== #{@suite}: golden values under #{model.full_name}"
         cases.each do |kase|
           seq = @r.checkpoints.fetch(kase["checkpoint"])
@@ -71,7 +80,7 @@ module Demo
       handle = COMPARE_CLAIM.fetch(@suite)
       claim = @r.claims.fetch(handle)
       seq = @r.checkpoints.fetch("S1")
-      a, b = Scoring::Registry.released.first(2)
+      a, b = models
       ra = Scoring::Score.call(claim, seq, a)
       rb = Scoring::Score.call(claim, seq, b)
       diff = Scoring::Compare.call(ra, rb, config_a: a.config, config_b: b.config)
@@ -83,16 +92,15 @@ module Demo
       model = Scoring::Registry.default_model
       seq = @r.checkpoints.fetch("S5")
       @out.puts "\n== Compact answers at S5 (08 §9)"
-      %w[C2 C4].each do |handle|
+      cards = %w[C2 C4].to_h { |handle| [ handle, Cards::ClaimCard.call(@r.claims.fetch(handle), seq, model) ] }
+      cards.each do |handle, card|
         claim = @r.claims.fetch(handle)
-        card = Cards::ClaimCard.call(claim, seq, model)
         summary = Summaries::Generate.call(claim, seq, model)
         @out.puts "#{handle} — #{claim.canonical_text}"
         @out.puts "  #{card[:headline]}. #{summary[:sentences].map { |s| "#{s['text']} [#{s['cites'].map { |c| c.to_s[0, 8] }.join(', ')}]" }.join(' ')}"
       end
-      c2 = Cards::ClaimCard.call(@r.claims["C2"], seq, model)
-      check("C2 card: Unresolved, main issue is the qualifier", c2[:headline] == "Unresolved" && c2[:main_issue][:kind] == "QUALIFY_LINK")
-      check("C4 card: Leans contradicted", Cards::ClaimCard.call(@r.claims["C4"], seq, model)[:headline] == "Leans contradicted")
+      check("C2 card: Unresolved, main issue is the qualifier", cards["C2"][:headline] == "Unresolved" && cards["C2"][:main_issue][:kind] == "QUALIFY_LINK")
+      check("C4 card: Leans contradicted", cards["C4"][:headline] == "Leans contradicted")
       roll = Cards::SourceCard.call(@r.handles["SD"], seq, model)
       @out.puts "Memo summary: #{roll[:summary]}"
       check("memo roll-up covers 4 claims", roll[:cards].size == 4)

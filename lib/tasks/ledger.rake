@@ -15,17 +15,8 @@ namespace :ledger do
 
   desc "Release every model in config/scoring/*.json that is not yet released (signed by the system key)"
   task release_models: :environment do
-    Scoring::Registry.config_files.each do |path|
-      config = Scoring::Registry.load_config(path)
-      name = Scoring::Registry.model_name(config)
-      if ScoringModel.exists?(name: config["name"], semantic_version: config["semantic_version"])
-        puts "#{name}: already released"
-        next
-      end
-      envelope = Contributions::Envelope.build(action_type: "RELEASE_SCORING_MODEL", key_pair: Crypto::SystemKey.key_pair,
-                                               payload: Scoring::Registry.release_payload(config))
-      result = Ledger::Append.call(envelope, custody: Crypto::Custody::SYSTEM)
-      puts "#{name}: released at seq #{result.contribution.seq} (code_hash #{Scoring::Registry.code_hash})"
+    Ledger::ReleaseModels.call.each do |name, contribution|
+      puts contribution ? "#{name}: released at seq #{contribution.seq} (code_hash #{Scoring::Registry.code_hash})" : "#{name}: already released"
     end
   end
 

@@ -2,28 +2,12 @@
 
 module Demo
   # The Watchers stress test (examples/watchers §6).
-  class Watchers
+  class Watchers < Script
     DOMAIN = "ancient_near_east"
-    Result = Struct.new(:handles, :checkpoints, :claims, keyword_init: true)
-
-    def self.run(helpers = Helpers.new) = new(helpers).run
-
-    def initialize(helpers)
-      @h = helpers
-      @x = {}
-      @cp = {}
-    end
 
     def run
       h = @h
-      _, _, curator = h.register_server_user("curator@demo.galedra", display_name: "Curator")
-      _, _, reviewer = h.register_server_user("reviewer@demo.galedra", display_name: "Reviewer", identity_tier: "ESTABLISHED")
-      alice, = h.register_key(display_name: "Alice")
-      verifier_key, verifier = h.register_key(kind: "AGENT", display_name: "AgentVerifier")
-      mallory, = h.register_key(display_name: "Mallory")
-      bad_key, bad = h.register_key(kind: "AGENT", display_name: "AgentBad")
-      h.agent(:verifier, key: verifier_key, delegation: h.delegate(alice, verifier, domains: [ DOMAIN ]))
-      h.agent(:bad, key: bad_key, delegation: h.delegate(mallory, bad, domains: [ DOMAIN ]), fixtures_agent: "bad")
+      curator, reviewer = cast(domains: [ DOMAIN ])
 
       @x["SA"] = h.create_source(curator, title: "Watcher narrative A", content: "In the narrative, Azazel teaches humans the making of swords, knives, shields, and related metal implements.")
       @x["SD"] = h.create_source(curator, title: "Mock commentary", type: "SECONDARY_TEXT", content: "A mock commentary: the passage can be read as a critique of transmitting specialized technical knowledge.")
@@ -75,12 +59,7 @@ module Demo
       t4 = h.run_task(:verifier, @x["T4"])
       h.audit(reviewer, t4, type: "INDEPENDENCE_CHECK")
       checkpoint("S5", "final")
-
-      Result.new(handles: @x, checkpoints: @cp, claims: @x.select { |k, _| k.match?(/\AC\d\z/) })
-    end
-
-    def checkpoint(name, label)
-      @cp[name] = @h.snapshot("#{name} #{label}").seq
+      result
     end
   end
 end

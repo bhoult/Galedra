@@ -4,35 +4,39 @@ module Demo
   # bin/demo: seeds a demo on a clean log, prints the report, exits non-zero on
   # any FAIL (spec 07 Phase 7, 10 "Success Standard").
   module Runner
+    EXAMPLES = %w[public-demo watchers].freeze
+    USAGE = "usage: bin/demo [--example #{EXAMPLES.join('|')}] [--reset]"
+
     module_function
 
     def main(argv)
       example = "public-demo"
       reset = false
-      argv.each_with_index do |arg, i|
-        example = argv[i + 1] == "watchers" ? "watchers" : "public-demo" if arg == "--example"
-        reset = true if arg == "--reset"
+      args = argv.dup
+      until args.empty?
+        case (arg = args.shift)
+        when "--example" then example = args.shift
+        when "--reset" then reset = true
+        else abort("#{USAGE}\nunknown argument #{arg.inspect}")
+        end
       end
-      failures = run(example: example, reset: reset)
-      exit(failures.zero? ? 0 : 1)
+      abort("#{USAGE}\nunknown example #{example.inspect}") unless EXAMPLES.include?(example)
+      exit(run(example: example, reset: reset).zero? ? 0 : 1)
     end
 
     # Truncates every table but schema_migrations (owner role), then genesis
-    # and model releases, so the demo runs on a clean database.
+    # and model releases, so the demo runs on a clean database. Development
+    # and test only: the log is append-only everywhere else (CLAUDE.md invariant 3).
     def reset!
+      raise "bin/demo --reset truncates the whole log and runs only in development or test, not #{Rails.env}" unless Rails.env.local?
+
       tables = ActiveRecord::Base.connection.tables - %w[schema_migrations ar_internal_metadata]
       Ledger::DatabaseRole.as_owner { ActiveRecord::Base.connection.truncate_tables(*tables) }
     end
 
     def prepare!
       Ledger::Genesis.ensure!
-      Scoring::Registry.config_files.each do |path|
-        config = Scoring::Registry.load_config(path)
-        next if ScoringModel.exists?(name: config["name"], semantic_version: config["semantic_version"])
-
-        envelope = Contributions::Envelope.build(action_type: "RELEASE_SCORING_MODEL", key_pair: Crypto::SystemKey.key_pair, payload: Scoring::Registry.release_payload(config))
-        Ledger::Append.call(envelope, custody: Crypto::Custody::SYSTEM)
-      end
+      Ledger::ReleaseModels.call
     end
 
     def clean?

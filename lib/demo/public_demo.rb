@@ -3,30 +3,12 @@
 module Demo
   # The public demo (spec 08 §7), every step a contribution through the real
   # write path, tasks answered by the fixture-driven example agent.
-  class PublicDemo
+  class PublicDemo < Script
     MEMO = "Remote work boosts productivity: 62% of remote workers report higher productivity (Journal of Distributed Work Research, 2025). Companies should adopt remote work."
-    Result = Struct.new(:handles, :checkpoints, :claims, keyword_init: true)
-
-    def self.run(helpers = Helpers.new) = new(helpers).run
-
-    def initialize(helpers)
-      @h = helpers
-      @x = {}
-      @cp = {}
-    end
 
     def run
       h = @h
-      _, _, curator = h.register_server_user("curator@demo.galedra", display_name: "Curator")
-      _, _, reviewer = h.register_server_user("reviewer@demo.galedra", display_name: "Reviewer", identity_tier: "ESTABLISHED")
-      alice, = h.register_key(display_name: "Alice")
-      verifier_key, verifier = h.register_key(kind: "AGENT", display_name: "AgentVerifier")
-      mallory, = h.register_key(display_name: "Mallory")
-      bad_key, bad = h.register_key(kind: "AGENT", display_name: "AgentBad")
-      verifier_delegation = h.delegate(alice, verifier, domains: [ "general" ])
-      bad_delegation = h.delegate(mallory, bad, domains: [ "general" ])
-      h.agent(:verifier, key: verifier_key, delegation: verifier_delegation)
-      h.agent(:bad, key: bad_key, delegation: bad_delegation, fixtures_agent: "bad")
+      curator, reviewer = cast(domains: [ "general" ])
 
       # 2. the memo
       @x["SD"] = h.create_source(curator, title: "AI-drafted memo", type: "OTHER", content: MEMO)
@@ -95,12 +77,7 @@ module Demo
       @x["E6"] = EvidenceItem.find_by!(contribution_id: t4.id)
       h.assign(curator, @x["E6"], @x["G1"])
       checkpoint("S5", "qualified")
-
-      Result.new(handles: @x, checkpoints: @cp, claims: @x.select { |k, _| k.match?(/\AC\d\z/) })
-    end
-
-    def checkpoint(name, label)
-      @cp[name] = @h.snapshot("#{name} #{label}").seq
+      result
     end
   end
 end
