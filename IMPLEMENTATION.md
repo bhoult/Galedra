@@ -959,6 +959,94 @@ timeout.
 
 ---
 
+## Stage 18 — Work open tasks from a connector
+
+**Tag:** `stage-18-work-tasks` · **Spec:** 04 §2 (task types), 04 §3 (packets, blind
+slots), 04 §6 (result validation), 04 §7 (leasing), 02 §1.1a (automated acceptance),
+05 §8 (auditor selection), Article II, Article XI
+
+Goal: a person tells the assistant they already use "work five open tasks in Galedra",
+and it does: leases the highest-priority task it may hold, does the reading itself,
+answers in the same vocabulary it records investigations in, and moves on. This is the
+third use on the connect page made true. Task work is what the agent protocol was built
+for; Stage 18 only carries it over the connector, in the shape an assistant can use
+without learning refs, packet hashes, or signing.
+
+Not in this stage: audits. Spec 05 §8 admits as auditor a human at `ESTABLISHED` or
+above, or a contributor with `n ≥ 5` and `mean ≥ 0.8` in `AUDIT` for the domain. An
+assistant acting under a delegation is an agent, not a human, and starts with no track
+record, so an `audit` tool would be refused for everyone who could reach it. Whether an
+agent acting for an `ESTABLISHED`+ human may audit under its delegation is a
+constitutional-scope question for the owner (a proposed amendment, not a code change);
+until then the "not yet independently audited" label clears only through human audits.
+
+Deliverables:
+
+- Four connector tools, all also usable through `/mcp/:token` and the REST API:
+  - `list_tasks` (read-only, no token): open work by type and domain with counts, and
+    the top few by priority with the claim text and a page link. Lets an assistant say
+    what needs doing before anyone connects.
+  - `next_task` (token): leases the next task through `Tasks::Lease` under the
+    assistant's delegation, optionally filtered by `types`, `domains`, or a `claim_id`,
+    and returns the packet in plain form: the objective, the claim, the untrusted
+    excerpt or the counted evidence, the search direction, the known qualifiers, the
+    allowed outcomes, and an `answer_with` note saying exactly what to send back. The
+    packet hash and lease expiry are returned and kept server-side, so the assistant
+    never handles signatures. Nothing available answers with a reason (no open tasks
+    in the permitted types and domains, daily limit reached, or every open task
+    belongs to the assistant's own principal).
+  - `submit_task` (token): `task_id`, `outcome`, and an answer in the investigation
+    vocabulary (`sources`, `excerpts`, `claims`, `evidence`, `links`, `groups`,
+    `edges`, `supersede`) with local handles; `"target"` names the packet's claim and
+    `"packet"` names the packet's source location. `Tasks::Answer` translates it into
+    the ordered `TASK_RESULT` ops with refs and appends through `Assistants::Write`
+    with the task id and packet hash, so every check in 04 §6 runs unchanged: allowed
+    ops, scope rules, blind slots, automated acceptance. The reply says whether the
+    result was accepted or is pending another principal, and returns the claim's card.
+  - `release_task` (token): gives a lease back.
+- Leasing excludes a task whose target was recorded by the assistant's own principal.
+  04 §3.1 asks for distinct principals per slot and Article XI forbids
+  self-certification; a principal checking its own claim is neither an independent
+  slot nor a check. This applies to every lease path, not only the connector.
+- Instructions and skill: a "Working open tasks" procedure. On "work N tasks": call
+  `next_task`, read the sources yourself, answer honestly (a documented null search is
+  a result; `CANNOT_DETERMINE` is a result), `submit_task`, repeat N times or until
+  nothing is available, then report each task in one line with its outcome and link.
+  Never fabricate a source to have something to submit; never pad an answer.
+- The connect page and FAQ gain the sentence a person needs: "Tell it: work five open
+  tasks in Galedra."
+- Older connected assistants: a delegation records the domains that existed when it
+  was made, so an assistant connected before Stage 15 sees only those. The connect
+  page says to disconnect and reconnect to pick up new subjects; no silent widening.
+
+Acceptance:
+
+1. Through `/mcp` with a token, `next_task` leases an `OPPOSING_EVIDENCE_SEARCH` task
+   on another principal's claim, `submit_task` with `FOUND` and one source, excerpt,
+   evidence, and `CONTRADICT` link on `"target"` appends a `TASK_RESULT` plus `ACCEPT`,
+   the source is `retrieval_pending`, and the claim's card changes; the same for an
+   `EVIDENCE_VERIFICATION` answer whose evidence sits on `"packet"`.
+2. A `QUALIFIER_CHECK` answer that creates a narrower claim with a `NARROWS` edge and
+   a `QUALIFY` link is accepted; one that supersedes another principal's link stays
+   `PENDING`, and the reply says so.
+3. `next_task` never hands an assistant a task on a claim its own principal recorded,
+   and answers with the reason when that is all that is open; `list_tasks` needs no
+   token and shows counts that match the tasks page.
+4. A submission after the lease expired, with a wrong outcome for the type, or with an
+   op the type does not allow is refused with the existing codes and appends nothing;
+   `release_task` returns the slot.
+5. A read-only OAuth grant is refused on `next_task` and `submit_task` with
+   `INSUFFICIENT_SCOPE`; anonymous (tokenless) callers are refused on `next_task` with
+   the connect instruction, since leases need a delegation. Demo goldens, replay, and
+   `ledger:verify` are unchanged.
+
+Owner decisions to record: whether an agent acting for an `ESTABLISHED`+ human may
+audit under its delegation (needs an amendment to 05 §8); whether anonymous per-source
+assistants may lease tasks at all (this stage says no: a lease needs a delegation with
+a principal someone can hold to account).
+
+---
+
 ## Decision Log
 
 Append-only. One dated entry per stage, added when the stage is executed. Each entry
