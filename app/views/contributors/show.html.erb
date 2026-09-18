@@ -3,7 +3,10 @@
 <div class="card">
   <p><strong><%= @contributor.display_name || short_id(@contributor.key_id) %></strong> <span class="badge"><%= @contributor.kind %></span> <span class="badge"><%= @contributor.identity_tier %></span>
     <% if @contributor.server_custodied? %><span class="badge">server-held key</span><% end %>
-    <% if @contributor.revoked? %><span class="badge">revoked at seq <%= @contributor.revoked_seq %></span><% end %></p>
+    <% if @contributor.revoked? %><span class="badge">revoked at seq <%= @contributor.revoked_seq %></span><% end %>
+    <% if @contributor.adopted? %><span class="badge">adopted at seq <%= @contributor.metadata["adopted_seq"] %> by <%= link_to short_id(@contributor.adopted_by_key_id), contributor_path(Contributor.find_by!(key_id: @contributor.adopted_by_key_id)) %></span><% end %></p>
+  <% adopted = Contributor.where("metadata->>'adopted_by' = ?", @contributor.key_id) %>
+  <% if adopted.any? %><p class="meta">Also stands behind: <% adopted.each do |c| %><%= link_to short_id(c.key_id), contributor_path(c) %> (adopted at seq <%= c.metadata["adopted_seq"] %>) <% end %></p><% end %>
   <p class="meta">key <code><%= @contributor.key_id %></code> · registered seq <%= @contributor.created_seq %></p>
 </div>
 <h2>Audited reliability</h2>

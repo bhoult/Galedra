@@ -1,0 +1,17 @@
+<% content_for :title, "Put this under your name" %>
+<div class="auth adopt">
+  <h1>Put this work under your name</h1>
+  <% if @token.anonymous? %>
+    <p class="lede">An assistant recorded <%= pluralize(@count, "contribution") %> in Galedra anonymously. Adopting them signs a public log entry that says your key stands behind that anonymous key from now on. The work keeps its own history and audit record.</p>
+    <% if @claims.any? %>
+      <ul>
+        <% @claims.each do |c| %><li><%= link_to c.canonical_text, claim_path(c) %></li><% end %>
+      </ul>
+    <% end %>
+    <p class="meta">Signed in as <%= Current.user.email_address %>. The adoption is visible to everyone, like every entry in the log, and cannot be undone except by revoking the key.</p>
+    <%= button_to "Put this under my name", adopt_path(params[:code]), method: :post %>
+  <% else %>
+    <p class="lede">This work is already under an account.</p>
+    <p><%= link_to "See the contributor", contributor_path(@token.principal) %></p>
+  <% end %>
+</div>

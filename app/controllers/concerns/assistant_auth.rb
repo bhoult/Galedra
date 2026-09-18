@@ -9,9 +9,15 @@ module AssistantAuth
 
     header = request.authorization.to_s
     plaintext = header.delete_prefix("Bearer ").strip if header.start_with?("Bearer ")
-    plaintext ||= request.path_parameters[:token].presence
+    plaintext ||= request.path_parameters[:token].presence || request.query_parameters["token"].presence
     @current_assistant_token = AssistantToken.find_by_token(plaintext)
+    @current_assistant_token ||= Assistants::Connect.for_source(request.remote_ip) if plaintext.blank? && anonymous_assistant_allowed?
+    @current_assistant_token
   end
+
+  # Controllers that record investigations may act for an anonymous caller
+  # with no token at all (IMPLEMENTATION.md, "The write link").
+  def anonymous_assistant_allowed? = false
 
   def authenticate_assistant!
     token = current_assistant_token
@@ -21,7 +27,7 @@ module AssistantAuth
   end
 
   def assistant_rate_limit_key
-    current_assistant_token&.token_digest || request.remote_ip
+    request.authorization.present? || request.path_parameters[:token].present? || request.query_parameters["token"].present? ? (current_assistant_token&.token_digest || request.remote_ip) : request.remote_ip
   end
 
   def too_many_requests

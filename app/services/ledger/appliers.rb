@@ -11,6 +11,7 @@ module Ledger
       "REGISTER_KEY" => "Ledger::Appliers::RegisterKey",
       "DELEGATE" => "Ledger::Appliers::Delegate",
       "REVOKE_KEY" => "Ledger::Appliers::RevokeKey",
+      "ADOPT_KEY" => "Ledger::Appliers::AdoptKey",
       "REVOKE_DELEGATION" => "Ledger::Appliers::RevokeDelegation",
       "ACCEPT" => "Ledger::Appliers::Accept",
       "INVALIDATE" => "Ledger::Appliers::Invalidate",

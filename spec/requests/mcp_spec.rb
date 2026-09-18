@@ -35,15 +35,17 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     expect(response).to have_http_status(:accepted)
 
     tools = rpc("tools/list").dig("result", "tools").map { |t| t["name"] }
-    expect(tools).to contain_exactly("search_claims", "get_claim", "record_investigation", "add_evidence", "explain", "share_card")
+    expect(tools).to contain_exactly("search_claims", "get_claim", "record_investigation", "add_evidence", "explain", "share_card", "search", "fetch")
 
     data, err = call_tool("search_claims", { query: "Brackenridge bicycles" })
     expect(err).to be(false)
     expect(data["claims"]).to eq([])
 
-    data, err = call_tool("record_investigation", bundle)
-    expect(err).to be(true)
-    expect(data["errors"].first["code"]).to eq("TOKEN_INVALID")
+    # Without a token the write still lands, as an anonymous assistant keyed to the caller.
+    data, err = call_tool("record_investigation", bundle.merge("claims" => [ { "handle" => "t", "text" => "A tokenless MCP claim.", "type" => "TEXTUAL" } ], "links" => [], "evidence" => [], "excerpts" => [], "sources" => []))
+    expect(err).to be(false)
+    expect(Claim.find(data["claims"].first["id"]).contribution.principal_contributor).to be_anonymous
+    expect(AssistantToken.find_by(source_key: Digest::SHA256.hexdigest("127.0.0.1|#{Date.current}"))).to be_present
 
     data, err = call_tool("record_investigation", bundle, token: token)
     expect(err).to be(false)
@@ -63,6 +65,14 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
 
     data, = call_tool("share_card", { claim_id: ban["id"] })
     expect(data["image_url"]).to end_with("/claims/#{ban['id']}/card.png")
+
+    data, = call_tool("search", { query: "Brackenridge bicycles" })
+    expect(data["results"].map { |r| r["id"] }).to include(ban["id"])
+    expect(data["results"].first["title"]).to include("—")
+    data, = call_tool("fetch", { id: ban["id"] })
+    expect(data["text"]).to include("Galedra says: The evidence leans against this.")
+    expect(data["text"]).to include("Strongest contradiction: Motion 14")
+    expect(data["metadata"]["assessment_state"]).to eq("LEANS_CONTRADICTED")
 
     data, err = call_tool("add_evidence", { claim_id: ban["id"], source: bundle["sources"].last.except("handle"), excerpt: "Bicycles may be walked.", statement: "Bicycles may still be walked on the mall.", direction: "QUALIFY" }, token: token)
     expect(err).to be(false)

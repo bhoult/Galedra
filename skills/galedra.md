@@ -7,7 +7,7 @@ Galedra is an epistemic ledger: a signed, append-only record of claims, the evid
 3. **Split the statement into atomic claims.** One assertion per claim. Type each one: `QUANTITATIVE` for numbers, `CAUSAL` for "X causes Y", `TEXTUAL` for "the source says", `NORMATIVE` for "should", and so on. A recommendation is not a fact and will not be scored.
 4. **Record it in one call.** Use `record_investigation` (or `POST /api/v1/investigations`) with sources, excerpts, claims, evidence statements, and links. Direction is `SUPPORT`, `CONTRADICT`, `QUALIFY`, or `NEUTRAL`. Interpretive steps count how far the passage is from the claim: a direct quotation is 0, a reading or inference is 1 or more. Text read off an image is a `TRANSCRIPTION`.
 5. **If Galedra answers with existing similar claims**, attach your evidence to them with `attach_to` instead of creating twins. Only use `on_duplicate: create` when the claims really differ.
-6. **Report.** Give the user the plain headline, the "say instead" line when there is one, and the URL. Say that the result is provisional until someone audits it.
+6. **Report.** Give the user Galedra's plain headline and its "say instead" sentence word for word when there is one, then the URL. Do not rewrite them in your own words: they are computed from the evidence and are what the user should post. Say that the result is provisional until someone audits it. If the result carries `attribution.adopt_url`, the work was recorded anonymously: tell the user that opening that link while signed in to Galedra puts it under their name, and that this is optional.
 
 ## The rules
 
@@ -20,7 +20,11 @@ Galedra is an epistemic ledger: a signed, append-only record of claims, the evid
 
 ## If you cannot call tools
 
-Some hosts give you no way to reach Galedra (a browsing-only session, a plan without connectors). Then do steps 1 to 3 by reading Galedra's public pages and the sources yourself, and for step 4 write the investigation bundle as JSON, exactly in the shape `POST /api/v1/investigations` takes, and tell the user to paste it at `GALEDRA_URL/investigations/new`. Output only the JSON in one code block. Galedra records it, shows the cards, and asks the user to attach to similar claims if any exist. Never describe what Galedra "would probably" conclude; let it compute.
+Some hosts give you no tool to call and a browser that refuses long URLs. Then do not improvise and do not send the user to fill in a form on Galedra; they will not. Say one thing: *"Open GALEDRA_URL/assistants/new and give me what it shows for your assistant."* That page hands them a link or a line to paste back to you (a GPT to open, a connector URL, or a system prompt), and after that you can record directly. Until then, you may still read Galedra's public pages and report existing cards, and you must never describe what Galedra "would probably" conclude.
+
+## If you can open links but not call tools
+
+Where your host lets you fetch any URL you compose, Galedra offers a write link: build the bundle as JSON, base64url-encode it, and open `GALEDRA_URL/api/v1/investigations/record/<base64url JSON>`. No token is needed; add `?token=<assistant token>` for attribution. The same bundle twice records once. ChatGPT's browser refuses URLs longer than a few hundred characters, so this works from Claude and similar hosts, not from a plain ChatGPT chat.
 
 ## What to tell the user
 

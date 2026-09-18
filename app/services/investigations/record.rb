@@ -37,7 +37,19 @@ module Investigations
         { handle: c["handle"], id: claim.id, created: c["attach_to"].nil?, url: "#{base_url}/claims/#{claim.id}",
           card: Cards::ClaimCard.call(claim, seq, model) }
       end
-      { recorded: true, snapshot_seq: seq, contributions: count, tasks_opened: tasks, ids: ids, claims: claims, existing: with_urls(existing, base_url) }
+      { recorded: true, snapshot_seq: seq, contributions: count, tasks_opened: tasks, ids: ids, claims: claims, existing: with_urls(existing, base_url),
+        attribution: attribution(token, base_url) }
+    end
+
+    # Anonymous work carries an adoption link: opened while signed in, it puts
+    # the work under that person's name through a public ADOPT_KEY entry.
+    def attribution(token, base_url)
+      if token.anonymous?
+        { anonymous: true, adopt_url: Assistants::Adopt.adopt_url(token, base_url),
+          note: "Recorded anonymously. To put it under your name, open adopt_url while signed in to Galedra." }
+      else
+        { anonymous: false, principal: token.principal.display_name }
+      end
     end
 
     def append_all(token, bundle, ids)

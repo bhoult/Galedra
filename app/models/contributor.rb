@@ -32,6 +32,8 @@ class Contributor < ApplicationRecord
 
   def revoked? = revoked_seq.present?
   def anonymous? = identity_tier == "ANONYMOUS"
+  def adopted_by_key_id = metadata["adopted_by"]
+  def adopted? = adopted_by_key_id.present?
 
   def server_custodied?
     custodied_key.present?

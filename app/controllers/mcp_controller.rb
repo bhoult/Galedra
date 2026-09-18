@@ -18,4 +18,8 @@ class McpController < ActionController::API
   def show
     head :method_not_allowed
   end
+
+  private
+
+  def anonymous_assistant_allowed? = true
 end

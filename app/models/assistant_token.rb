@@ -10,6 +10,10 @@ class AssistantToken < ApplicationRecord
   belongs_to :delegation, class_name: "AgentDelegation", inverse_of: false
   belongs_to :user, optional: true
 
+  encrypts :adoption_code
+
+  before_create :assign_adoption_code
+
   validates :token_digest, presence: true, uniqueness: true
   validates :daily_cap, numericality: { only_integer: true, greater_than: 0 }
 
@@ -34,4 +38,11 @@ class AssistantToken < ApplicationRecord
   end
 
   def over_daily_cap? = writes_today >= daily_cap
+
+  private
+
+  def assign_adoption_code
+    self.adoption_code ||= "adopt_#{SecureRandom.urlsafe_base64(18)}"
+    self.adoption_digest ||= self.class.digest(adoption_code)
+  end
 end

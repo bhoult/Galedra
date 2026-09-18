@@ -1726,3 +1726,50 @@ json gem pin (Stage 1). Each is explained in its stage above.
   and that the address must be reachable from OpenAI's servers; a quick tunnel's
   hostname was not, so a real domain or a named tunnel is needed for ChatGPT.
 
+### After Stage 14 — The write link (2026-09-18)
+
+- `GET /api/v1/investigations/record?token=&bundle=` records an investigation on a
+  GET, with the bundle as base64url JSON in the query. This is deliberately
+  non-standard: GET is meant to be safe, and a plain write link would be repeated by
+  link-preview bots, prefetchers, and retries. It exists because the alternative for a
+  browsing-only assistant is a copy-and-paste step that loses the very users this is
+  for. The owner chose it knowingly.
+- What makes it acceptable: the token is required, so only a connected assistant can
+  write, and tokens are revocable, rate limited, and capped; the write is idempotent
+  (`investigation_receipts`: the same token and bundle digest returns the first result
+  with `replayed: true`), so repeats append nothing; `token` and `bundle` are filtered
+  from logs. The POST endpoint shares the idempotency, so retried POSTs are safe too.
+- Not fixed by this: hosted assistants must still be able to reach the hostname, which
+  rules out quick-tunnel addresses for ChatGPT.
+- Tokenless, by the owner's decision: the write link and `POST /api/v1/investigations`
+  (and the MCP writing tools) accept requests with no token at all. The caller becomes
+  an anonymous assistant keyed to its address for the day (`assistant_tokens.source_key`),
+  minted on first use, so the work is still signed, delegated, capped per source per
+  day, sampled at the anonymous rate, and labelled. Idempotency is keyed to that
+  assistant. Raw custodied writes and token management still need a real token.
+
+### After Stage 14 — Adoption (2026-09-18)
+
+- Anonymous work can be put under an account later, by the owner's request. `ADOPT_KEY`
+  is a new control contribution: signed by the adopter's human key, carrying a
+  counter-signature by the adopted key over `{"adopt": adopter, "key_id": adopted}`,
+  so it proves control of both keys; the server holds both when the anonymous key is
+  server-custodied. The applier sets the adopted key's tier to the adopter's and
+  records `adopted_by` and `adopted_seq` in its metadata. The adopted key keeps its
+  own rows and reputation buckets; contributor pages show the link both ways.
+- Every anonymous assistant carries an adoption code (encrypted at rest, digest
+  indexed). Recording responses for anonymous work include `attribution.adopt_url`;
+  opening it signed in shows the work and one button. The skill and tool rules tell
+  assistants to mention it as optional. After adoption the provisional label no longer
+  names an anonymous contributor, because the principal no longer is one; audit
+  schedules already computed keep their stored inputs.
+- ChatGPT: personal accounts lost GPT creation on 2026-08-16 and GPTs retire on
+  2026-12-11; the replacement, plugins, are MCP servers. Developer mode on Plus lets a
+  user add `https://<host>/mcp` as a plugin with no authentication; it scanned all eight
+  tools and both read and write calls landed. Two OpenAI-shaped tools, `search` and
+  `fetch`, were added for hosts that only allow read-and-fetch connectors. Tool
+  annotations mark reads read-only and writes idempotent; every tool has an
+  `outputSchema`. ChatGPT's browser strips or refuses URLs beyond a few hundred
+  characters, so the write link cannot serve a plain ChatGPT chat; it stays for hosts
+  that carry URLs intact.
+

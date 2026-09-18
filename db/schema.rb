@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -30,6 +30,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_100000) do
   end
 
   create_table "assistant_tokens", id: :uuid, default: nil, force: :cascade do |t|
+    t.text "adoption_code"
+    t.string "adoption_digest"
     t.uuid "agent_contributor_id", null: false
     t.datetime "created_at", null: false
     t.integer "daily_cap", default: 200, null: false
@@ -38,10 +40,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_100000) do
     t.uuid "principal_contributor_id", null: false
     t.timestamptz "revoked_at"
     t.jsonb "software", default: {}, null: false
+    t.string "source_key"
     t.string "token_digest", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["adoption_digest"], name: "index_assistant_tokens_on_adoption_digest", unique: true
     t.index ["agent_contributor_id"], name: "index_assistant_tokens_on_agent_contributor_id", unique: true
+    t.index ["source_key"], name: "index_assistant_tokens_on_source_key", unique: true
     t.index ["token_digest"], name: "index_assistant_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_assistant_tokens_on_user_id"
   end
@@ -289,6 +294,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_100000) do
     t.index ["contribution_id"], name: "index_independence_groups_on_contribution_id"
     t.index ["created_seq"], name: "index_independence_groups_on_created_seq"
     t.index ["invalidated_seq"], name: "index_independence_groups_on_invalidated_seq"
+  end
+
+  create_table "investigation_receipts", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "assistant_token_id", null: false
+    t.string "bundle_digest", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "result", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["assistant_token_id", "bundle_digest"], name: "idx_on_assistant_token_id_bundle_digest_76f712cd1a", unique: true
   end
 
   create_table "quarantines", id: :uuid, default: nil, force: :cascade do |t|

@@ -52,7 +52,7 @@ module Skills
       <<~MD
         # Galedra: check before you post
 
-        Set up as a custom GPT (Explore GPTs → Create), which works on Plus; custom MCP connectors do not. Under Actions, import the OpenAPI document at `#{PLACEHOLDER}/api/v1/openapi.json`. Authentication: API key, Auth type Custom, header name `Authorization`, value `Bearer <token>`, with the token from `#{PLACEHOLDER}/assistants/new`. The address must be public and reachable from OpenAI's servers. Without Actions, use the paste flow below.
+        Set up as a custom GPT (Explore GPTs → Create), which works on Plus; custom MCP connectors do not. Under Actions, import the OpenAPI document at `#{PLACEHOLDER}/api/v1/openapi.json`. Authentication: API key, Auth type Custom, header name `Authorization`, value `Bearer <token>`, with the token from `#{PLACEHOLDER}/assistants/new`. The address must be public and reachable from OpenAI's servers. Publish the GPT so other people can use it with no setup.
 
         #{source.strip}
       MD

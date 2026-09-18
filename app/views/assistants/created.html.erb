@@ -32,6 +32,9 @@ Key:             Bearer <%= @plaintext %></pre>
 Read:     GET  /api/v1/claims?q=&lt;words&gt;            (search first)
 Record:   POST /api/v1/investigations                (Authorization: Bearer <%= @plaintext %>)
 OpenAPI:  <%= api_v1_openapi_url(format: :json) %></pre>
+  <h3>Browsing only (it can open links it composes, but has no tools)</h3>
+  <p class="muted">Give it this write link. It appends the bundle as base64url JSON and opens the link; the answer is the cards. Same bundle twice records once. Without the token part the link still works, as an anonymous contributor.</p>
+  <pre><%= api_v1_record_investigation_url %>?token=<%= @plaintext %>&amp;bundle=&lt;base64url JSON&gt;</pre>
   <h3>No tools at all?</h3>
   <p class="muted">Ask any assistant to draft the investigation bundle as JSON and paste it at <%= link_to new_investigation_url, new_investigation_url %>. It is recorded under this same delegation model, no account needed.</p>
   <h3>Then paste the skill</h3>

@@ -32,6 +32,21 @@ module Assistants
       [ record, plaintext ]
     end
 
+    # A tokenless anonymous assistant for a calling source (an address), one per
+    # source per day, minted on first use. Nothing is handed out: the record is
+    # found again by its source key, and the same caps and sampling apply.
+    def for_source(address, name: "Anonymous assistant")
+      key = Digest::SHA256.hexdigest("#{address}|#{Date.current}")
+      existing = AssistantToken.find_by(source_key: key)
+      return existing if existing&.usable?
+
+      record, = call(name: name, provider: "other", model: "unknown")
+      record.update!(source_key: key)
+      record
+    rescue ActiveRecord::RecordNotUnique
+      AssistantToken.find_by!(source_key: key)
+    end
+
     def principal_for(user)
       return user.custodied_key&.contributor || Crypto::Custody.create_server_custodied(user: user, display_name: user.email_address.split("@").first) if user
 

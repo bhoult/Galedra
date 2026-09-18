@@ -6,7 +6,7 @@ module Ledger
   # signer is authorized; epistemic ones are projected with accepted_seq null.
   module ActionTypes
     CONTROL = %w[
-      REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION
+      REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION ADOPT_KEY
       ACCEPT INVALIDATE AUDIT QUARANTINE RELEASE_QUARANTINE TAKEDOWN
       RELEASE_SCORING_MODEL AMEND_CONSTITUTION
     ].freeze
@@ -22,7 +22,7 @@ module Ledger
     # Types whose server-side handling exists yet. Others are rejected with
     # UNSUPPORTED_ACTION rather than logged unchecked. AMEND_CONSTITUTION
     # arrives with the amendment process.
-    IMPLEMENTED = (%w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION ACCEPT INVALIDATE QUARANTINE RELEASE_QUARANTINE TAKEDOWN
+    IMPLEMENTED = (%w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION ADOPT_KEY ACCEPT INVALIDATE QUARANTINE RELEASE_QUARANTINE TAKEDOWN
                        RELEASE_SCORING_MODEL AUDIT] + EPISTEMIC).freeze
 
     def self.class_for(type)

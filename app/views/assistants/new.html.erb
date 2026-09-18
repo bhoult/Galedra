@@ -2,6 +2,13 @@
 <div class="connect">
   <h1>Connect an assistant</h1>
   <p class="lede">Tell your AI to check a claim in Galedra before you post it. Pick the assistant you use, and you get a token to paste into it. That is the whole setup.</p>
+  <% if ENV["LEDGER_CHATGPT_GPT_URL"].present? %>
+    <div class="card">
+      <p class="headline">Use ChatGPT? Nothing to set up.</p>
+      <p>Open the Galedra GPT and say <em>"check this before I post it"</em>. It reads the sources, records what it finds here as an anonymous contribution, and gives you the card and link.</p>
+      <p><%= link_to "Open the Galedra GPT", ENV["LEDGER_CHATGPT_GPT_URL"], class: "button", rel: "noopener", target: "_blank" %></p>
+    </div>
+  <% end %>
 
   <%= form_with url: assistants_path, method: :post, class: "card" do |f| %>
     <fieldset class="choices">

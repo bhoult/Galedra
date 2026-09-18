@@ -46,7 +46,7 @@ module Api
                                             requestBody: json_body({ type: "object", properties: { assistant: { type: "object", properties: { name: { type: "string" }, provider: { type: "string", enum: AssistantToken::PROVIDERS }, model: { type: "string" } }, required: %w[name provider] } } }),
                                             responses: { "201" => { description: "The token, shown once, and the assistant record" }, "422" => errors, "429" => errors } } },
           "/api/v1/investigations" => { post: { operationId: "recordInvestigation", summary: "Record an investigation: sources by link and hash, excerpts, claims, evidence, links. All or nothing. Returns cards and URLs, or existing similar claims with 409.",
-                                                security: [ { assistantToken: [] } ], requestBody: json_body({ "$ref" => "#/components/schemas/InvestigationBundle" }),
+                                                security: [ {}, { assistantToken: [] } ], requestBody: json_body({ "$ref" => "#/components/schemas/InvestigationBundle" }),
                                                 responses: { "201" => { description: "Recorded; one card per claim" }, "409" => { description: "Similar claims exist; nothing recorded" }, "401" => errors, "422" => errors, "429" => errors } } },
           "/api/v1/custodied/contributions" => { post: { operationId: "custodiedWrite", summary: "One contribution signed by the server for the assistant: {action_type, payload}.",
                                                          security: [ { assistantToken: [] } ], requestBody: json_body({ type: "object", properties: { action_type: { type: "string" }, payload: { type: "object" } }, required: %w[action_type payload] }),
@@ -56,7 +56,7 @@ module Api
     end
 
     def get_op(id, summary, params: [])
-      { get: { operationId: id, summary: summary, parameters: params, responses: { "200" => { description: "OK" }, "404" => errors, "422" => errors } } }
+      { get: { operationId: id, summary: summary, parameters: params, "x-openai-isConsequential" => false, responses: { "200" => { description: "OK" }, "404" => errors, "422" => errors } } }
     end
 
     def path_id = { name: "id", in: "path", required: true, schema: { type: "string" } }
