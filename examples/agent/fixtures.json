@@ -1,14 +1,31 @@
 [
   {
-    "match": { "task_type": "EVIDENCE_VERIFICATION" },
-    "behaviour": "confirm_direct",
-    "params": { "outcome": "CONFIRMED", "statement": "The excerpt states the claim.", "direction": "SUPPORT", "relevance_strength": "DIRECT" }
+    "match": { "task_type": "EVIDENCE_VERIFICATION", "claim_text_includes": "Journal of Distributed Work Research" },
+    "agent": "bad",
+    "behaviour": "confirm_existing",
+    "params": { "outcome": "CONFIRMED", "statement_includes": "release states the 62% figure", "direction": "SUPPORT", "relevance_strength": "DIRECT", "note": "Release states the same figure." }
+  },
+  {
+    "match": { "task_type": "EVIDENCE_VERIFICATION", "claim_text_includes": "identifies Azazel as a machine" },
+    "agent": "bad",
+    "behaviour": "confirm_existing",
+    "params": { "outcome": "CONFIRMED", "statement_includes": "swords", "direction": "SUPPORT", "relevance_strength": "DIRECT" }
   },
   {
     "match": { "task_type": "EVIDENCE_VERIFICATION" },
     "agent": "bad",
     "behaviour": "confirm_direct",
-    "params": { "outcome": "CONFIRMED", "statement": "Release states the same figure.", "direction": "SUPPORT", "relevance_strength": "DIRECT", "note": "Release states the same figure." }
+    "params": { "outcome": "CONFIRMED", "statement": "Release states the same figure.", "direction": "SUPPORT", "relevance_strength": "DIRECT" }
+  },
+  {
+    "match": { "task_type": "EVIDENCE_VERIFICATION", "claim_text_includes": "associates Azazel's instruction with weapon manufacture" },
+    "behaviour": "confirm_existing",
+    "params": { "outcome": "CONFIRMED", "statement_includes": "swords", "direction": "SUPPORT", "relevance_strength": "DIRECT" }
+  },
+  {
+    "match": { "task_type": "EVIDENCE_VERIFICATION" },
+    "behaviour": "confirm_direct",
+    "params": { "outcome": "CONFIRMED", "statement": "The excerpt states the claim.", "direction": "SUPPORT", "relevance_strength": "DIRECT" }
   },
   {
     "match": { "task_type": "OPPOSING_EVIDENCE_SEARCH" },

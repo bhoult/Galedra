@@ -42,11 +42,13 @@ module Tasks
     def context_for_evidence_verification(claim_id, seq, location_id, _budget)
       claim = Claim.find(claim_id)
       location = SourceLocation.find(location_id)
+      existing = location.evidence_items.active_at(seq).order(:created_seq).map { |e| { "evidence_item_id" => e.id, "statement" => e.statement } }
       [ claim_target(claim), {
         "source_id" => location.source_id, "source_location_id" => location.id,
         "locator" => { "type" => location.locator_type }.merge(location.locator),
         "untrusted_excerpt" => excerpt(location.excerpt), "excerpt_hash" => location.excerpt_hash,
-        "known_qualifiers" => claim.qualifiers
+        "known_qualifiers" => claim.qualifiers,
+        "existing_evidence" => existing
       } ]
     end
 

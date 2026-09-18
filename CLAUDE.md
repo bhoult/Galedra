@@ -10,11 +10,10 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: specification complete (v4), implementation in progress.** `IMPLEMENTATION.md`
-is the staged plan and decision log; its Decision Log says which stage is done. Work
-proceeds one stage at a time, only when the owner asks for that stage, and every stage
-ends with an annotated tag `stage-NN-slug`. Read the stage's section and its listed spec
-references before starting it.
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged).** `IMPLEMENTATION.md` is the
+staged plan and decision log. Work after P0 is P1, built one feature per tag only when
+the owner asks, after the First Experiments in `EXPERIMENTS.md` have results. Read the
+relevant spec sections and the Decision Log before changing anything.
 
 ## Layout
 
@@ -153,8 +152,9 @@ bash docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/build-full-spec.sh
 python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/reference_scorer.py
 ```
 
-Once Stage 0 exists: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`, `bin/rails ledger:verify`,
-`bin/rails ledger:replay`, `bin/demo`, `bin/demo --example watchers`.
+Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`,
+`bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/demo --reset`, `bin/demo --example watchers --reset`.
+`bin/demo` refuses a log that already holds contributions unless `--reset` is given (development only).
 
 ## Git
 

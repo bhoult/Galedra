@@ -26,7 +26,7 @@ module Galedra
 
     def canonical(value)
       case value
-      when Hash then "{" + value.keys.map(&:to_s).sort_by { |k| k.encode("UTF-16BE").unpack("n*") }.map { |k| "#{string(k)}:#{canonical(value[k] || value[k.to_sym])}" }.join(",") + "}"
+      when Hash then "{" + value.keys.map(&:to_s).sort_by { |k| k.encode("UTF-16BE").unpack("n*") }.map { |k| "#{string(k)}:#{canonical(value.key?(k) ? value[k] : value[k.to_sym])}" }.join(",") + "}"
       when Array then "[" + value.map { |v| canonical(v) }.join(",") + "]"
       when String then string(value)
       when Integer then value.to_s
@@ -216,6 +216,18 @@ module Galedra
         { "op" => "LINK_EVIDENCE", "evidence_item_id" => "ev", "claim_id" => packet.dig("target", "claim_id"), "direction" => params.fetch("direction", "SUPPORT"),
           "relevance_strength" => params.fetch("relevance_strength", "DIRECT"), "interpretive_steps" => params.fetch("interpretive_steps", 0),
           "note" => params["note"] }.compact
+      ] }
+    end
+
+    # EVIDENCE_VERIFICATION: link an evidence item already on the packet's location (by statement fragment, else the first).
+    def behaviour_confirm_existing(packet, params)
+      existing = packet.dig("context", "existing_evidence") || []
+      item = existing.find { |e| params["statement_includes"] && e["statement"].to_s.include?(params["statement_includes"]) } || existing.first
+      return behaviour_confirm_direct(packet, params) if item.nil?
+
+      { "outcome" => params.fetch("outcome", "CONFIRMED"), "ops" => [
+        { "op" => "LINK_EVIDENCE", "evidence_item_id" => item["evidence_item_id"], "claim_id" => packet.dig("target", "claim_id"), "direction" => params.fetch("direction", "SUPPORT"),
+          "relevance_strength" => params.fetch("relevance_strength", "DIRECT"), "interpretive_steps" => params.fetch("interpretive_steps", 0), "note" => params["note"] }.compact
       ] }
     end
 

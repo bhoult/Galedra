@@ -126,13 +126,23 @@ the weights are right, and does not claim to.
 
 ## Status
 
-**Specification complete; implementation not started.** There is no code in this
-repository yet beyond the spec itself.
+**P0 implemented (`v0.1.0`).** The proof of concept in this repository meets the
+specification's P0 Definition of Done: a Rails 8 monolith on PostgreSQL 16, Solid
+Queue, Hotwire, Ed25519 signatures over RFC 8785 canonical JSON, and Docker Compose
+for local development. LLM features are optional and stubbed by default. One app,
+one database. `IMPLEMENTATION.md` records every stage, decision, and deviation.
 
-The intended stack is deliberately boring: a Rails 8 monolith on PostgreSQL 16,
-Solid Queue, Hotwire, Ed25519 signatures over RFC 8785 canonical JSON, and Docker
-Compose for local development. LLM features are optional and stubbed by default.
-One app, one database.
+Run the demo:
+
+```bash
+docker compose up -d          # Postgres, then the app with genesis and model releases
+bin/demo --reset              # the public demo: prints PASS for every golden row and the replay check
+bin/demo --example watchers --reset
+```
+
+Then open http://localhost:3000, sign up, paste the memo paragraph from the demo into
+**Analyze text**, and follow the answer cards down to signatures, hash chain, score
+traces, audits, and snapshots. `examples/agent/` is the standalone agent client.
 
 ---
 

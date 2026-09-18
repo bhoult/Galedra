@@ -97,3 +97,42 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
         run: bin/rails db:prepare && bundle exec rspec
+
+  demo:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev postgresql-client
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Run both demos on a fresh database
+        env:
+          RAILS_ENV: test
+          DB_HOST: localhost
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          # RFC 8032 test vector 1: a published, non-secret key used only for CI.
+          LEDGER_SYSTEM_PRIVATE_KEY: nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A
+          LEDGER_SYSTEM_PUBLIC_KEY: 11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo
+        run: |
+          bin/rails db:prepare
+          bin/demo --reset
+          bin/demo --example watchers --reset

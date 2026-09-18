@@ -18,7 +18,7 @@ RSpec.describe "Tasks, leases, packets, and results (07 Phase 5)", type: :reques
   it "leases, verifies, submits through the standalone example client, and logs TASK_RESULT plus ACCEPT (#1)" do
     _, location, claim = graph
     principal_pair, = register_key
-    load Rails.root.join("examples/agent/agent.rb")
+    load Rails.root.join("examples/agent/agent.rb") unless defined?(Galedra::Client)
     key = Galedra::Crypto.generate_key
     transport = lambda do |method, path, body|
       method == :get ? get(path) : post(path, params: body, headers: headers)
@@ -57,6 +57,8 @@ RSpec.describe "Tasks, leases, packets, and results (07 Phase 5)", type: :reques
 
     vector = JSON.parse(File.read(Rails.root.join("spec/fixtures/canonical_json_vectors.json")))["project"].first
     expect(Galedra::Jcs.canonical(vector["input"])).to eq(vector["expected"])
+    expect(Galedra::Jcs.canonical({ "b" => false, "a" => nil, "c" => 0 })).to eq('{"a":null,"b":false,"c":0}')
+    expect(Galedra::Jcs.canonical({ z: true, "y" => [ false ] })).to eq('{"y":[false],"z":true}')
   end
 
   it "rejects an expired lease, a wrong packet hash, and a disallowed op with 422 and no contribution (#2)" do

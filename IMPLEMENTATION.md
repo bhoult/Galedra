@@ -1208,3 +1208,95 @@ spec with reasons, and Constitutional Test answers where the stage requires them
   views exist in P0; 10 yes, neutral wording and colours throughout.
 - Acceptance: 07 Phase 6 #3 (all eight items) has system specs in `spec/system/`;
   `bundle exec rspec`, RuboCop, and Brakeman pass.
+
+### Stage 11 — Seeded demos and P0 Definition of Done (2026-09-17)
+
+- `lib/demo/` holds the seed scripts as plain Ruby (`Demo::PublicDemo`, 18 steps of
+  `08 §7`; `Demo::Watchers`, the `examples/watchers §6` script), a helper that mirrors the
+  spec support step for step, and `Demo::Report`, which prints every golden row for both
+  models with PASS/FAIL, the `/compare` diff (C6 public, C3 Watchers), the compact
+  answers of `08 §9`, the reputation tables, the claim-identity assertion, snapshot
+  digests, `ledger:verify`, the replay check, and URLs, and exits non-zero on any FAIL.
+  `bin/demo [--example watchers] [--reset]` runs it through `bin/rails runner`;
+  `db/seeds.rb` seeds the public demo on a clean database.
+- Tasks in the seeds are answered by the fixture-driven example agent running in-process
+  through `Rack::MockRequest`, so the demo exercises the real lease, packet verification,
+  and result submission path over HTTP semantics. Verification packets now list the
+  existing evidence on the location, and a `confirm_existing` behaviour links it, so the
+  agents produce the spec's exact links (L10 on E2, Watchers L2 and L5 on E1).
+- The golden tables read `spec/fixtures/scoring_golden.json` (generated from the
+  reference scorer); the reputation tables are transcribed from `08 §8` and Watchers
+  `§7` into `Demo::Report`. All match: 11 public and 9 Watchers rows under both models,
+  plus 6 and 5 reputation buckets.
+- `bin/demo` refuses a log that already holds contributions unless `--reset` truncates
+  every table under the owner role first (development only); `01 §7`'s "runs on a clean
+  database" is enforced rather than assumed.
+- CI gains a `demo` job that prepares a fresh Postgres and runs both demos with
+  `--reset` under the test environment, using RFC 8032 test vector 1 as the system key.
+- Two bugs found by the demos: the example agent's canonicalizer turned `false` into
+  `null` (fixed, regression assertion added), and the summary input ignored audits on
+  links that were later invalidated (fixed in Stage 9).
+- The in-process agent sends `Host: localhost`; `Rack::MockRequest` defaults to
+  `example.org`, which development host authorization rejects with 403. The reset uses
+  `truncate_tables` rather than a hand-built statement so Brakeman stays at zero.
+- `README.md` "Status" and `CLAUDE.md` now say P0 is complete and how to run the demo;
+  `EXPERIMENTS.md` holds the five First Experiments as empty sections.
+
+#### P0 Definition of Done (SPEC README) → where it is demonstrated
+
+1. Import a source and mark an exact location — `bin/demo` steps 2, 4; UI Analyze text
+   (`spec/system/analyze_text_spec.rb`).
+2. Create atomic claims and attach evidence with support/contradict/qualify links — demo
+   steps 4–6, 14; `spec/requests/api/v1/graph_spec.rb`.
+3. Every write is a signed contribution in the hash-chained log — every step; `spec/services/ledger/*`.
+4. Paste an AI paragraph, see claims extracted, get a cited answer card per claim with score,
+   trace, and review checks one click away — Analyze text system spec; demo answers
+   (`08 §9`) and the source page.
+5. Request a task packet, run the example agent, submit a signed result — demo T0–T4;
+   `spec/services/tasks/tasks_spec.rb` (#1 runs the standalone client).
+6. Audit a prior contribution, see it invalidated and the score recomputed — demo steps
+   10–11 (S2 → S3); `spec/services/audits/audits_spec.rb`.
+7. Switch between the two scoring models and see where and why they differ — demo
+   `/compare`; model selector system spec; `spec/services/scoring/compare_spec.rb`.
+8. Open the Weaknesses page and the public moderation log — system specs;
+   `spec/services/cards/answers_spec.rb`, `spec/services/governance/*`.
+9. See task/domain reputation change and reproduce it from audit history — demo
+   reputation tables; `spec/services/audits/audits_spec.rb` (#3).
+10. View a stubbed summary whose every sentence cites graph ids — demo answers;
+    `spec/services/cards/answers_spec.rb`.
+11. Pick an old snapshot seq and reproduce its scores byte for byte — demo digests;
+    `spec/services/scoring/end_to_end_spec.rb`.
+12. Drop every projection table, replay the log, and get the same snapshot hashes and
+    scores — demo replay check; `spec/services/ledger/replay_spec.rb`,
+    `spec/services/scoring/end_to_end_spec.rb`, `spec/services/governance/takedown_spec.rb`.
+
+#### Acceptance scenarios A–J (07) → covering test
+
+A quote verification: `spec/services/tasks/tasks_spec.rb` #1 and `audits_spec.rb` #2 ·
+B poisoned contribution: demo S2 → S3, `end_to_end_spec.rb`, `audits_spec.rb` #1 ·
+C dependent evidence: `end_to_end_spec.rb` (C2 S1 → S4) · D omitted qualifier:
+`end_to_end_spec.rb` (C2/C3 at S5) · E fabricated citation: `answers_spec.rb` (C4 card and
+source card) · F coverage vs probability: `display_helper_spec.rb`, claim page system spec ·
+G non-scoreable claim: `answers_spec.rb`, `scores_spec.rb` · H alternative model:
+`compare_spec.rb`, `answers_spec.rb` (weaknesses), system spec (model selector) · I visible
+moderation: `quarantine_spec.rb`, claim page system spec · J replay: `end_to_end_spec.rb`,
+`replay_spec.rb`, demo replay check.
+
+#### Final versions
+
+Ruby 4.0.7, Rails 8.1.3.1, PostgreSQL 16 (`postgres:16`), json 2.21.2 (pinned, see Stage
+1), json-canonicalization 1.0.0, json_schemer 2.5.0, Solid Queue 1.7.0, RSpec via
+rspec-rails, Node 24.21.0 (unused at runtime; importmap only), Docker Compose v5.5.1.
+
+#### Deviations from the spec, collected
+
+UUIDv7 only on log rows, deterministic ids on projections (Stage 2); custody material in
+`custodied_keys` (Stage 2); source text inside the payload, Active Storage deferred (Stage
+3); the idempotency-key consequence (Stage 3); moderators designated outside the log
+(Stage 4); the rounding-boundary guard applied to 4-place values (Stage 5);
+`scoring_models.released_seq` instead of `created_at` (Stage 5); audit sampling inside
+Apply, no job (Stage 7); one packet per task with `lease_expires_at` on the assignment
+(Stage 8); tasks as operational tables, a gap in log self-containment for mirrors (Stage
+8); per-result rather than per-claim acceptance of extractions (Stage 8); tie-breaks by
+`created_seq` before id (Stage 9); the number rendered only on request (Stage 10); the
+json gem pin (Stage 1). Each is explained in its stage above.
