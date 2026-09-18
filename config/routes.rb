@@ -16,9 +16,24 @@ Rails.application.routes.draw do
   end
   post "mcp", to: "mcp#create"
   get "mcp", to: "mcp#show"
+  # The authenticated door: answers 401 with resource metadata until the
+  # connector completes OAuth, so every call is attributed (Stage 16).
+  post "mcp/connect", to: "mcp#create", defaults: { require_auth: true }, as: :mcp_connect
+  get "mcp/connect", to: "mcp#show"
   # The token may travel in the URL for connector screens that take only a URL.
-  post "mcp/:token", to: "mcp#create", as: :mcp_with_token
-  get "mcp/:token", to: "mcp#show"
+  post "mcp/:token", to: "mcp#create", as: :mcp_with_token, constraints: { token: /gal_[A-Za-z0-9_-]+/ }
+  get "mcp/:token", to: "mcp#show", constraints: { token: /gal_[A-Za-z0-9_-]+/ }
+
+  # OAuth 2.1 for connectors (Stage 16)
+  get "/.well-known/oauth-authorization-server", to: "oauth/metadata#authorization_server"
+  get "/.well-known/oauth-protected-resource", to: "oauth/metadata#protected_resource"
+  get "/.well-known/oauth-protected-resource/mcp", to: "oauth/metadata#protected_resource"
+  get "/.well-known/oauth-protected-resource/mcp/connect", to: "oauth/metadata#protected_resource"
+  post "oauth/register", to: "oauth/clients#create"
+  get "oauth/authorize", to: "oauth/authorizations#new", as: :oauth_authorize
+  post "oauth/authorize", to: "oauth/authorizations#create"
+  post "oauth/token", to: "oauth/tokens#create"
+  post "oauth/revoke", to: "oauth/tokens#revoke"
   resources :sources, only: [ :show ] do
     member do
       get :analyze

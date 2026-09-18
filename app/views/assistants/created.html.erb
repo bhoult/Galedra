@@ -9,8 +9,9 @@
 
   <h2>Set up your assistant</h2>
   <h3>Claude.ai and Claude Desktop (Settings → Connectors → Add custom connector)</h3>
-  <p class="muted">Those screens take only a URL, so the token rides in it. Treat this URL as the secret; disconnect the assistant to revoke it.</p>
-  <pre><%= mcp_with_token_url(@plaintext) %></pre>
+  <p class="muted">Either add the OAuth door and sign in to Galedra once when Claude asks, or use the URL with the token in it (treat that one as a secret).</p>
+  <pre><%= mcp_connect_url %>          (OAuth: attributed to your account, no token to copy)
+<%= mcp_with_token_url(@plaintext) %></pre>
   <h3>Claude Code, or any MCP client that can send headers</h3>
   <pre>claude mcp add --transport http galedra <%= mcp_url %> --header "Authorization: Bearer <%= @plaintext %>"</pre>
   <p class="muted">Or as a config block:</p>

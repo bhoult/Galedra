@@ -15,6 +15,7 @@ module Assistants
         Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
       end
       token.update!(revoked_at: Time.current)
+      OauthToken.where(assistant_token: token, revoked_at: nil).update_all(revoked_at: Time.current)
       token
     end
   end

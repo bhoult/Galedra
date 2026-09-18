@@ -1,0 +1,7 @@
+<% content_for :title, "Cannot connect" %>
+<div class="auth">
+  <h1>Cannot connect</h1>
+  <p class="lede">The connector sent a request Galedra cannot honour.</p>
+  <p><code><%= @error.code %></code>: <%= @error.message %></p>
+  <p class="meta">Nothing was granted. If this keeps happening, the connector's registration may be stale; remove it and add Galedra again.</p>
+</div>

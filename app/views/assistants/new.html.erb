@@ -39,6 +39,12 @@
     <% end %></table>
   <% end %>
 
+  <div class="card">
+    <p class="headline">Or connect with OAuth, no token to copy</p>
+    <p>In ChatGPT (Settings → Plugins → add, choose OAuth) or Claude.ai (Settings → Connectors → add custom connector), give this address and sign in to Galedra once when asked. Everything the assistant records is then under your name.</p>
+    <pre><%= mcp_connect_url %></pre>
+    <p class="meta">Anonymous use needs nothing at all: the same address without <code>/connect</code>.</p>
+  </div>
   <p class="meta">Assistant with no tools, or a plan without connectors? You can still <%= link_to "paste a bundle it drafted", new_investigation_path %>.</p>
 
   <h2>What the assistant will do</h2>

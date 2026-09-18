@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -303,6 +303,52 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
     t.jsonb "result", default: {}, null: false
     t.datetime "updated_at", null: false
     t.index ["assistant_token_id", "bundle_digest"], name: "idx_on_assistant_token_id_bundle_digest_76f712cd1a", unique: true
+  end
+
+  create_table "oauth_authorization_codes", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "code_challenge", null: false
+    t.string "code_digest", null: false
+    t.datetime "created_at", null: false
+    t.timestamptz "expires_at", null: false
+    t.uuid "oauth_client_id", null: false
+    t.string "redirect_uri", null: false
+    t.string "resource"
+    t.string "scope"
+    t.datetime "updated_at", null: false
+    t.timestamptz "used_at"
+    t.bigint "user_id", null: false
+    t.index ["code_digest"], name: "index_oauth_authorization_codes_on_code_digest", unique: true
+    t.index ["oauth_client_id"], name: "index_oauth_authorization_codes_on_oauth_client_id"
+  end
+
+  create_table "oauth_clients", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "client_id", null: false
+    t.string "client_secret_digest"
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "name", null: false
+    t.string "redirect_uris", default: [], null: false, array: true
+    t.string "token_endpoint_auth_method", default: "none", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_oauth_clients_on_client_id", unique: true
+  end
+
+  create_table "oauth_tokens", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "assistant_token_id", null: false
+    t.datetime "created_at", null: false
+    t.timestamptz "expires_at", null: false
+    t.uuid "family_id", null: false
+    t.string "kind", null: false
+    t.uuid "oauth_client_id", null: false
+    t.timestamptz "revoked_at"
+    t.string "scope"
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.timestamptz "used_at"
+    t.index ["assistant_token_id"], name: "index_oauth_tokens_on_assistant_token_id"
+    t.index ["family_id"], name: "index_oauth_tokens_on_family_id"
+    t.index ["oauth_client_id"], name: "index_oauth_tokens_on_oauth_client_id"
+    t.index ["token_digest"], name: "index_oauth_tokens_on_token_digest", unique: true
   end
 
   create_table "quarantines", id: :uuid, default: nil, force: :cascade do |t|
@@ -642,6 +688,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_220000) do
   add_foreign_key "evidence_items", "source_locations"
   add_foreign_key "independence_group_assignments", "evidence_items"
   add_foreign_key "independence_group_assignments", "independence_groups"
+  add_foreign_key "oauth_authorization_codes", "oauth_clients"
+  add_foreign_key "oauth_tokens", "assistant_tokens"
+  add_foreign_key "oauth_tokens", "oauth_clients"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

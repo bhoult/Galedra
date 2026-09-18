@@ -104,8 +104,11 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     expect(response.parsed_body.dig("result", "isError")).to be(false)
     expect(response.parsed_body.dig("result", "structuredContent", "recorded")).to be(true)
 
+    # A presented but invalid credential is refused outright, so an OAuth client refreshes instead of falling through to anonymous use.
     post "/mcp/gal_wrong", params: { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "record_investigation", arguments: bundle } }.to_json,
                            headers: { "CONTENT_TYPE" => "application/json" }
-    expect(response.parsed_body.dig("result", "structuredContent", "errors").first["code"]).to eq("TOKEN_INVALID")
+    expect(response).to have_http_status(:unauthorized)
+    expect(response.parsed_body.dig("error", "code")).to eq(-32001)
+    expect(response.headers["WWW-Authenticate"]).to include("oauth-protected-resource")
   end
 end

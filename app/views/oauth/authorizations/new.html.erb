@@ -1,0 +1,20 @@
+<% content_for :title, "Connect #{@request[:client].name}" %>
+<div class="auth consent">
+  <h1>Connect <%= @request[:client].name %> to your Galedra account?</h1>
+  <p class="lede">Everything it records will be under your name, as an assistant acting for you. You can disconnect it at any time from <%= link_to "Connect an assistant", new_assistant_path %>; the disconnection goes in the public log like the connection.</p>
+  <div class="card">
+    <p><strong><%= @request[:client].name %></strong> will be able to:</p>
+    <ul>
+      <li>search claims and read cards, evidence, and explanations</li>
+      <% if @request[:scope].split.include?("galedra") %><li>record investigations and attach evidence, signed for you, up to the daily cap</li><% end %>
+    </ul>
+    <p class="meta">Signed in as <%= Current.user.email_address %>. It never sees your password; it gets a token it can only use for the above.</p>
+  </div>
+  <%= form_with url: oauth_authorize_path, method: :post, class: "actions" do |f| %>
+    <% %i[client_id redirect_uri response_type code_challenge code_challenge_method scope state resource].each do |key| %>
+      <%= hidden_field_tag key, params[key] if params[key].present? %>
+    <% end %>
+    <%= f.submit "Allow", name: "decision", value: "approve" %>
+    <%= f.submit "Cancel", name: "decision", value: "deny", class: "secondary" %>
+  <% end %>
+</div>

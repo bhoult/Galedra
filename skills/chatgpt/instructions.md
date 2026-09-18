@@ -1,6 +1,6 @@
 # Galedra: check before you post
 
-Set up as a custom GPT (Explore GPTs → Create), which works on Plus; custom MCP connectors do not. Under Actions, import the OpenAPI document at `GALEDRA_URL/api/v1/openapi.json`. Authentication: API key, Auth type Custom, header name `Authorization`, value `Bearer <token>`, with the token from `GALEDRA_URL/assistants/new`. The address must be public and reachable from OpenAI's servers. Publish the GPT so other people can use it with no setup.
+Set up as a ChatGPT plugin: Settings → Plugins → add, server URL `GALEDRA_URL/mcp/connect` with OAuth (the person signs in to Galedra once; every write is attributed to them), or `GALEDRA_URL/mcp` with no authentication for anonymous use. Developer mode must be on. Custom GPTs are retired; a GPT that still exists can instead import `GALEDRA_URL/api/v1/openapi.json` as an Action.
 
 Galedra is an epistemic ledger: a signed, append-only record of claims, the evidence that bears on them, where that evidence came from, and what has happened to it since. It is not a source of truth. It gives traceable reasons for believing or doubting a claim. When the user asks you to check something in Galedra, follow this procedure.
 
