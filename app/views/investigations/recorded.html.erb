@@ -1,0 +1,15 @@
+<% content_for :title, "Recorded" %>
+<div class="paste">
+  <h1>Recorded</h1>
+  <p class="meta"><%= pluralize(@result[:contributions], "signed contribution") %> appended at snapshot <%= @result[:snapshot_seq] %> · <%= pluralize(@result[:tasks_opened], "verification task") %> opened · provisional until audited</p>
+  <% @result[:claims].each do |c| %>
+    <div class="card answer">
+      <p class="claim">“<%= Claim.find(c[:id]).canonical_text %>”</p>
+      <p class="headline"><%= c[:card][:plain][:headline] %></p>
+      <% if c[:card][:plain][:say_instead] %><p><strong>Say instead:</strong> <%= c[:card][:plain][:say_instead] %></p><% end %>
+      <p class="meta"><%= c[:card][:headline] %> under <%= c[:card][:model] %> · review checks <%= c[:card][:review_checks] %><% unless c[:created] %> · attached to an existing claim<% end %></p>
+      <p><%= link_to "See the evidence", claim_path(c[:id]) %> · <%= link_to "Share card", card_claim_path(c[:id]) %></p>
+    </div>
+  <% end %>
+  <p><%= link_to "Record another", new_investigation_path %></p>
+</div>

@@ -22,8 +22,8 @@
     }
   }
 }</pre>
-  <h3>ChatGPT (a custom GPT with Actions)</h3>
-  <p class="muted">Create a GPT, add an Action, import from URL, and set authentication to API key with the Authorization header.</p>
+  <h3>ChatGPT (a custom GPT with Actions; works on Plus, unlike custom MCP)</h3>
+  <p class="muted">Explore GPTs → Create → Actions → Import from URL, then set authentication to API key with the Authorization header. ChatGPT's servers must be able to reach this address.</p>
   <pre>Import from URL: <%= api_v1_openapi_url(format: :json) %>
 Authentication:  API key · Auth type: Custom · Header name: Authorization
 Key:             Bearer <%= @plaintext %></pre>
@@ -32,6 +32,8 @@ Key:             Bearer <%= @plaintext %></pre>
 Read:     GET  /api/v1/claims?q=&lt;words&gt;            (search first)
 Record:   POST /api/v1/investigations                (Authorization: Bearer <%= @plaintext %>)
 OpenAPI:  <%= api_v1_openapi_url(format: :json) %></pre>
+  <h3>No tools at all?</h3>
+  <p class="muted">Ask any assistant to draft the investigation bundle as JSON and paste it at <%= link_to new_investigation_url, new_investigation_url %>. It is recorded under this same delegation model, no account needed.</p>
   <h3>Then paste the skill</h3>
   <p class="muted">The instructions your assistant follows, in the format your host expects: <%= link_to "Claude skill", "https://github.com/bhoult/Galedra/blob/master/skills/claude/SKILL.md" %>, <%= link_to "ChatGPT instructions", "https://github.com/bhoult/Galedra/blob/master/skills/chatgpt/instructions.md" %>, or a <%= link_to "generic system prompt", "https://github.com/bhoult/Galedra/blob/master/skills/generic/system-prompt.md" %>. Replace <code>GALEDRA_URL</code> with <code><%= request.base_url %></code>. Then say: <em>"check this in Galedra before I post it"</em>.</p>
   <p><%= link_to "Back to Connect an assistant", new_assistant_path %></p>

@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   resources :passwords, param: :token
   resources :users, only: [ :new, :create ]
   resources :assistants, only: [ :new, :create, :destroy ]
+  resources :investigations, only: [ :new, :create ]
 
   resources :claims, only: [ :index, :show ] do
     get :card, on: :member

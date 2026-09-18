@@ -740,6 +740,87 @@ reading: they render the public stub).
 
 ---
 
+## Stage 15 — Topics
+
+**Tag:** `stage-15-topics` · **Spec:** 02 §3 (projections), 05 §5 (domains), 06 §5, §7
+(pages, search), Art. III (evidence and interpretation are distinct), Art. XIX
+
+Goal: every claim can be placed in a small hierarchical vocabulary of subjects, so
+people can browse and filter by what a claim is about, assistants can file what they
+record, and audited reliability stays per domain. A topic is a judgment about a claim,
+so it is a signed, attributable, challengeable log entry like everything else, never a
+column someone edits.
+
+**The vocabulary** lives in `config/topics.yml`, closed and two levels deep, each node
+with a slug, a label, a one-line scope note, and the audit/reputation domain it maps to.
+First draft, for the owner to edit before the stage starts:
+
+| Top level | Children |
+|---|---|
+| `science` | `biology`, `medicine`, `neuroscience`, `psychology`, `physics`, `chemistry`, `earth` |
+| `mathematics` | `statistics`, `numeracy` |
+| `technology` | `software`, `ai`, `security` |
+| `health` | `nutrition`, `vaccines`, `public-health` |
+| `environment` | `climate`, `energy`, `wildlife` |
+| `politics` | `elections`, `policy`, `government`, `geopolitics` |
+| `economics` | `markets`, `employment`, `prices`, `business` |
+| `law` | `courts`, `legislation` |
+| `history` | `ancient`, `modern`, `archaeology` |
+| `religion` | `theology`, `scripture`, `church-history` |
+| `society` | `media`, `education`, `crime`, `immigration` |
+| `culture` | `memes`, `entertainment`, `sports` |
+
+Paths are `top/child` (`science/biology`). A claim may carry several. The existing
+demo domains stay: `history/ancient` maps to `ancient_near_east`, `economics/*` to
+`us_economics` until the owner renames them; every other top level maps to a domain of
+the same name, and untagged claims stay in `general`.
+
+Deliverables:
+
+- `TAG_CLAIM` (action class `epistemic`, payload `claim_id`, `topics: [paths]`, optional
+  `note`): validated against the vocabulary, applied to a `claim_topics` projection
+  with validity windows, superseded by a later `TAG_CLAIM` from the same principal and
+  invalidated like any other contribution. Auto-accepted for a human's or a connected
+  assistant's own claims; a tag on someone else's claim stays `PENDING` until accepted,
+  as proposals do (`02 §1.1a`). Replay reproduces the projection.
+- The bundle and the tools: `claims[].topics` in `POST /api/v1/investigations` and the
+  MCP `record_investigation` tool (one `TAG_CLAIM` per claim after the claim), a
+  `tag_claim` MCP tool for existing claims, and the skill text telling assistants to
+  file each claim under one or two topics and never to invent one.
+- The extractor proposes topics from surface cues for the Analyze text form, shown as
+  editable checkboxes; the claim page shows topics with the contributor who set them
+  and a "suggest a different topic" action that appends a `TAG_CLAIM`.
+- Topic pages: `/topics` (the tree with counts), `/topics/science`, `/topics/science/biology`,
+  each listing claims with counts by assessment state that roll up from children.
+  Counts only, never an aggregate score for a topic (`06 §6` extended). `?topic=` on
+  the claims index, the search, and the API (`/api/v1/claims?topic=`, `/api/v1/topics`).
+- Domains: `Audits::Policy.domains` extends with the mapped domains; tasks opened for a
+  tagged claim take the claim's first topic's domain, so reputation buckets follow the
+  subject. Existing buckets and the demo goldens are unchanged.
+- Delegations may restrict `permissions.topics`; a tag outside the grant is rejected.
+
+Acceptance:
+
+1. A `TAG_CLAIM` with a known path creates a `claim_topics` row; an unknown path is
+   `SCHEMA_INVALID`; a second tag by the same principal supersedes the first; replay
+   reproduces the rows and digests.
+2. A bundle with `topics` on a claim appends the tag after the claim; the claim page,
+   the API, and the MCP `get_claim` tool show it with its contributor.
+3. `/topics/science` counts a claim tagged `science/biology` under both `science` and
+   `science/biology`, by assessment state, with no probability anywhere on the page.
+4. A task opened for a claim tagged `history/ancient` carries domain `ancient_near_east`,
+   and an audit of its result lands in that reputation bucket.
+5. The demo goldens, reputation tables, and replay checks still pass untouched.
+
+Owner decisions to record before starting: the vocabulary itself; whether a claim
+needs at least one topic to be scored (conservative reading: no, untagged is
+`general`); whether `culture/memes` is a subject at all, given that a meme is already
+a source type (`SOCIAL_POST`, `IMAGE`) and its claim is about whatever the meme asserts;
+how a new topic gets added later (a signed config release like a scoring model, or a
+plain code change).
+
+---
+
 ## Decision Log
 
 Append-only. One dated entry per stage, added when the stage is executed. Each entry
@@ -1628,4 +1709,20 @@ json gem pin (Stage 1). Each is explained in its stage above.
   screen accepts only a URL and no headers. The URL is then the secret; tokens stay
   revocable from the connect page, and the header form remains for clients that can
   send one. OAuth for connectors is left for later.
+
+### After Stage 14 — The paste flow (2026-09-18)
+
+- Hosted assistants differ in what they can reach: Claude.ai takes an MCP URL, ChatGPT
+  Plus takes a custom GPT with Actions but not a custom MCP server, and a browsing-only
+  session can call nothing. So a third door: `GET /investigations/new` is a page where
+  anyone pastes the investigation bundle an assistant drafted, and `POST
+  /investigations` records it through `Investigations::Record` exactly as the API does.
+  The browser session gets one connected-assistant token, minted on first use
+  ("Pasted by hand", anonymous unless signed in), so pasted work is signed, delegated,
+  capped, sampled, and attributed like an assistant's, and the same duplicate check
+  applies with a page to attach or keep. The skill text tells assistants without tools
+  to emit the bundle and never to describe what Galedra "would probably" conclude.
+- The ChatGPT skill file now says to use a custom GPT with Actions, which Plus allows,
+  and that the address must be reachable from OpenAI's servers; a quick tunnel's
+  hostname was not, so a real domain or a named tunnel is needed for ChatGPT.
 

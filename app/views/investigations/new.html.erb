@@ -1,0 +1,20 @@
+<% content_for :title, "Record an investigation" %>
+<div class="paste">
+  <h1>Record an investigation</h1>
+  <p class="lede">Your assistant cannot reach Galedra directly? Ask it to <em>write the Galedra investigation bundle</em> for the claim you are checking, then paste the JSON here. Galedra records it, signed and attributed, and shows you the answer cards. No account needed.</p>
+  <p class="meta">Tell the assistant: <em>"Draft a Galedra investigation bundle for this claim. Quote exact passages with their links and a sha256 of what you read. Output only the JSON."</em> The skill files under <code>skills/</code> teach it the format. An example is filled in below.</p>
+
+  <% if @errors %>
+    <div class="card errors">
+      <p class="headline">Not recorded</p>
+      <ul><% @errors.each do |e| %><li><code><%= e[:path] || e["path"] %></code> <%= e[:detail] || e["detail"] %></li><% end %></ul>
+      <p class="meta">Nothing was appended. Fix the bundle and submit again.</p>
+    </div>
+  <% end %>
+
+  <%= form_with url: investigations_path, method: :post do |f| %>
+    <label>Bundle JSON <%= f.text_area :bundle, value: @bundle_text, rows: 24, spellcheck: false, class: "code" %></label>
+    <% unless authenticated? %><p class="meta">You are not signed in, so this is recorded under an anonymous key: checked more often and labelled as such. <%= link_to "Sign in", new_session_path %> to record under your name.</p><% end %>
+    <%= f.submit "Record it" %>
+  <% end %>
+</div>

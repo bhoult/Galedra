@@ -1,0 +1,19 @@
+<% content_for :title, "Similar claims exist" %>
+<div class="paste">
+  <h1>Similar claims already exist</h1>
+  <p class="lede">Nothing was recorded yet. For each of your claims, either attach your evidence to an existing claim or keep yours as new.</p>
+  <%= form_with url: investigations_path, method: :post do |f| %>
+    <%= f.hidden_field :bundle, value: @bundle_text %>
+    <% @result[:existing].each do |handle, candidates| %>
+      <div class="card">
+        <p class="headline">Your claim “<%= handle %>”</p>
+        <label class="choice"><%= radio_button_tag "attach[#{handle}]", "", true %> Keep mine as a new claim</label>
+        <% candidates.each do |c| %>
+          <label class="choice"><%= radio_button_tag "attach[#{handle}]", c[:id] %> Attach to: <%= c[:text] %> <span class="badge">similarity <%= c[:similarity] %></span> <%= link_to "view", claim_path(c[:id]) %></label>
+        <% end %>
+      </div>
+    <% end %>
+    <%= hidden_field_tag :on_duplicate, "create" %>
+    <%= f.submit "Record with these choices" %>
+  <% end %>
+</div>

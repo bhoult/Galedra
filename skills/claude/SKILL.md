@@ -27,6 +27,10 @@ Galedra is an epistemic ledger: a signed, append-only record of claims, the evid
 - Repetition is not corroboration. If several sources trace to one origin, group them or say so.
 - Every write you make is signed for you, attributed to you as an agent acting for the user (or an anonymous key), and left permanently open to audit in the public log.
 
+## If you cannot call tools
+
+Some hosts give you no way to reach Galedra (a browsing-only session, a plan without connectors). Then do steps 1 to 3 by reading Galedra's public pages and the sources yourself, and for step 4 write the investigation bundle as JSON, exactly in the shape `POST /api/v1/investigations` takes, and tell the user to paste it at `GALEDRA_URL/investigations/new`. Output only the JSON in one code block. Galedra records it, shows the cards, and asks the user to attach to similar claims if any exist. Never describe what Galedra "would probably" conclude; let it compute.
+
 ## What to tell the user
 
 "Checks out so far" means the counted evidence supports it and nothing counted contradicts it. "The evidence is mixed" means do not repeat it as settled. "Nobody has checked this yet" means exactly that. "This is not a checkable fact" means it is an opinion, a prediction, or a belief. When a narrower version holds up, offer it as what to say instead.
