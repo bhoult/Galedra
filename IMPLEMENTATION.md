@@ -1582,3 +1582,37 @@ json gem pin (Stage 1). Each is explained in its stage above.
   `UNRESOLVED` says not to repeat the claim as settled; 6 yes; 7 yes; 8 yes; 9 yes; 10
   yes.
 
+### Stage 14 — MCP, OpenAPI, and the skill (2026-09-18)
+
+- MCP is served by Rails itself: `POST /mcp` takes one JSON-RPC 2.0 message and answers
+  with JSON (streamable HTTP without server push; `GET /mcp` is 405). Protocol version
+  2025-06-18; `initialize`, `ping`, `tools/list`, `tools/call`, and notifications.
+  Six tools: `search_claims`, `get_claim`, `record_investigation`, `add_evidence`,
+  `explain`, `share_card`. Reads are open like the rest of the public API; the two
+  writing tools need a connected assistant's bearer token and otherwise return a tool
+  error naming the connect page. Tool descriptions and the `initialize` instructions
+  carry the working rules. Applier rejections come back as `isError` results with the
+  usual codes, not as protocol errors.
+- `GET /api/v1/openapi.json` is a hand-maintained OpenAPI 3.1 document covering the
+  public reads and the three bearer writes; the spec walks every `GET` path in it. The
+  bundle schema is shared with the MCP tool so the two surfaces cannot drift apart.
+  `/api/v1/meta` now links the OpenAPI document, the MCP endpoint, and the connect page.
+- The skill lives once, in `skills/galedra.md`. `bin/rails skills:build` renders it into
+  `skills/claude/SKILL.md` (frontmatter plus MCP setup), `skills/chatgpt/instructions.md`
+  (Actions import plus API-key auth), and `skills/generic/system-prompt.md`; a spec
+  fails when the generated files are stale. `GALEDRA_URL` is a placeholder the user
+  replaces, since the same text serves every deployment.
+- Share cards: `GET /claims/:id/card` is a small page with Open Graph and Twitter tags,
+  and `/claims/:id/card.png` a 1200×630 image rendered with libvips (`Cards::Image`):
+  the plain headline, the claim, "say instead", and the model, snapshot, and review
+  checks in small print. No probability anywhere on the card (rule 3) and no colour
+  coding (rule 12). Quarantined claims 404 here rather than render a stub image,
+  the conservative reading of the reserved decision. `libvips` was added to the
+  development image; the production image already had it.
+- The connect page now shows the three setups (Claude/MCP JSON, ChatGPT Actions import
+  with API-key auth, plain HTTP) with the freshly minted token filled in, and links the
+  skill files.
+- `bin/demo --example check` runs the whole "check before you post" flow: an anonymous
+  assistant, the fixture bundle, plain cards, a rendered share card, replay, and chain
+  verification.
+

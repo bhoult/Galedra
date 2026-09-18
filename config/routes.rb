@@ -8,7 +8,11 @@ Rails.application.routes.draw do
   resources :users, only: [ :new, :create ]
   resources :assistants, only: [ :new, :create, :destroy ]
 
-  resources :claims, only: [ :index, :show ]
+  resources :claims, only: [ :index, :show ] do
+    get :card, on: :member
+  end
+  post "mcp", to: "mcp#create"
+  get "mcp", to: "mcp#show"
   resources :sources, only: [ :show ] do
     member do
       get :analyze
@@ -28,6 +32,7 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       get "meta", to: "meta#show"
+      get "openapi", to: "openapi#show"
       get "log", to: "log#index"
       resources :contributions, only: [ :create, :show ] do
         get :verify, on: :member

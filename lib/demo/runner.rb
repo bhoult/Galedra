@@ -4,7 +4,7 @@ module Demo
   # bin/demo: seeds a demo on a clean log, prints the report, exits non-zero on
   # any FAIL (spec 07 Phase 7, 10 "Success Standard").
   module Runner
-    EXAMPLES = %w[public-demo watchers].freeze
+    EXAMPLES = %w[public-demo watchers check].freeze
     USAGE = "usage: bin/demo [--example #{EXAMPLES.join('|')}] [--reset]"
 
     module_function
@@ -50,6 +50,8 @@ module Demo
         out.puts "The log already holds contributions. Run with --reset to start from a clean database (development only)."
         return 1
       end
+      return Check.run(out: out) if example == "check"
+
       seeded = example == "watchers" ? Watchers.run : PublicDemo.run
       Report.new(example, seeded, out: out).run
     end

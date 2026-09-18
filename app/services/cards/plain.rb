@@ -46,10 +46,10 @@ module Cards
       statements = EvidenceItem.where(id: links.map { |l| l["evidence"] }).pluck(:id, :statement).to_h
       if %w[CONTRADICTED LEANS_CONTRADICTED].include?(result.assessment_state)
         strongest = links.select { |l| l["direction"] == "CONTRADICT" }.max_by { |l| BigDecimal(l["effective_weight"]) }
-        return "This has not held up: #{statements[strongest['evidence']]}" if strongest && statements[strongest["evidence"]]
+        return statements[strongest["evidence"]] if strongest && statements[strongest["evidence"]]
       end
       qualifier = claim.evidence_claim_links.effective_at(seq).where(direction: "QUALIFY").order(:created_seq).first
-      return "This is only partly supported: #{qualifier.evidence_item.statement}" if qualifier&.evidence_item&.statement.present?
+      return qualifier.evidence_item.statement if qualifier&.evidence_item&.statement.present?
 
       nil
     end

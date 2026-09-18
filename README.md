@@ -144,6 +144,13 @@ Then open http://localhost:3000, sign up, paste the memo paragraph from the demo
 **Analyze text**, and follow the answer cards down to signatures, hash chain, score
 traces, audits, and snapshots. `examples/agent/` is the standalone agent client.
 
+**Check before you post.** Connect the assistant you already use at `/assistants/new`
+(no account needed), paste the matching skill from `skills/`, and say *"check this in
+Galedra before I post it"*. The assistant searches first, reads the sources itself,
+records what it found in one call (`POST /api/v1/investigations`, or the `/mcp`
+server), and hands back a plain headline, what to say instead, and a share card.
+`bin/demo --example check --reset` runs that flow end to end with a fixture agent.
+
 ---
 
 ## The specification

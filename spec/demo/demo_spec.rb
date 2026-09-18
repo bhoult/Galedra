@@ -20,4 +20,13 @@ RSpec.describe "bin/demo (07 Phase 7; success standard)" do
     expect(failures).to eq(0), out.string
     expect(out.string).to include("ALL PASS")
   end
+
+  it "runs the check-before-you-post demo end to end (Stage 14 #5)" do
+    release_models
+    out = StringIO.new
+    failures = Demo::Check.run(out: out)
+    expect(failures).to eq(0), out.string
+    expect(out.string).to include("ALL PASS")
+    expect(out.string).to include("share card:")
+  end
 end

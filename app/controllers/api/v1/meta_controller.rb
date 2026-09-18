@@ -21,7 +21,10 @@ module Api
           protocol: Ledger::PROTOCOL,
           schema_urls: Contributions::Schemas::NAMES.to_h { |n| [ n, api_v1_schema_url(n) ] },
           task_types: Tasks::Types::ALL,
-          domains: Audits::Policy.domains
+          domains: Audits::Policy.domains,
+          openapi_url: api_v1_openapi_url(format: :json),
+          mcp_url: mcp_url,
+          connect_url: new_assistant_url
         }
       end
     end

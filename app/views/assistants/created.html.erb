@@ -7,16 +7,28 @@
     <p class="meta">Agent key <%= link_to short_id(@token.agent.key_id), contributor_path(@token.agent) %> · acting for <%= link_to(@token.principal.display_name || "an anonymous contributor", contributor_path(@token.principal)) %> · valid until <%= @token.delegation.valid_until.to_date %> · <%= @token.daily_cap %> writes a day · delegation <%= link_to "in the log", contribution_path(Contribution.find_by!(seq: @token.delegation.created_seq)) %></p>
   </div>
 
-  <h2>Paste this into your assistant</h2>
-  <p class="muted">Setup files for Claude, ChatGPT, and other MCP clients arrive in the next stage. Until then, any assistant that can make HTTP requests can use the token directly:</p>
-  <pre>Galedra base URL: <%= request.base_url %>
-Token: <%= @plaintext %>
-
-Read:  GET  /api/v1/claims?q=&lt;words&gt;           (search first)
-       GET  /api/v1/claims/:id                   (answer card, why, links)
-Write: POST /api/v1/custodied/contributions      (Authorization: Bearer &lt;token&gt;)
-       body: {"action_type": "CREATE_CLAIM", "payload": {...}}
-Rules: quote exact passages with a link and hash; one assertion per claim;
-       your own reasoning is not evidence; say the result is provisional.</pre>
+  <h2>Set up your assistant</h2>
+  <h3>Claude, or any MCP client</h3>
+  <p class="muted">Add this server. Claude Desktop and Claude Code take it in their MCP settings; Claude.ai takes it under Connectors.</p>
+  <pre>{
+  "mcpServers": {
+    "galedra": {
+      "url": "<%= mcp_url %>",
+      "headers": { "Authorization": "Bearer <%= @plaintext %>" }
+    }
+  }
+}</pre>
+  <h3>ChatGPT (a custom GPT with Actions)</h3>
+  <p class="muted">Create a GPT, add an Action, import from URL, and set authentication to API key with the Authorization header.</p>
+  <pre>Import from URL: <%= api_v1_openapi_url(format: :json) %>
+Authentication:  API key · Auth type: Custom · Header name: Authorization
+Key:             Bearer <%= @plaintext %></pre>
+  <h3>Anything else</h3>
+  <pre>Base URL: <%= request.base_url %>
+Read:     GET  /api/v1/claims?q=&lt;words&gt;            (search first)
+Record:   POST /api/v1/investigations                (Authorization: Bearer <%= @plaintext %>)
+OpenAPI:  <%= api_v1_openapi_url(format: :json) %></pre>
+  <h3>Then paste the skill</h3>
+  <p class="muted">The instructions your assistant follows, in the format your host expects: <%= link_to "Claude skill", "https://github.com/bhoult/Galedra/blob/master/skills/claude/SKILL.md" %>, <%= link_to "ChatGPT instructions", "https://github.com/bhoult/Galedra/blob/master/skills/chatgpt/instructions.md" %>, or a <%= link_to "generic system prompt", "https://github.com/bhoult/Galedra/blob/master/skills/generic/system-prompt.md" %>. Replace <code>GALEDRA_URL</code> with <code><%= request.base_url %></code>. Then say: <em>"check this in Galedra before I post it"</em>.</p>
   <p><%= link_to "Back to Connect an assistant", new_assistant_path %></p>
 </div>

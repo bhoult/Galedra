@@ -17,6 +17,21 @@ class ClaimsController < ApplicationController
     @rows = @rows.select { |_, r| r&.assessment_state == params[:state] } if params[:state].present?
   end
 
+  # The share card (Stage 14): Open Graph tags for link previews and a PNG.
+  def card
+    @claim = Claim.find(params[:id])
+    @seq = head_seq
+    raise ActiveRecord::RecordNotFound if Governance::Quarantines.live_for("CLAIM", @claim.id)
+
+    @model = Scoring::Registry.default_model
+    @card = Cards::ClaimCard.call(@claim, @seq, @model)
+    @plain = @card[:plain]
+    respond_to do |format|
+      format.html
+      format.png { send_data Cards::Image.render(@claim, @seq, @model, @card), type: "image/png", disposition: "inline" }
+    end
+  end
+
   def show
     @seq = current_seq
     @claim = Claim.find(params[:id])

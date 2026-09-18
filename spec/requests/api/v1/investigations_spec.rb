@@ -34,7 +34,7 @@ RSpec.describe "Record an investigation (Stage 13)", type: :request do
     expect(ban["url"]).to eq("http://www.example.com/claims/#{ban['id']}")
     expect(ban.dig("card", "headline")).to eq("Leans contradicted").or eq("Contradicted")
     expect(ban.dig("card", "plain", "headline")).to match(/evidence (leans|goes) against/)
-    expect(ban.dig("card", "plain", "say_instead")).to eq("Brackenridge prohibits cycling on the Market Street pedestrian mall on Saturday daytimes during the December market season.").or start_with("This has not held up:")
+    expect(ban.dig("card", "plain", "say_instead")).to start_with("Motion 14 prohibits cycling only")
     expect(narrow.dig("card", "headline")).to eq("Supported")
     expect(narrow.dig("card", "labels")).to include(a_string_starting_with("Not yet independently audited"))
 

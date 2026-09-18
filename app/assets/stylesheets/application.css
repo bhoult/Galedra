@@ -113,6 +113,11 @@ body.landing header.site, body.landing main, body.landing footer.site { position
 body.landing main { max-width: 72rem; }
 .constitution-pointer > * { max-width: 52rem; }
 .faq h2 { margin-top: 2.4rem; }
+.share { max-width: 44rem; margin: 1rem auto; }
+.share .claim-text { font-family: var(--serif); font-size: 1.25rem; }
+.share .say-instead { color: var(--accent-ink); }
+.share-preview { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); margin-top: 0.6rem; }
+.connect pre { white-space: pre; overflow-x: auto; }
 .faq h3 { margin: 1.4rem 0 0.3rem; font-size: 1.15rem; }
 .faq p { max-width: 46rem; }
 .verse { font-family: var(--serif); font-size: 1.1rem; max-width: 40rem; }
