@@ -2016,4 +2016,21 @@ json gem pin (Stage 1). Each is explained in its stage above.
   descriptions, rules, and skill now say to omit the hash rather than fabricate it or
   refuse. Article II still holds: the excerpt is traceable to an exact location and the
   log records exactly what the reader had.
+- Say instead, short and plain (owner request, 2026-09-18): the first claude.ai
+  recording put a 46-word evidence statement on a supported claim's card as the
+  sentence to say instead. `Cards::Plain` now offers a say-instead line only when the
+  claim as stated does not hold up (a supported claim is itself what to say), prefers
+  for a qualifier the claim that the same evidence supports and that holds up over the
+  evidence statement, and skips any candidate over 25 words rather than cutting it
+  short, so the line is either a whole graph sentence or absent. The tool schema and
+  the skill ask assistants for evidence statements of at most 25 words that a stranger
+  could read aloud. Invariant 10 is unchanged: nothing is composed or paraphrased.
+- Purpose before plumbing (owner feedback, 2026-09-18): asked "what can I do with
+  Galedra?", Claude listed the ten tools and their enums. The MCP `initialize`
+  instructions and the skill now open with the three things a person does with it
+  (check before sharing and post the link; send someone a claim link so they see the
+  reasons; help by checking recorded claims) and ask the assistant to say those first.
+  An empty search now returns the total of accepted claims and a note that the subject
+  is more likely unrecorded than mis-searched, since Claude could not tell an empty
+  ledger from a narrow search.
 

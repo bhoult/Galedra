@@ -14,6 +14,14 @@ module Mcp
     INVALID_PARAMS = -32602
     TOKEN_REQUIRED = -32001
 
+    PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
+              "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
+              "checkable claims, read against real sources, and recorded, so they post a link to the record instead of a rumour; " \
+              "(2) send a Galedra claim link to someone else so they can see the reasons rather than take anyone's word; " \
+              "(3) help the project by checking claims already recorded: search a subject, read its sources, add evidence for " \
+              "or against, and attach what you find. Every write is signed and stays open to audit; nothing here is ever " \
+              "presented as settled truth. When a person asks what they can do with Galedra, say these three things in plain " \
+              "words before listing tools. If a search finds nothing, say so plainly and offer to investigate and record it."
     RULES = "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
             "Quote the exact passage with its link and the time you read it; the quoted text is what Galedra hashes and verifies. Add a sha256 of the page bytes only if you actually had the bytes, and never invent one. One assertion per claim, typed. " \
             "Your own reasoning is never evidence; only quoted passages are. Look for what would count against a claim before recording it. " \
@@ -40,7 +48,7 @@ module Mcp
           sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had the bytes. If your host gave you rendered text, omit it; never invent one." }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
           excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION] }, text: { type: "string" } }, required: %w[handle source text] } },
           claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type" } }, required: [ "handle" ] } },
-          evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string" }, statement: { type: "string" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
+          evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string" }, statement: { type: "string", description: "One plain sentence, at most 25 words, that a stranger could read aloud; it may become the card's say-instead line" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
           links: { type: "array", items: { type: "object", properties: { evidence: { type: "string" }, claim: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer", minimum: 0, maximum: EvidenceClaimLink::MAX_STEPS }, note: { type: "string" } }, required: %w[evidence claim direction] } },
           groups: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: IndependenceGroup::TYPES }, members: { type: "array", items: { type: "string" } } }, required: %w[handle members] } },
           on_duplicate: { type: "string", enum: %w[ask create], default: "ask" }
@@ -105,7 +113,7 @@ module Mcp
     def initialize_result
       { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "galedra", version: VERSION },
-        instructions: "Galedra is an epistemic ledger: a signed record of claims, evidence, and reasons, not a source of truth. #{RULES}" }
+        instructions: "#{PURPOSE} #{RULES}" }
     end
 
     def call_tool(params)
@@ -128,7 +136,10 @@ module Mcp
                    .order(created_seq: :desc).limit(args.fetch("limit", 10).to_i.clamp(1, 50))
       claims = scope.to_a
       claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty?
-      { query: query, snapshot_seq: seq, claims: claims.map { |c| brief(c, seq, model) } }
+      total = Claim.counted_at(seq).count
+      result = { query: query, snapshot_seq: seq, total_accepted_claims: total, claims: claims.map { |c| brief(c, seq, model) } }
+      result[:note] = "No recorded claim matches. Galedra holds #{total} accepted #{'claim'.pluralize(total)} in total, so this is more likely unrecorded than mis-searched. Offer to investigate and record it." if claims.empty?
+      result
     end
 
     def tool_get_claim(args)

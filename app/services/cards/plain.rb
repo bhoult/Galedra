@@ -35,23 +35,47 @@ module Cards
       { headline: headline, say_instead: say_instead(claim, seq, model, result) }
     end
 
-    # In order: a narrower claim that holds up; the strongest counted
-    # contradiction; a counted qualifier. Otherwise nothing: no sentence is
-    # invented.
+    # A sentence to say instead is offered only when the claim as stated does
+    # not hold up: a supported claim is itself what to say. Candidates, in
+    # order: a narrower claim that holds up; the strongest counted
+    # contradiction; for a counted qualifier, a claim that the same evidence
+    # supports and that holds up, else its statement. Anything longer than
+    # MAX_WORDS is skipped: the sentence is for a post, not a paper. Otherwise
+    # nothing: no sentence is invented and none is cut short.
+    MAX_WORDS = 25
+
     def say_instead(claim, seq, model, result)
+      return nil if %w[SUPPORTED LEANS_SUPPORTED].include?(result.assessment_state)
+
       narrower = narrower_supported(claim, seq, model)
-      return narrower.canonical_text if narrower
+      return narrower.canonical_text if narrower && short?(narrower.canonical_text)
 
       links = result.trace["links"].select { |l| l["effective_weight"] && BigDecimal(l["effective_weight"]).positive? }
       statements = EvidenceItem.where(id: links.map { |l| l["evidence"] }).pluck(:id, :statement).to_h
       if %w[CONTRADICTED LEANS_CONTRADICTED].include?(result.assessment_state)
-        strongest = links.select { |l| l["direction"] == "CONTRADICT" }.max_by { |l| BigDecimal(l["effective_weight"]) }
-        return statements[strongest["evidence"]] if strongest && statements[strongest["evidence"]]
+        text = links.select { |l| l["direction"] == "CONTRADICT" }.sort_by { |l| -BigDecimal(l["effective_weight"]) }
+                    .map { |l| statements[l["evidence"]] }.find { |t| short?(t) }
+        return text if text
       end
-      qualifier = claim.evidence_claim_links.effective_at(seq).where(direction: "QUALIFY").order(:created_seq).first
-      return qualifier.evidence_item.statement if qualifier&.evidence_item&.statement.present?
-
+      claim.evidence_claim_links.effective_at(seq).where(direction: "QUALIFY").order(:created_seq).includes(:evidence_item).each do |qualifier|
+        supported = qualified_version(claim, qualifier.evidence_item, seq, model)
+        return supported.canonical_text if supported
+        return qualifier.evidence_item.statement if short?(qualifier.evidence_item.statement)
+      end
       nil
+    end
+
+    def short?(text) = text.present? && text.split.size <= MAX_WORDS
+
+    # The claim, other than this one, that the qualifying evidence supports
+    # directly and that holds up: the version the qualifier points to.
+    def qualified_version(claim, evidence, seq, model)
+      evidence.evidence_claim_links.effective_at(seq).where(direction: "SUPPORT").where.not(claim_id: claim.id).order(:created_seq).includes(:claim)
+              .map(&:claim).find do |other|
+        next false if Governance::Quarantines.live_for("CLAIM", other.id) || !short?(other.canonical_text)
+
+        %w[SUPPORTED LEANS_SUPPORTED].include?(Scoring::Score.call(other, seq, model).assessment_state)
+      end
     end
 
     def narrower_supported(claim, seq, model)
