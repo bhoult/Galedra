@@ -1,0 +1,7 @@
+<% content_for :title, "Moderation log" %>
+<h1>Public moderation log</h1>
+<p class="muted">Every quarantine, release, takedown, suspension, and revocation is a signed contribution. Moderator keys: <% @moderators.each do |k| %><code><%= short_id(k) %></code> <% end %>. Disagreement with a claim is never a reason.</p>
+<% if @entries.any? %>
+  <table><tr><th>seq</th><th>action</th><th>target</th><th>reason</th><th>moderator</th><th>appeal</th></tr>
+  <% @entries.each do |e| %><tr><td><%= link_to e[:seq], contribution_path(e[:contribution_id]) %></td><td><%= e[:action] %></td><td><%= e[:target_type] %> <%= short_id(e[:target_id]) %></td><td><%= e[:reason] %><%= " · #{e[:legal_basis]}" if e[:legal_basis] %></td><td><%= short_id(e[:moderator_key_id]) %></td><td><%= e[:appeal_status] %></td></tr><% end %></table>
+<% else %><p class="muted">No moderation actions recorded.</p><% end %>

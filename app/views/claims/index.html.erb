@@ -1,0 +1,22 @@
+<% content_for :title, "Claims" %>
+<h1>Claims</h1>
+<%= form_with url: claims_path, method: :get, class: "filters" do |f| %>
+  <label>Search <%= f.text_field :q, value: params[:q] %></label>
+  <label>Type <%= f.select :type, [ [ "any", "" ] ] + Claim::TYPES.map { |t| [ t, t ] }, { selected: params[:type] } %></label>
+  <label>State <%= f.select :state, [ [ "any", "" ] ] + %w[SUPPORTED LEANS_SUPPORTED UNRESOLVED LEANS_CONTRADICTED CONTRADICTED INSUFFICIENT_EVIDENCE NOT_APPLICABLE].map { |s| [ state_label(s), s ] }, { selected: params[:state] } %></label>
+  <label>Status <%= f.select :status, [ [ "any", "" ] ] + Claim::STATUSES.map { |s| [ s, s ] }, { selected: params[:status] } %></label>
+  <label>Model <%= f.select :model, released_models.map { |m| [ m.full_name, m.full_name ] }, { selected: selected_model&.full_name } %></label>
+  <%= f.hidden_field :snapshot_seq, value: params[:snapshot_seq] %>
+  <%= f.submit "Filter", class: "secondary" %>
+<% end %>
+<p class="meta">As of snapshot <%= @seq %><%= " under #{selected_model.full_name}" if selected_model %>.</p>
+<table><tr><th>Claim</th><th>Type</th><th>Assessment</th><th>Review checks</th></tr>
+<% @rows.each do |claim, result| %>
+  <tr>
+    <td><%= link_to claim.canonical_text, claim_path(claim, model: selected_model&.full_name, snapshot_seq: @seq) %></td>
+    <td><%= claim.claim_type %></td>
+    <td><%= result ? state_label(result.assessment_state) : "no model released" %></td>
+    <td><%= result ? "#{result.review_checklist.count { |_, v| v['ok'] }} of #{result.review_checklist.size}" : "" %></td>
+  </tr>
+<% end %></table>
+<% if @rows.empty? %><p class="muted">No claims match.</p><% end %>

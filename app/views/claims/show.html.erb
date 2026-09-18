@@ -1,0 +1,97 @@
+<% content_for :title, "Claim" %>
+<% if @quarantine %>
+  <h1>Quarantined claim</h1>
+  <div class="card">
+    <p class="headline">Quarantined</p>
+    <p>This claim's text is withheld. Quarantined at seq <%= @quarantine.created_seq %> by moderator key <code><%= @quarantine.contribution.signer_key_id %></code>, reason <strong><%= @quarantine.reason %></strong>.</p>
+    <p>Appeal status: <%= @quarantine.released? ? "released" : "open" %> · <%= link_to "moderation log", moderation_path %></p>
+  </div>
+<% else %>
+  <h1>Claim</h1>
+  <div class="card">
+    <p><strong><%= @claim.canonical_text || "[redacted]" %></strong></p>
+    <p class="meta">Type <%= @claim.claim_type %> · truth-evaluable: <%= @evaluable ? "yes" : "no (#{@reason})" %> · status at snapshot: <%= @claim.status_at(@seq) %> · <%= link_to "created seq #{@claim.created_seq}", contribution_path(@claim.contribution_id) %>
+      <% if @claim.qualifiers.present? %>· qualifiers <code><%= @claim.qualifiers.to_json %></code><% end %></p>
+    <% @warnings.each do |w| %><span class="warning"><%= w[:detail] %></span><% end %>
+  </div>
+
+  <%= render "shared/selectors", url: claim_path(@claim), seq: @seq, extra_params: {} %>
+
+  <% if @card %>
+    <h2>Assessment</h2>
+    <%= render "shared/card", card: @card %>
+
+    <details id="why">
+      <summary>Why?</summary>
+      <div class="card">
+        <% if @why[:strongest_support] %><p><strong>Strongest counted support:</strong> <%= @why[:strongest_support][:statement] %> <span class="badge">weight <%= @why[:strongest_support][:effective_weight] %></span> <%= link_to "evidence", evidence_path(@why[:strongest_support][:evidence]) %></p><% end %>
+        <% if @why[:strongest_contradiction] %><p><strong>Strongest counted contradiction:</strong> <%= @why[:strongest_contradiction][:statement] %> <span class="badge">weight <%= @why[:strongest_contradiction][:effective_weight] %></span> <%= link_to "evidence", evidence_path(@why[:strongest_contradiction][:evidence]) %></p><% end %>
+        <% if @why[:suppressed_dependents].any? %><p><strong>Suppressed as dependent:</strong> <%= @why[:suppressed_dependents].map { |s| s[:statement] }.join("; ") %></p><% end %>
+        <% if @why[:review_gaps].any? %><p><strong>Review gaps:</strong> <%= @why[:review_gaps].map { |g| g.tr("_", " ") }.join(", ") %></p><% end %>
+        <% if @why[:what_would_most_change_this] %><p><strong>What would most change this:</strong> <%= @why[:what_would_most_change_this][:text] %></p><% end %>
+      </div>
+    </details>
+
+    <% if @show_calculation %>
+      <p><%= link_to "Hide calculation", claim_path(@claim, model: params[:model], snapshot_seq: params[:snapshot_seq]) %></p>
+      <div class="card" id="calculation">
+        <% number = assessment_number(@assessment) %>
+        <% if number %>
+          <p><strong><%= number %></strong> · state <%= state_label(@assessment[:assessment_state]) %> · <%= review_checks_text(@assessment[:review_checklist]) %> · stability <%= @assessment[:stability] %> · <%= evidence_counts_text(@evidence[:counted].size, @assessment[:support_groups] + @assessment[:contradict_groups]) %></p>
+        <% else %>
+          <p><strong>No probability.</strong> <%= @assessment[:assessment_state] == "NOT_APPLICABLE" ? not_applicable_text(@assessment[:not_applicable_reason]) : "No counted evidence bears on this claim at this snapshot." %></p>
+        <% end %>
+        <p class="labels"><% assessment_labels(@assessment).each do |l| %><span><%= l %></span><% end %></p>
+        <p class="meta">Model <%= @assessment[:model] %> (<%= @model == Scoring::Registry.default_model ? "the default model, not the answer" : "an alternative model" %>) · snapshot <%= @assessment[:snapshot_seq] %> · trace <code><%= @assessment[:trace_hash] %></code></p>
+      </div>
+    <% else %>
+      <p><%= link_to "Show calculation", claim_path(@claim, model: params[:model], snapshot_seq: params[:snapshot_seq], calculation: 1) %></p>
+    <% end %>
+  <% end %>
+
+  <h2>Evidence for</h2>
+  <%= render "claims/links", links: @evidence[:counted].select { |l| l[:direction] == "SUPPORT" } %>
+  <h2>Evidence against</h2>
+  <%= render "claims/links", links: @evidence[:counted].select { |l| l[:direction] == "CONTRADICT" } %>
+  <h2>Qualifications</h2>
+  <%= render "claims/links", links: @evidence[:counted].select { |l| %w[QUALIFY NEUTRAL].include?(l[:direction]) } %>
+  <% if @evidence[:pending].any? %><h2>Pending links</h2><%= render "claims/links", links: @evidence[:pending] %><% end %>
+
+  <h2>Suppressed as dependent</h2>
+  <% suppressed = @result ? @result.trace["links"].select { |l| l["reason"] == "dependent_strongest_only" } : [] %>
+  <% if suppressed.any? %>
+    <table><tr><th>Evidence</th><th>Group</th><th>Kept instead</th></tr>
+    <% suppressed.each do |l| %><tr><td><%= link_to short_id(l["evidence"]), evidence_path(l["evidence"]) %></td><td><%= short_id(l["group"]) %></td><td><%= short_id(l["kept"]) %></td></tr><% end %></table>
+  <% else %><p class="muted">None.</p><% end %>
+
+  <h2>Claim edges</h2>
+  <% edges = @claim.outgoing_edges.counted_at(@seq).to_a + @claim.incoming_edges.counted_at(@seq).to_a %>
+  <% if edges.any? %>
+    <table><tr><th>From</th><th>Relationship</th><th>To</th></tr>
+    <% edges.each do |e| %><tr><td><%= link_to short_id(e.from_claim_id), claim_path(e.from_claim_id) %></td><td><%= e.relationship_type %></td><td><%= link_to short_id(e.to_claim_id), claim_path(e.to_claim_id) %></td></tr><% end %></table>
+  <% else %><p class="muted">None. Edges are stored and displayed; v0.1 does not propagate probability across them.</p><% end %>
+
+  <% if @result %>
+    <h2>Review checklist</h2>
+    <p><%= review_checks_text(@result.review_checklist) %></p>
+    <table><tr><th>Check</th><th>Done</th><th>By</th></tr>
+    <% @result.review_checklist.each do |name, v| %><tr><td><%= name.tr("_", " ") %></td><td><%= v["ok"] ? "yes" : "no" %></td><td><%= v["by"].map { |b| short_id(b) }.join(", ") %></td></tr><% end %></table>
+
+    <h2>Summary</h2>
+    <div class="card">
+      <% @summary[:sentences].each do |s| %><p><%= s["text"] %> <% s["cites"].each do |c| %><span class="badge"><%= c.to_s.start_with?("coverage:", "audit:") ? c : short_id(c) %></span><% end %></p><% end %>
+      <p class="meta">Generated by <%= @summary[:generator] %>; every sentence cites graph ids.</p>
+    </div>
+  <% end %>
+
+  <h2>Contribution history</h2>
+  <table><tr><th>seq</th><th>event</th><th>detail</th></tr>
+  <% @history.each do |e| %><tr><td><%= e[:seq] %></td><td><%= e[:event] %></td><td><%= [ e[:result], e[:basis], e[:reason] ].compact.join(" · ") %></td></tr><% end %>
+  <% @link_contributions.each do |c| %><tr><td><%= c.seq %></td><td><%= c.action_type %></td><td><%= link_to "by #{short_id(c.signer_key_id)} (#{c.current_status.downcase})", contribution_path(c) %></td></tr><% end %>
+  </table>
+
+  <% if @result && @show_calculation %>
+    <h2>Score trace</h2>
+    <pre id="trace"><%= JSON.pretty_generate(@result.trace) %></pre>
+  <% end %>
+<% end %>

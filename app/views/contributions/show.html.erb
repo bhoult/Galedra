@@ -1,0 +1,28 @@
+<% content_for :title, "Contribution" %>
+<h1>Contribution seq <%= @contribution.seq %></h1>
+<div class="card">
+  <p><span class="badge"><%= @contribution.action_type %></span> <span class="badge"><%= @contribution.action_class %></span> <span class="badge">custody <%= @contribution.custody %></span> <span class="badge"><%= @contribution.current_status %></span>
+    <% if @contribution.custody == "SERVER" %><span class="badge">server-held key</span><% end %></p>
+  <p class="meta">Signer <%= @contribution.contributor ? link_to(@contribution.signer_key_id, contributor_path(@contribution.contributor)) : @contribution.signer_key_id %> · received <%= @contribution.received_at_rfc3339 %> · client time <%= @contribution.client_created_at.utc.iso8601 %></p>
+  <p class="labels">
+    <span>client signature: <%= @verification[:client_signature_ok] ? "verifies" : "does not verify" %></span>
+    <span>server signature: <%= @verification[:server_signature_ok] ? "verifies" : "does not verify" %></span>
+    <span>chain: <%= @verification[:chain_ok] ? "intact" : "broken" %></span>
+  </p>
+  <p class="meta">prev <code><%= @contribution.prev_hash %></code><br>entry <code><%= @contribution.entry_hash %></code><br>envelope <code><%= @contribution.envelope_hash %></code><br>payload <code><%= @contribution.payload_hash %></code></p>
+  <% if @contribution.software %><p class="meta">Software: <code><%= @contribution.software.to_json %></code></p><% end %>
+  <% if @contribution.task_id %><p class="meta">Task <%= link_to short_id(@contribution.task_id), task_path(@contribution.task_id) %> · packet <code><%= @contribution.task_packet_hash %></code></p><% end %>
+</div>
+<h2>Payload</h2>
+<% if @contribution.redacted? %><p class="warning">Bytes removed by TAKEDOWN at seq <%= @contribution.redacted_by_seq %>; hashes and the chain remain.</p>
+<% elsif @withheld %><p class="warning">Withheld while a quarantine is live. <%= link_to "Moderation log", moderation_path %></p>
+<% else %><pre><%= JSON.pretty_generate(@contribution.payload) %></pre><% end %>
+<h2>Rows created</h2>
+<% if @rows.any? %><ul><% @rows.each do |r| %><li><%= r.class.name %> <code><%= r.id %></code><%= " (accepted seq #{r.accepted_seq})" if r.respond_to?(:accepted_seq) && r.accepted_seq %><%= " (invalidated seq #{r.invalidated_seq})" if r.invalidated_seq %></li><% end %></ul>
+<% else %><p class="muted">None.</p><% end %>
+<h2>Status history</h2>
+<table><tr><th>seq</th><th>event</th><th>detail</th></tr><% @history.each do |e| %><tr><td><%= e[:seq] %></td><td><%= e[:event] %></td><td><%= [ e[:result], e[:basis], e[:reason], e[:by] && "by #{short_id(e[:by])}" ].compact.join(" · ") %></td></tr><% end %></table>
+<h2>Audits</h2>
+<% if @audits.any? %><table><tr><th>seq</th><th>type</th><th>result</th><th>auditor</th><th>note</th></tr><% @audits.each do |a| %><tr><td><%= a[:seq] %></td><td><%= a[:audit_type] %></td><td><%= a[:result] %><%= " (overturned)" if a[:invalidated_seq] %></td><td><%= short_id(a[:auditor_key_id]) %></td><td class="muted"><%= a[:note] %></td></tr><% end %></table>
+<% else %><p class="muted">None.</p><% end %>
+<% if @schedule %><p class="meta">Audit sampling (<%= @schedule[:policy_version] %>): probability <%= @schedule[:audit_probability] %>, sampled <%= @schedule[:sampled] ? "yes" : "no" %><%= ", forced by seq #{@schedule[:forced_by_seq]}" if @schedule[:forced_by_seq] %>; inputs <code><%= @schedule[:inputs].to_json %></code></p><% end %>

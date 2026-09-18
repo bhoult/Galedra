@@ -15,13 +15,14 @@ module Cards
         { claim_id: claim.id, text: claim.canonical_text, type: claim.claim_type, assessment_state: result.assessment_state,
           card: ClaimCard.call(claim, seq, model, result) }
       end
-      { source_id: source.id, snapshot_seq: seq, model: model.full_name, cards: cards, summary: roll_up(cards) }
+      { source_id: source.id, snapshot_seq: seq, model: model.full_name, cards: cards, summary: roll_up(cards),
+        state_counts: cards.filter_map { |c| c[:assessment_state] }.tally.sort.to_h }
     end
 
     def extracted_claims(source, seq)
       task_ids = Task.where(target_type: "SOURCE", target_id: source.id, task_type: "CLAIM_EXTRACTION").select(:id)
       contribution_ids = Contribution.where(action_type: "TASK_RESULT", task_id: task_ids).select(:id)
-      Claim.where(contribution_id: contribution_ids).counted_at(seq).order(:created_seq)
+      Claim.where(contribution_id: contribution_ids).or(Claim.where(extracted_from_source_id: source.id)).counted_at(seq).order(:created_seq)
     end
 
     def roll_up(cards)

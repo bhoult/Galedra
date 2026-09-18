@@ -1,0 +1,11 @@
+<% content_for :title, "Weaknesses" %>
+<h1>Where we are most likely to be wrong</h1>
+<p class="muted">Deterministic lists as of snapshot <%= @seq %> under <%= @report[:model] %>. Each entry shows what would most change it.</p>
+<%= render "shared/selectors", url: weaknesses_path, seq: @seq, extra_params: { kind: params[:kind] } %>
+<% @report[:lists].each do |kind, entries| %>
+  <h2><%= kind.tr("_", " ") %> (<%= entries.size %>)</h2>
+  <% if entries.any? %>
+    <table><tr><th>Claim</th><th>State</th><th>Detail</th><th>What would most change this</th></tr>
+    <% entries.each do |e| %><tr><td><%= link_to e[:text], claim_path(e[:claim_id], snapshot_seq: @seq) %></td><td><%= state_label(e[:assessment_state]) %></td><td class="muted"><%= e[:detail].to_json %></td><td><%= e[:what_would_most_change_this]&.dig(:text) %></td></tr><% end %></table>
+  <% else %><p class="muted">None.</p><% end %>
+<% end %>

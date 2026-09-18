@@ -1,0 +1,13 @@
+<% if links.any? %>
+  <table><tr><th>Evidence</th><th>Source</th><th>Relevance</th><th>Steps</th><th>Note</th><th>Counted</th></tr>
+  <% links.each do |l| %>
+    <tr>
+      <td><%= link_to l[:evidence][:statement] || "[withheld]", evidence_path(l[:evidence_item_id]) %></td>
+      <td><%= link_to l[:evidence][:source][:title] || "[withheld]", source_path(l[:evidence][:source][:id]) %></td>
+      <td><%= l[:relevance_strength] %></td>
+      <td><%= l[:interpretive_steps] %></td>
+      <td class="muted"><%= l[:note] %></td>
+      <td><%= l[:counted] ? "yes" : "no" %></td>
+    </tr>
+  <% end %></table>
+<% else %><p class="muted">None.</p><% end %>

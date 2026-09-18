@@ -1,0 +1,21 @@
+<% content_for :title, "Contributor" %>
+<h1>Contributor</h1>
+<div class="card">
+  <p><strong><%= @contributor.display_name || short_id(@contributor.key_id) %></strong> <span class="badge"><%= @contributor.kind %></span> <span class="badge"><%= @contributor.identity_tier %></span>
+    <% if @contributor.server_custodied? %><span class="badge">server-held key</span><% end %>
+    <% if @contributor.revoked? %><span class="badge">revoked at seq <%= @contributor.revoked_seq %></span><% end %></p>
+  <p class="meta">key <code><%= @contributor.key_id %></code> · registered seq <%= @contributor.created_seq %></p>
+</div>
+<h2>Audited reliability</h2>
+<p class="muted">Per task type and domain, from audits of this identity's work. This is not authority, not a score of the person, and not an input to claim scores.</p>
+<% if @buckets.any? %>
+  <table><tr><th>Task type</th><th>Domain</th><th>Audited (n)</th><th>Mean</th><th>Results</th></tr>
+  <% @buckets.each do |b| %><tr><td><%= b[:task_type] %></td><td><%= b[:domain] %></td><td><%= b[:n] %><%= " (limited history)" if b[:limited_history] %></td><td><%= b[:mean] %></td><td><%= b[:counts].map { |k, v| "#{v} #{k}" }.join(", ") %></td></tr><% end %></table>
+<% else %><p class="muted">No audited work yet.</p><% end %>
+<% if @delegations.any? %>
+  <h2>Delegations</h2>
+  <table><tr><th>Principal</th><th>Delegate</th><th>Task types</th><th>Valid until</th><th>Status</th></tr>
+  <% @delegations.each do |d| %><tr><td><%= short_id(d.principal.key_id) %></td><td><%= short_id(d.delegate.key_id) %></td><td><%= Array(d.permissions["allowed_task_types"]).join(", ") %></td><td><%= d.valid_until.utc.iso8601 %></td><td><%= d.revoked? ? "revoked" : "active" %></td></tr><% end %></table>
+<% end %>
+<h2>Recent contributions</h2>
+<table><tr><th>seq</th><th>action</th><th>status</th></tr><% @recent.each do |c| %><tr><td><%= link_to c.seq, contribution_path(c) %></td><td><%= c.action_type %></td><td><%= c.current_status %></td></tr><% end %></table>

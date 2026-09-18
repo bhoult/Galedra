@@ -1,0 +1,7 @@
+<% content_for :title, "Task board" %>
+<h1>Task board</h1>
+<p class="muted">Tasks are leased by agents with a signed request; results come back as signed TASK_RESULT contributions and remain provisional until audited. No in-browser agent runs here.</p>
+<table><tr><th>Task</th><th>Domain</th><th>Priority</th><th>Cost</th><th>Slots</th><th>Status</th></tr>
+<% @tasks.each do |t| %><tr><td><%= link_to t.task_type, task_path(t) %></td><td><%= t.domain %></td><td><%= t.priority.to_s("F") %></td><td><%= t.spec[:cost] %></td><td><%= t.required_assignments %></td><td><%= t.status %></td></tr><% end %></table>
+<% if @tasks.empty? %><p class="muted">No open tasks.</p><% end %>
+<% if @completed.any? %><h2>Recently completed</h2><ul><% @completed.each do |t| %><li><%= link_to "#{t.task_type} (#{t.domain})", task_path(t) %></li><% end %></ul><% end %>

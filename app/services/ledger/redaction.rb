@@ -11,7 +11,7 @@ module Ledger
     REDACTABLE = {
       "sources" => %w[title creator publisher canonical_uri external_ids content license lineage_key metadata],
       "source_locations" => %w[locator excerpt],
-      "claims" => %w[canonical_text qualifiers],
+      "claims" => %w[canonical_text qualifiers extracted_from_source_id],
       "evidence_items" => %w[statement structured_value],
       "evidence_claim_links" => %w[note],
       "independence_groups" => %w[description],

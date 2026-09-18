@@ -1,10 +1,29 @@
-/*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
- */
+/* Functional, neutral styling (spec 06 §4 rule 12): no true/false colours,
+   no badges of correctness. */
+:root { --ink: #1f2933; --muted: #52606d; --line: #d9dee3; --bg: #fafbfc; --panel: #ffffff; --accent: #2f5d8a; }
+body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); margin: 0; line-height: 1.45; }
+header.site { border-bottom: 1px solid var(--line); background: var(--panel); padding: 0.6rem 1.2rem; display: flex; gap: 1.2rem; align-items: baseline; flex-wrap: wrap; }
+header.site a { color: var(--accent); text-decoration: none; }
+header.site .brand { font-weight: 600; font-size: 1.1rem; }
+main { max-width: 64rem; margin: 1.2rem auto; padding: 0 1.2rem; }
+h1, h2, h3 { font-weight: 600; margin: 1rem 0 0.4rem; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1rem 1.2rem; margin: 0.8rem 0; }
+.card .headline { font-size: 1.25rem; font-weight: 600; }
+.meta, .muted { color: var(--muted); font-size: 0.92rem; }
+.labels span, .badge { display: inline-block; border: 1px solid var(--line); border-radius: 4px; padding: 0.05rem 0.45rem; margin-right: 0.35rem; font-size: 0.85rem; background: #f4f6f8; }
+details { margin: 0.5rem 0; }
+details > summary { cursor: pointer; color: var(--accent); }
+table { border-collapse: collapse; width: 100%; margin: 0.4rem 0; font-size: 0.95rem; }
+th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 0.35rem 0.5rem; vertical-align: top; }
+pre { background: #f4f6f8; padding: 0.8rem; overflow-x: auto; font-size: 0.85rem; }
+form.inline { display: inline; }
+label { display: block; margin: 0.4rem 0; }
+input[type=text], textarea, select { width: 100%; max-width: 40rem; padding: 0.35rem; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+textarea { min-height: 8rem; }
+button, input[type=submit] { font: inherit; padding: 0.4rem 0.9rem; border: 1px solid var(--accent); background: var(--accent); color: white; border-radius: 4px; cursor: pointer; }
+button.secondary { background: white; color: var(--accent); }
+.warning { color: #7a4b00; background: #fff6e5; border: 1px solid #f0d9a8; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.9rem; display: inline-block; margin: 0.2rem 0; }
+.flash { background: #eef4fa; border: 1px solid #c8d8ea; padding: 0.5rem 0.8rem; border-radius: 4px; margin: 0.6rem 0; }
+.proposal { border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem 0.9rem; margin: 0.6rem 0; background: var(--panel); }
+.filters { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: end; }
+.filters label { margin: 0; }

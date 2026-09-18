@@ -1,0 +1,44 @@
+<% content_for :title, "Source" %>
+<h1>Source</h1>
+<% if @quarantine %>
+  <div class="card"><p class="headline">Quarantined</p><p>Content withheld. Quarantined at seq <%= @quarantine.created_seq %> by <code><%= @quarantine.contribution.signer_key_id %></code>, reason <strong><%= @quarantine.reason %></strong>. <%= link_to "Moderation log", moderation_path %></p></div>
+<% else %>
+  <div class="card">
+    <p><strong><%= @source.title || "[redacted]" %></strong> <span class="badge"><%= @source.source_type %></span><% if @source.retrieval_pending %> <span class="badge">retrieval pending</span><% end %></p>
+    <p class="meta"><%= [ @source.creator, @source.publisher, @source.publication_date ].compact.join(" · ") %> · content hash <code><%= @source.content_hash %></code> · <%= link_to "created seq #{@source.created_seq}", contribution_path(@source.contribution_id) %></p>
+    <% if @source.content %><details><summary>Stored text (<%= @source.content_length %> characters)</summary><pre><%= @source.content %></pre></details><% end %>
+  </div>
+
+  <% if @cards %>
+    <h2>Claims from this source</h2>
+    <p><%= @cards[:summary] %></p>
+    <% if @cards[:state_counts].any? %>
+      <p class="meta">Counts by assessment state (descriptive only; counts depend on extraction granularity, and there is never a score for the source or its author):
+        <% @cards[:state_counts].each do |state, n| %><span class="badge"><%= n %> <%= state_label(state) %></span><% end %></p>
+    <% end %>
+    <% @cards[:cards].each do |c| %>
+      <% if c[:quarantined] %><div class="card"><p class="headline">Quarantined</p></div>
+      <% else %>
+        <p><%= link_to c[:text], claim_path(c[:claim_id]) %> <span class="badge"><%= c[:type] %></span></p>
+        <%= render "shared/card", card: c[:card] %>
+      <% end %>
+    <% end %>
+    <% if authenticated? && @cards[:cards].any? %>
+      <%= button_to "Create verification tasks", tasks_source_path(@source), method: :post %>
+    <% end %>
+    <% if authenticated? %><p><%= link_to "Propose more claims from this text", analyze_source_path(@source) %></p><% end %>
+  <% end %>
+
+  <% if @tasks.any? %>
+    <h2>Tasks on these claims</h2>
+    <table><tr><th>Type</th><th>Status</th><th>Priority</th></tr>
+    <% @tasks.each do |t| %><tr><td><%= link_to t.task_type, task_path(t) %></td><td><%= t.status %></td><td><%= t.priority.to_s("F") %></td></tr><% end %></table>
+  <% end %>
+
+  <h2>Locations</h2>
+  <% if @locations.any? %>
+    <table><tr><th>Locator</th><th>Excerpt</th></tr>
+    <% @locations.each do |l| %><tr><td><%= l.locator_type %> <code><%= l.locator.to_json %></code></td><td><%= truncate(l.excerpt.to_s, length: 240) %></td></tr><% end %></table>
+  <% else %><p class="muted">None.</p><% end %>
+  <p><%= link_to "Claims citing this source", claims_path(source_id: @source.id) %></p>
+<% end %>

@@ -3,6 +3,24 @@ Rails.application.routes.draw do
 
   resource :session
   resources :passwords, param: :token
+  resources :users, only: [ :new, :create ]
+
+  resources :claims, only: [ :index, :show ]
+  resources :sources, only: [ :show ] do
+    member do
+      get :analyze
+      post :claims, to: "sources#create_claims"
+      post :tasks, to: "sources#create_tasks"
+    end
+  end
+  resource :analyze, only: [ :new, :create ], controller: "analyze"
+  resources :evidence, only: [ :show ]
+  resources :contributions, only: [ :index, :show ]
+  resources :contributors, only: [ :show ]
+  resources :tasks, only: [ :index, :show ]
+  get "weaknesses", to: "weaknesses#index"
+  get "moderation", to: "moderation#index"
+  get "snapshots/:seq", to: "snapshots#show", as: :snapshot
 
   namespace :api do
     namespace :v1 do

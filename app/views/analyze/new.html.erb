@@ -1,0 +1,9 @@
+<% content_for :title, "Analyze text" %>
+<h1>Analyze text</h1>
+<p class="muted">Paste a paragraph, an AI-drafted memo, or a passage. It is stored as a signed source; the stub extractor then proposes atomic claims for you to edit, split, type, and submit.</p>
+<%= form_with url: analyze_path, method: :post do |f| %>
+  <label>Title <%= f.text_field :title, placeholder: "AI-drafted memo" %></label>
+  <label>Source type <%= f.select :source_type, Source::TYPES.map { |t| [ t, t ] }, { selected: "OTHER" } %></label>
+  <label>Text <%= f.text_area :text, required: true %></label>
+  <%= f.submit "Analyze" %>
+<% end %>

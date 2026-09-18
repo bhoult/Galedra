@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_290000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_300000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -126,6 +126,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_290000) do
     t.string "claim_type", null: false
     t.uuid "contribution_id", null: false
     t.bigint "created_seq", null: false
+    t.uuid "extracted_from_source_id"
     t.bigint "invalidated_seq"
     t.uuid "merged_into_id"
     t.string "not_evaluable_reason"
@@ -141,6 +142,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_290000) do
     t.index ["claim_type"], name: "index_claims_on_claim_type"
     t.index ["contribution_id"], name: "index_claims_on_contribution_id"
     t.index ["created_seq"], name: "index_claims_on_created_seq"
+    t.index ["extracted_from_source_id"], name: "index_claims_on_extracted_from_source_id"
     t.index ["invalidated_seq"], name: "index_claims_on_invalidated_seq"
     t.index ["supersedes_claim_id"], name: "index_claims_on_supersedes_claim_id"
   end

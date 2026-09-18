@@ -1,0 +1,9 @@
+<%# Model selector (rule 11) and snapshot picker; both plain GET forms. %>
+<%= form_with url: url, method: :get, class: "filters" do |f| %>
+  <% (extra_params || {}).each { |k, v| f.hidden_field k, value: v } %>
+  <label>Model
+    <%= f.select :model, released_models.map { |m| [ "#{m.full_name}#{' (default)' if m == Scoring::Registry.default_model}", m.full_name ] }, { selected: selected_model&.full_name } %>
+  </label>
+  <label>Snapshot seq <%= f.number_field :snapshot_seq, value: seq, min: 0, max: Contribution.maximum(:seq), step: 1 %></label>
+  <%= f.submit "View", class: "secondary" %>
+<% end %>

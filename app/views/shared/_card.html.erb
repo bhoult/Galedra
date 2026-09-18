@@ -1,0 +1,16 @@
+<%# The answer card (spec 06 §3, §4): no number here. %>
+<div class="card">
+  <p class="headline"><%= card[:headline] %></p>
+  <p class="meta">
+    <%= pluralize(card[:independent_lineages], "independent evidence lineage") %> ·
+    review checks <%= card[:review_checks] %> ·
+    stability <%= card[:stability] || "n/a" %>
+  </p>
+  <% if card[:reason] %><p><%= card[:reason] %></p><% end %>
+  <p><strong>Main unresolved issue:</strong> <%= card[:main_issue][:text] %>
+    <% card[:main_issue][:cites].each do |c| %><span class="badge"><%= c.to_s.start_with?("coverage:", "audit:") ? c : short_id(c) %></span><% end %></p>
+  <% if card[:labels].any? %><p class="labels"><% card[:labels].each do |l| %><span><%= l %></span><% end %></p><% end %>
+  <% if card[:related].any? %>
+    <p class="meta">Related: <% card[:related].each do |r| %><%= link_to "#{r[:relation]} #{r[:direction]}: #{r[:headline]}", claim_path(r[:claim_id], model: card[:model], snapshot_seq: card[:snapshot_seq]) %> <% end %></p>
+  <% end %>
+</div>

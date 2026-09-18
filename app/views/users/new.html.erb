@@ -1,0 +1,10 @@
+<% content_for :title, "Sign up" %>
+<h1>Sign up</h1>
+<p class="muted">A signing key is generated and held by the server for you (custody: SERVER). You can register a self-custodied key later.</p>
+<%= form_with model: @user do |f| %>
+  <% if @user.errors.any? %><p class="warning"><%= @user.errors.full_messages.join(", ") %></p><% end %>
+  <label>Email <%= f.email_field :email_address, required: true %></label>
+  <label>Password <%= f.password_field :password, required: true %></label>
+  <label>Confirm password <%= f.password_field :password_confirmation, required: true %></label>
+  <%= f.submit "Create account" %>
+<% end %>

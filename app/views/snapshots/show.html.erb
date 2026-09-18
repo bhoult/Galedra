@@ -1,0 +1,15 @@
+<% content_for :title, "Snapshot" %>
+<h1>Snapshot seq <%= @seq %></h1>
+<div class="card">
+  <p class="meta">Entry hash <code><%= @entry.entry_hash %></code><%= @pinned ? " · pinned as #{@pinned.label || 'unlabelled'}" : " · not pinned" %><% if @digest %> · claim score digest <code><%= @digest %></code> under <%= @model.full_name %><% end %></p>
+</div>
+<%= form_with url: snapshot_path(@seq), method: :get, class: "filters" do |f| %>
+  <label>Model <%= f.select :model, released_models.map { |m| [ m.full_name, m.full_name ] }, { selected: @model&.full_name } %></label>
+  <label>Compare with seq <%= f.number_field :compare_seq, value: @compare_seq %></label>
+  <%= f.submit "View", class: "secondary" %>
+<% end %>
+<table><tr><th>Claim</th><th>State at <%= @seq %></th><% if @compare %><th>State at <%= @compare_seq %></th><% end %></tr>
+<% @claims.each do |c, r| %>
+  <tr><td><%= link_to c.canonical_text, claim_path(c, snapshot_seq: @seq, model: @model&.full_name) %></td><td><%= r ? state_label(r.assessment_state) : "" %></td>
+  <% if @compare %><td><%= @compare[c] ? state_label(@compare[c].assessment_state) : "did not exist" %></td><% end %></tr>
+<% end %></table>

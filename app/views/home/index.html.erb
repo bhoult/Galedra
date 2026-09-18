@@ -1,13 +1,19 @@
 <% content_for :title, "Galedra" %>
-
-<main>
-  <h1>Galedra</h1>
-  <p>An epistemic ledger for people and AI. Not a source of truth: a source of traceable reasons for believing or doubting a claim.</p>
-
-  <h2>Constitution</h2>
-  <p>
-    Version <%= @constitution.version %><br>
-    <code><%= @constitution.digest %></code>
+<h1>Galedra</h1>
+<p>An epistemic ledger for people and AI. Not a source of truth: a source of traceable reasons for believing or doubting a claim.</p>
+<div class="card">
+  <p><%= link_to "Analyze text", new_analyze_path %> · <%= link_to "Browse claims", claims_path %> · <%= link_to "Task board", tasks_path %> · <%= link_to "Recent audits", contributions_path(action_type: "AUDIT") %> · <%= link_to "Log", contributions_path %></p>
+  <p class="meta">
+    <%= pluralize(@claim_count, "accepted claim") %> ·
+    log head <%= @head ? seq_link(@head.seq) : "empty" %> ·
+    constitution <%= @constitution.version %> <code><%= @constitution.digest %></code> ·
+    <%= link_to "machine-readable metadata", api_v1_meta_path %>
   </p>
-  <p><%= link_to "Machine-readable metadata", api_v1_meta_path %></p>
-</main>
+</div>
+<h2>Recent audits</h2>
+<% if @recent_audits.any? %>
+  <table><tr><th>seq</th><th>result</th><th>type</th><th>target</th><th>auditor</th></tr>
+  <% @recent_audits.each do |a| %>
+    <tr><td><%= a.created_seq %></td><td><%= a.result %></td><td><%= a.audit_type %></td><td><%= link_to short_id(a.target_contribution_id), contribution_path(a.target_contribution_id) %></td><td><%= link_to short_id(a.auditor.key_id), contributor_path(a.auditor) %></td></tr>
+  <% end %></table>
+<% else %><p class="muted">None yet.</p><% end %>

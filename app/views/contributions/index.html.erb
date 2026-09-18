@@ -1,0 +1,12 @@
+<% content_for :title, "Log" %>
+<h1>Log</h1>
+<%= form_with url: contributions_path, method: :get, class: "filters" do |f| %>
+  <label>After seq <%= f.number_field :after_seq, value: params[:after_seq] || -1 %></label>
+  <label>Action <%= f.select :action_type, [ [ "any", "" ] ] + Ledger::ActionTypes::ALL.map { |a| [ a, a ] }, { selected: params[:action_type] } %></label>
+  <%= f.submit "Show", class: "secondary" %>
+<% end %>
+<p class="meta">Head seq <%= @head %>. Withheld entries belong to quarantined content; hashes remain.</p>
+<table><tr><th>seq</th><th>action</th><th>class</th><th>signer</th><th>custody</th><th>status</th><th>entry hash</th></tr>
+<% @entries.each do |c| %>
+  <tr><td><%= link_to c.seq, contribution_path(c) %></td><td><%= c.action_type %></td><td><%= c.action_class %></td><td><%= c.contributor ? link_to(short_id(c.signer_key_id), contributor_path(c.contributor)) : short_id(c.signer_key_id) %></td><td><%= c.custody %></td><td><%= c.current_status %><%= " · withheld" if @withheld.include?(c.id) %><%= " · redacted" if c.redacted? %></td><td><code><%= short_id(c.entry_hash.delete_prefix("sha256:")) %></code></td></tr>
+<% end %></table>

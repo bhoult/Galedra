@@ -1,0 +1,15 @@
+<% content_for :title, "Proposed claims" %>
+<h1>Proposed claims</h1>
+<p class="muted">From <%= link_to @source.title, source_path(@source) %>. Proposals only: edit the wording, split what is not atomic, set the type, and affirm each claim is not about an identifiable private individual.</p>
+<%= form_with url: claims_source_path(@source), method: :post do |f| %>
+  <% @proposals.each_with_index do |p, i| %>
+    <div class="proposal">
+      <label><%= check_box_tag "claims[#{i}][include]", "1", true %> Include</label>
+      <label>Claim <%= text_field_tag "claims[#{i}][canonical_text]", p["canonical_text"] %></label>
+      <label>Type <%= select_tag "claims[#{i}][claim_type]", options_for_select(Claim::TYPES, p["claim_type"]) %></label>
+      <label><%= check_box_tag "claims[#{i}][affirms_not_private_individual]", "1", false %> I affirm this claim is not about an identifiable private individual.</label>
+      <% p["warnings"].each do |w| %><span class="warning"><%= w[:detail] || w["detail"] %></span><% end %>
+    </div>
+  <% end %>
+  <%= f.submit "Submit claims" %>
+<% end %>
