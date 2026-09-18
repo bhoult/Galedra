@@ -1,0 +1,40 @@
+{
+  "_about": "A fictional 'check before you post' bundle: a social post claims a town banned bicycles; the council minutes it cites say something narrower. Every name here is invented. retrieved_at is filled in by the agent at post time when absent.",
+  "sources": [
+    {
+      "handle": "post",
+      "type": "SOCIAL_POST",
+      "title": "Viral post: 'Brackenridge just BANNED bicycles downtown'",
+      "url": "https://social.example/brackenridge-bikes/12345",
+      "content_hash": "sha256:4a3c2b1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b",
+      "publisher": "social.example"
+    },
+    {
+      "handle": "minutes",
+      "type": "PRIMARY_TEXT",
+      "title": "Brackenridge Town Council minutes, 3 September 2026",
+      "url": "https://brackenridge.example/council/minutes/2026-09-03",
+      "content_hash": "sha256:9f8e7d6c5b4a39281706f5e4d3c2b1a0f9e8d7c6b5a4938271605f4e3d2c1b0a",
+      "publisher": "Brackenridge Town Council",
+      "publication_date": "2026-09-03"
+    }
+  ],
+  "excerpts": [
+    { "handle": "post_text", "source": "post", "kind": "QUOTE", "text": "Brackenridge just BANNED bicycles downtown. Share before they delete this." },
+    { "handle": "minutes_motion", "source": "minutes", "kind": "QUOTE", "text": "Motion 14 carried: cycling is prohibited on the Market Street pedestrian mall between 10:00 and 18:00 on Saturdays during the December market season. Bicycles may be walked." }
+  ],
+  "claims": [
+    { "handle": "ban", "text": "Brackenridge has banned bicycles downtown.", "type": "TEXTUAL" },
+    { "handle": "narrow", "text": "Brackenridge prohibits cycling on the Market Street pedestrian mall on Saturday daytimes during the December market season.", "type": "TEXTUAL" }
+  ],
+  "evidence": [
+    { "handle": "post_says", "excerpt": "post_text", "statement": "The post asserts a downtown bicycle ban without citing a decision.", "observation_type": "DIRECT_TEXT" },
+    { "handle": "motion", "excerpt": "minutes_motion", "statement": "Motion 14 prohibits cycling only on the Market Street mall on Saturday daytimes in the December market season; bicycles may be walked.", "observation_type": "DIRECT_TEXT" }
+  ],
+  "links": [
+    { "evidence": "motion", "claim": "ban", "direction": "CONTRADICT", "strength": "STRONG", "steps": 1, "note": "The minutes describe a narrow, seasonal, time-limited restriction, not a downtown ban." },
+    { "evidence": "motion", "claim": "narrow", "direction": "SUPPORT", "strength": "DIRECT", "steps": 0 },
+    { "evidence": "post_says", "claim": "ban", "direction": "NEUTRAL", "strength": "CONTEXT_ONLY", "steps": 0, "note": "The post is the claim's origin, not evidence for it." }
+  ],
+  "groups": []
+}

@@ -36,6 +36,7 @@ Rails.application.routes.draw do
       get "moderation", to: "moderation#index"
       resources :assistants, only: [ :create, :destroy ]
       post "custodied/contributions", to: "custodied#create"
+      post "investigations", to: "investigations#create"
       post "tasks/next", to: "tasks#next"
       resources :tasks, only: [ :show ] do
         post :release, on: :member

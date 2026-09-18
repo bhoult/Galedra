@@ -1545,3 +1545,40 @@ json gem pin (Stage 1). Each is explained in its stage above.
   counting until audited (the conservative reading, "counts, labelled provisional", is
   what shipped); the default daily cap (200).
 
+### Stage 13 — Record an investigation (2026-09-18)
+
+- Sources by reference. Outside a task, `CREATE_SOURCE` now accepts `canonical_uri`,
+  `content_hash`, and `retrieved_at` with no `content`; the row is `retrieval_pending`
+  and the applier still requires a well-formed hash. The excerpt lives on a
+  `QUOTE` or `TRANSCRIPTION` location (two new locator types), which must carry text
+  and its hash. `SOCIAL_POST` and `IMAGE` were added to the source types. The log
+  therefore records the link, the hash of what was read, and the quoted passage, never
+  a page's text (`01 §7`). Replay reproduces such sources like any other.
+- The bundle. `POST /api/v1/investigations` takes sources, excerpts, claims, evidence,
+  links, and groups with local handles. `Investigations::Validate` checks the whole
+  bundle structurally first; `Investigations::Record` then appends through
+  `Assistants::Write` in dependency order inside one `Contribution.transaction`, so any
+  applier rejection rolls back every entry (acceptance #2 counts contributions before
+  and after). A transcription's links carry at least one interpretive step. Each new
+  claim opens `OPPOSING_EVIDENCE_SEARCH`, `QUALIFIER_CHECK`, and, when a link cites an
+  excerpt, `EVIDENCE_VERIFICATION`; anonymous principals' tasks get a 1.5× priority
+  factor (`Tasks::Create#priority_factor`), a board heuristic and never a score input.
+- Duplicates first. Trigram candidates (`Claims::Duplicates`) are computed for every
+  new claim. With a candidate at similarity 0.6 or more and no `on_duplicate: create`,
+  the call returns 409 with the candidates and nothing is appended; the assistant
+  resubmits with `attach_to`, and its evidence links to the existing claim (acceptance
+  #3 uses the demo's C2).
+- Plain language. `Cards::Plain` adds `plain.headline` and `plain.say_instead` to
+  every card. Headlines are fixed neutral phrases per state (rule 12: no "true",
+  "false", or "debunked"), with reason-specific wording for `NOT_APPLICABLE`.
+  `say_instead` is rule-based and null unless the graph supports a sentence: a
+  narrower claim that holds up (via `NARROWS`/`BROADENS` edges), else the strongest
+  counted contradiction, else a counted qualifier. Nothing is invented (Invariant 10).
+- The example agent gained `investigate --token`, posting `examples/agent/investigation.json`
+  (a fictional town-council meme) and printing each claim's plain headline and URL. The
+  API source presenter now includes `retrieval_pending`.
+- Constitutional Test (visibility and history): 1 more traceable, every bundle entry is
+  a normal signed contribution; 2 yes; 3 no; 4 no; 5 yes, the plain headline for
+  `UNRESOLVED` says not to repeat the claim as settled; 6 yes; 7 yes; 8 yes; 9 yes; 10
+  yes.
+

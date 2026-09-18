@@ -45,4 +45,15 @@ module DisplayHelper
   def short_id(id)
     id.to_s[0, 8]
   end
+
+  # A contributor-supplied URI is linked only when it is http or https;
+  # anything else is shown as text.
+  def safe_source_link(uri)
+    parsed = URI.parse(uri.to_s)
+    return uri.to_s unless parsed.is_a?(URI::HTTP)
+
+    link_to uri.to_s, parsed.to_s, rel: "nofollow noopener", target: "_blank"
+  rescue URI::InvalidURIError
+    uri.to_s
+  end
 end

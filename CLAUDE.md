@@ -10,7 +10,7 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stage 12 (connected assistants) tagged.** `IMPLEMENTATION.md` is the
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12 (connected assistants) and 13 (record an investigation) tagged.** `IMPLEMENTATION.md` is the
 staged plan and decision log. P1 is planned there as Stages 12–14 (assistants as
 contributors: tokens and custodied writes, the investigation bundle, MCP and the skill),
 built one stage per tag only when the owner asks. Read the relevant spec sections and the

@@ -3,7 +3,9 @@
 class Source < ApplicationRecord
   include GraphProjection
 
-  TYPES = %w[PRIMARY_TEXT SECONDARY_TEXT DATASET MEASUREMENT VIDEO AUDIO WEBSITE LEGAL_DOCUMENT TESTIMONY ARTIFACT OTHER].freeze
+  # SOCIAL_POST and IMAGE (Stage 13): a post or a meme, recorded by link and hash
+  # with the quoted or transcribed text on the location.
+  TYPES = %w[PRIMARY_TEXT SECONDARY_TEXT DATASET MEASUREMENT VIDEO AUDIO WEBSITE LEGAL_DOCUMENT TESTIMONY ARTIFACT SOCIAL_POST IMAGE OTHER].freeze
   PRIMARY_TYPES = %w[PRIMARY_TEXT DATASET MEASUREMENT LEGAL_DOCUMENT].freeze
   MAX_CONTENT_CHARS = 1_000_000
 
@@ -14,6 +16,7 @@ class Source < ApplicationRecord
   validates :content_hash, presence: true, if: -> { content.present? }
 
   def redacted? = redacted_by_seq.present?
+  def by_reference? = content.nil? && canonical_uri.present?
 
   def content_length
     content&.length || 0

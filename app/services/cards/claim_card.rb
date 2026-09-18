@@ -19,6 +19,7 @@ module Cards
         main_issue: MainIssue.call(claim, seq, result),
         labels: labels(result, anonymous: anonymous_provisional?(claim, seq)),
         related: related(claim, seq, model),
+        plain: Plain.call(claim, seq, model, result),
         model: model.full_name, snapshot_seq: seq
       }
       card[:reason] = Headline.reason_text(result.not_applicable_reason) if result.assessment_state == "NOT_APPLICABLE"

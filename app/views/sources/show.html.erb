@@ -6,6 +6,7 @@
   <div class="card">
     <p><strong><%= @source.title || "[redacted]" %></strong> <span class="badge"><%= @source.source_type %></span><% if @source.retrieval_pending %> <span class="badge">retrieval pending</span><% end %></p>
     <p class="meta"><%= [ @source.creator, @source.publisher, @source.publication_date ].compact.join(" · ") %> · content hash <code><%= @source.content_hash %></code> · <%= link_to "created seq #{@source.created_seq}", contribution_path(@source.contribution_id) %></p>
+    <% if @source.canonical_uri.present? %><p class="meta">Link: <%= safe_source_link(@source.canonical_uri) %><% if @source.retrieved_at %> · read at <%= @source.retrieved_at.utc.iso8601 %><% end %><% if @source.by_reference? %> · held by reference: only the link, the hash of what was read, and the quoted excerpts are stored<% end %></p><% end %>
     <% if @source.content %><details><summary>Stored text (<%= @source.content_length %> characters)</summary><pre><%= @source.content %></pre></details><% end %>
   </div>
 

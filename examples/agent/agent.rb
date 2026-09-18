@@ -285,11 +285,43 @@ module Galedra
       case command
       when "keygen" then puts JSON.pretty_generate(Crypto.generate_key)
       when "run" then run(argv)
+      when "investigate" then investigate(argv)
       else
         warn "usage: agent.rb keygen | agent.rb run --base-url URL --key-file FILE --delegation ID [--types A,B] [--domains d] [--once] [--fixtures FILE] [--agent good|bad]"
+        warn "       agent.rb investigate --base-url URL --token TOKEN [--bundle FILE]"
         exit 2
       end
     end
+
+    # Stage 13: post an investigation bundle with an assistant token (a
+    # connected assistant's bearer token from /assistants/new) and print the
+    # plain headline and link for each claim. The default bundle is a
+    # fictional social-media post checked against a quoted source.
+    def investigate(argv)
+      options = { bundle: File.join(__dir__, "investigation.json") }
+      OptionParser.new do |o|
+        o.on("--base-url URL") { |v| options[:base_url] = v }
+        o.on("--token TOKEN") { |v| options[:token] = v }
+        o.on("--bundle FILE") { |v| options[:bundle] = v }
+      end.parse!(argv)
+      bundle = JSON.parse(File.read(options[:bundle]))
+      bundle.each_value { |list| list.each { |item| item["retrieved_at"] ||= Time.now.utc.iso8601 if item.is_a?(Hash) && item.key?("content_hash") } if list.is_a?(Array) }
+      status, text = Investigator.post(options.fetch(:base_url), options.fetch(:token), bundle)
+      body = JSON.parse(text)
+      if status == 409
+        puts "similar claims already exist; add attach_to or on_duplicate: create"
+        body["existing"].each { |handle, list| list.each { |c| puts "  #{handle}: #{c['text']} (#{c['similarity']}) #{c['url']}" } }
+        exit 1
+      end
+      raise "investigation rejected (#{status}): #{text}" unless status == 201
+
+      body["claims"].each do |c|
+        puts "#{c['handle']}: #{c.dig('card', 'plain', 'headline')} #{c['url']}"
+        puts "  say instead: #{c.dig('card', 'plain', 'say_instead')}" if c.dig("card", "plain", "say_instead")
+      end
+      puts "#{body['contributions']} contributions, #{body['tasks_opened']} verification tasks opened"
+    end
+
 
     def run(argv)
       options = { types: [], domains: [], fixtures: File.join(__dir__, "fixtures.json"), agent: "good", once: false }
@@ -317,6 +349,17 @@ module Galedra
         puts "task #{packet['task_id']} (#{packet['task_type']}): #{answer['outcome']} -> seq #{result.dig('contribution', 'seq')} #{result['acceptance'] ? 'accepted' : 'pending'}"
         break if options[:once]
       end
+    end
+  end
+  module Investigator
+    module_function
+
+    def post(base_url, token, bundle)
+      uri = URI("#{base_url.sub(%r{/\z}, '')}/api/v1/investigations")
+      req = Net::HTTP::Post.new(uri, "Content-Type" => "application/json", "Authorization" => "Bearer #{token}")
+      req.body = JSON.generate(bundle)
+      res = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") { |http| http.request(req) }
+      [ res.code.to_i, res.body.to_s ]
     end
   end
 end

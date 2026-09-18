@@ -120,7 +120,8 @@ module Graph
         external_ids: source.external_ids, content_hash: source.content_hash, content_length: source.content_length,
         retrieved_at: source.retrieved_at, license: source.license, previous_version_id: source.previous_version_id,
         lineage_key: source.lineage_key, metadata: source.metadata, created_seq: source.created_seq,
-        invalidated_seq: source.invalidated_seq, contribution_id: source.contribution_id, redacted: source.redacted?
+        invalidated_seq: source.invalidated_seq, contribution_id: source.contribution_id, redacted: source.redacted?,
+        retrieval_pending: source.retrieval_pending
       }
       with_content ? base.merge(content: source.content) : base
     end

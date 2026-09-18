@@ -22,11 +22,17 @@ module Ledger
           # sources are metadata-only until a human or trusted job imports content.
           reject("CONTENT_NOT_ALLOWED", path("content"), "sources created inside a task are metadata-only (retrieval_pending)") if p.key?("content") || p.key?("content_hash")
           string_or_nil!(p, "canonical_uri")
-        else
+        elsif p.key?("content")
           content = string!(p, "content", max: Source::MAX_CONTENT_CHARS)
           unless p["content_hash"] == Crypto::Hashing.bytes(content)
             reject("CONTENT_HASH_MISMATCH", path("content_hash"), "does not equal sha256 of the content bytes")
           end
+        else
+          # Stage 13: a source by reference. The link and the hash of what was
+          # read are recorded; the text is not (01 §7). Excerpts live on
+          # QUOTE and TRANSCRIPTION locations.
+          reject("SCHEMA_INVALID", path("content"), "give content, or canonical_uri with content_hash and retrieved_at for a source held by reference") unless p["canonical_uri"].present? && p["retrieved_at"].present?
+          reject("SCHEMA_INVALID", path("content_hash"), "expected sha256:<hex> of the bytes that were read") unless Crypto::Hashing.valid?(p["content_hash"].to_s)
         end
         live!(Source, p, "previous_version_id") unless p["previous_version_id"].nil?
       end

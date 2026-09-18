@@ -26,6 +26,7 @@ module Ledger
           reject("SCHEMA_INVALID", path("excerpt"), "required for CHAR_RANGE") if excerpt.nil?
           reject("EXCERPT_MISMATCH", path("excerpt"), "does not equal the stored slice") unless excerpt == source.slice(start, finish)
         end
+        reject("SCHEMA_INVALID", path("excerpt"), "required for #{type}") if %w[QUOTE TRANSCRIPTION].include?(type) && excerpt.blank?
         if excerpt && p["excerpt_hash"] != Crypto::Hashing.bytes(excerpt)
           reject("EXCERPT_HASH_MISMATCH", path("excerpt_hash"), "does not equal sha256 of the excerpt bytes")
         end
