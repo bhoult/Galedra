@@ -12,10 +12,9 @@ module Ledger
         string_or_nil!(p, "description")
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         IndependenceGroup.create!(
-          id: Ids.derive(c.id, "group"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "group", index), contribution_id: c.id, created_seq: c.seq,
           group_type: p["group_type"], description: p["description"]
         )
       end

@@ -22,6 +22,24 @@ module Contributions
       unsigned.merge("signature" => key_pair.sign(signed_bytes(unsigned)))
     end
 
+    # An eir-result-v1 envelope (spec 04 §4) for a leased task.
+    def self.build_result(task:, key_pair:, outcome:, ops:, delegation_id: nil, software: nil, client_created_at: Time.now.utc)
+      payload = { "outcome" => outcome, "ops" => ops }.as_json
+      unsigned = {
+        "protocol" => Tasks::Packet::RESULT_PROTOCOL,
+        "action_type" => "TASK_RESULT",
+        "task_id" => task.id,
+        "task_packet_hash" => task.packet_hash,
+        "contributor_key_id" => key_pair.key_id,
+        "delegation_id" => delegation_id,
+        "client_created_at" => client_created_at.utc.iso8601,
+        "software" => (software || { "agent_name" => "spec-agent", "version" => "0.1.0", "model_provider" => "stub", "model_id" => "none", "prompt_version" => "spec-v1" }).as_json,
+        "payload" => payload,
+        "payload_hash" => Crypto::Hashing.json(payload)
+      }.compact
+      unsigned.merge("signature" => key_pair.sign(signed_bytes(unsigned)))
+    end
+
     def self.signed_bytes(envelope)
       Crypto::CanonicalJson.call(envelope.except("signature"))
     end

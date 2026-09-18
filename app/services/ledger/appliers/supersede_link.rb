@@ -22,9 +22,9 @@ module Ledger
         same_principal?(validated, EvidenceClaimLink.find(validated.payload["link_id"]))
       end
 
-      def self.apply(c)
-        old = EvidenceClaimLink.find(c.payload["link_id"])
-        LinkEvidence.create_link(c, c.payload, evidence_item_id: old.evidence_item_id, claim_id: old.claim_id, supersedes_link_id: old.id)
+      def self.apply_payload(c, p, index = nil)
+        old = EvidenceClaimLink.find(p["link_id"])
+        LinkEvidence.create_link(c, p, evidence_item_id: old.evidence_item_id, claim_id: old.claim_id, supersedes_link_id: old.id, index: index)
       end
     end
   end

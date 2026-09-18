@@ -32,6 +32,9 @@ gem "bootsnap", require: false
 # RFC 8785 canonical JSON, the input to every hash and signature (spec 02 §6)
 gem "json-canonicalization"
 
+# JSON Schema validation for task packets and result envelopes (spec 04 §11)
+gem "json_schemer"
+
 # Ruby 4.0 bundles json 3.x, whose JSON.parse takes keyword-only options;
 # ActiveSupport 8.1.3.1 still passes a positional hash, which breaks jsonb
 # columns and JSON request bodies. Pin 2.x until Rails catches up.

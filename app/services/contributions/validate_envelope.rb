@@ -8,6 +8,7 @@ module Contributions
   class ValidateEnvelope
     REQUIRED = %w[protocol action_type signer_key_id client_created_at payload payload_hash signature].freeze
     OPTIONAL = %w[delegation_id task_id task_packet_hash software].freeze
+    RESULT_PROTOCOL = "eir-result-v1"
     UUID = /\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/
     SELF_SIGNED_ACTIONS = %w[REGISTER_KEY REVOKE_KEY].freeze
 
@@ -30,10 +31,10 @@ module Contributions
 
       Result.new(
         envelope: @envelope, action_type: action_type, action_class: Ledger::ActionTypes.class_for(action_type),
-        signer_key_id: @envelope["signer_key_id"], public_key: @public_key, contributor: @contributor,
+        signer_key_id: signer_key_id, public_key: @public_key, contributor: @contributor,
         delegation: @delegation, payload: @envelope["payload"], payload_hash: @envelope["payload_hash"],
         envelope_hash: Envelope.hash(@envelope),
-        idempotency_key: Envelope.idempotency_key(signer_key_id: @envelope["signer_key_id"],
+        idempotency_key: Envelope.idempotency_key(signer_key_id: signer_key_id,
                                                   task_id: @envelope["task_id"], payload_hash: @envelope["payload_hash"])
       )
     end
@@ -42,12 +43,20 @@ module Contributions
 
     def action_type = @envelope["action_type"]
 
+    # Result envelopes (04 §4) name the signer contributor_key_id; the log column is signer_key_id.
+    def signer_key_id = @envelope["signer_key_id"] || @envelope["contributor_key_id"]
+
+    def result_envelope? = @envelope.is_a?(Hash) && @envelope["protocol"] == RESULT_PROTOCOL
+
     def reject(code, path, detail)
       raise Ledger::Rejected.new([ { code: code, path: path, detail: detail } ])
     end
 
     def shape!
       reject("SCHEMA_INVALID", "$", "envelope must be a JSON object") unless @envelope.is_a?(Hash)
+      return result_shape! if result_envelope?
+
+      reject("SCHEMA_INVALID", "$.protocol", "TASK_RESULT uses #{RESULT_PROTOCOL}") if action_type == "TASK_RESULT"
       unknown = @envelope.keys - REQUIRED - OPTIONAL
       reject("SCHEMA_INVALID", "$", "unknown fields: #{unknown.join(', ')}") if unknown.any?
       missing = REQUIRED - @envelope.keys
@@ -64,6 +73,14 @@ module Contributions
       reject("SCHEMA_INVALID", "$.task_id", "expected a UUID or null") unless nullable(@envelope["task_id"]) { |v| v.is_a?(String) && UUID.match?(v) }
       reject("SCHEMA_INVALID", "$.task_packet_hash", "expected sha256:<hex> or null") unless nullable(@envelope["task_packet_hash"]) { |v| Crypto::Hashing.valid?(v) }
       reject("SCHEMA_INVALID", "$.software", "expected an object or null") unless nullable(@envelope["software"]) { |v| v.is_a?(Hash) }
+    end
+
+    # eir-result-v1 is checked against its JSON Schema (04 §11) plus the closed lists.
+    def result_shape!
+      errors = Schemas.errors(RESULT_PROTOCOL, @envelope)
+      raise Ledger::Rejected.new(errors) if errors.any?
+      reject("UNSUPPORTED_ACTION", "$.action_type", "not handled by this server yet") unless Ledger::ActionTypes.supported?("TASK_RESULT")
+      reject("SCHEMA_INVALID", "$.client_created_at", "expected RFC 3339") unless rfc3339?(@envelope["client_created_at"])
     end
 
     def nullable(value)
@@ -89,7 +106,7 @@ module Contributions
     end
 
     def resolve_signer!
-      key_id = @envelope["signer_key_id"]
+      key_id = signer_key_id
       if action_type == "REGISTER_KEY"
         public_key = @envelope.dig("payload", "public_key")
         reject("SCHEMA_INVALID", "$.payload.public_key", "required for REGISTER_KEY") unless public_key.is_a?(String) && public_key.present?

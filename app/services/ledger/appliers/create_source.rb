@@ -9,6 +9,7 @@ module Ledger
 
       def self.authorize!(validated)
         p = validated.payload
+        in_task = validated.respond_to?(:in_task) && validated.in_task
         enum!(p, "source_type", Source::TYPES)
         string!(p, "title", max: 1_000)
         %w[creator publisher canonical_uri license lineage_key].each { |k| string_or_nil!(p, k) }
@@ -16,9 +17,16 @@ module Ledger
         hash!(p, "external_ids", default: {})
         hash!(p, "metadata", default: {})
         time_or_nil!(p, "retrieved_at")
-        content = string!(p, "content", max: Source::MAX_CONTENT_CHARS)
-        unless p["content_hash"] == Crypto::Hashing.bytes(content)
-          reject("CONTENT_HASH_MISMATCH", path("content_hash"), "does not equal sha256 of the content bytes")
+        if in_task
+          # 04 §6 step 9: the server never fetches agent-supplied URLs; agent
+          # sources are metadata-only until a human or trusted job imports content.
+          reject("CONTENT_NOT_ALLOWED", path("content"), "sources created inside a task are metadata-only (retrieval_pending)") if p.key?("content") || p.key?("content_hash")
+          string_or_nil!(p, "canonical_uri")
+        else
+          content = string!(p, "content", max: Source::MAX_CONTENT_CHARS)
+          unless p["content_hash"] == Crypto::Hashing.bytes(content)
+            reject("CONTENT_HASH_MISMATCH", path("content_hash"), "does not equal sha256 of the content bytes")
+          end
         end
         live!(Source, p, "previous_version_id") unless p["previous_version_id"].nil?
       end
@@ -32,10 +40,9 @@ module Ledger
         reject("SCHEMA_INVALID", path("publication_date"), "expected YYYY-MM-DD")
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         Source.create!(
-          id: Ids.derive(c.id, "source"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "source", index), contribution_id: c.id, created_seq: c.seq, retrieval_pending: !p.key?("content"),
           source_type: p["source_type"], title: p["title"], creator: p["creator"], publisher: p["publisher"],
           publication_date: p["publication_date"], canonical_uri: p["canonical_uri"],
           external_ids: p.fetch("external_ids", {}), content: p["content"], content_hash: p["content_hash"],

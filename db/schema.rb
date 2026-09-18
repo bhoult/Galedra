@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_270000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_280000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -528,6 +528,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_270000) do
     t.date "publication_date"
     t.string "publisher"
     t.bigint "redacted_by_seq"
+    t.boolean "retrieval_pending", default: false, null: false
     t.timestamptz "retrieved_at"
     t.string "source_type", null: false
     t.string "title"
@@ -535,6 +536,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_270000) do
     t.index ["created_seq"], name: "index_sources_on_created_seq"
     t.index ["invalidated_seq"], name: "index_sources_on_invalidated_seq"
     t.index ["lineage_key"], name: "index_sources_on_lineage_key"
+  end
+
+  create_table "task_assignments", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "contributor_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "delegation_id"
+    t.timestamptz "lease_expires_at", null: false
+    t.uuid "principal_contributor_id", null: false
+    t.uuid "result_contribution_id"
+    t.string "status", default: "LEASED", null: false
+    t.uuid "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contributor_id", "created_at"], name: "index_task_assignments_on_contributor_id_and_created_at"
+    t.index ["status", "lease_expires_at"], name: "index_task_assignments_on_status_and_lease_expires_at"
+    t.index ["task_id", "contributor_id"], name: "index_task_assignments_on_task_id_and_contributor_id", unique: true
+    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_on_task_id_and_principal_contributor_id", unique: true
+  end
+
+  create_table "tasks", id: :uuid, default: nil, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "created_by_contributor_id"
+    t.string "domain", null: false
+    t.bigint "issued_seq", null: false
+    t.jsonb "packet", null: false
+    t.string "packet_hash", null: false
+    t.decimal "priority", precision: 10, scale: 4, default: "0.0", null: false
+    t.integer "required_assignments", default: 1, null: false
+    t.string "status", default: "OPEN", null: false
+    t.uuid "target_id", null: false
+    t.string "target_type", null: false
+    t.string "task_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["packet_hash"], name: "index_tasks_on_packet_hash", unique: true
+    t.index ["status", "priority"], name: "index_tasks_on_status_and_priority", order: { priority: :desc }
+    t.index ["target_type", "target_id"], name: "index_tasks_on_target_type_and_target_id"
+    t.index ["task_type"], name: "index_tasks_on_task_type"
   end
 
   create_table "users", force: :cascade do |t|
@@ -570,4 +607,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_270000) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "source_locations", "sources"
+  add_foreign_key "task_assignments", "tasks"
 end

@@ -9,7 +9,7 @@ RSpec.describe "Control contributions (07 Phase 1 #9)" do
     expect(delegation.principal.key_id).to eq(principal.key_id)
     expect(delegation.delegate).to eq(agent)
     expect(delegation.max_tasks_per_day).to eq(50)
-    expect(delegation.permissions["allowed_task_types"]).to eq([ "EVIDENCE_VERIFICATION" ])
+    expect(delegation.permissions["allowed_task_types"]).to eq(Tasks::Types::ALL)
     contribution = Contribution.find_by!(seq: delegation.created_seq)
     expect(contribution.current_status).to eq(Contribution::ACCEPTED)
     expect(contribution.action_type).to eq("DELEGATE")

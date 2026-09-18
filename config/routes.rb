@@ -13,6 +13,11 @@ Rails.application.routes.draw do
         get :redaction_manifest, on: :member
       end
       get "moderation", to: "moderation#index"
+      post "tasks/next", to: "tasks#next"
+      resources :tasks, only: [ :show ] do
+        post :release, on: :member
+      end
+      get "schemas/:name", to: "schemas#show", as: :schema
       resources :sources, only: [ :show ] do
         get :locations, on: :member
       end

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galedra.example/schemas/eir-task-v1.json",
+  "title": "eir-task-v1",
+  "description": "A server-signed task packet (Epistemic Ledger spec 04 section 3). task_packet_hash = sha256 over the RFC 8785 canonical packet without server_signature.",
+  "type": "object",
+  "required": ["protocol", "task_id", "task_type", "domain", "issued_at", "snapshot_seq", "target", "objective", "context", "constraints", "return_schema", "server_key_id", "server_signature"],
+  "additionalProperties": false,
+  "properties": {
+    "protocol": { "const": "eir-task-v1" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "task_type": { "enum": ["CLAIM_EXTRACTION", "EVIDENCE_VERIFICATION", "OPPOSING_EVIDENCE_SEARCH", "SOURCE_INDEPENDENCE_CHECK", "QUALIFIER_CHECK"] },
+    "domain": { "type": "string" },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "snapshot_seq": { "type": "integer", "minimum": 0 },
+    "target": { "type": "object" },
+    "objective": { "type": "string" },
+    "context": { "type": "object" },
+    "constraints": {
+      "type": "object",
+      "required": ["allowed_ops", "max_ops", "require_exact_location"],
+      "properties": {
+        "allowed_ops": { "type": "array", "items": { "type": "string" } },
+        "max_ops": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "require_exact_location": { "type": "boolean" }
+      }
+    },
+    "return_schema": { "const": "eir-result-v1" },
+    "server_key_id": { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$" },
+    "server_signature": { "type": "string" }
+  }
+}

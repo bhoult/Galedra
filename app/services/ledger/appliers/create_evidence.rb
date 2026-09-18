@@ -17,10 +17,9 @@ module Ledger
         enum!(assessment, "extraction", EvidenceItem::EXTRACTION, default: "UNVERIFIED")
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         EvidenceItem.create!(
-          id: Ids.derive(c.id, "evidence"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "evidence", index), contribution_id: c.id, created_seq: c.seq,
           source_location_id: p["source_location_id"], observation_type: p["observation_type"],
           statement: p["statement"], structured_value: p["structured_value"],
           assessment: EvidenceItem::DEFAULT_ASSESSMENT.merge(p.fetch("assessment", {}))

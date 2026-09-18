@@ -1,12 +1,10 @@
 # Builds the public demo (08 §7) and the Watchers stress test (examples/watchers §6)
-# through the real write path, without the task and audit steps that arrive in
-# Stages 7 and 8: agent results are appended under a delegation and accepted by
-# a different principal, and the poisoned link is invalidated by its principal.
-# Stage 11's seeds are the real scripts; this is test scaffolding.
+# through the real write path: leased tasks answered by TASK_RESULT envelopes,
+# audits, sampling, and acceptance. Stage 11's seeds are the real scripts with
+# the example agent; this is test scaffolding that mirrors them step for step.
 module DemoGraphs
-  # Golden fields not yet reproducible end to end. Stage 8 removes
-  # review_coverage (task-derived checks).
-  DEFERRED_GOLDEN_FIELDS = %w[review_coverage].freeze
+  # Every golden field is now reproducible end to end.
+  DEFERRED_GOLDEN_FIELDS = [].freeze
 
   Graph = Struct.new(:claims, :checkpoints, :handles, keyword_init: true)
 
@@ -26,14 +24,16 @@ module DemoGraphs
     h["SD"] = create_source(curator, title: "AI-drafted memo", type: "OTHER", content: memo)
     create_location(curator, h["SD"])
 
-    # T0 CLAIM_EXTRACTION: proposals by the verifier, accepted by the Curator
-    { "C2" => [ "62% of remote workers report higher productivity.", "QUANTITATIVE" ],
-      "C4" => [ "The Journal of Distributed Work Research (2025) reports that 62% of remote workers report higher productivity.", "TEXTUAL" ],
-      "C5" => [ "Companies should adopt remote work.", "NORMATIVE" ],
-      "C6" => [ "Remote work causes higher productivity.", "CAUSAL" ] }.each do |handle, (text, type)|
-      h[handle] = create_claim(verifier, text, type: type, delegation: verifier_delegation)
-      accept(curator, h[handle].contribution)
-    end
+    # T0 CLAIM_EXTRACTION by the verifier: one result proposing C2, C4, C5, C6; the Curator accepts it
+    h["T0"] = create_task("CLAIM_EXTRACTION", h["SD"])
+    extraction = submit_result(verifier, h["T0"], delegation: verifier_delegation, outcome: "CLAIMS_FOUND", ops: [
+      { "op" => "CREATE_CLAIM", "canonical_text" => "62% of remote workers report higher productivity.", "claim_type" => "QUANTITATIVE", "affirms_not_private_individual" => true },
+      { "op" => "CREATE_CLAIM", "canonical_text" => "The Journal of Distributed Work Research (2025) reports that 62% of remote workers report higher productivity.", "claim_type" => "TEXTUAL", "affirms_not_private_individual" => true },
+      { "op" => "CREATE_CLAIM", "canonical_text" => "Companies should adopt remote work.", "claim_type" => "NORMATIVE", "affirms_not_private_individual" => true },
+      { "op" => "CREATE_CLAIM", "canonical_text" => "Remote work causes higher productivity.", "claim_type" => "CAUSAL", "affirms_not_private_individual" => true }
+    ])
+    h["C2"], h["C4"], h["C5"], h["C6"] = result_rows(extraction, Claim)
+    accept(curator, extraction.contribution)
 
     h["SR"] = create_source(curator, title: "Acme Remote Work Survey 2026", type: "DATASET",
                             content: "Acme Remote Work Survey 2026. Respondents: 400 remote employees recruited from Acme customer accounts. Self-reported: 62% said their productivity was higher when working remotely.")
@@ -65,36 +65,51 @@ module DemoGraphs
     %w[E2 E3 E4 E5].each_with_index { |e, i| h["L#{4 + i}"] = link_evidence(curator, h[e], h["C2"], strength: "MODERATE", steps: 1, note: "as first extracted #{i}") }
     h["L8"] = link_evidence(curator, h["E7"], h["C4"], direction: "CONTRADICT", strength: "MODERATE", steps: 0, note: "an index snapshot can be incomplete")
     h["L9"] = link_evidence(curator, h["E1"], h["C6"], strength: "WEAK", steps: 2, note: "a satisfaction survey is not a causal design")
-    # Step 8: Reviewer audits the extraction proposals and each Curator link contribution
-    %w[C2 C4 C5 C6].each { |c| audit(reviewer, h[c], type: "SCHEMA_CHECK") }
+    # Step 7: T1 OPPOSING_EVIDENCE_SEARCH on C4 (direction SUPPORT) finds nothing
+    h["T1"] = create_task("OPPOSING_EVIDENCE_SEARCH", h["C4"])
+    t1 = submit_result(verifier, h["T1"], delegation: verifier_delegation, outcome: "NONE_FOUND", ops: [])
+    # Step 8: Reviewer audits T0, T1, and each Curator link contribution
+    audit(reviewer, extraction.contribution, type: "SCHEMA_CHECK")
+    audit(reviewer, t1.contribution, type: "SOURCE_CHECK")
     (1..9).each { |i| audit(reviewer, h["L#{i}"]) }
     cp["S1"] = Contribution.maximum(:seq)
 
-    # T2 EVIDENCE_VERIFICATION by AgentBad: the false link, accepted (as a task result would be)
-    h["L10"] = link_evidence(bad, h["E2"], h["C4"], strength: "DIRECT", steps: 0, delegation: bad_delegation, note: "Release states the same figure.")
-    accept(reviewer, h["L10"].contribution)
+    # Step 9: T2 EVIDENCE_VERIFICATION of C4 on the press-release location, answered by AgentBad
+    h["T2"] = create_task("EVIDENCE_VERIFICATION", h["C4"], location: loc["SP"])
+    t2 = submit_result(bad, h["T2"], delegation: bad_delegation, outcome: "CONFIRMED", ops: [
+      { "op" => "LINK_EVIDENCE", "evidence_item_id" => h["E2"].id, "claim_id" => h["C4"].id, "direction" => "SUPPORT", "relevance_strength" => "DIRECT", "interpretive_steps" => 0, "note" => "Release states the same figure." }
+    ])
+    h["L10"] = result_rows(t2, EvidenceClaimLink).first
     cp["S2"] = Contribution.maximum(:seq)
 
-    # Steps 10–11: sampled, then audited SUBSTANTIVE_ERROR; the system invalidates
-    audit(reviewer, h["L10"], result: "SUBSTANTIVE_ERROR", note: "The press release is not the cited journal article.")
+    # Steps 10–11: sampled (n=0, mean 0.5), audited SUBSTANTIVE_ERROR; the system invalidates
+    audit(reviewer, t2.contribution, result: "SUBSTANTIVE_ERROR", note: "The press release is not the cited journal article.")
     cp["S3"] = Contribution.maximum(:seq)
 
-    %w[E3 E4 E5].each { |e| h["A#{e}"] = assign_group(curator, h[e], h["G1"]) }
-    %w[E3 E4 E5].each { |e| audit(reviewer, h["A#{e}"], type: "INDEPENDENCE_CHECK") }
+    # Steps 12–13: T3 SOURCE_INDEPENDENCE_CHECK on C2 groups the articles into G1
+    h["T3"] = create_task("SOURCE_INDEPENDENCE_CHECK", h["C2"])
+    t3 = submit_result(verifier, h["T3"], delegation: verifier_delegation, outcome: "GROUPED",
+                       ops: %w[E3 E4 E5].map { |e| { "op" => "ASSIGN_INDEPENDENCE_GROUP", "evidence_item_id" => h[e].id, "independence_group_id" => h["G1"].id } })
+    audit(reviewer, t3.contribution, type: "INDEPENDENCE_CHECK")
     cp["S4"] = Contribution.maximum(:seq)
 
-    h["E6"] = create_evidence(curator, loc["SR"], observation: "DATASET_RESULT", statement: "Respondents were recruited only from Acme customer accounts; answers are self-reported.")
+    # Steps 14–15: T4 QUALIFIER_CHECK on C2: E6, L16, the NARROWS edge, and supersessions of L3–L7 (a proposal until the Reviewer accepts)
+    h["T4"] = create_task("QUALIFIER_CHECK", h["C2"])
+    t4 = submit_result(verifier, h["T4"], delegation: verifier_delegation, outcome: "QUALIFIERS_FOUND", ops: [
+      { "op" => "CREATE_EVIDENCE", "ref" => "e6", "source_location_id" => loc["SR"].id, "observation_type" => "DATASET_RESULT",
+        "statement" => "Respondents were recruited only from Acme customer accounts; answers are self-reported." },
+      { "op" => "LINK_EVIDENCE", "evidence_item_id" => "e6", "claim_id" => h["C2"].id, "direction" => "QUALIFY", "relevance_strength" => "DIRECT", "interpretive_steps" => 0 },
+      { "op" => "CREATE_CLAIM_EDGE", "from_claim_id" => h["C3"].id, "to_claim_id" => h["C2"].id, "relationship_type" => "NARROWS" }
+    ] + (3..7).map { |i| { "op" => "SUPERSEDE_LINK", "link_id" => h["L#{i}"].id, "direction" => "SUPPORT", "relevance_strength" => "WEAK", "interpretive_steps" => 3,
+                            "reason" => "customer sample, self-report: little about all remote workers" } })
+    expect(t4.acceptance).to be_nil
+    accept(reviewer, t4.contribution)
+    audit(reviewer, t4.contribution)
+    h["E6"] = result_rows(t4, EvidenceItem).first
     assign_group(curator, h["E6"], h["G1"])
-    h["L16"] = link_evidence(curator, h["E6"], h["C2"], direction: "QUALIFY", strength: "DIRECT", steps: 0)
-    create_edge(curator, h["C3"], h["C2"], type: "NARROWS")
-    (3..7).each do |i|
-      result = append(action_type: "SUPERSEDE_LINK", key_pair: curator,
-                      payload: { "link_id" => h["L#{i}"].id, "direction" => "SUPPORT", "relevance_strength" => "WEAK", "interpretive_steps" => 3,
-                                 "reason" => "customer sample, self-report: little about all remote workers" })
-      h["L#{i + 8}"] = EvidenceClaimLink.find(Ledger::Ids.derive(result.contribution.id, "link"))
-    end
-    # Step 15: the qualifier work is audited CONFIRMED
-    ([ h["E6"], h["L16"] ] + (11..15).map { |i| h["L#{i}"] }).each { |row| audit(reviewer, row) }
+    links = result_rows(t4, EvidenceClaimLink)
+    h["L16"] = links.find { |l| l.direction == "QUALIFY" }
+    links.select { |l| l.supersedes_link_id }.each_with_index { |l, i| h["L#{11 + i}"] = l }
     cp["S5"] = Contribution.maximum(:seq)
 
     Graph.new(claims: h.select { |k, _| k.start_with?("C") }, checkpoints: cp, handles: h)
@@ -126,17 +141,27 @@ module DemoGraphs
     h["L3"] = link_evidence(curator, h["E2"], h["C3"], strength: "MODERATE", steps: 1)
     h["L4"] = link_evidence(curator, h["E3"], h["C4"], direction: "CONTRADICT", strength: "MODERATE", steps: 0)
     %w[L1 L3 L4].each { |l| audit(reviewer, h[l]) }
-    h["L2"] = link_evidence(verifier, h["E1"], h["C2"], strength: "DIRECT", steps: 0, delegation: verifier_delegation)
-    accept(reviewer, h["L2"].contribution)
+    # T1 EVIDENCE_VERIFICATION of C2 on SLA: CONFIRMED with L2
+    h["T1"] = create_task("EVIDENCE_VERIFICATION", h["C2"], location: loc["SA"], domain: "ancient_near_east")
+    t1 = submit_result(verifier, h["T1"], delegation: verifier_delegation, outcome: "CONFIRMED", ops: [
+      { "op" => "LINK_EVIDENCE", "evidence_item_id" => h["E1"].id, "claim_id" => h["C2"].id, "direction" => "SUPPORT", "relevance_strength" => "DIRECT", "interpretive_steps" => 0 }
+    ])
+    h["L2"] = result_rows(t1, EvidenceClaimLink).first
+    # T2 OPPOSING_EVIDENCE_SEARCH on C4: NONE_FOUND
+    h["T2"] = create_task("OPPOSING_EVIDENCE_SEARCH", h["C4"], domain: "ancient_near_east")
+    submit_result(verifier, h["T2"], delegation: verifier_delegation, outcome: "NONE_FOUND", ops: [])
     cp["S1"] = Contribution.maximum(:seq)
 
     h["C5"] = create_claim(curator, "The source explicitly identifies Azazel as a machine.")
-    h["L5"] = link_evidence(bad, h["E1"], h["C5"], strength: "DIRECT", steps: 0, delegation: bad_delegation)
-    accept(reviewer, h["L5"].contribution)
+    h["T3"] = create_task("EVIDENCE_VERIFICATION", h["C5"], location: loc["SA"], domain: "ancient_near_east")
+    t3 = submit_result(bad, h["T3"], delegation: bad_delegation, outcome: "CONFIRMED", ops: [
+      { "op" => "LINK_EVIDENCE", "evidence_item_id" => h["E1"].id, "claim_id" => h["C5"].id, "direction" => "SUPPORT", "relevance_strength" => "DIRECT", "interpretive_steps" => 0 }
+    ])
+    h["L5"] = result_rows(t3, EvidenceClaimLink).first
     cp["S2"] = Contribution.maximum(:seq)
 
-    audit(reviewer, h["L5"], result: "SUBSTANTIVE_ERROR", note: "No such statement appears in the cited passage.")
-    audit(reviewer, h["L2"])
+    audit(reviewer, t3.contribution, result: "SUBSTANTIVE_ERROR", note: "No such statement appears in the cited passage.")
+    audit(reviewer, t1.contribution)
     cp["S3"] = Contribution.maximum(:seq)
 
     h["SB"] = create_source(curator, title: "Second retelling", content: "A second retelling says Azazel showed people how to work metals and forge weapons of war.")
@@ -148,10 +173,15 @@ module DemoGraphs
     %w[L6 L7].each { |l| audit(reviewer, h[l]) }
     cp["S4"] = Contribution.maximum(:seq)
 
-    h["G2"] = create_group(curator, type: "SAME_PRIMARY_TEXT", description: "lineage of SB")
-    h["AE4"] = assign_group(curator, h["E4"], h["G2"])
-    h["AE5"] = assign_group(curator, h["E5"], h["G2"])
-    %w[AE4 AE5].each { |a| audit(reviewer, h[a], type: "INDEPENDENCE_CHECK") }
+    # T4 SOURCE_INDEPENDENCE_CHECK on C1: create G2 and assign E4, E5
+    h["T4"] = create_task("SOURCE_INDEPENDENCE_CHECK", h["C1"], domain: "ancient_near_east")
+    t4 = submit_result(verifier, h["T4"], delegation: verifier_delegation, outcome: "GROUPED", ops: [
+      { "op" => "CREATE_INDEPENDENCE_GROUP", "ref" => "g2", "group_type" => "SAME_PRIMARY_TEXT", "description" => "lineage of SB" },
+      { "op" => "ASSIGN_INDEPENDENCE_GROUP", "evidence_item_id" => h["E4"].id, "independence_group_id" => "g2" },
+      { "op" => "ASSIGN_INDEPENDENCE_GROUP", "evidence_item_id" => h["E5"].id, "independence_group_id" => "g2" }
+    ])
+    h["G2"] = result_rows(t4, IndependenceGroup).first
+    audit(reviewer, t4.contribution, type: "INDEPENDENCE_CHECK")
     cp["S5"] = Contribution.maximum(:seq)
 
     Graph.new(claims: h.select { |k, _| k.start_with?("C") }, checkpoints: cp, handles: h)

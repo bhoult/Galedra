@@ -22,8 +22,8 @@ module Ledger
         same_principal?(validated, Claim.find(validated.payload["claim_id"]))
       end
 
-      def self.apply(c)
-        CreateClaim.create_claim(c, c.payload, supersedes_claim_id: c.payload["claim_id"])
+      def self.apply_payload(c, p, index = nil)
+        CreateClaim.create_claim(c, p, supersedes_claim_id: p["claim_id"], index: index)
       end
     end
   end

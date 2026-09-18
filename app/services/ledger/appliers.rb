@@ -30,7 +30,8 @@ module Ledger
       "CREATE_INDEPENDENCE_GROUP" => "Ledger::Appliers::CreateIndependenceGroup",
       "ASSIGN_INDEPENDENCE_GROUP" => "Ledger::Appliers::AssignIndependenceGroup",
       "SUPERSEDE_LINK" => "Ledger::Appliers::SupersedeLink",
-      "MERGE_CLAIMS" => "Ledger::Appliers::MergeClaims"
+      "MERGE_CLAIMS" => "Ledger::Appliers::MergeClaims",
+      "TASK_RESULT" => "Ledger::Appliers::TaskResult"
     }.freeze
 
     def self.for(action_type)
@@ -141,6 +142,16 @@ module Ledger
     # contribution is accepted by the system after validation.
     module Epistemic
       include Checks
+
+      # Direct contributions carry one op in the payload; task results apply
+      # several with an index in the derived id.
+      def apply(contribution)
+        apply_payload(contribution, contribution.payload, nil)
+      end
+
+      def row_id(contribution, kind, index)
+        Ids.derive(*[ contribution.id, kind, index ].compact)
+      end
 
       def accept(contribution, seq)
         contribution.projection_rows.each do |row|

@@ -1,0 +1,42 @@
+[
+  {
+    "match": { "task_type": "EVIDENCE_VERIFICATION" },
+    "behaviour": "confirm_direct",
+    "params": { "outcome": "CONFIRMED", "statement": "The excerpt states the claim.", "direction": "SUPPORT", "relevance_strength": "DIRECT" }
+  },
+  {
+    "match": { "task_type": "EVIDENCE_VERIFICATION" },
+    "agent": "bad",
+    "behaviour": "confirm_direct",
+    "params": { "outcome": "CONFIRMED", "statement": "Release states the same figure.", "direction": "SUPPORT", "relevance_strength": "DIRECT", "note": "Release states the same figure." }
+  },
+  {
+    "match": { "task_type": "OPPOSING_EVIDENCE_SEARCH" },
+    "behaviour": "none_found"
+  },
+  {
+    "match": { "task_type": "SOURCE_INDEPENDENCE_CHECK", "claim_text_includes": "62% of remote workers report higher productivity" },
+    "behaviour": "group_by_title",
+    "params": { "source_title_includes": [ "News article", "Acme press release", "Acme Remote Work Survey" ], "group_description": "Acme 2026 survey", "group_type": "SAME_DATASET" }
+  },
+  {
+    "match": { "task_type": "SOURCE_INDEPENDENCE_CHECK", "claim_text_includes": "attributes metalworking instruction to Azazel" },
+    "behaviour": "group_by_title",
+    "params": { "source_title_includes": [ "Second retelling", "Explainer" ], "group_description": "lineage of SB", "group_type": "SAME_PRIMARY_TEXT" }
+  },
+  {
+    "match": { "task_type": "QUALIFIER_CHECK", "claim_text_includes": "62% of remote workers report higher productivity" },
+    "behaviour": "qualifier_demo",
+    "params": { "statement": "Respondents were recruited only from Acme customer accounts; answers are self-reported.", "narrower_claim_includes": "400 remote employees of Acme customers", "weakened_strength": "WEAK", "weakened_steps": 3, "reason": "customer sample, self-report: little about all remote workers" }
+  },
+  {
+    "match": { "task_type": "CLAIM_EXTRACTION", "claim_text_includes": "AI-drafted memo" },
+    "behaviour": "propose_claims",
+    "params": { "claims": [
+      { "text": "62% of remote workers report higher productivity.", "type": "QUANTITATIVE" },
+      { "text": "The Journal of Distributed Work Research (2025) reports that 62% of remote workers report higher productivity.", "type": "TEXTUAL" },
+      { "text": "Companies should adopt remote work.", "type": "NORMATIVE" },
+      { "text": "Remote work causes higher productivity.", "type": "CAUSAL" }
+    ] }
+  }
+]

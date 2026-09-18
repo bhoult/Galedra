@@ -20,10 +20,9 @@ module Ledger
         same_principal?(validated, Claim.find(p["from_claim_id"]), Claim.find(p["into_claim_id"]))
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         ClaimMerge.create!(
-          id: Ids.derive(c.id, "merge"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "merge", index), contribution_id: c.id, created_seq: c.seq,
           from_claim_id: p["from_claim_id"], into_claim_id: p["into_claim_id"]
         )
       end

@@ -11,13 +11,13 @@ module Ledger
         p = validated.payload
         live!(EvidenceItem, p, "evidence_item_id")
         group = live!(IndependenceGroup, p, "independence_group_id")
-        reject("TARGET_NOT_ACCEPTED", path("independence_group_id"), "group is not accepted yet") unless group.accepted?
+        same_result = validated.respond_to?(:in_task) && validated.in_task && validated.respond_to?(:created_ids) && validated.created_ids.include?(group.id)
+        reject("TARGET_NOT_ACCEPTED", path("independence_group_id"), "group is not accepted yet") unless group.accepted? || same_result
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         IndependenceGroupAssignment.create!(
-          id: Ids.derive(c.id, "assignment"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "assignment", index), contribution_id: c.id, created_seq: c.seq,
           evidence_item_id: p["evidence_item_id"], independence_group_id: p["independence_group_id"]
         )
       end

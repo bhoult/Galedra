@@ -16,6 +16,7 @@ module Ledger
         excerpt = string_or_nil!(p, "excerpt")
         string_or_nil!(p, "excerpt_hash")
 
+        reject("LOCATOR_INVALID", path("locator_type"), "CHAR_RANGE needs stored content; this source is retrieval_pending") if type == "CHAR_RANGE" && source.content.nil?
         if type == "CHAR_RANGE"
           start = locator["start"]
           finish = locator["end"]
@@ -30,10 +31,9 @@ module Ledger
         end
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         SourceLocation.create!(
-          id: Ids.derive(c.id, "location"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "location", index), contribution_id: c.id, created_seq: c.seq,
           source_id: p["source_id"], locator_type: p["locator_type"], locator: p["locator"],
           excerpt: p["excerpt"], excerpt_hash: p["excerpt_hash"]
         )

@@ -22,10 +22,9 @@ module Ledger
 
       def self.auto_accept?(_validated) = false
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         ClaimEvaluabilitySetting.create!(
-          id: Ids.derive(c.id, "evaluability"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "evaluability", index), contribution_id: c.id, created_seq: c.seq,
           claim_id: p["claim_id"], truth_evaluable: p["truth_evaluable"], not_evaluable_reason: p["not_evaluable_reason"]
         )
       end

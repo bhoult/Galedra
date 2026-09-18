@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galedra.example/schemas/eir-contribution-v1.json",
+  "title": "eir-contribution-v1",
+  "description": "A client-signed ordinary contribution envelope. The signature covers the RFC 8785 canonical envelope minus the signature field. No floats anywhere.",
+  "type": "object",
+  "required": ["protocol", "action_type", "signer_key_id", "client_created_at", "payload", "payload_hash", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "protocol": { "const": "eir-contribution-v1" },
+    "action_type": { "type": "string" },
+    "signer_key_id": { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$" },
+    "delegation_id": { "type": ["string", "null"], "format": "uuid" },
+    "task_id": { "type": ["string", "null"], "format": "uuid" },
+    "task_packet_hash": { "type": ["string", "null"] },
+    "client_created_at": { "type": "string", "format": "date-time" },
+    "software": { "type": ["object", "null"] },
+    "payload": { "type": "object" },
+    "payload_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "signature": { "type": "string" }
+  }
+}

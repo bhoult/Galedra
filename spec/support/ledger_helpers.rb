@@ -18,7 +18,7 @@ module LedgerHelpers
   end
 
   def delegate(principal_pair, agent_contributor, permissions: nil, valid_from: 1.minute.ago, valid_until: 1.day.from_now, **extra)
-    permissions ||= { "allowed_task_types" => [ "EVIDENCE_VERIFICATION" ], "domains" => [ "general" ] }
+    permissions ||= { "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains }
     result = append(action_type: "DELEGATE", key_pair: principal_pair,
                     payload: { "delegate_key_id" => agent_contributor.key_id, "permissions" => permissions,
                                "valid_from" => valid_from.utc.iso8601, "valid_until" => valid_until.utc.iso8601 }.merge(extra))
@@ -119,6 +119,28 @@ module GraphHelpers
     payload = { "target_contribution_id" => target.id, "audit_type" => type, "result" => result, "note" => note, "effort_seconds" => effort_seconds }.compact
     result = append(action_type: "AUDIT", key_pair: pair, payload: payload, delegation_id: delegation&.id)
     Audit.find(Ledger::Ids.derive(result.contribution.id, "audit"))
+  end
+
+  def create_task(type, target, location: nil, domain: "general", required_assignments: 1)
+    Tasks::Create.call(task_type: type, target: target, location: location, domain: domain, required_assignments: required_assignments)
+  end
+
+  def lease(task_or_types, pair, delegation: nil)
+    contributor = Contributor.find_by!(key_id: pair.key_id)
+    types = task_or_types.is_a?(Task) ? [ task_or_types.task_type ] : Array(task_or_types)
+    Tasks::Lease.next(contributor: contributor, delegation: delegation, types: types, domains: [])
+  end
+
+  # Leases (if needed) and submits a TASK_RESULT for a task. Returns the Append result.
+  def submit_result(pair, task, outcome:, ops:, delegation: nil, software: nil)
+    contributor = Contributor.find_by!(key_id: pair.key_id)
+    task.assignments.find_by(contributor_id: contributor.id) || Tasks::Lease.next(contributor: contributor, delegation: delegation, types: [ task.task_type ], domains: [ task.domain ])
+    envelope = Contributions::Envelope.build_result(task: task, key_pair: pair, outcome: outcome, ops: ops, delegation_id: delegation&.id, software: software)
+    Ledger::Append.call(envelope)
+  end
+
+  def result_rows(result, model)
+    model.where(contribution_id: result.contribution.id).order(:created_seq).to_a
   end
 
   def register_reviewer(**payload)

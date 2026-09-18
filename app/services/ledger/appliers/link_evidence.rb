@@ -20,14 +20,13 @@ module Ledger
         string_or_nil!(p, "note")
       end
 
-      def self.apply(c)
-        p = c.payload
-        create_link(c, p, evidence_item_id: p["evidence_item_id"], claim_id: p["claim_id"])
+      def self.apply_payload(c, p, index = nil)
+        create_link(c, p, evidence_item_id: p["evidence_item_id"], claim_id: p["claim_id"], index: index)
       end
 
-      def self.create_link(c, p, evidence_item_id:, claim_id:, supersedes_link_id: nil)
+      def self.create_link(c, p, evidence_item_id:, claim_id:, supersedes_link_id: nil, index: nil)
         EvidenceClaimLink.create!(
-          id: Ids.derive(c.id, "link"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "link", index), contribution_id: c.id, created_seq: c.seq,
           evidence_item_id: evidence_item_id, claim_id: claim_id, direction: p["direction"],
           relevance_strength: p["relevance_strength"], interpretive_steps: p["interpretive_steps"],
           note: p["note"], supersedes_link_id: supersedes_link_id

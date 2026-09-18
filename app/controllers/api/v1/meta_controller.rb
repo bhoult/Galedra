@@ -18,7 +18,10 @@ module Api
           default_model: Scoring::Registry.default_model&.full_name,
           current_seq: head&.seq,
           chain_head: head&.entry_hash,
-          protocol: Ledger::PROTOCOL
+          protocol: Ledger::PROTOCOL,
+          schema_urls: Contributions::Schemas::NAMES.to_h { |n| [ n, api_v1_schema_url(n) ] },
+          task_types: Tasks::Types::ALL,
+          domains: Audits::Policy.domains
         }
       end
     end

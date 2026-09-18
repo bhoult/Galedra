@@ -32,15 +32,15 @@ module Ledger
         Claims::Atomicity.warnings(validated.payload["canonical_text"])
       end
 
-      def self.apply(c)
-        create_claim(c, c.payload)
+      def self.apply_payload(c, p, index = nil)
+        create_claim(c, p, index: index)
       end
 
-      def self.create_claim(c, p, supersedes_claim_id: nil)
+      def self.create_claim(c, p, supersedes_claim_id: nil, index: nil)
         type = p["claim_type"]
         evaluable = p.key?("truth_evaluable") ? p["truth_evaluable"] : Claim.default_truth_evaluable(type)
         Claim.create!(
-          id: Ids.derive(c.id, "claim"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "claim", index), contribution_id: c.id, created_seq: c.seq,
           canonical_text: p["canonical_text"], claim_type: type, truth_evaluable: evaluable,
           not_evaluable_reason: evaluable ? nil : (p["not_evaluable_reason"] || Claim::DEFAULT_NOT_EVALUABLE[type]),
           qualifiers: p.fetch("qualifiers", {}), status: "ACTIVE", supersedes_claim_id: supersedes_claim_id

@@ -14,10 +14,9 @@ module Ledger
         enum!(p, "relationship_type", ClaimEdge::TYPES)
       end
 
-      def self.apply(c)
-        p = c.payload
+      def self.apply_payload(c, p, index = nil)
         ClaimEdge.create!(
-          id: Ids.derive(c.id, "edge"), contribution_id: c.id, created_seq: c.seq,
+          id: row_id(c, "edge", index), contribution_id: c.id, created_seq: c.seq,
           from_claim_id: p["from_claim_id"], to_claim_id: p["to_claim_id"], relationship_type: p["relationship_type"]
         )
       end

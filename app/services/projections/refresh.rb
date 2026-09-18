@@ -6,22 +6,17 @@ module Projections
   # the log, so replay reproduces the columns.
   module Refresh
     def self.after(contribution)
-      id = contribution.id
-      case contribution.action_type
-      when "CREATE_CLAIM"
-        claim(Claim.find_by(contribution_id: id))
-      when "SUPERSEDE_CLAIM"
-        new_claim = Claim.find_by(contribution_id: id)
-        claim(new_claim)
-        claim(new_claim&.supersedes_claim)
-      when "MERGE_CLAIMS"
-        merge = ClaimMerge.find_by(contribution_id: id)
-        claim(merge&.from_claim)
-        claim(merge&.into_claim)
-      when "SET_TRUTH_EVALUABLE"
-        claim(ClaimEvaluabilitySetting.find_by(contribution_id: id)&.claim)
-      when "ASSIGN_INDEPENDENCE_GROUP"
-        evidence(IndependenceGroupAssignment.find_by(contribution_id: id)&.evidence_item)
+      contribution.projection_rows.each do |row|
+        case row
+        when Claim
+          claim(row)
+          claim(row.supersedes_claim)
+        when ClaimMerge
+          claim(row.from_claim)
+          claim(row.into_claim)
+        when ClaimEvaluabilitySetting then claim(row.claim)
+        when IndependenceGroupAssignment then evidence(row.evidence_item)
+        end
       end
     end
 
