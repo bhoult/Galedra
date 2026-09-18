@@ -43,7 +43,8 @@ module Audits
       {
         "n" => rep[:n], "mean" => rep[:mean], "task_type" => task_type, "domain" => domain,
         "downstream_count" => Status.downstream_count(contribution.id, seq),
-        "outcome_is_unusual" => unusual?(contribution)
+        "outcome_is_unusual" => unusual?(contribution),
+        "principal_tier" => contribution.principal_contributor&.identity_tier
       }
     end
 
@@ -54,6 +55,7 @@ module Audits
       p *= BigDecimal(c["low_reliability_factor"]) if BigDecimal(inputs["mean"]) < BigDecimal(c["low_reliability_mean"])
       p *= BigDecimal(1) + BigDecimal(inputs["downstream_count"]).div(BigDecimal(c["impact_divisor"]), Scoring::Decimal::PRECISION)
       p *= BigDecimal(c["unusual_factor"]) if inputs["outcome_is_unusual"]
+      p *= BigDecimal(c.fetch("anonymous_factor", "1")) if inputs["principal_tier"] == "ANONYMOUS"
       [ p, BigDecimal(1) ].min
     end
 

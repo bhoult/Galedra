@@ -1,0 +1,22 @@
+<% content_for :title, "Assistant connected" %>
+<div class="connect">
+  <h1><%= @token.software["agent_name"] %> is connected</h1>
+  <p class="lede">Copy this token now. It is shown once and stored only as a hash.</p>
+  <div class="card token">
+    <p><code id="token"><%= @plaintext %></code></p>
+    <p class="meta">Agent key <%= link_to short_id(@token.agent.key_id), contributor_path(@token.agent) %> · acting for <%= link_to(@token.principal.display_name || "an anonymous contributor", contributor_path(@token.principal)) %> · valid until <%= @token.delegation.valid_until.to_date %> · <%= @token.daily_cap %> writes a day · delegation <%= link_to "in the log", contribution_path(Contribution.find_by!(seq: @token.delegation.created_seq)) %></p>
+  </div>
+
+  <h2>Paste this into your assistant</h2>
+  <p class="muted">Setup files for Claude, ChatGPT, and other MCP clients arrive in the next stage. Until then, any assistant that can make HTTP requests can use the token directly:</p>
+  <pre>Galedra base URL: <%= request.base_url %>
+Token: <%= @plaintext %>
+
+Read:  GET  /api/v1/claims?q=&lt;words&gt;           (search first)
+       GET  /api/v1/claims/:id                   (answer card, why, links)
+Write: POST /api/v1/custodied/contributions      (Authorization: Bearer &lt;token&gt;)
+       body: {"action_type": "CREATE_CLAIM", "payload": {...}}
+Rules: quote exact passages with a link and hash; one assertion per claim;
+       your own reasoning is not evidence; say the result is provisional.</pre>
+  <p><%= link_to "Back to Connect an assistant", new_assistant_path %></p>
+</div>

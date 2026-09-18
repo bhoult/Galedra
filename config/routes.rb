@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   resource :session
   resources :passwords, param: :token
   resources :users, only: [ :new, :create ]
+  resources :assistants, only: [ :new, :create, :destroy ]
 
   resources :claims, only: [ :index, :show ]
   resources :sources, only: [ :show ] do
@@ -33,6 +34,8 @@ Rails.application.routes.draw do
         get :redaction_manifest, on: :member
       end
       get "moderation", to: "moderation#index"
+      resources :assistants, only: [ :create, :destroy ]
+      post "custodied/contributions", to: "custodied#create"
       post "tasks/next", to: "tasks#next"
       resources :tasks, only: [ :show ] do
         post :release, on: :member

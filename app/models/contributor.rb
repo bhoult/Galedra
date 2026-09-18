@@ -9,7 +9,9 @@ class Contributor < ApplicationRecord
   SYSTEM = "SYSTEM"
   KINDS = [ HUMAN, AGENT, SYSTEM ].freeze
 
-  IDENTITY_TIERS = %w[PSEUDONYMOUS ESTABLISHED EXTERNALLY_VERIFIED INSTITUTIONAL].freeze
+  # ANONYMOUS (Stage 12): a server-custodied key with no account. Weighted in audit
+  # sampling, caps, and labels; never in claim scores (Art. XI).
+  IDENTITY_TIERS = %w[ANONYMOUS PSEUDONYMOUS ESTABLISHED EXTERNALLY_VERIFIED INSTITUTIONAL].freeze
 
   has_one :custodied_key, dependent: nil
   has_many :contributions, dependent: nil
@@ -29,6 +31,7 @@ class Contributor < ApplicationRecord
   def system? = kind == SYSTEM
 
   def revoked? = revoked_seq.present?
+  def anonymous? = identity_tier == "ANONYMOUS"
 
   def server_custodied?
     custodied_key.present?

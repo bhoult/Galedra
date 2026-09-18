@@ -29,10 +29,12 @@
           <%= link_to "Weaknesses", weaknesses_path %>
           <%= link_to "Moderation", moderation_path %>
           <%= link_to "Log", contributions_path %>
+          <%= link_to "Assistant", new_assistant_path %>
           <%= link_to "Constitution", constitution_path %>
         <% else %>
           <%= link_to "Constitution", constitution_path %>
           <%= link_to "FAQ", faq_path %>
+          <%= link_to "Connect an assistant", new_assistant_path %>
         <% end %>
       </nav>
       <div class="account">

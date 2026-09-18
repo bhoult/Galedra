@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_300000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -27,6 +27,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_300000) do
     t.timestamptz "valid_until", null: false
     t.index ["delegate_contributor_id"], name: "index_agent_delegations_on_delegate_contributor_id"
     t.index ["principal_contributor_id"], name: "index_agent_delegations_on_principal_contributor_id"
+  end
+
+  create_table "assistant_tokens", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "agent_contributor_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "daily_cap", default: 200, null: false
+    t.uuid "delegation_id", null: false
+    t.timestamptz "last_used_at"
+    t.uuid "principal_contributor_id", null: false
+    t.timestamptz "revoked_at"
+    t.jsonb "software", default: {}, null: false
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["agent_contributor_id"], name: "index_assistant_tokens_on_agent_contributor_id", unique: true
+    t.index ["token_digest"], name: "index_assistant_tokens_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_assistant_tokens_on_user_id"
   end
 
   create_table "audit_schedules", id: :uuid, default: nil, force: :cascade do |t|
@@ -195,7 +212,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_300000) do
     t.datetime "created_at", null: false
     t.text "encrypted_private_key", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["contributor_id"], name: "index_custodied_keys_on_contributor_id", unique: true
     t.index ["user_id"], name: "index_custodied_keys_on_user_id"
   end

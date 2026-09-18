@@ -17,7 +17,7 @@ module Cards
         review_checks: "#{checks.count { |_, v| v['ok'] }} of #{checks.size}",
         stability: result.stability,
         main_issue: MainIssue.call(claim, seq, result),
-        labels: labels(result),
+        labels: labels(result, anonymous: anonymous_provisional?(claim, seq)),
         related: related(claim, seq, model),
         model: model.full_name, snapshot_seq: seq
       }
@@ -25,9 +25,9 @@ module Cards
       card
     end
 
-    def labels(result)
+    def labels(result, anonymous: false)
       labels = []
-      labels << "Not yet independently audited." if result.provisional
+      labels << (anonymous ? "Not yet independently audited; some evidence was recorded by an anonymous contributor." : "Not yet independently audited.") if result.provisional
       labels << "Evidence points both ways." if result.contested
       labels << "This assessment depends heavily on modeling choices." if result.model_dependent
       checks = result.review_checklist
@@ -36,6 +36,13 @@ module Cards
         labels << "Evidence reviewed so far #{result.assessment_state == 'SUPPORTED' ? 'supports' : 'contradicts'} this claim, but only #{done} of #{checks.size} review checks #{done == 1 ? 'has' : 'have'} been done."
       end
       labels
+    end
+
+    # A counted, unconfirmed link whose principal is anonymous (Stage 12).
+    def anonymous_provisional?(claim, seq)
+      claim.evidence_claim_links.counted_at(seq).includes(contribution: :contributor).any? do |link|
+        link.contribution.principal_contributor&.anonymous? && !Audits::Status.confirmed?(link.contribution_id, seq)
+      end
     end
 
     def related(claim, seq, model)

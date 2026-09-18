@@ -10,6 +10,8 @@ shared:
   low_reliability_factor: "2"
   impact_divisor: "5"
   unusual_factor: "2"
+  # Contributions whose principal is ANONYMOUS (Stage 12) are sampled more often.
+  anonymous_factor: "3"
   # Confirming audits (from distinct principals) needed before provisional clears,
   # by downstream_count band (05 §10). The last band also needs an accepted
   # OPPOSING_EVIDENCE_SEARCH (Stage 8).

@@ -165,8 +165,13 @@ module Ledger
         Projections::Refresh.after(contribution)
       end
 
+      # Stage 12: an agent acting under a delegation that grants direct_work
+      # (a connected assistant) is treated as the principal's own hand; the
+      # grant is itself a logged, revocable contribution.
       def auto_accept?(validated)
-        validated.contributor&.human? || false
+        return true if validated.contributor&.human?
+
+        validated.delegation&.permissions&.dig("direct_work") == true
       end
 
       # For actions that touch other contributors' rows: accept automatically

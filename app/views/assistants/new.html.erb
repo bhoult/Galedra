@@ -1,0 +1,42 @@
+<% content_for :title, "Connect an assistant" %>
+<div class="connect">
+  <h1>Connect an assistant</h1>
+  <p class="lede">Tell your AI to check a claim in Galedra before you post it. Pick the assistant you use, and you get a token to paste into it. That is the whole setup.</p>
+
+  <%= form_with url: assistants_path, method: :post, class: "card" do |f| %>
+    <fieldset class="choices">
+      <legend>Which assistant?</legend>
+      <% AssistantsController::ASSISTANTS.each_with_index do |(label, provider), i| %>
+        <label class="choice"><%= radio_button_tag "assistant[provider]", provider, i.zero? %> <%= label %></label>
+      <% end %>
+    </fieldset>
+    <label>Name it (optional) <%= text_field_tag "assistant[name]", nil, placeholder: "My Claude" %></label>
+    <label>Model, if you know it (optional) <%= text_field_tag "assistant[model]", nil, placeholder: "claude-sonnet-5" %></label>
+    <% unless authenticated? %>
+      <p class="meta">You are not signed in, so the assistant will write as an <strong>anonymous contributor</strong>. Anonymous work is checked more often and labelled as such. <%= link_to "Sign in", new_session_path %> first if you want it under your name.</p>
+    <% end %>
+    <%= f.submit "Get my token" %>
+  <% end %>
+
+  <% if @tokens.any? %>
+    <h2>Your assistants</h2>
+    <table><tr><th>Assistant</th><th>Agent key</th><th>Writes today</th><th>Valid until</th><th></th></tr>
+    <% @tokens.each do |t| %>
+      <tr>
+        <td><%= t.software["agent_name"] %> <span class="badge"><%= t.software["model_provider"] %></span></td>
+        <td><%= link_to short_id(t.agent.key_id), contributor_path(t.agent) %></td>
+        <td><%= t.writes_today %> of <%= t.daily_cap %></td>
+        <td><%= t.usable? ? t.delegation.valid_until.to_date : "revoked" %></td>
+        <td><% if t.usable? %><%= button_to "Disconnect", assistant_path(t), method: :delete, class: "secondary small" %><% end %></td>
+      </tr>
+    <% end %></table>
+  <% end %>
+
+  <h2>What the assistant will do</h2>
+  <ol>
+    <li>Search Galedra for the claim first. If it is already there, you get the answer card and a link.</li>
+    <li>If not, it reads the sources itself, quotes the exact passages, and records them with links and hashes. Galedra never fetches pages and never stores full text.</li>
+    <li>It reports a plain headline and a link, and says the result is provisional until someone audits it.</li>
+  </ol>
+  <p class="meta">The assistant's own reasoning is never evidence. Only quoted passages count. Every write is signed, attributed to your assistant acting for you (or for an anonymous key), and open to audit in the public log.</p>
+</div>

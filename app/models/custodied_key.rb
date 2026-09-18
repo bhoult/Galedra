@@ -2,7 +2,7 @@
 # rest with Active Record Encryption. Not a projection: it survives replay.
 class CustodiedKey < ApplicationRecord
   belongs_to :contributor
-  belongs_to :user
+  belongs_to :user, optional: true
 
   encrypts :encrypted_private_key
 

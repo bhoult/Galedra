@@ -1,0 +1,51 @@
+# frozen_string_literal: true
+
+module Assistants
+  # Connects an assistant (Stage 12): registers a server-custodied AGENT key
+  # named for the assistant, appends a DELEGATE from the principal, and mints
+  # a bearer token. The principal is the signed-in user's key, or a freshly
+  # registered anonymous key when there is no account. Returns
+  # [token_record, plaintext_token]; the plaintext is never stored.
+  module Connect
+    VALIDITY = 1.year
+    DEFAULT_DAILY_CAP = 200
+
+    module_function
+
+    def call(user: nil, name:, provider:, model: nil, daily_cap: DEFAULT_DAILY_CAP)
+      name = name.to_s.strip
+      raise ArgumentError, "assistant name is required" if name.empty?
+      raise ArgumentError, "unknown provider" unless AssistantToken::PROVIDERS.include?(provider.to_s)
+
+      principal = principal_for(user)
+      software = { "agent_name" => name, "version" => "connected", "model_provider" => provider.to_s, "model_id" => model.presence || "unknown", "prompt_version" => "galedra-skill-v1" }
+      agent = Crypto::Custody.create_server_custodied(
+        kind: Contributor::AGENT, identity_tier: principal.identity_tier,
+        display_name: "#{name} for #{principal.display_name || 'an anonymous contributor'}", metadata: { "software" => software }
+      )
+      delegation = delegate(principal, agent, daily_cap)
+      plaintext = "gal_#{SecureRandom.urlsafe_base64(32)}"
+      record = AssistantToken.create!(
+        id: SecureRandom.uuid_v7, token_digest: AssistantToken.digest(plaintext), agent: agent, principal: principal,
+        delegation: delegation, user: user, software: software, daily_cap: daily_cap
+      )
+      [ record, plaintext ]
+    end
+
+    def principal_for(user)
+      return user.custodied_key&.contributor || Crypto::Custody.create_server_custodied(user: user, display_name: user.email_address.split("@").first) if user
+
+      Crypto::Custody.create_server_custodied(display_name: "Anonymous", identity_tier: "ANONYMOUS")
+    end
+
+    def delegate(principal, agent, daily_cap)
+      now = Time.now.utc
+      payload = { "delegate_key_id" => agent.key_id,
+                  "permissions" => { "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains, "direct_work" => true },
+                  "max_tasks_per_day" => daily_cap, "valid_from" => (now - 1.minute).iso8601, "valid_until" => (now + VALIDITY).iso8601 }
+      envelope = Contributions::Envelope.build(action_type: "DELEGATE", payload: payload, key_pair: Crypto::Custody.signer_for_contributor(principal))
+      result = Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
+      AgentDelegation.find(Ledger::Ids.derive(result.contribution.id, "delegation"))
+    end
+  end
+end

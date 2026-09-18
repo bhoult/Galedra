@@ -1,4 +1,13 @@
 module EnvHelpers
+  # Rate limits are off under the test null store; this turns them on for a block.
+  def with_rate_limiting
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    yield
+  ensure
+    Rails.cache = original
+  end
+
   def with_env(overrides)
     saved = overrides.keys.to_h { |k| [ k, ENV[k] ] }
     overrides.each { |k, v| v.nil? ? ENV.delete(k) : ENV[k] = v }
