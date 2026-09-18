@@ -27,6 +27,9 @@ RSpec.describe "GET /", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Is Galedra a fact-checker?")
     expect(response.body).to include("What does the number mean?")
+    expect(response.body).to include("Epistemology")
+    expect(response.body).to include("Hermeneutics")
+    expect(response.body).to include("hermeneutic circle")
   end
 
   it "shows signed-in users the dashboard instead" do

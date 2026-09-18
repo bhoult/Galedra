@@ -1,8 +1,9 @@
 class ApplicationController < ActionController::Base
   include Authentication
   include LedgerView
-  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+  # The pages need import maps and nothing more exotic; :modern would turn away
+  # Safari before 17.2, which is still common on phones.
+  allow_browser versions: { safari: 16.4, chrome: 111, firefox: 114, opera: 97, ie: false }
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes

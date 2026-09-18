@@ -93,6 +93,9 @@ RSpec.describe "Answer cards, why, summaries, and weaknesses (07 Phase 6 #1, #2;
       def summarize(input, type:) = [ { "text" => "A survey supports it.", "cites" => [ input["kept"].first["evidence"] ] } ]
     end.new
     input_before = Summaries::Input.hash(Summaries::Input.build(claim, seq, model))
+    built = Summaries::Input.build(claim, seq, model)
+    expect(Summaries::Validator.valid?([ { "text" => "Cites the claim.", "cites" => [ "coverage:#{claim.id}" ] } ], built, type: "SHORT")).to be(true)
+    expect(Summaries::Validator.valid?([ { "text" => "Cites nothing.", "cites" => [] } ], built, type: "SHORT")).to be(false)
     fresh = Summaries::Generate.call(claim, seq, model, adapter: good)
     expect(fresh[:generator]).to eq("stub-v0.1")
     expect(fresh[:input_hash]).to eq(input_before)

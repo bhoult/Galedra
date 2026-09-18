@@ -35,6 +35,34 @@ RSpec.describe "Incremental recompute (07 Phase 3 acceptance #5)" do
     expect { RecomputeAffectedScoresJob.perform_now(link_a.contribution.seq) }.not_to change(ClaimScore, :count)
   end
 
+  it "follows moderation and audits back to the claims they touch, and recomputes everything on request" do
+    curator, = register_key
+    moderator, = register_moderator
+    source = create_source(curator)
+    location = create_location(curator, source)
+    claim = create_claim(curator, "Moderated claim.")
+    other = create_claim(curator, "Other claim.")
+    link = link_evidence(curator, create_evidence(curator, location), claim)
+
+    q = quarantine(moderator, claim)
+    expect(Scoring::Affected.claim_ids(q.contribution)).to eq([ claim.id ])
+    release = append(action_type: "RELEASE_QUARANTINE", key_pair: moderator, payload: { "quarantine_id" => q.id, "note" => "appeal upheld" }).contribution
+    expect(Scoring::Affected.claim_ids(release)).to eq([ claim.id ])
+    source_q = quarantine(moderator, source, reason: "PERSONAL_DATA")
+    expect(Scoring::Affected.claim_ids(source_q.contribution)).to eq([ claim.id ])
+
+    reviewer, = register_reviewer
+    audited = audit(reviewer, link, result: "FABRICATION")
+    expect(Scoring::Affected.claim_ids(audited.contribution)).to eq([ claim.id ])
+    removed = takedown(moderator, link.contribution)
+    expect(Scoring::Affected.claim_ids(removed)).to eq([ claim.id ])
+
+    ClaimScore.delete_all
+    RecomputeAllScoresJob.perform_now
+    expect(ClaimScore.pluck(:claim_id).uniq).to contain_exactly(claim.id, other.id)
+    expect(ClaimScore.where(claim_id: other.id).count).to eq(Scoring::Registry.released.count)
+  end
+
   it "enqueues a recompute for score-affecting appends only" do
     curator, = register_key
     clear_enqueued_jobs

@@ -1333,3 +1333,16 @@ json gem pin (Stage 1). Each is explained in its stage above.
   page. Rule 12 still holds: no true/false colours and no badges of correctness. All
   class names the system specs depend on are unchanged.
 - Auth pages lost their inline colour styles and gained labels. Gem added: kramdown.
+- Phones: the Rails `:modern` browser gate returned 406 to Safari before 17.2, so the
+  gate now lists explicit minimums (Safari 16.4, Chrome 111, Firefox 114, Opera 97),
+  the versions that support import maps. On narrow screens tables scroll inside their
+  own box and headings wrap long enum words, so no page widens past the device. Checked
+  as an emulated iPhone and Pixel on every page, signed in and out.
+- Coverage: SimpleCov runs with the suite and fails it below 90% line coverage. Line
+  coverage is 95%; branch coverage is reported but not enforced. Request specs were
+  added for signed lease and release requests, sessions and sign-up, moderation and
+  audit recompute paths, and the full recompute job.
+- The FAQ gained sections on epistemology (justification not truth, evidentialism,
+  testimony, suspension of judgment, model-conditional probability) and hermeneutics
+  (textual versus interpretive claims, interpretive steps, competing readings, the
+  hermeneutic circle), and quotes Genesis 31:48 under the name.
