@@ -1,10 +1,16 @@
 # Serving Galedra from your own machine or a small server (README "Serving it
-# from home"). Same two services as development, but the production image,
-# a production database, and Thruster in front of Puma terminating TLS with a
-# certificate it obtains itself for TLS_DOMAIN. Forward TCP 80 and 443 to
-# this host.
+# from home"). Same two services as development, but the production image and
+# a production database. Two ways in:
+#
+#   1. Port forwarding: forward TCP 80 and 443 here and set TLS_DOMAIN; Thruster
+#      obtains a certificate itself.
+#   2. A Cloudflare tunnel, no router changes: leave TLS_DOMAIN unset, put a
+#      named tunnel's token in CLOUDFLARE_TUNNEL_TOKEN, and start with the
+#      tunnel profile. Cloudflare terminates TLS and reaches app:80 inside the
+#      compose network.
 #
 #   docker compose -f compose.production.yaml up -d --build
+#   docker compose -f compose.production.yaml --profile tunnel up -d --build
 services:
   db:
     image: postgres:16
@@ -46,6 +52,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: [ tunnel ]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
     restart: unless-stopped
 
 volumes:

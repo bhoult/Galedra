@@ -162,6 +162,13 @@ address, forward TCP 80 and 443 on the router to this machine, set `TLS_DOMAIN`,
 docker compose -f compose.production.yaml up -d --build
 ```
 
+Or skip the router entirely with a Cloudflare tunnel. For a quick test with no account,
+`cloudflared tunnel --url http://localhost:3000` prints a temporary `trycloudflare.com`
+address; set `LEDGER_ALLOWED_HOSTS=.trycloudflare.com` first. For a permanent address,
+create a named tunnel in the Cloudflare dashboard pointed at `http://app:80`, put its
+token in `CLOUDFLARE_TUNNEL_TOKEN`, leave `TLS_DOMAIN` unset, and start with
+`--profile tunnel`.
+
 Then connect an assistant at `https://<your domain>/assistants/new`. Claude.ai's
 connector screen takes only a URL, so it is given the MCP URL with the token in it.
 
