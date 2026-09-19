@@ -94,7 +94,7 @@ module Api
         "/api/v1/weaknesses" => get_op("getWeaknesses", "Where the ledger is most likely wrong."),
         "/api/v1/moderation" => get_op("getModerationLog", "Every quarantine, release, takedown, and revocation."),
         "/api/v1/scoring-models" => get_op("getScoringModels", "Released scoring models."),
-        "/api/v1/contributors/top" => get_op("getTopContributors", "The hundred principals who have done the most recorded work. Volume of work, never reliability, and never a scoring input.", params: [ query("window", "30d or 365d; all time by default") ]),
+        "/api/v1/contributors/top" => get_op("getTopContributors", "The hundred principals who have done the most recorded work. Anonymous work is one row with a null id, since each anonymous connection mints its own key. Volume of work, never reliability, and never a scoring input.", params: [ query("window", "30d or 365d; all time by default") ]),
         "/api/v1/contributors/{id}" => get_op("getContributor", "One contributor: key, identity tier, and how much work they have done.", params: [ path_id ]),
         "/api/v1/contributors/{id}/reputation" => get_op("getContributorReputation", "Audited reliability per task type and domain. Not authority, and not a scoring input in v0.1.", params: [ path_id, snapshot_seq_query ]),
         "/api/v1/tasks/{id}" => get_op("getTask", "A verification task and its signed packet.", params: [ path_id ])

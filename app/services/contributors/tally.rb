@@ -13,6 +13,17 @@ module Contributors
     COLUMNS = %w[recorded task_results audits acceptances reviews].freeze
     NOTE = "Counts of work done, not of reliability or authority. Reputation is audited per task and domain; neither is a scoring input."
 
+    # What the folded anonymous rows are shown as. It answers the few messages
+    # the leaderboard and the API ask of a contributor; a nil id is what says
+    # there is no page to link to, because there is no one key behind it.
+    Anonymous = Data.define(:principals) do
+      def id = nil
+      def key_id = nil
+      def display_name = "Anonymous"
+      def identity_tier = "ANONYMOUS"
+      def anonymous? = true
+    end
+
     module_function
 
     # {principal_id => {recorded:, task_results:, audits:, acceptances:, reviews:, total:}}
@@ -30,12 +41,23 @@ module Contributors
       counts(principal_ids: [ principal_id ], since: since).fetch(principal_id, { recorded: 0, task_results: 0, audits: 0, acceptances: 0, reviews: 0, total: 0 })
     end
 
-    # [[contributor, counts]] most work first, the system key left out.
+    # [[contributor, counts]] most work first, the system key left out, and
+    # every anonymous principal folded into one row (owner request, 2026-09-20).
+    # Each anonymous connection mints its own key, so listing them separately
+    # would be a page of identical "Anonymous" lines standing for nobody. The
+    # work is still counted; it is simply not attributed to a person.
     def top(limit: 100, since: nil)
       all = counts(since: since)
-      ids = all.sort_by { |id, c| [ -c[:total], id ] }.map(&:first)
-      contributors = Contributor.where(id: ids).where.not(kind: Contributor::SYSTEM).index_by(&:id)
-      ids.filter_map { |id| contributors[id] && [ contributors[id], all[id] ] }.first(limit)
+      contributors = Contributor.where(id: all.keys).where.not(kind: Contributor::SYSTEM).index_by(&:id)
+      named, anonymous = all.filter_map { |id, c| contributors[id] && [ contributors[id], c ] }
+                            .partition { |contributor, _| !contributor.anonymous? }
+      named << [ Anonymous.new(principals: anonymous.size), sum(anonymous.map(&:last)) ] if anonymous.any?
+      named.sort_by { |row, c| [ -c[:total], row.id.to_s ] }.first(limit)
+    end
+
+    def sum(rows)
+      totals = COLUMNS.to_h { |name| [ name.to_sym, rows.sum { |r| r.fetch(name.to_sym) } ] }
+      totals.merge(total: totals.values.sum)
     end
 
     def log_counts(principal_ids:, since:)

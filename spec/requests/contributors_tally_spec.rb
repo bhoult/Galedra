@@ -53,4 +53,36 @@ RSpec.describe "Work done per contributor and the contributors list (owner reque
     get "/account"
     expect(response.body).to include("Your work")
   end
+
+  it "counts work done anonymously as one row, because each connection mints its own key" do
+    3.times do |i|
+      anonymous_token = Assistants::Connect.call(name: "Assistant #{i}", provider: "anthropic").last
+      post "/api/v1/custodied/contributions",
+           params: { action_type: "CREATE_CLAIM", payload: claim_payload("An anonymous claim #{i}.") }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json", "Authorization" => "Bearer #{anonymous_token}" }
+      expect(response).to have_http_status(:created)
+    end
+    pair, named = register_key(display_name: "Named")
+    4.times { |i| create_claim(pair, "A named claim #{i}.") }
+
+    rows = Contributors::Tally.top
+    folded = rows.select { |c, _| c.identity_tier == "ANONYMOUS" }
+    expect(folded.size).to eq(1)
+    row, work = folded.first
+    expect(row.principals).to eq(3)
+    expect(row.id).to be_nil, "an anonymous row stands for no one key, so it has no page"
+    expect(work).to include(recorded: 3, total: 3)
+    expect(rows.first.first).to eq(named), "the fold does not change the order; four beats three"
+
+    get "/contributors"
+    expect(response).to have_http_status(:ok)
+    expect(response.body.scan("across 3 keys").size).to eq(1)
+    expect(response.body).to include("Work done anonymously is one row")
+
+    get "/api/v1/contributors/top"
+    anonymous_rows = response.parsed_body["contributors"].select { |r| r["anonymous"] }
+    expect(anonymous_rows.size).to eq(1)
+    expect(anonymous_rows.first).to include("id" => nil, "key_id" => nil, "display_name" => "Anonymous", "principals" => 3)
+    expect(anonymous_rows.first.dig("work", "total")).to eq(3)
+  end
 end

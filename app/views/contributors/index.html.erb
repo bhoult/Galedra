@@ -1,13 +1,21 @@
 <% content_for :title, "Contributors" %>
 <h1>Contributors</h1>
-<p class="meta">The hundred principals who have done the most, by kind of work: what they recorded themselves (checks, evidence, corrections), the research tasks they answered for others, the audits and acceptances they made, and the reviews they judged, with an assistant's work credited to the person it acts for. Each kind is defined in the <%= link_to "glossary", glossary_path(anchor: "work") %>. <%= Contributors::Tally::NOTE %></p>
+<p class="meta">The hundred principals who have done the most, by kind of work: what they recorded themselves (checks, evidence, corrections), the research tasks they answered for others, the audits and acceptances they made, and the reviews they judged, with an assistant's work credited to the person it acts for. Each kind is defined in the <%= link_to "glossary", glossary_path(anchor: "work") %>. Work done anonymously is one row: every anonymous connection mints its own key, so there is no one person to credit and no page to link to. <%= Contributors::Tally::NOTE %></p>
 <%= form_with url: contributors_path, method: :get, class: "filters" do |f| %>
   <label>Over <%= f.select :window, [ [ "all time", "" ], [ "30 days", "30d" ], [ "a year", "365d" ] ], { selected: params[:window] } %></label>
   <%= f.submit "Show", class: "secondary" %>
 <% end %>
 <table><tr><th>#</th><th>Contributor</th><th><%= link_to "Recorded", glossary_path(anchor: "check") %></th><th><%= link_to "Tasks answered", glossary_path(anchor: "task") %></th><th><%= link_to "Audits", glossary_path(anchor: "audit") %></th><th><%= link_to "Acceptances", glossary_path(anchor: "accept") %></th><th><%= link_to "Reviews", glossary_path(anchor: "review") %></th><th>Total</th></tr>
 <% @rows.each_with_index do |(c, n), i| %>
-  <tr><td><%= i + 1 %></td><td><%= link_to (c.display_name.presence || short_id(c.key_id)), contributor_path(c) %> <span class="badge"><%= c.identity_tier %></span></td>
+  <tr><td><%= i + 1 %></td>
+    <td>
+      <% if c.id %>
+        <%= link_to (c.display_name.presence || short_id(c.key_id)), contributor_path(c) %>
+      <% else %>
+        <%= c.display_name %> <span class="muted small">across <%= pluralize(c.principals, "key") %></span>
+      <% end %>
+      <span class="badge"><%= c.identity_tier %></span>
+    </td>
     <td><%= n[:recorded] %></td><td><%= n[:task_results] %></td><td><%= n[:audits] %></td><td><%= n[:acceptances] %></td><td><%= n[:reviews] %></td><td><strong><%= n[:total] %></strong></td></tr>
 <% end %></table>
 <% if @rows.empty? %><p class="muted">No work recorded yet.</p><% end %>
