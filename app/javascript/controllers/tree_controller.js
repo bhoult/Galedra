@@ -23,8 +23,19 @@ export default class extends Controller {
   }
 
   toggle(event) {
-    // A link inside the summary navigates; only the summary itself toggles.
-    if (event.target.closest("a")) return
+    const link = event.target.closest("a")
+    if (link) {
+      // A heading inside a <summary> does two things at once: the browser
+      // toggles the branch and the link navigates. The toggle is the browser's
+      // own, so it skips the animation and flashes the branch open on the way
+      // out of the page. Take the navigation and drop the toggle.
+      if (event.defaultPrevented || event.button !== 0) return
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+      event.preventDefault()
+      window.location.href = link.href
+      return
+    }
 
     const summary = event.target.closest("summary")
     if (!summary) return
