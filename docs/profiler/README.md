@@ -43,4 +43,4 @@ them. See `implementation/planned/stage-26-capacity.md` for the plan this serves
 
 | Date | Entry | The one thing it found |
 |---|---|---|
-| 2026-09-19 | [The weaknesses page at 3,000 claims](2026-09-19-weaknesses-at-3000-claims.md) | The score cache is queried once per claim per model, and nearly every query misses |
+| 2026-09-19 | [The weaknesses page at 3,000 claims](2026-09-19-weaknesses-at-3000-claims.md) | The score cache was queried once per claim per model. Carries a same-day correction, and a follow-up measuring what the cold path costs |

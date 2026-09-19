@@ -113,14 +113,83 @@ a profile of a cached page that does not defeat the cache is measuring the cache
 
 ## What changes as a result
 
-- **First:** batch the score-cache lookup. Fetch `ClaimScore` for the whole claim set in one
-  query before scoring and hand the hits to the scorer, instead of asking per claim. This
-  changes how `Scoring::Score` is called, not what it computes, so the trace and the number
-  are untouched and Invariant 4 holds. Ahead of pagination in the remaining Stage 26 work,
-  because it is the largest single cost and the cheapest to remove.
+- **Done:** batching the score-cache lookup, as `Scoring::Score.call_many`. One query for
+  the set and one chunked insert for what the cache did not hold, instead of two per claim
+  per model. It changes how `Scoring::Score` is called, not what it computes; the spec
+  asserts the traces and their hashes are byte-identical to scoring one claim at a time,
+  so Invariant 4 is checked rather than assumed.
 - **Still open, unchanged by this run:** whether `/weaknesses` should answer for the latest
   pinned snapshot rather than the head seq. That is the structural fix, and batching the
   lookup does not remove the need for it. A pinned snapshot does not move, so both the
   report cache and the materialised scores become reusable.
 - **Not doing:** making scoring allocate less. The decimals and the canonical trace are the
   reproducibility guarantee.
+
+
+---
+
+## Correction, same day, after acting on finding 1
+
+Finding 1 says the cache lookups "nearly all miss, because the head seq moves with every
+append". That is wrong about the run that produced the 70% figure. The profile ran the
+report three times at one seq: the first populated the score cache and the other two read
+it, so two thirds of the samples were the **warm** path, where the report does nothing but
+look scores up.
+
+The 70% is a real cost and batching removes it, but it describes repeated views at one
+snapshot, not the first view after an append. The cold path is dominated by something else
+entirely, measured below. Both are true at different moments, and the original entry
+conflated them.
+
+The method note in finding 6 was right about the page cache and wrong to stop there: the
+score cache is a table, not `Rails.cache`, so running an operation more than once warms it
+even with the page cache disabled. A cold measurement has to clear both.
+
+## Follow-up: what the cold path actually costs
+
+Statements rather than samples, on the development corpus of 27 claims. Small, but the
+ratio per claim is what matters and it does not improve with size.
+
+| | Queries |
+|---|---|
+| Scoring 27 claims, cold, before any of this | 805 |
+| After memoising audit state within one pass | 675 |
+| After preloading link and audit contributions | **644** |
+| One cold `Weaknesses::Report` over the same 27 claims | 2,005 |
+
+About 24 queries a claim, flat as the corpus grows: at 3,000 claims a cold report is on the
+order of 220,000 statements. Where they go:
+
+| Source | Count over 27 claims |
+|---|---|
+| `Contribution Load` | 185 |
+| `IndependenceGroupAssignment Load` | 60 |
+| `Quarantine Exists?` | 55 |
+| `Audit Load` | 55 |
+| `Audit Exists?` | 50 |
+
+**The shape of it.** `Scoring::BuildInput` asks, for every counted link on every claim: is
+this source quarantined, is this link challenged, is it audit-confirmed, and what
+independence group is its evidence in. Each is its own statement, and `challenged?` costs
+two on its own, because it looks for a key-compromise window and then for the latest live
+audit. Multiply by links, then claims, then released models.
+
+**What was done, and why only this much.** Two changes that carry no risk to the answer:
+audit results are memoised for the length of one scoring pass, keyed by seq so nothing
+outlives the snapshot it was true for, and the contributions those checks read are
+preloaded rather than fetched one at a time. Together, 20% fewer statements with no logic
+changed, and the goldens confirm the traces are identical.
+
+The structural fix is to batch those four per-link lookups across the whole claim set, the
+way the score cache now is: one query for compromise windows, one for audits by target, one
+for quarantines, one for independence assignments. That is a refactor of the path the whole
+project's correctness rests on, guarded only by the golden tests. It is recorded here as
+the next piece of work rather than attempted at the end of a session.
+
+## Finding 5, quantified and still untouched
+
+`Graph::Presenter.claim` issues **37 queries per claim**. Quarantine, reference totals,
+evaluability, section placements, inferences, topics, supersession, merges and two evidence
+counts are each asked separately, so a fifty-claim page is on the order of 1,850 statements.
+It is bounded by page size rather than by corpus size, which is why it has waited. It is the
+same shape of problem and wants the same fix.
