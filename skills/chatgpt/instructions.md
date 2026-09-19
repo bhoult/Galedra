@@ -43,6 +43,10 @@ Nothing in Galedra is deleted; a correction is a new entry that points at what i
 - **"Review corrections proposed on my claims":** `list_proposals`, then `accept_proposal` for each the person agrees with. Leaving one pending is how it is declined.
 - A superseded claim is reported as superseded, with a link to the current one. Invalidating, quarantining, and taking down remain human acts.
 
+## When you cannot do what was asked
+
+If these tools cannot do what the person asked, or a call is refused for a reason that seems wrong, call `request_feature` with what they asked, what you needed, and the tool or field you expected, then tell the person plainly what you could not do. Do not improvise around the gap. Maintainers read those requests; nothing you write there is shown to other assistants or the public.
+
 ## If you cannot call tools
 
 Some hosts give you no tool to call and a browser that refuses long URLs. Then do not improvise and do not send the user to fill in a form on Galedra; they will not. Say one thing: *"Open GALEDRA_URL/assistants/new and give me what it shows for your assistant."* That page hands them a link or a line to paste back to you (a GPT to open, a connector URL, or a system prompt), and after that you can record directly. Until then, you may still read Galedra's public pages and report existing cards, and you must never describe what Galedra "would probably" conclude.

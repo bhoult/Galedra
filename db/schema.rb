@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -274,6 +274,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_000100) do
     t.index ["independence_group_id"], name: "index_evidence_items_on_independence_group_id"
     t.index ["invalidated_seq"], name: "index_evidence_items_on_invalidated_seq"
     t.index ["source_location_id"], name: "index_evidence_items_on_source_location_id"
+  end
+
+  create_table "feature_requests", id: :uuid, default: nil, force: :cascade do |t|
+    t.boolean "anonymous", default: false, null: false
+    t.text "asked", null: false
+    t.uuid "assistant_token_id", null: false
+    t.string "context_tool"
+    t.integer "count", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.string "digest", null: false
+    t.string "expected"
+    t.string "last_error"
+    t.text "needed", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_feature_requests_on_created_at"
+    t.index ["digest"], name: "index_feature_requests_on_digest"
   end
 
   create_table "graph_snapshots", id: :uuid, default: nil, force: :cascade do |t|
@@ -712,6 +728,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_000100) do
   add_foreign_key "evidence_claim_links", "evidence_items"
   add_foreign_key "evidence_items", "independence_groups"
   add_foreign_key "evidence_items", "source_locations"
+  add_foreign_key "feature_requests", "assistant_tokens"
   add_foreign_key "independence_group_assignments", "evidence_items"
   add_foreign_key "independence_group_assignments", "independence_groups"
   add_foreign_key "investigations", "assistant_tokens"

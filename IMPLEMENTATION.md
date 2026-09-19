@@ -2360,4 +2360,16 @@ json gem pin (Stage 1). Each is explained in its stage above.
   the pace new ones arrive, fading over seven seconds. Branches turn inward near an
   edge instead of being clamped to it, which had piled nodes along the margins once
   the graph was dense. Decorative only; nothing reads ledger data.
+- Assistants can say what they could not do (owner request, 2026-09-18): a
+  `request_feature` tool records, in the assistant's own words at the moment it fell
+  short, what the person asked, what it needed, and the tool or field it expected.
+  The rows live outside the log (untrusted text), repeats within 30 days are counted
+  on one row, ten a day per assistant, and only moderators see them, at
+  `/feature_requests` or through `bin/rails features:report`. The assistant is told it
+  can at three points: the tool list, a hint on every refusal, and the guidance that
+  rides on every result. Alongside: one structured log line per tool call (tool,
+  outcome, error codes, duration, caller kind, argument keys; never claim text), a
+  `caller` note on reads so an assistant never guesses whether it is connected under
+  a name, and `search_claims` by `source_id` for "what else cites this source", both
+  of which today's transcripts had shown assistants wanting.
 

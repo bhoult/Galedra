@@ -18,6 +18,7 @@ Rails.application.routes.draw do
     post :topics, on: :member, to: "claims#tag"
     post :accept, on: :member, to: "claims#accept"
   end
+  get "feature_requests", to: "feature_requests#index", as: :feature_requests
   get "topics", to: "topics#index", as: :topics
   get "topics/*path", to: "topics#show", as: :topic
   post "mcp", to: "mcp#create"

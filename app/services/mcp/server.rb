@@ -42,7 +42,7 @@ module Mcp
 
     TOOLS = [
       { name: "search_claims", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Start here. Galedra is a public, signed record of claims and the evidence behind them: check something before sharing it and post the link, send someone a claim link so they see the reasons, or contribute (record, add evidence, correct, or \"work N open tasks in Galedra\"). Every result carries Galedra's current guidance under guidance; follow it, it is fresher than this description.",
-        inputSchema: { type: "object", properties: { query: { type: "string", description: "Words from the claim" }, limit: { type: "integer", minimum: 1, maximum: 50, default: 10 } }, required: [ "query" ] },
+        inputSchema: { type: "object", properties: { source_id: { type: "string", description: "Instead of words: every claim with counted evidence from this source (ids from get_claim evidence)" }, query: { type: "string", description: "Words from the claim" }, limit: { type: "integer", minimum: 1, maximum: 50, default: 10 } }, required: [] },
         outputSchema: { type: "object", properties: { query: { type: "string" }, snapshot_seq: { type: "integer" }, claims: { type: "array", items: { type: "object", properties: { id: { type: "string" }, text: { type: "string" }, type: { type: "string" }, headline: { type: "string" }, plain_headline: { type: "string" }, url: { type: "string" } } } } } } },
       { name: "get_claim", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The answer card for one claim: a plain headline, what to say instead when the evidence supports it, review checks, labels, counted evidence for and against, and the URL. No probability here; use explain with calculation: true for the number.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" } }, required: [ "claim_id" ] },
@@ -126,6 +126,11 @@ module Mcp
         description: "Accept a pending correction by contribution_id (from list_proposals), on behalf of your person. Allowed for the principal of the claims it touches, for anyone named when that principal is anonymous, and for moderators; never for the proposer's own principal. For a revised claim, the counted links are carried onto the revision. Leaving a proposal pending is how it is declined.",
         inputSchema: { type: "object", properties: { contribution_id: { type: "string" }, carry_links: { type: "boolean", default: true } }, required: [ "contribution_id" ] },
         outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, contribution_id: { type: "string" }, acceptance_id: { type: "string" }, carried_links: { type: "integer" } } } },
+      # What an assistant could not do (owner request): a way to say so, and to know it can.
+      { name: "request_feature", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Tell Galedra's maintainers what you could not do: use it whenever these tools cannot do what the person asked, or a refusal seems wrong, before you tell the person. Say what they asked, what you needed, and the tool or field you expected. Read by maintainers only; never shown to other assistants or the public.",
+        inputSchema: { type: "object", properties: { asked: { type: "string", description: "what the person asked for, in a sentence" }, needed: { type: "string", description: "what you needed and could not do" }, expected: { type: "string", description: "the tool or field you expected, if any" }, context_tool: { type: "string", description: "the tool you were using" }, last_error: { type: "string", description: "the error code you got, if any" } }, required: %w[asked needed] },
+        outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, request_id: { type: "string" }, repeat: { type: "boolean" }, note: { type: "string" } } } },
       # OpenAI's read-and-fetch connector shape (ChatGPT search and deep research): a
       # `search` returning ids, titles, and URLs, and a `fetch` returning one document.
       { name: "search", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Search Galedra's accepted claims. Returns ids, titles (the claim text with its plain headline), and URLs. Use fetch on an id for the full card, evidence, and why.",
@@ -170,7 +175,7 @@ module Mcp
     def initialize_result
       { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "galedra", version: VERSION },
-        instructions: "#{PURPOSE} #{RULES} #{WORK} #{CORRECT}" }
+        instructions: "#{PURPOSE} #{RULES} #{WORK} #{CORRECT} #{ASK}" }
     end
 
     # Guidance travels in results, which hosts read fresh on every call, rather
@@ -180,38 +185,58 @@ module Mcp
                      "list_tasks" => :work, "next_task" => :work, "submit_task" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
+    ASK = "If these tools cannot do what the person asked, or a refusal seems wrong, call request_feature with what you needed, then tell the person plainly what you could not do."
+
     def guidance(name)
       text = case GUIDANCE_FOR[name]
       when :check then RULES
       when :work then "#{WORK} #{Tasks::Answer::RULES}"
       when :correct then CORRECT
       end
-      text && { version: GUIDANCE_VERSION, text: text }
+      text && { version: GUIDANCE_VERSION, text: "#{text} #{ASK}" }
     end
 
     def call_tool(params)
       name = params["name"].to_s
       args = params["arguments"].is_a?(Hash) ? params["arguments"] : {}
-      raise ArgumentError, "unknown tool #{name}" unless TOOLS.any? { |t| t[:name] == name }
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      unless TOOLS.any? { |t| t[:name] == name }
+        log_call(name, args, started, outcome: "unknown_tool")
+        raise ArgumentError, "unknown tool #{name}"
+      end
 
-      data = send(:"tool_#{name}", args)
+      begin
+        data = send(:"tool_#{name}", args)
+      rescue Ledger::Rejected => e
+        log_call(name, args, started, outcome: "refused", codes: e.errors.map { |x| x[:code] || x["code"] })
+        raise
+      rescue ArgumentError => e
+        log_call(name, args, started, outcome: "bad_arguments", detail: e.message)
+        raise
+      end
+      log_call(name, args, started, outcome: outcome_of(name, data))
       data = data.merge(guidance: guidance(name)) if data.is_a?(Hash) && guidance(name)
       { content: [ { type: "text", text: JSON.pretty_generate(data) } ], structuredContent: data, isError: false }
     end
 
     def tool_search_claims(args)
       query = args["query"].to_s.strip
-      raise ArgumentError, "query is required" if query.empty?
+      raise ArgumentError, "query or source_id is required" if query.empty? && args["source_id"].blank?
 
       seq = Contribution.maximum(:seq) || 0
       model = Scoring::Registry.default_model
       scope = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
                    .where("to_tsvector('english', canonical_text) @@ plainto_tsquery('english', ?)", query)
                    .order(created_seq: :desc).limit(args.fetch("limit", 10).to_i.clamp(1, 50))
+      if args["source_id"].present?
+        scope = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
+                     .where(id: EvidenceClaimLink.joins(evidence_item: :source_location).where(source_locations: { source_id: args["source_id"].to_s }).select(:claim_id))
+                     .order(created_seq: :desc).limit(50)
+      end
       claims = scope.to_a
-      claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty?
+      claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty? && args["source_id"].blank?
       total = Claim.counted_at(seq).count
-      result = { query: query, snapshot_seq: seq, total_accepted_claims: total, claims: claims.map { |c| brief(c, seq, model) } }
+      result = { query: query, snapshot_seq: seq, total_accepted_claims: total, claims: claims.map { |c| brief(c, seq, model) }, caller: caller_note }
       result[:note] = "No recorded claim matches. Galedra holds #{total} accepted #{'claim'.pluralize(total)} in total, so this is more likely unrecorded than mis-searched. Offer to investigate and record it." if claims.empty?
       result
     end
@@ -223,7 +248,7 @@ module Mcp
       card = Cards::ClaimCard.call(claim, seq, model)
       evidence = Graph::Presenter.claim_evidence(claim, seq) if Graph::Presenter.respond_to?(:claim_evidence)
       revision = Corrections.status(claim, seq)
-      { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card, topics: Topics.for_claim(claim, seq),
+      { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card, topics: Topics.for_claim(claim, seq), caller: caller_note,
         share_url: "#{url_for(claim)}/card", share_line: share_line_for(claim, card),
         evidence: evidence, revision: revision.merge(superseded_by: revision[:superseded_by]&.merge(url: "#{@base_url}/claims/#{revision[:superseded_by][:claim_id]}")),
         provisional_note: "Everything here stays open to audit; treat it as provisional." }
@@ -308,6 +333,31 @@ module Mcp
       card = Cards::ClaimCard.call(claim, seq, Scoring::Registry.default_model)
       { url: url_for(claim), card_url: "#{url_for(claim)}/card", image_url: "#{url_for(claim)}/card.png",
         headline: card[:plain][:headline], say_instead: card[:plain][:say_instead], text: claim.canonical_text }
+    end
+
+    def tool_request_feature(args)
+      raise ArgumentError, "asked and needed are required" if args["asked"].to_s.strip.empty? || args["needed"].to_s.strip.empty?
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
+
+      request, created = FeatureRequest.record!(token: @token, asked: args["asked"], needed: args["needed"], expected: args["expected"], context_tool: args["context_tool"], last_error: args["last_error"])
+      { recorded: true, request_id: request.id, repeat: !created,
+        note: created ? "Recorded for the maintainers. Now tell the person plainly what you could not do; do not improvise around it." : "The same need was already on file; counted again. Tell the person plainly what you could not do." }
+    end
+
+    # One structured line per tool call: shapes and outcomes, never claim text or excerpts.
+    def log_call(name, args, started, outcome:, codes: [], detail: nil)
+      ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
+      keys = args.is_a?(Hash) ? args.keys.map(&:to_s).sort.join(",") : "-"
+      who = @token.nil? ? "none" : (@token.anonymous? ? "anonymous" : "named")
+      Rails.logger.info("mcp_call tool=#{name} outcome=#{outcome}#{" codes=#{codes.join('|')}" if codes.any?}#{" detail=#{detail.to_s[0, 80].inspect}" if detail} ms=#{ms} token=#{who} read_only=#{@read_only} args=#{keys}")
+    end
+
+    def outcome_of(name, data)
+      return "ok" unless data.is_a?(Hash)
+      return "existing" if name == "record_investigation" && data[:recorded] == false
+      return "nothing_available" if name == "next_task" && data[:available] == false
+      return "pending" if data.key?(:accepted) && data[:accepted] == false
+      "ok"
     end
 
     def tool_list_tasks(args)
@@ -419,6 +469,14 @@ module Mcp
 
     private
 
+    # Who this call is attributed to, so an assistant reports it right.
+    def caller_note
+      return { attribution: "none", note: "No assistant identity; writes would be anonymous." } if @token.nil?
+      return { attribution: "anonymous", note: "Connected anonymously; writes are recorded under an anonymous key with an adopt link." } if @token.anonymous?
+
+      { attribution: "named", note: "Connected under the person's name#{"; read-only" if @read_only}." }
+    end
+
     def share_line_for(claim, card)
       Investigation.share_line(headline: card[:plain][:headline], url: "#{url_for(claim)}/card", stated: card[:stated])
     end
@@ -481,8 +539,9 @@ module Mcp
     end
 
     def tool_error(id, errors)
-      { jsonrpc: "2.0", id: id, result: { content: [ { type: "text", text: errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" }.join("\n") } ],
-                                          structuredContent: { errors: errors }, isError: true } }
+      hint = "If this stopped you doing what the person asked, call request_feature with what you needed."
+      { jsonrpc: "2.0", id: id, result: { content: [ { type: "text", text: (errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" } + [ hint ]).join("\n") } ],
+                                          structuredContent: { errors: errors, hint: hint }, isError: true } }
     end
   end
 end
