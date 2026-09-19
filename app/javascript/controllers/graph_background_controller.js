@@ -2,11 +2,12 @@ import { Controller } from "@hotwired/stimulus"
 
 // A slowly growing evidence graph behind the landing page. Nodes attach to
 // existing nodes, links form and occasionally cross-link, audit pulses travel
-// along links, and old leaves fade so the graph keeps evolving. Decorative
-// only: nothing here reads ledger data, and reduced-motion users get one
-// static frame.
+// along links, and the oldest nodes fade out as new ones arrive, so the graph
+// keeps evolving at a density set by the window. Decorative only: nothing
+// here reads ledger data, and reduced-motion users get one static frame.
 export default class extends Controller {
-  static values = { maxNodes: { type: Number, default: 130 }, opacity: { type: Number, default: 0.55 } }
+  // maxNodes 0 means: from the window area (about one node per 3300 px²).
+  static values = { maxNodes: { type: Number, default: 0 }, opacity: { type: Number, default: 0.55 } }
 
   connect() {
     this.ctx = this.element.getContext("2d")
@@ -24,13 +25,14 @@ export default class extends Controller {
     document.addEventListener("visibilitychange", this.onVisibility)
     this.resize()
     this.seed()
-    // Open on a graph already half grown, the newest nodes still fading in,
-    // then keep growing from there.
+    // Open on a graph already two thirds grown, the newest nodes still fading
+    // in, then keep growing from there.
+    const branches = Math.ceil((this.cap * 0.66) / 4)
     if (this.reduced) {
-      for (let i = 0; i < 16; i++) this.grow(-6000)
+      for (let i = 0; i < branches; i++) this.grow(-6000)
       this.draw(performance.now())
     } else {
-      for (let i = 0; i < 12; i++) this.grow(-6000 + i * 450)
+      for (let i = 0; i < branches; i++) this.grow(-9000 + (i * 6000) / branches)
       this.start()
     }
   }
@@ -67,11 +69,13 @@ export default class extends Controller {
     this.element.style.width = `${this.width}px`
     this.element.style.height = `${this.height}px`
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    this.cap = this.maxNodesValue > 0 ? this.maxNodesValue : Math.min(700, Math.max(140, Math.round((this.width * this.height) / 3300)))
   }
 
   seed() {
     const now = performance.now()
-    for (let i = 0; i < 6; i++) {
+    const roots = Math.max(6, Math.round(this.cap / 30))
+    for (let i = 0; i < roots; i++) {
       this.addNode(this.width * (0.1 + 0.8 * Math.random()), this.height * (0.1 + 0.8 * Math.random()), now - 5000, null, "claim")
     }
   }
@@ -103,12 +107,14 @@ export default class extends Controller {
   // place and shrinks into a dot. Seeded growth (offset < 0) skips the block.
   grow(offset = 0) {
     const alive = this.nodes.filter((n) => !n.dead)
-    if (alive.length === 0 || alive.length >= this.maxNodesValue) return
+    if (alive.length === 0) return
     const now = performance.now()
     const born = now + offset
     const live = offset >= 0
-    const pool = alive.slice().sort((p, q) => p.degree - q.degree)
-    const parent = pool[Math.floor(Math.random() * Math.min(pool.length, 12))]
+    // Attach to a low-degree node, preferring younger ones, so growth moves on
+    // from the parts of the graph that are about to fade.
+    const pool = alive.slice().sort((p, q) => p.degree - q.degree || q.born - p.born)
+    const parent = pool[Math.floor(Math.random() * Math.min(pool.length, 24))]
     const heading = this.outward(parent)
     const statement = this.addNode(...this.place(parent, heading, 70 + Math.random() * 50), live ? born + 3400 : born, parent, "claim")
     const forks = 2 + Math.floor(Math.random() * 3)
@@ -148,23 +154,43 @@ export default class extends Controller {
     if (neighbours.length === 0) return Math.random() * Math.PI * 2
     const sx = neighbours.reduce((acc, n) => acc + (n.x - node.x), 0)
     const sy = neighbours.reduce((acc, n) => acc + (n.y - node.y), 0)
-    return Math.atan2(-sy, -sx) + (Math.random() - 0.5) * 0.8
+    const away = Math.atan2(-sy, -sx)
+    const cx = this.width / 2
+    const cy = this.height / 2
+    const edge = Math.max(Math.abs(node.x - cx) / cx, Math.abs(node.y - cy) / cy)
+    const pull = Math.max(0, (edge - 0.55) / 0.45)
+    const inward = Math.atan2(cy - node.y, cx - node.x)
+    const blended = Math.atan2(Math.sin(away) * (1 - pull) + Math.sin(inward) * pull, Math.cos(away) * (1 - pull) + Math.cos(inward) * pull)
+    return blended + (Math.random() - 0.5) * 0.8
   }
 
+  // A step from a node. Near the edge the step turns back toward the middle
+  // rather than being clamped to the margin, so nodes never pile up along it.
   place(from, angle, dist) {
     const margin = 70
+    const inside = (x, y) => x >= margin && x <= this.width - margin && y >= margin && y <= this.height - margin
+    let x = from.x + Math.cos(angle) * dist
+    let y = from.y + Math.sin(angle) * dist
+    if (!inside(x, y)) {
+      const inward = Math.atan2(this.height / 2 - from.y, this.width / 2 - from.x) + (Math.random() - 0.5) * 1.2
+      x = from.x + Math.cos(inward) * dist
+      y = from.y + Math.sin(inward) * dist
+    }
     return [
-      Math.min(this.width - margin, Math.max(margin, from.x + Math.cos(angle) * dist)),
-      Math.min(this.height - margin, Math.max(margin, from.y + Math.sin(angle) * dist))
+      Math.min(this.width - margin, Math.max(margin, x)),
+      Math.min(this.height - margin, Math.max(margin, y))
     ]
   }
 
-  // Retire an old leaf and its links so the graph keeps evolving at the cap.
+  // Retire the oldest node and its links, so the graph evolves at the cap:
+  // whole branches go in the order they came, the newest never.
   retire() {
     const now = performance.now()
-    const leaves = this.nodes.filter((n) => !n.dead && n.degree <= 1 && now - n.born > 20000)
-    if (leaves.length === 0) return
-    const node = leaves[Math.floor(Math.random() * leaves.length)]
+    let node = null
+    this.nodes.forEach((n) => {
+      if (!n.dead && now - n.born > 12000 && (node === null || n.born < node.born)) node = n
+    })
+    if (node === null) return
     node.dead = now
     this.links.forEach((l) => {
       if (!l.dead && (l.a === node || l.b === node)) {
@@ -191,17 +217,19 @@ export default class extends Controller {
       this.pulse()
       this.nextPulse = now + 900 + Math.random() * 1600
     }
+    // Above the cap, the oldest nodes go at the pace new ones arrive; a
+    // branch of three to five every few seconds, so one node every ~700ms.
     const alive = this.nodes.filter((n) => !n.dead).length
-    if (alive >= this.maxNodesValue * 0.85 && now > this.nextDeath) {
+    if (alive > this.cap && now > this.nextDeath) {
       this.retire()
-      this.nextDeath = now + 1500 + Math.random() * 2500
+      this.nextDeath = now + (alive > this.cap * 1.1 ? 250 : 700)
     }
     const t = now / 1000
     this.nodes.forEach((n) => {
       n.x = n.ax + Math.sin(t * n.drift + n.phase) * 6
       n.y = n.ay + Math.cos(t * n.drift * 0.8 + n.phase) * 6
     })
-    const cutoff = now - 6000
+    const cutoff = now - 8000
     this.nodes = this.nodes.filter((n) => !n.dead || n.dead > cutoff)
     this.links = this.links.filter((l) => !l.dead || l.dead > cutoff)
     this.pulses = this.pulses.filter((p) => now - p.start < p.duration && !p.link.dead)
@@ -211,7 +239,7 @@ export default class extends Controller {
 
   alpha(item, now) {
     const fadeIn = Math.min(1, (now - item.born) / 2500)
-    const fadeOut = item.dead ? Math.max(0, 1 - (now - item.dead) / 4000) : 1
+    const fadeOut = item.dead ? Math.max(0, 1 - (now - item.dead) / 7000) : 1
     return Math.max(0, fadeIn * fadeOut)
   }
 

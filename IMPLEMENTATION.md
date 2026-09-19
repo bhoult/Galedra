@@ -2353,4 +2353,11 @@ json gem pin (Stage 1). Each is explained in its stage above.
   releases, since only those still need a reconnect. `tools/list_changed` is not
   sent: it needs the streaming channel Galedra does not serve and would not refresh a
   host's stored catalog anyway. The FAQ says when a reconnect is needed.
+- Landing animation keeps evolving (owner feedback, 2026-09-18): growth stopped at a
+  fixed cap of 130 nodes because births were refused there and only old leaves were
+  retired, one every few seconds. The cap now follows the window (about one node per
+  3300 px², 140 to 700), births never stop, and above the cap the oldest nodes go at
+  the pace new ones arrive, fading over seven seconds. Branches turn inward near an
+  edge instead of being clamped to it, which had piled nodes along the margins once
+  the graph was dense. Decorative only; nothing reads ledger data.
 
