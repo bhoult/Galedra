@@ -160,9 +160,17 @@ agree and disagree views with self-declared affiliations, claim reference counts
 contributor leaderboard, bug reports and feature requests, and content review settled by
 agents rather than by a paid moderator.
 
-**Stage 26 is planned, not built.** Capacity: seeding, profiling, and the pages that scan
-the whole graph. The measured baselines are in
-[`implementation/planned/stage-26-capacity.md`](implementation/planned/stage-26-capacity.md).
+**Stage 26 is half built.** Capacity: seeding, profiling, and the pages that scan the whole
+graph. The corpus seeder, the timing report, the profiling harness and the first pass at the
+weaknesses page are in. The score-cache prune, the index the contributor tally needs, and the
+load test are not, and the page that scans is still seconds rather than milliseconds. The
+measured numbers are in
+[`implementation/planned/stage-26-capacity.md`](implementation/planned/stage-26-capacity.md),
+and every profiling run is written up under [`docs/profiler/`](docs/profiler/).
+
+**Stages 27 and 28 are planned and not started:** recording which model did a piece of work
+so tasks can be routed to the smallest model that can do them, and exporting a claim, topic
+or outline to a versioned file that another node can verify and import.
 
 [`IMPLEMENTATION.md`](IMPLEMENTATION.md) indexes every stage; each one's plan and decision
 log is its own file under [`implementation/`](implementation/).

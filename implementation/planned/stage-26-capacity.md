@@ -5,7 +5,10 @@
 Built so far: `bench:seed`, `bench:report`, the first pass at `/weaknesses`, and the
 profiling harness (`bench:cpu`, `bench:memory`, `bench:rss`, `bench:boot`).
 Still to do: the score-cache N+1 the profile found, `claim_scores` retention, the tally
-index, the load test, and the decision below about what snapshot the report answers for.
+index, `pg_stat_statements`, the load test, pagination on `/weaknesses`, reading the second
+model's states from `claim_scores` rather than recomputing them, writing the numbers into
+`docs/HOSTING.md` §3, and the decision below about what snapshot the report answers for.
+One acceptance test of five is met: profiling is absent from the production bundle.
 
 ## Plan
 
@@ -169,6 +172,27 @@ entry there carries the detail.
 group only, so `BUNDLE_WITHOUT=development` keeps them out of the production image, and
 nothing requires them at boot: each task requires its gem when it runs, and the
 middleware only appears when `LEDGER_PROFILE` is set.
+
+**Two departures from the deliverable above, recorded rather than silent.**
+
+*`derailed_benchmarks` was not taken, and `bench:rss` was written instead.* The deliverable
+named it for "the 2 GB question": does the node fit the recommended droplet. What that
+question needs is the resident set after boot and its slope as the process serves, and both
+come from `/proc/self/status` in a few lines. `derailed_benchmarks` answers them by driving
+the application through its own harness, which brings a dependency tree, a second way of
+booting the app, and its own idea of what a request is. Against that it offers
+leak-hunting by object retention, which `memory_profiler` already reports per call site.
+So the trade was a dependency for twenty lines, and the twenty lines also let the slope be
+taken over the second half of the run, which is the part that makes the number honest. If
+a memory question ever needs bisecting across boot, reconsider it.
+
+*`pg_stat_statements` is still not enabled.* It wants a `shared_preload_libraries` change
+and a database restart, so it is a change to the compose files and not just to code, and it
+was left for the same pass as the load test. Until then there is no query-level attribution:
+the profile can say 48.5% of the time is in `exec_prepared` and which Ruby call site issued
+it, but not which statements cost the most across a real request mix. That is the gap to
+close before the load test, not after, or the load test will produce numbers nobody can
+attribute.
 
 - `bin/rails 'bench:cpu[weaknesses]'` — sampling profile, wall by default because much of
   the time is spent waiting on Postgres and `MODE=cpu` cannot see that. Writes a dump the
