@@ -30,6 +30,27 @@ class InvestigationsController < ApplicationController
     redirect_to new_investigation_path, alert: e.message
   end
 
+  # The shareable page for one check (after Stage 19): what was asked, and the answers.
+  def show
+    @investigation = Investigation.find(params[:id])
+    @seq = Contribution.maximum(:seq)
+    @model = Scoring::Registry.default_model
+    @claims = @investigation.claims.reject { |c| Governance::Quarantines.live_for("CLAIM", c.id) }
+    @results = @claims.to_h { |c| [ c.id, Scoring::Score.call(c, @seq, @model) ] }
+    @cards = @claims.to_h { |c| [ c.id, Cards::ClaimCard.call(c, @seq, @model, @results[c.id]) ] }
+    @headlines = @cards.values.map { |k| k[:plain][:headline] }
+    @verdict = Investigations::Verdict.call(@claims, @seq, @model)
+    @summary = Investigation.summary(@cards.values, @verdict)
+    @share_line = Investigation.share_line(url: investigation_url(@investigation), **@summary.except(:badge))
+    @sources = @claims.flat_map { |c| c.evidence_claim_links.effective_at(@seq).includes(evidence_item: { source_location: :source }).map { |l| l.evidence_item.source_location.source } }
+                      .uniq.reject(&:redacted?)
+  end
+
+  def card
+    investigation = Investigation.find(params[:id])
+    send_data Cards::StatementImage.render(investigation, base_url: request.host), type: "image/png", disposition: "inline"
+  end
+
   private
 
   # attach[handle]=claim_id from the duplicates page: the assistant's claim

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_260000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -318,6 +318,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_260000) do
     t.jsonb "result", default: {}, null: false
     t.datetime "updated_at", null: false
     t.index ["assistant_token_id", "bundle_digest"], name: "idx_on_assistant_token_id_bundle_digest_76f712cd1a", unique: true
+  end
+
+  create_table "investigations", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "assistant_token_id", null: false
+    t.uuid "claim_ids", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.integer "snapshot_seq", null: false
+    t.text "statement"
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_investigations_on_created_at"
   end
 
   create_table "oauth_authorization_codes", id: :uuid, default: nil, force: :cascade do |t|
@@ -657,8 +667,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_260000) do
     t.datetime "updated_at", null: false
     t.index ["contributor_id", "created_at"], name: "index_task_assignments_on_contributor_id_and_created_at"
     t.index ["status", "lease_expires_at"], name: "index_task_assignments_on_status_and_lease_expires_at"
-    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
-    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
+    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
+    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
   end
 
   create_table "tasks", id: :uuid, default: nil, force: :cascade do |t|
@@ -704,6 +714,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_260000) do
   add_foreign_key "evidence_items", "source_locations"
   add_foreign_key "independence_group_assignments", "evidence_items"
   add_foreign_key "independence_group_assignments", "independence_groups"
+  add_foreign_key "investigations", "assistant_tokens"
   add_foreign_key "oauth_authorization_codes", "oauth_clients"
   add_foreign_key "oauth_tokens", "assistant_tokens"
   add_foreign_key "oauth_tokens", "oauth_clients"

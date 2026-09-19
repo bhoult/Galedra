@@ -18,7 +18,7 @@
     <p class="headline"><%= @plain[:headline] %></p>
     <p class="claim-text">“<%= @claim.canonical_text %>”</p>
     <% if @plain[:say_instead] %><p class="say-instead"><strong>Say instead:</strong> <%= @plain[:say_instead] %></p><% end %>
-    <p class="meta"><%= @card[:headline] %> under <%= @card[:model] %> at snapshot <%= @card[:snapshot_seq] %> · review checks <%= @card[:review_checks] %> · provisional until audited</p>
+    <p class="meta"><%= @card[:headline] %><% if @card[:stated] %> · <%= @card[:stated] %><% end %> · review checks <%= @card[:review_checks] %> · provisional until audited. The number is model-conditional, not a share of truth.</p>
   </div>
   <p><%= link_to "See the evidence", claim_path(@claim) %> · <%= image_tag card_claim_path(@claim, format: :png), alt: "", class: "share-preview", width: 600, height: 315 %></p>
 </div>

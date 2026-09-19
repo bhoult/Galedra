@@ -24,10 +24,12 @@ module Mcp
               "words before listing tools. If a search finds nothing, say so plainly and offer to investigate and record it."
     WORK = "Working open tasks: when the person says \"work N open tasks in Galedra\", call next_task, read the sources yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat N times or until next_task says nothing is available. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to have something to submit."
     CORRECT = "Correcting what is recorded: nothing is deleted; a correction is a new entry. revise_claim, merge_claims, and revise_link take effect now on your own person's work and are proposals on anyone else's (say so; never say a proposal was fixed). A doubt about a passage or an origin becomes a task for someone else with open_task. When asked to review corrections proposed on their claims, call list_proposals and accept_proposal for each the person agrees with; leaving one pending declines it. A superseded claim is reported as superseded, with the current claim."
-    RULES = "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
+    RULES = "A message that is just \"galedra:\" (or \"Galedra:\") followed by text means: check this before I share it, record the whole statement, and end with the share line; no other instruction is needed. " \
+            "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
+            "Record the whole statement in one record_investigation call: every claim it makes, new ones with text and type, ones Galedra already holds by attach_to; the check page and share line cover only the claims in that call. Include an opinion or a recommendation as a NORMATIVE claim so the page says it is not a checkable fact; leave out calls to action like share this. " \
             "Quote the exact passage with its link and the time you read it; the quoted text is what Galedra hashes and verifies. Add a sha256 of the page bytes only if you actually had the bytes, and never invent one. One assertion per claim, typed. " \
             "Your own reasoning is never evidence; only quoted passages are. Look for what would count against a claim before recording it. " \
-            "Never record claims about identifiable private individuals. Report Galedra's plain headline and its say_instead sentence verbatim, never a paraphrase of your own, plus the link, and say the result is provisional until audited. When the result carries attribution.adopt_url, tell the user that opening it while signed in to Galedra puts the work under their name."
+            "Never record claims about identifiable private individuals. Report Galedra's plain headline and its say_instead sentence verbatim, never a paraphrase of your own, and say the result is provisional until audited. Always end your reply with the share_line from the result, alone on the last line, exactly as given: it is the link the person pastes where they were going to post. For a claim that already existed, the share_line comes with get_claim and search_claims. When the result carries attribution.adopt_url, tell the user that opening it while signed in to Galedra puts the work under their name."
 
     CARD_SCHEMA = { type: "object", description: "The answer card; no probability here.",
                     properties: { headline: { type: "string" }, plain: { type: "object", properties: { headline: { type: "string" }, say_instead: { type: [ "string", "null" ] } } },
@@ -39,24 +41,25 @@ module Mcp
     } }.freeze
 
     TOOLS = [
-      { name: "search_claims", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Start here. Galedra is a public, signed record of claims and the evidence behind them. Three things a person does with it through you: (1) check something before sharing it and post a link to the record; (2) send someone a claim link so they see the reasons; (3) contribute: record investigations, add evidence, correct what is wrong (revise_claim, merge_claims, open_task), or say \"work N open tasks in Galedra\" (list_tasks, next_task, submit_task). Search accepted claims by words. Always call this first: if the claim is already recorded, report its card and URL instead of recording a twin.",
+      { name: "search_claims", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Start here. Galedra is a public, signed record of claims and the evidence behind them: check something before sharing it and post the link, send someone a claim link so they see the reasons, or contribute (record, add evidence, correct, or \"work N open tasks in Galedra\"). Every result carries Galedra's current guidance under guidance; follow it, it is fresher than this description.",
         inputSchema: { type: "object", properties: { query: { type: "string", description: "Words from the claim" }, limit: { type: "integer", minimum: 1, maximum: 50, default: 10 } }, required: [ "query" ] },
         outputSchema: { type: "object", properties: { query: { type: "string" }, snapshot_seq: { type: "integer" }, claims: { type: "array", items: { type: "object", properties: { id: { type: "string" }, text: { type: "string" }, type: { type: "string" }, headline: { type: "string" }, plain_headline: { type: "string" }, url: { type: "string" } } } } } } },
       { name: "get_claim", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The answer card for one claim: a plain headline, what to say instead when the evidence supports it, review checks, labels, counted evidence for and against, and the URL. No probability here; use explain with calculation: true for the number.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" } }, required: [ "claim_id" ] },
         outputSchema: { type: "object", properties: { id: { type: "string" }, text: { type: "string" }, type: { type: "string" }, url: { type: "string" }, card: CARD_SCHEMA, provisional_note: { type: "string" } } } },
-      { name: "record_investigation", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Record what you found, all at once: sources by link, quoted excerpts, atomic typed claims, evidence statements, and links (SUPPORT, CONTRADICT, QUALIFY, NEUTRAL) with interpretive steps. No token is needed: without one the work is recorded under an anonymous key; a connected assistant token attributes it to the user. If similar accepted claims exist the call returns them under existing and records nothing; resubmit with attach_to on those claims, or on_duplicate: create. " + RULES,
+      { name: "record_investigation", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Record what you found, all at once: sources by link, quoted excerpts, atomic typed claims, evidence statements, and links (SUPPORT, CONTRADICT, QUALIFY, NEUTRAL) with interpretive steps. No token is needed: without one the work is recorded under an anonymous key; a connected assistant token attributes it to the user. If similar accepted claims exist the call returns them under existing and records nothing; resubmit with attach_to on those claims, or on_duplicate: create. ",
         inputSchema: { type: "object", properties: {
+          statement: { type: "string", description: "The exact text the person wanted checked, as they would post it (the meme's words, the sentence they were about to share). Shown at the top of the shareable page." },
           sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had the bytes. If your host gave you rendered text, omit it; never invent one." }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
           excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION] }, text: { type: "string" } }, required: %w[handle source text] } },
-          claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type" } }, required: [ "handle" ] } },
+          claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type. Every claim the statement makes goes in this one call: ones Galedra already holds (from search_claims) go in by attach_to, with or without new evidence, so the check page and share line cover the whole statement" } }, required: [ "handle" ] } },
           evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string" }, statement: { type: "string", description: "One plain sentence, at most 25 words, that a stranger could read aloud; it may become the card's say-instead line" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
           links: { type: "array", items: { type: "object", properties: { evidence: { type: "string" }, claim: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer", minimum: 0, maximum: EvidenceClaimLink::MAX_STEPS }, note: { type: "string" } }, required: %w[evidence claim direction] } },
           groups: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: IndependenceGroup::TYPES }, members: { type: "array", items: { type: "string" } } }, required: %w[handle members] } },
           on_duplicate: { type: "string", enum: %w[ask create], default: "ask" }
         }, required: [ "claims" ] },
         outputSchema: RECORD_OUTPUT_SCHEMA },
-      { name: "add_evidence", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Attach one quoted passage to an existing claim as evidence for, against, or qualifying it. No token needed; anonymous without one. " + RULES,
+      { name: "add_evidence", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Attach one quoted passage to an existing claim as evidence for, against, or qualifying it. No token needed; anonymous without one. ",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" }, source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had them" }, retrieved_at: { type: "string" }, publisher: { type: "string" } }, required: %w[type title url retrieved_at] }, excerpt: { type: "string" }, excerpt_kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" }, statement: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS, default: "DIRECT" }, steps: { type: "integer", default: 0 }, note: { type: "string" } }, required: %w[claim_id source excerpt statement direction] },
         outputSchema: RECORD_OUTPUT_SCHEMA },
       { name: "explain", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Why a claim stands where it does: strongest counted support and contradiction, suppressed dependents, review gaps, and what would most change it. With calculation: true, also the probability, always stated with its model and snapshot; never present it as a percentage true.",
@@ -81,7 +84,7 @@ module Mcp
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" } } },
         outputSchema: { type: "object", properties: { available: { type: "boolean" }, reason: { type: "string" }, task_id: { type: "string" }, task_type: { type: "string" }, domain: { type: "string" }, objective: { type: "string" }, target: { type: "object" }, context: { type: "object" }, outcomes: { type: "array", items: { type: "string" } }, lease_expires_at: { type: "string" }, task_url: { type: "string" }, answer_with: { type: "string" }, rules: { type: "string" } } } },
       { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-        description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim and excerpt: \"packet\" for the task's passage. An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. " + Tasks::Answer::RULES,
+        description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim and excerpt: \"packet\" for the task's passage. An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
         inputSchema: { type: "object", properties: { task_id: { type: "string" }, outcome: { type: "string" },
                                                      answer: { type: "object", properties: {
                                                        sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
@@ -170,12 +173,29 @@ module Mcp
         instructions: "#{PURPOSE} #{RULES} #{WORK} #{CORRECT}" }
     end
 
+    # Guidance travels in results, which hosts read fresh on every call, rather
+    # than in tool descriptions, which they cache from the last connection.
+    GUIDANCE_VERSION = "2026-09-18.3"
+    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check,
+                     "list_tasks" => :work, "next_task" => :work, "submit_task" => :work,
+                     "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
+
+    def guidance(name)
+      text = case GUIDANCE_FOR[name]
+      when :check then RULES
+      when :work then "#{WORK} #{Tasks::Answer::RULES}"
+      when :correct then CORRECT
+      end
+      text && { version: GUIDANCE_VERSION, text: text }
+    end
+
     def call_tool(params)
       name = params["name"].to_s
       args = params["arguments"].is_a?(Hash) ? params["arguments"] : {}
       raise ArgumentError, "unknown tool #{name}" unless TOOLS.any? { |t| t[:name] == name }
 
       data = send(:"tool_#{name}", args)
+      data = data.merge(guidance: guidance(name)) if data.is_a?(Hash) && guidance(name)
       { content: [ { type: "text", text: JSON.pretty_generate(data) } ], structuredContent: data, isError: false }
     end
 
@@ -204,6 +224,7 @@ module Mcp
       evidence = Graph::Presenter.claim_evidence(claim, seq) if Graph::Presenter.respond_to?(:claim_evidence)
       revision = Corrections.status(claim, seq)
       { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card, topics: Topics.for_claim(claim, seq),
+        share_url: "#{url_for(claim)}/card", share_line: share_line_for(claim, card),
         evidence: evidence, revision: revision.merge(superseded_by: revision[:superseded_by]&.merge(url: "#{@base_url}/claims/#{revision[:superseded_by][:claim_id]}")),
         provisional_note: "Everything here stays open to audit; treat it as provisional." }
     end
@@ -276,6 +297,7 @@ module Mcp
       lines << "Strongest contradiction: #{why[:strongest_contradiction][:statement]}" if why[:strongest_contradiction]
       lines << "What would most change this: #{why.dig(:what_would_most_change_this, :text)}" if why[:what_would_most_change_this]
       lines << "Provisional until audited. Model-conditional, not objective."
+      lines << "Share: #{share_line_for(claim, card)}"
       { id: claim.id, title: claim.canonical_text, text: lines.join("\n"), url: url_for(claim),
         metadata: { type: claim.claim_type, assessment_state: why[:assessment_state], snapshot_seq: seq, model: model.full_name, status: revision[:status] } }
     end
@@ -397,6 +419,10 @@ module Mcp
 
     private
 
+    def share_line_for(claim, card)
+      Investigation.share_line(headline: card[:plain][:headline], url: "#{url_for(claim)}/card", stated: card[:stated])
+    end
+
     def find_task(args)
       id = args["task_id"].to_s
       raise ArgumentError, "task_id is required" if id.empty?
@@ -431,7 +457,7 @@ module Mcp
     def brief(claim, seq, model)
       card = Cards::ClaimCard.call(claim, seq, model)
       { id: claim.id, text: claim.canonical_text, type: claim.claim_type, headline: card[:headline], plain_headline: card[:plain][:headline],
-        similarity: claim.try(:similarity)&.to_f&.round(2), url: url_for(claim) }.compact
+        similarity: claim.try(:similarity)&.to_f&.round(2), url: url_for(claim), share_line: share_line_for(claim, card) }.compact
     end
 
     def find_claim(args)

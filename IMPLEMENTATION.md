@@ -2297,4 +2297,60 @@ json gem pin (Stage 1). Each is explained in its stage above.
   signed entry pointing at what it corrects); 2 yes; 3 no; 4 no; 5 yes, the old
   entry stays and is shown; 6 yes; 7 yes; 8 yes, acceptance needs a different
   principal and is itself logged; 9 yes; 10 yes.
+- The link to paste (owner request, 2026-09-18): a check ends with one line the
+  person can paste where they were going to post. `record_investigation` takes an
+  optional `statement` (the exact text they wanted checked) and every recording
+  creates an `Investigation` row, an index over log content like receipts, with a
+  public page at `/investigations/:id` showing what was asked, each claim's plain
+  headline and say-instead line read live from the log, the sources read, and a
+  1200×630 PNG for link previews. The result carries `share_line` ("Checked in
+  Galedra: <headline> <url>", or the claim count when the claims' headlines differ),
+  and the rules, the skill, and the tool note tell the assistant to end its reply with
+  it verbatim on the last line. Existing claims carry a `share_line` to their card in
+  `get_claim`, `search_claims`, and `fetch`. Nothing about scoring or the log changes.
+- The number on the share line (owner request, 2026-09-18, asked for as "98% accurate
+  according to x model"): the share line, the check page, the claim card page, and both
+  PNGs now carry the probability, in the only form the rules allow: `0.9800 under
+  ledger-default@0.1.0 at snapshot 412`, next to the state and the review-check count,
+  and absent when the state carries none. "Accurate" and "% true" are not used: Article
+  XXII forbids presenting a computed probability as a property of reality, 06 §4 rule 1
+  keeps the number off the headline, and the vocabulary rule in CLAUDE.md fixes the
+  form. Percent formatting or the word "accurate" would be a spec change to 06 §4 and
+  the vocabulary, reserved for the owner. The card hash gains `stated` so every
+  surface says it the same way.
+- The whole statement (owner feedback, 2026-09-18): a five-claim meme came back as a
+  two-claim check page, because the assistant recorded the two new claims and only
+  read the three that existed. The rules, the skill, and the `attach_to` description
+  now say every claim the statement makes goes into the one record call, existing
+  ones by reference, opinions as `NORMATIVE`, calls to action left out. The check
+  page and its share line lead with a verdict for the statement as a whole
+  (`Investigations::Verdict`): a rule-based headline in the plain vocabulary read from
+  the claims' states, the counts behind it, and, when every checkable claim has a
+  probability, their product stated with model and snapshot and labelled as the
+  figure for all claims holding at once under independence. Claim scores are
+  untouched; the verdict is display composition, reversible, and never a percentage.
+- Validity badges (owner decision, 2026-09-18, departing from 06 §4 rule 12): the
+  check page's claim-by-claim section shows each claim first, then one of ten SVG
+  badges coloured from green through amber to red with a glyph and a label:
+  Strongly, Mostly, or Leans supported; Evidence mixed; Leans, Mostly, or Strongly
+  against; Not checked yet; Not a checkable fact; Withheld by moderation. The level
+  comes from the assessment state, split by probability at 0.9 and 0.1 where the
+  state is wide (`Cards::Badge`). Rule 12 forbids colour-coding claims and badges of
+  this kind; the owner chose them for the page people paste into social media, and
+  they appear nowhere else (claim pages, cards, and the API stay neutral). The labels
+  keep the evidence wording rather than "true" or "false", which Article XXII rules
+  out; the owner asked for "mostly true" and "completely false" and may still choose
+  those words, which would need a constitutional amendment under Article XXV. 06 §4
+  rule 12 should be revised by the owner to name this exception.
+- Guidance in results, not descriptions (owner question, 2026-09-18): hosts cache the
+  tool list from the moment of connection and refresh it on their own schedule, so
+  rule text in descriptions goes stale until a person reconnects, while results are
+  read fresh on every call. The connector now returns a versioned `guidance` block
+  with every result (the check rules on search, read, and record; the task procedure
+  on task tools; the correction rules on correction tools), the descriptions are cut
+  to what the tool is, and the first tool's description says the guidance is fresher.
+  Tool names and input schemas are treated as an interface: additive, batched into
+  releases, since only those still need a reconnect. `tools/list_changed` is not
+  sent: it needs the streaming channel Galedra does not serve and would not refresh a
+  host's stored catalog anyway. The FAQ says when a reconnect is needed.
 

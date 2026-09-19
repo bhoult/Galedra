@@ -25,7 +25,7 @@ module Cards
       canvas, y = stamp(canvas, card[:plain][:headline], "serif bold 54", INK, y + 12)
       canvas, y = stamp(canvas, "“#{truncate(claim.canonical_text, 220)}”", "sans 30", INK, y + 20)
       canvas, y = stamp(canvas, "Say instead: #{truncate(card[:plain][:say_instead], 200)}", "sans italic 26", ACCENT, y + 14) if card[:plain][:say_instead]
-      footer = "#{card[:review_checks]} review checks · #{card[:headline]} under #{model.full_name} at snapshot #{seq} · provisional until audited"
+      footer = "#{card[:review_checks]} review checks · #{card[:stated] || "#{card[:headline]} under #{model.full_name} at snapshot #{seq}"} · provisional until audited"
       canvas, = stamp(canvas, footer, "sans 18", MUTED, HEIGHT - MARGIN - 24)
       canvas.write_to_buffer(".png")
     end

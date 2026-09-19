@@ -20,7 +20,11 @@ module Cards
         labels: labels(result, anonymous: anonymous_provisional?(claim, seq)),
         related: related(claim, seq, model),
         plain: Plain.call(claim, seq, model, result),
-        model: model.full_name, snapshot_seq: seq
+        model: model.full_name, snapshot_seq: seq,
+        # The number in the one form the display rules allow (06 §4 rule 2, CLAUDE.md
+        # vocabulary): with its model and snapshot, never as "N% true". Nil when
+        # the state carries no probability.
+        stated: (result.probability && "#{result.probability} under #{model.full_name} at snapshot #{seq}")
       }
       card[:reason] = Headline.reason_text(result.not_applicable_reason) if result.assessment_state == "NOT_APPLICABLE"
       card

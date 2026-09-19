@@ -186,3 +186,13 @@ body.document .statement > * { max-width: none; margin-inline: 0; }
   body.document .toc ol { columns: 1; }
   body.landing section { margin: 1.6rem 0; padding: 1rem 1rem; }
 }
+
+/* Validity badges on the check page's claim-by-claim section (owner decision; 06 §4 rule 12 relaxed there).
+   The badge floats left; the claim, in a larger face, flows around it. */
+.answer.badged { overflow: hidden; }
+.answer.badged .badge-validity { float: left; width: 5.5rem; margin: 0.15rem 1rem 0.4rem 0; text-align: center; }
+.answer.badged .badge-validity .badge-mark { display: block; margin: 0 auto 0.25rem; }
+.answer.badged .badge-label { font-weight: 700; font-size: 0.85rem; line-height: 1.2; }
+.share .answer.badged p.claim-text { font-family: var(--serif); font-size: 1.45rem; line-height: 1.35; margin: 0 0 0.6rem; }
+.answer.badged p:not(.claim-text) { clear: none; }
+@media (max-width: 30rem) { .answer.badged .badge-validity { width: 4.5rem; } .share .answer.badged p.claim-text { font-size: 1.25rem; } }

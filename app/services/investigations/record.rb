@@ -37,8 +37,20 @@ module Investigations
         { handle: c["handle"], id: claim.id, created: c["attach_to"].nil?, url: "#{base_url}/claims/#{claim.id}",
           card: Cards::ClaimCard.call(claim, seq, model) }
       end
+      share = share_for(token, bundle, claims, seq, base_url)
       { recorded: true, snapshot_seq: seq, contributions: count, tasks_opened: tasks, ids: ids, claims: claims, existing: with_urls(existing, base_url),
-        attribution: attribution(token, base_url) }
+        attribution: attribution(token, base_url), share: share, share_line: share[:line] }
+    end
+
+    # The page that answers what was asked, and the one line to paste (after Stage 19).
+    def share_for(token, bundle, claims, seq, base_url)
+      investigation = Investigation.create!(id: SecureRandom.uuid_v7, assistant_token: token, statement: bundle["statement"].presence,
+                                            claim_ids: claims.map { |c| c[:id] }, snapshot_seq: seq)
+      url = "#{base_url}/investigations/#{investigation.id}"
+      verdict = Verdict.call(investigation.claims, seq, Scoring::Registry.default_model)
+      summary = Investigation.summary(claims.map { |c| c[:card] }, verdict)
+      { url: url, image_url: "#{url}/card.png", line: Investigation.share_line(url: url, **summary.except(:badge)), verdict: verdict,
+        note: "End your reply with share_line on its own line, exactly as given, so the person can paste it where they were going to post." }
     end
 
     # Anonymous work carries an adoption link: opened while signed in, it puts
@@ -167,6 +179,8 @@ module Investigations
         end
       end
       add.call("$.claims", "at least one claim is required") if bundle.fetch("claims", []).empty?
+      statement = bundle["statement"]
+      add.call("$.statement", "the exact text the person wanted checked, at most #{Investigation::MAX_STATEMENT_CHARS} characters") unless statement.nil? || (statement.is_a?(String) && statement.length <= Investigation::MAX_STATEMENT_CHARS)
       raise Ledger::Rejected.new(errors) if errors.any?
 
       true

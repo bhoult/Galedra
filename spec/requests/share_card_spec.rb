@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Share card (Stage 14)", type: :request do
   before { release_models }
 
-  it "carries Open Graph tags and renders an image for a claim in each assessment state, never with a probability (#4)" do
+  it "carries Open Graph tags and renders an image for a claim in each assessment state, with the number only in its stated form (#4)" do
     graph = build_public_demo
     model = Scoring::Registry.default_model
     seq = Contribution.maximum(:seq)
@@ -23,7 +23,10 @@ RSpec.describe "Share card (Stage 14)", type: :request do
       expect(response.body).to include('property="og:title"')
       expect(response.body).to include("/claims/#{claim.id}/card.png")
       expect(response.body).to include('name="twitter:card" content="summary_large_image"')
-      expect(response.body).not_to match(/\b0\.\d{4}\b/)
+      # The number appears only in its stated form, with model and snapshot, never as a percentage or in the headline (06 §4).
+      expect(response.body[%r{<p class="meta">.*?</p>}m]).not_to match(/\d+%/)
+      expect(response.body.scan(/\b0\.\d{4}\b/).size).to eq(response.body.scan(/\b0\.\d{4} under ledger-default@0\.1\.0 at snapshot \d+/).size)
+      expect(response.body).not_to match(/og:title" content="[^"]*0\.\d{4}/)
 
       get "/claims/#{claim.id}/card.png"
       expect(response).to have_http_status(:ok), state

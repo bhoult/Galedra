@@ -1,6 +1,7 @@
 <% content_for :title, "Recorded" %>
 <div class="paste">
   <h1>Recorded</h1>
+  <div class="card"><p><strong>Share this check:</strong> <%= link_to @result[:share][:url], @result[:share][:url] %></p><p class="meta">Paste it where you were going to post. It shows what was asked and Galedra's answer, and stays current as evidence arrives.</p></div>
   <p class="meta"><%= pluralize(@result[:contributions], "signed contribution") %> appended at snapshot <%= @result[:snapshot_seq] %> · <%= pluralize(@result[:tasks_opened], "verification task") %> opened · provisional until audited</p>
   <% @result[:claims].each do |c| %>
     <div class="card answer">
