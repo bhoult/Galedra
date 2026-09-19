@@ -17,7 +17,14 @@
   <p class="meta">The conclusion reads supported while a premise reads the opposite of what the step needs. The step, or the conclusion's own evidence, deserves a look.</p>
 <% else %><p class="muted">None.</p><% end %>
 <% @report[:lists].each do |kind, entries| %>
-  <h2><%= kind.tr("_", " ") %> (<%= entries.size %>)</h2>
+  <% total = @report[:totals][kind] %>
+  <h2><%= kind.tr("_", " ") %> (<%= total %><%= " of #{@report[:max_entries]} kept" if total > @report[:max_entries] %>)</h2>
+  <% if total > @per_page %>
+    <p class="meta">Showing <%= @report[:offset] + 1 %> to <%= [ @report[:offset] + entries.size, total ].min %> of <%= total %>.
+      <% if @page > 1 %><%= link_to "Previous", weaknesses_path(request.query_parameters.merge(page: @page - 1)) %><% end %>
+      <% if @report[:offset] + entries.size < [ total, @report[:max_entries] ].min %><%= link_to "Next", weaknesses_path(request.query_parameters.merge(page: @page + 1)) %><% end %>
+    </p>
+  <% end %>
   <% if entries.any? %>
     <table><tr><th>Claim</th><th>State</th><th>Detail</th><th>What would most change this</th></tr>
     <% entries.each do |e| %><tr><td><%= link_to e[:text], claim_path(e[:claim_id], snapshot_seq: @seq) %></td><td><%= state_label(e[:assessment_state]) %></td><td class="muted"><%= e[:detail].to_json %></td><td><%= e[:what_would_most_change_this]&.dig(:text) %></td></tr><% end %></table>

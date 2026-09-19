@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_210001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -284,6 +284,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_210000) do
     t.uuid "task_id"
     t.string "task_packet_hash"
     t.string "visibility", default: "PUBLIC", null: false
+    t.index "((envelope ->> 'delegation_id'::text))", name: "index_contributions_on_envelope_delegation_id"
     t.index ["action_type"], name: "index_contributions_on_action_type"
     t.index ["contributor_id", "seq"], name: "index_contributions_on_contributor_id_and_seq"
     t.index ["entry_hash"], name: "index_contributions_on_entry_hash", unique: true

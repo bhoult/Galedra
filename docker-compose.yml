@@ -4,6 +4,14 @@
 services:
   db:
     image: postgres:16
+    # pg_stat_statements records what every statement costs across a real
+    # request mix, which a Ruby profile cannot see: it can name the call site
+    # but not the statement. Preloading the library costs a little memory and
+    # nothing else; bin/rails db:top_queries reads it (Stage 26).
+    command: >
+      postgres -c shared_preload_libraries=pg_stat_statements
+               -c pg_stat_statements.track=all
+               -c pg_stat_statements.max=5000
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

@@ -106,13 +106,52 @@ Start small:
 Ubuntu 24.04 LTS
 ```
 
-One process serves web and jobs. Jobs are light: score recomputation, snapshot creation,
-summary generation, the hourly `SettleLoneVerdictsJob`, and source retrieval (Stage 17,
-one fetch per host per minute, 2 MB cap). If memory pressure appears, scale the VM before
-adding architectural complexity.
+One process serves web and jobs.
 
 Do not prematurely provision Kubernetes, load balancers, multiple web nodes, Redis,
 Sidekiq, a service mesh, or any orchestration beyond Kamal. Measure first.
+
+## What was measured
+
+Stage 26 replaced the guess that "jobs are light" with numbers. Every figure below was
+taken against a corpus built through the real write path, on a 24-core workstation, which
+flatters the timings: the droplet above has a small fraction of that, so read the shape
+rather than the absolute. Each run is written up under `docs/profiler/` with the corpus
+and machine it was taken on. Reproduce any of it with `bin/rails bench:report`.
+
+**Memory is not the ceiling.** One Puma worker boots at 126 MB, settles at 162 MB after
+300 requests, and does not grow after that: the slope over the second half of a run is
+flat. On 2 GB that leaves room for the database, the job thread and several workers.
+
+**Storage grows about twice as fast as the log.** At 3,026 claims the contributions table
+was 70 MB and the score cache 18 MB, and the cache had no retention at all until
+`bin/rails scores:prune` was added. Run the prune, or schedule `PruneClaimScoresJob`, or
+the cache will outgrow the record it caches.
+
+**Writes serialise, by design.** `Ledger::Append` takes an advisory lock per transaction,
+which is what keeps the sequence gap-free and the chain unbroken. One contribution at a
+time, 31/s single-threaded on the workstation and fewer on 1 vCPU. A recorded
+investigation is 10 to 20 appends, so plan for well under one investigation per second
+whatever the thread count. This is a property to accept, not a bottleneck to remove.
+
+**The pages that scan the whole graph are the thing to watch.** Everything a reader
+normally touches is tens of milliseconds. `/weaknesses` reads every counted claim under
+every released model, and it is seconds. It is cached per snapshot and now paged and
+capped, so a reader pays for it once per append rather than once per view, but the first
+reader after each append pays in full.
+
+| At 3,026 claims | Median |
+|---|---|
+| Claim page | 38 ms |
+| Claims index | 20 ms |
+| Contributors | 22 ms |
+| `/api/v1/claims?limit=50` | 296 ms |
+| `/weaknesses` | seconds, cold |
+
+**What to do when it hurts.** In order: run `scores:prune` on a schedule; check
+`bin/rails db:top_queries`, which reads `pg_stat_statements` and names the statements
+costing the most; then scale the VM. Only after those should anything architectural be
+considered.
 
 ---
 

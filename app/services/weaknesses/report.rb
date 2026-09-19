@@ -8,6 +8,11 @@ module Weaknesses
     KINDS = %w[low_coverage_scored provisional independence_unreviewed contested models_disagree high_impact_insufficient disputed_audits].freeze
     HIGH_DOWNSTREAM = 3
     CACHE_FOR = 1.hour
+    # The hard cap on what one kind can hold, whatever the corpus. A page that
+    # can be asked for ten thousand rows is a page that can be used to make the
+    # node fall over, and nobody reads past the first few anyway; `totals` says
+    # how many there really are, so a cap is never a silent truncation.
+    MAX_ENTRIES = 500
 
     module_function
 
@@ -15,26 +20,40 @@ module Weaknesses
     # model rather than once per view (Stage 26). A snapshot's answer never
     # changes, so the cache is keyed by seq and needs no invalidation; the TTL
     # only bounds how long a superseded snapshot's answer occupies the store.
-    def call(seq, kind: nil, limit: 50)
+    def call(seq, kind: nil, limit: 50, offset: 0)
       model = Scoring::Registry.default_model
       kinds = kind ? [ kind ] : KINDS
       raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.kind", detail: "expected one of #{KINDS.join(', ')}" } ]) unless (kinds - KINDS).empty?
 
-      Rails.cache.fetch([ "weaknesses", seq, model&.full_name, kinds.join(","), limit ], expires_in: CACHE_FOR) do
-        compute(seq, kinds, limit, model)
+      # Cached whole and paged on read: the work is reading the graph, not
+      # slicing the answer, so one computation serves every page of it. The key
+      # no longer carries the limit, which used to buy a separate whole-graph
+      # scan for each page size anyone asked for.
+      full = Rails.cache.fetch([ "weaknesses", seq, model&.full_name, kinds.join(",") ], expires_in: CACHE_FOR) do
+        compute(seq, kinds, model)
       end
+      page(full, limit.to_i.clamp(1, MAX_ENTRIES), offset.to_i.clamp(0, MAX_ENTRIES))
     end
 
-    def compute(seq, kinds, limit, model)
+    # Slices each list, and says how many there are and whether the cap bit.
+    def page(full, limit, offset)
+      lists = full[:lists].to_h { |kind, entries| [ kind, entries[offset, limit] || [] ] }
+      full.merge(lists: lists, limit: limit, offset: offset)
+    end
+
+    def compute(seq, kinds, model)
       models = Scoring::Registry.released.to_a
       claims = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids).order(:created_seq).to_a
-      scored = claims.to_h { |c| [ c.id, Scoring::Score.call(c, seq, model) ] }
+      scored = Scoring::Score.call_many(claims, seq, model)
       facts = Facts.new(claims, seq)
+      totals = {}
       lists = kinds.to_h do |k|
-        entries = send(k, claims, scored, seq, model, models, facts).first(limit)
-        [ k, entries.map { |claim, detail| entry(claim, scored[claim.id], detail, seq, model) } ]
+        found = send(k, claims, scored, seq, model, models, facts)
+        totals[k] = found.size
+        [ k, found.first(MAX_ENTRIES).map { |claim, detail| entry(claim, scored[claim.id], detail, seq, model) } ]
       end
-      { snapshot_seq: seq, model: model&.full_name, kinds: KINDS, lists: lists }
+      { snapshot_seq: seq, model: model&.full_name, kinds: KINDS, lists: lists, totals: totals,
+        capped: totals.values.any? { |n| n > MAX_ENTRIES }, max_entries: MAX_ENTRIES }
     end
 
     # The set queries the per-claim lists used to issue one at a time.
@@ -83,12 +102,17 @@ module Weaknesses
       claims.filter_map { |c| [ c, { support_groups: scored[c.id].support_groups, contradict_groups: scored[c.id].contradict_groups } ] if scored[c.id].contested }
     end
 
+    # One batch per released model rather than one query per claim per model:
+    # at two models and a few thousand claims that was the larger half of the
+    # report's round trips (Stage 26).
     def models_disagree(claims, scored, seq, _model, models, facts)
-      claims.filter_map do |c|
-        next unless facts.evidenced?(c.id)
+      evidenced = claims.select { |c| facts.evidenced?(c.id) }
+      return [] if evidenced.empty?
 
-        states = models.to_h { |m| [ m.full_name, Scoring::Score.call(c, seq, m).assessment_state ] }
-        [ c, { states: states } ] if states.values.uniq.size > 1
+      by_model = models.to_h { |m| [ m.full_name, Scoring::Score.call_many(evidenced, seq, m) ] }
+      evidenced.filter_map do |c|
+        states = by_model.transform_values { |results| results[c.id]&.assessment_state }
+        [ c, { states: states } ] if states.values.compact.uniq.size > 1
       end
     end
 
