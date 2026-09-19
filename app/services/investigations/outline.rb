@@ -147,7 +147,7 @@ module Investigations
           add.call("$.sections", "at most #{Section::MAX_PER_CONTRIBUTION} sections") if handles.size > Section::MAX_PER_CONTRIBUTION
           add.call("$.sections", "one root: give a single top-level section for a new outline") if bundle["parent_section_id"].nil? && nodes.size != 1
         else
-          add.call("$.sections", "expected a non-empty array of {handle, heading, locator?, anchor?, sections?}")
+          add.call("$.sections", "expected a non-empty array of {handle, heading, locator?, anchor?, reading?, sections?}")
         end
         raise Ledger::Rejected.new(errors) if errors.any?
 
@@ -163,7 +163,12 @@ module Investigations
           add.call("#{here}.handle", "expected a unique string handle") if !h.is_a?(String) || h.empty? || handles.key?(h)
           handles[h] = true if h.is_a?(String)
           add.call("#{here}.heading", "expected a non-empty string of at most #{Section::MAX_HEADING} characters") unless n["heading"].is_a?(String) && n["heading"].strip.present? && n["heading"].length <= Section::MAX_HEADING
-          add.call("#{here}.anchor", "at most #{ANCHOR_MAX} quoted characters; the passage itself is never stored") if n["anchor"].is_a?(String) && n["anchor"].length > ANCHOR_MAX
+          add.call("#{here}.anchor", "at most #{ANCHOR_MAX} characters, quoted exactly: it is hashed and checked against the source") if n["anchor"].is_a?(String) && n["anchor"].length > ANCHOR_MAX
+          if n["reading"] && !n["reading"].is_a?(String)
+            add.call("#{here}.reading", "expected the leaf's text as a string")
+          elsif n["reading"].is_a?(String) && n["reading"].length > READING_MAX
+            add.call("#{here}.reading", "at most #{READING_MAX} characters for one leaf; split the section if it is longer")
+          end
           if n["locator"]
             add.call("#{here}.locator", "expected an object") && next unless n["locator"].is_a?(Hash)
             type = n["locator"]["type"] || "SECTION"
