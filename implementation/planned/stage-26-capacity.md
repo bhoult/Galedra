@@ -159,7 +159,11 @@ demand, given it is a whole-graph report; whether to denormalise the principal o
 the droplet size to test against, since the answer to "how many claims" is a function of it.
 
 
-## Profiling, and what it found (2026-09-20)
+## Profiling, and what it found (2026-09-19)
+
+Every run is written up under [`docs/profiler/`](../../docs/profiler/), one file per run,
+with the corpus and machine it was taken on. What follows is the summary; the first
+entry there carries the detail.
 
 `stackprof`, `memory_profiler` and `rack-mini-profiler` are in the development bundle
 group only, so `BUNDLE_WITHOUT=development` keeps them out of the production image, and

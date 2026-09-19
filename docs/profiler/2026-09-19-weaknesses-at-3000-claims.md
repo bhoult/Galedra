@@ -1,0 +1,126 @@
+# The weaknesses page at 3,000 claims
+
+**Date:** 2026-09-19 · **Stage:** 26 · **First run with a profiler rather than a stopwatch**
+
+## Conditions
+
+| | |
+|---|---|
+| Corpus | 3,026 claims · 30,779 contributions · 2,318 evidence items · 4,357 links · 1,528 sources · 237 audits |
+| How it was built | `bin/rails 'bench:seed[3000]' RESET=1 BATCH=250`, every row through `Ledger::Append` |
+| Environment | test, in the app container |
+| Machine | Linux, 24 cpu, development workstation. **Not** the target droplet |
+| Held still | reloader, verbose query logs, log writes; page cache swapped for a null store |
+| Ruby | 4.0.7 |
+
+The machine matters more than usual here. A 24-core workstation flatters every number
+below, and the recommended droplet has a small fraction of that. Read these as the shape
+of the problem, not as the capacity answer. The capacity answer needs the load test on a
+real droplet, which is still outstanding.
+
+## Timings
+
+| Operation | Median | Slowest |
+|---|---|---|
+| `GET /` | 4.8 ms | 105.9 ms |
+| `GET /claims` | 19.7 ms | 536.3 ms |
+| `GET /claims?sort=references` | 2.4 ms | 2.9 ms |
+| `GET /claims/:id` | 38.1 ms | 65.4 ms |
+| `GET /claims/:id?calculation=1` | 32.3 ms | 48.5 ms |
+| `GET /contributors` | 22.2 ms | 30.9 ms |
+| `GET /contributions` | 12.9 ms | 13.1 ms |
+| `GET /api/v1/claims?limit=50` | 296.2 ms | 310.6 ms |
+| `GET /weaknesses` | 3,103 ms | 29,726 ms |
+| `Weaknesses::Report` | 2,797 ms | 3,110 ms |
+| `Scoring::Score`, cold | 5.1 ms | 6.2 ms |
+| `Scoring::Score`, cached | 0.2 ms | 0.4 ms |
+| `Cards::ClaimCard` | 3.1 ms | 3.9 ms |
+| `Contributors::Tally.top` | 17.2 ms | 17.8 ms |
+| Append, unbatched | 31.6/s | 31.6 ms each |
+| Append, batched | 85.7/s | |
+
+Storage: `claim_scores` 10,384 rows for 3,026 claims, 18 MB. `contributions` 70 MB.
+
+## Memory
+
+| | |
+|---|---|
+| Resident set after boot, having served nothing | 126 MB |
+| After one warm claim-page request | 152 MB |
+| Settled after 300 requests | 162 MB |
+| Steady-state slope | flat, 3 KB a run |
+
+One Puma worker settles around 160 MB and stops. The slope is taken over the second half
+of the run: a Ruby process grows while its heap settles and never hands the pages back, so
+growth measured from the first request always looks like a leak and never is.
+
+Allocation is a different story. One `Weaknesses::Report` call allocates **276 MB across
+3.0 million objects** and retains none of it.
+
+| Allocated by | |
+|---|---|
+| `bigdecimal` | 64.8 MB |
+| `json` | 55.0 MB |
+| Active Record result casting | 25.5 MB |
+| `json-canonicalization` | 18.1 MB |
+| `app/services/scoring/score.rb` | 7.1 MB |
+| `app/services/weaknesses/report.rb` | 4.1 MB |
+
+## Findings
+
+**1. The score cache is an N+1, and it is 70% of the report.** The wall profile is
+unambiguous. `PG::Connection#exec_prepared` is 48.5% of samples on its own, and chasing the
+dump to its callers lands on one line:
+
+```
+ActiveRecord::Core::ClassMethods#find_by
+  samples:    62 self (0.6%)  /  6814 total (70.1%)
+  callers:
+    6814  (100.0%)  Scoring::Score.call
+```
+
+`Scoring::Score.call` opens with `ClaimScore.find_by(claim_id:, snapshot_seq:,
+scoring_model_id:)`. The report scores every counted claim under every released model, so
+that is about 6,000 round trips, and nearly all of them miss, because the cache is keyed on
+the exact seq and the head seq moves with every append. The report pays a query to learn
+nothing, then computes anyway.
+
+**2. The box is not the ceiling, and that was worth knowing.** The question that started
+this stage was whether the node fits the recommended droplet. On steady-state memory the
+answer is comfortably yes: 162 MB a worker, flat. Nothing accumulates across 300 requests.
+What costs is garbage collection from the churn in finding 1, not residency.
+
+**3. BigDecimal and canonical JSON are the churn, and they are not a bug.** Half the
+allocation is decimals and the canonical-JSON trace that every score builds and the report
+throws away. That is Invariant 4 being paid for: the trace is what makes a score
+reproducible by hand. It is worth reducing by scoring fewer claims, not by making scoring
+cheaper and less honest.
+
+**4. Ruled out: a leak.** 300 consecutive claim-page requests grow the process by nothing
+once the heap settles. This was the first thing checked and it is worth recording as a
+negative, so nobody spends a day on it.
+
+**5. Not the headline, but real:** `GET /api/v1/claims?limit=50` costs 296 ms, about 6 ms a
+claim in `Graph::Presenter.claim`, which since Stages 20–25 calls `Inferences::View.for_claim`,
+`Sections::Tree.placements_for` and `ClaimReference.totals` once per claim. It is bounded by
+`limit`, so it degrades with page size rather than corpus size.
+
+**6. A method note, learned the hard way.** The first profile of this page was nearly
+worthless twice over. Development's reloader, verbose query logs and log writes were a
+fifth of the samples, and the warm-up run populated the page's own cache so the profile
+measured cache hits. Both are now handled by `Bench::Isolation`, but the lesson generalises:
+a profile of a cached page that does not defeat the cache is measuring the cache.
+
+## What changes as a result
+
+- **First:** batch the score-cache lookup. Fetch `ClaimScore` for the whole claim set in one
+  query before scoring and hand the hits to the scorer, instead of asking per claim. This
+  changes how `Scoring::Score` is called, not what it computes, so the trace and the number
+  are untouched and Invariant 4 holds. Ahead of pagination in the remaining Stage 26 work,
+  because it is the largest single cost and the cheapest to remove.
+- **Still open, unchanged by this run:** whether `/weaknesses` should answer for the latest
+  pinned snapshot rather than the head seq. That is the structural fix, and batching the
+  lookup does not remove the need for it. A pinned snapshot does not move, so both the
+  report cache and the materialised scores become reusable.
+- **Not doing:** making scoring allocate less. The decimals and the canonical trace are the
+  reproducibility guarantee.

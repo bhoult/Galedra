@@ -42,7 +42,7 @@ module Contributors
     end
 
     # [[contributor, counts]] most work first, the system key left out, and
-    # every anonymous principal folded into one row (owner request, 2026-09-20).
+    # every anonymous principal folded into one row (owner request, 2026-09-19).
     # Each anonymous connection mints its own key, so listing them separately
     # would be a page of identical "Anonymous" lines standing for nobody. The
     # work is still counted; it is simply not attributed to a person.

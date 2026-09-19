@@ -22,6 +22,7 @@ README.md                     public summary derived from the spec; keep it cons
 IMPLEMENTATION.md             index: how a stage is executed, the stage table, decision-log rules
 implementation/planned/       one file per stage not yet built (its plan)
 implementation/implemented/   one file per stage built (its plan, then its Decision Log entry)
+docs/profiler/                one file per profiling run: conditions, numbers, findings
 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   12-constitution.md          25 Articles + Constitutional Test. Outranks every other file.
   README.md                   purpose, principles, conventions, P0 Definition of Done
@@ -172,7 +173,9 @@ Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `
 `bin/demo --example check --reset`, `bin/rails skills:build` (after editing `skills/galedra.md`), `bin/rails admin:grant[email]`, `bin/rails bugs:report`, `bin/rails features:report`, `bin/rails sources:retrieve[ID]` (`LEDGER_RETRIEVAL` on/off).
 Benchmarking and profiling (Stage 26, development and test only): `bin/rails 'bench:seed[n]'` (RESET=1),
 `bench:report`, `bench:workloads`, `bench:cpu[name]` (MODE=cpu, RUNS=n), `bench:memory[name]`, `bench:rss[name]`,
-`bench:boot`. The gems are in the development bundle group only, so the production image never carries them;
+`bench:boot`. **Write up a run that changed what we believe as a new `docs/profiler/YYYY-MM-DD-<subject>.md`**
+and add it to that folder's index; a timing without the corpus and machine it was taken on is not evidence.
+The gems are in the development bundle group only, so the production image never carries them;
 `LEDGER_PROFILE=1` additionally turns on rack-mini-profiler in development. Seeding a corpus into the test
 database breaks the suite until it is rebuilt (`db:drop db:create db:schema:load`), and seeding in development
 needs RESET=1, which truncates the log: ask before doing that to someone's working data.
