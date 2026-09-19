@@ -130,4 +130,29 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     expect(err).to be(true)
     expect(data.to_json).to include("300")
   end
+
+  it "keeps the whole outline on the page as you go down it, marking where you are" do
+    pair, = register_key
+    source = create_source(pair, title: "A long source")
+    result = append(action_type: "CREATE_SECTION", key_pair: pair,
+                    payload: { "source_id" => source.id, "sections" => [ { "heading" => "Root", "sections" => [
+                      { "heading" => "First part", "sections" => [ { "heading" => "A leaf" } ] },
+                      { "heading" => "Second part" }, { "heading" => "Third part" } ] } ] })
+    root = Section.find(Ledger::Ids.derive(result.contribution.id, "section", 0))
+    first = root.children.order(:position).first
+    leaf = first.children.order(:position).first
+
+    # Deep in the outline, its siblings are still there: building the tree from
+    # the section being read made everything else disappear as you descended.
+    get "/sections/#{leaf.id}"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Second part").and include("Third part").and include("First part")
+    expect(response.body).to include(%(<summary class="current">))
+    expect(response.body).to include("The whole outline, with where you are marked.")
+
+    # The counts still describe the section being read, not the whole outline.
+    expect(response.body).to include("Nothing under this section yet.")
+    get "/sections/#{root.id}"
+    expect(response.body).not_to include("Nothing under this section yet.")
+  end
 end

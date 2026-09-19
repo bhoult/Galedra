@@ -22,7 +22,13 @@ class SectionsController < ApplicationController
     raise ActiveRecord::RecordNotFound unless @section.counted_at?(@seq)
 
     @model = selected_model
-    @tree = Sections::Tree.call(@section, @seq, model: @model)
+    # Two trees, because they answer different questions. @subtree is this
+    # section and what is under it, which is what the counts describe. @tree is
+    # the whole outline, which is how a reader gets around: building the
+    # navigation from the clicked section made its siblings disappear as you
+    # went down, and the deeper you went the less there was to go back to.
+    @subtree = Sections::Tree.call(@section, @seq, model: @model)
+    @tree = @section.parent_id.nil? ? @subtree : Sections::Tree.call(@section.root, @seq, model: @model)
     @ancestors = @section.ancestors(@seq)
     @progress = Sections::Progress.call(@section.root, @seq)
     @share_line = Sections::Progress.share_line(@section.root, @seq, section_url(@section.root))

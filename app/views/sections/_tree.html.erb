@@ -1,10 +1,13 @@
-<%# A subtree as a directory tree: open along the path to `open_ids`, claims as lines, the current claim marked. %>
+<%# A subtree as a directory tree: open along the path to `open_ids`, claims as
+    lines, the current claim marked, and the section being read marked too so a
+    reader can see where they are in the whole outline. %>
+<% current_section = local_assigns.fetch(:current_section, nil) %>
 <ul>
   <% node[:children].each do |child| %>
     <li>
       <details <%= "open" if open_ids.include?(child[:section].id) %>>
-        <summary><%= link_to child[:section].heading, section_path(child[:section]) %> <span class="counts"><%= child[:counts]["claims"] %><%= " · #{child[:pending]} proposed" if child[:pending].positive? %></span></summary>
-        <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, seq: seq %>
+        <summary class="<%= "current" if child[:section].id == current_section %>"><%= link_to child[:section].heading, section_path(child[:section]) %> <span class="counts"><%= child[:counts]["claims"] %><%= " · #{child[:pending]} proposed" if child[:pending].positive? %></span></summary>
+        <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq %>
       </details>
     </li>
   <% end %>
