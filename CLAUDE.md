@@ -143,8 +143,8 @@ that apply to every stage:
 - **Every route under `/api/v1` is described in `Api::Openapi`.** Adding or changing an
   endpoint means editing `read_paths` or `write_paths` in the same commit;
   `spec/requests/api/v1/openapi_spec.rb` fails on any route the document omits and on any
-  path it describes that is not routed. `/docs` renders that same document, so the public
-  API reference cannot drift either.
+  path it describes that is not routed. `/docs/api` renders that same document with Swagger
+  UI, so the public API reference cannot drift either.
 - Layout follows `11 §5`: thin controllers, service objects under `app/services/`, no
   epistemic logic in Active Record callbacks, a `Projection` concern for validity windows.
 - `pg_advisory_xact_lock` around log appends. Background jobs are idempotent and keyed by

@@ -27,38 +27,4 @@
   </div>
 </div>
 <hr>
-<h2 id="api">The API</h2>
-<p class="muted">
-  Every endpoint under <code>/api/v1</code>, generated from the same
-  <%= link_to "OpenAPI description", api_v1_openapi_path(format: :json) %> that clients read
-  (version <%= Api::Openapi::VERSION %>), so this table cannot fall behind the code.
-  The <%= link_to "API reference", api_docs_path %> shows the same endpoints in Swagger UI, where a
-  read can be run against this node.
-  Reads need no key and change nothing. Writes marked <strong>token</strong> take a connected
-  assistant's bearer token; the rest carry their own Ed25519 signature.
-  Most reads take <code>snapshot_seq</code> to read the record as it stood at a seq.
-</p>
-<% @api_reference.each do |group| %>
-  <h3><%= group[:name] %></h3>
-  <p class="muted small"><%= group[:description] %></p>
-  <table>
-    <thead><tr><th>Endpoint</th><th>What it answers</th><th>Parameters</th></tr></thead>
-    <tbody>
-      <% group[:rows].each do |row| %>
-        <tr>
-          <td>
-            <code><%= row[:verb] %> <%= row[:path] %></code>
-            <% if row[:token] %><br><span class="muted small">token</span><% end %>
-          </td>
-          <td><%= row[:summary] %></td>
-          <td class="muted small">
-            <%= row[:parameters].map { |n| tag.code(n) }.join(", ").html_safe %>
-            <% if row[:body] %><%= " · JSON body" if row[:parameters].any? %><%= "JSON body" if row[:parameters].empty? %><% end %>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% end %>
-<hr>
 <div class="readme"><%= @readme_html %></div>

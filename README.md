@@ -225,8 +225,7 @@ own instance.
 | Page | What is there |
 |------|---------------|
 | [galedra.org/docs](https://galedra.org/docs) | This README, the API reference, and pointers to the spec and the skill |
-| [galedra.org/docs/api](https://galedra.org/docs/api) | Every endpoint under `/api/v1` in Swagger UI, the reference renderer, where a read can be run against the node |
-| [galedra.org/docs#api](https://galedra.org/docs#api) | The same endpoints as a plain table, generated from the OpenAPI description so neither can fall behind the code |
+| [galedra.org/docs/api](https://galedra.org/docs/api) | Every endpoint under `/api/v1` in Swagger UI, rendered from the OpenAPI description so it cannot fall behind the code |
 | [galedra.org/api/v1/openapi.json](https://galedra.org/api/v1/openapi.json) | That description itself, for GPT Actions and plain HTTP clients |
 | [galedra.org/faq](https://galedra.org/faq) | What a number means, and what Galedra will not do |
 | [galedra.org/glossary](https://galedra.org/glossary) | The kinds of work, and the words for what each produces |

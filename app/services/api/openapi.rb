@@ -136,26 +136,6 @@ module Api
       }
     end
 
-    # The same paths arranged for the docs page: one row per operation, reads
-    # first. The page renders this, so it cannot fall behind the API.
-    def reference
-      all = rows(read_paths) + rows(write_paths)
-      TAGS.filter_map { |t|
-        group = all.select { |row| row[:tag] == t[:name] }
-        { name: t[:name], description: t[:description], rows: group } if group.any?
-      }
-    end
-
-    def rows(paths)
-      paths.flat_map { |path, ops|
-        ops.map { |verb, op|
-          { verb: verb.to_s.upcase, path: path, summary: op[:summary], tag: tag_for(path),
-            parameters: Array(op[:parameters]).map { |p| p[:name] },
-            body: op[:requestBody].present?, token: Array(op[:security]).any?(&:present?) }
-        }
-      }
-    end
-
     # Markdown, because both readers of this document render it: Swagger UI on
     # /docs/api, and a GPT Action that takes the rules as its instructions. The
     # rules stay verbatim; the heading keeps them from reading as one wall.

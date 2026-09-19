@@ -40,7 +40,6 @@ RSpec.describe "OpenAPI document (Stage 14)", type: :request do
         expect(declared).to include(*op[:tags])
       end
     end
-    expect(Api::Openapi.reference.sum { |g| g[:rows].size }).to eq(doc[:paths].sum { |_, ops| ops.size })
   end
 
   it "is a valid 3.1 document whose every read responds (#2)" do
