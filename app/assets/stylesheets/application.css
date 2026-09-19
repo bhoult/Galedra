@@ -144,7 +144,8 @@ a.card.action p { margin: 0; color: var(--muted); font-size: 0.92rem; }
 
 /* Landing page */
 .graph-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-body.landing header.site, body.landing main, body.landing footer.site { position: relative; z-index: 1; }
+body.landing main, body.landing footer.site { position: relative; z-index: 1; }
+body.landing header.site { position: sticky; z-index: 10; } /* above main, so open menus are not covered by the hero */
 body.landing main { max-width: 72rem; }
 .constitution-pointer > * { max-width: 52rem; }
 .faq h2 { margin-top: 2.4rem; }
