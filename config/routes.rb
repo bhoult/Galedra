@@ -14,6 +14,7 @@ Rails.application.routes.draw do
   resources :claims, only: [ :index, :show ] do
     get :card, on: :member
     post :topics, on: :member, to: "claims#tag"
+    post :accept, on: :member, to: "claims#accept"
   end
   get "topics", to: "topics#index", as: :topics
   get "topics/*path", to: "topics#show", as: :topic

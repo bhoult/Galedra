@@ -2265,3 +2265,36 @@ json gem pin (Stage 1). Each is explained in its stage above.
   yes; 7 yes, anyone connected under a name may work tasks; 8 yes; 9 yes, an
   assistant never checks its own person's say-so; 10 yes.
 
+### Stage 19 — Correct what is recorded, from a connector (2026-09-18)
+
+- Six MCP tools over primitives the log already had: `revise_claim`
+  (`SUPERSEDE_CLAIM`), `merge_claims`, `revise_link` (`SUPERSEDE_LINK`), `open_task`,
+  `list_proposals`, `accept_proposal` (`ACCEPT`). `Corrections` holds the logic and
+  is shared with the claim page, which now shows a "Revised" or "Merged" banner
+  pointing forward, "Revises …" on the revision, and a "Proposed corrections" table
+  with an Accept button for an entitled signed-in person through `Ui::Write`.
+  `get_claim` and `fetch` carry the revision status so an assistant never presents a
+  superseded claim as current.
+- Own work at once. `same_principal?` now treats an agent under a `direct_work`
+  delegation as its principal's hand, as Stage 12 already did for direct
+  contributions, so an assistant revising its own person's claim or link is accepted
+  immediately; anyone else's stays a proposal. Carried links are new `LINK_EVIDENCE`
+  entries by whoever affirms the corrected text (the reviser for own work, the
+  acceptor for a proposal), each noting the link it carries.
+- Acceptance scope (owner decision, conservative): the applier admits any different
+  principal; the connector and the page admit the principal of every touched claim,
+  anyone named when that principal is anonymous, and moderators. New connected
+  assistants get `allowed_actions: [ACCEPT]` in their delegation; older connections
+  are told to reconnect. Declining is leaving a proposal pending; there is no
+  `REJECT`, and proposals do not expire (both reserved).
+- Blind hand-off. `open_task` dedupes against open or leased tasks of the same kind
+  on the target, needs a location for `EVIDENCE_VERIFICATION`, refuses anonymous
+  callers, and `Tasks::Lease` never gives a task to the contributor or principal that
+  opened it.
+- Unchanged: invalidation, quarantine, takedown, and audits stay human; an
+  assistant cannot retract anything, only revise it.
+- Constitutional Test (history, visibility): 1 more traceable (every correction is a
+  signed entry pointing at what it corrects); 2 yes; 3 no; 4 no; 5 yes, the old
+  entry stays and is shown; 6 yes; 7 yes; 8 yes, acceptance needs a different
+  principal and is itself logged; 9 yes; 10 yes.
+

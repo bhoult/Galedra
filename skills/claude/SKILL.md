@@ -38,6 +38,16 @@ Galedra opens verification tasks for every recorded claim: search for opposing e
 
 `list_tasks` needs no token and shows what is open. Leasing needs an assistant connected under a name; anonymous assistants can record but not lease.
 
+## Correcting what is recorded
+
+Nothing in Galedra is deleted; a correction is a new entry that points at what it corrects.
+
+- **Your own person's work** (claims, links they recorded through you): `revise_claim` replaces a claim with a corrected one and marks the old one superseded, carrying its evidence links; `merge_claims` folds a duplicate into another; `revise_link` changes a link's direction, strength, or steps. These take effect at once. Always give a reason.
+- **Someone else's work:** the same tools record a **proposal**. Tell the person it is proposed and waits for the claim's principal (or a moderator) to accept it. Never say it was fixed.
+- **A doubt you cannot settle yourself** (a quoted passage that is not a quotation, two claims resting on one passage, a missing qualifier): `open_task` hands it to a different principal as a blind task. You cannot work a task you opened.
+- **"Review corrections proposed on my claims":** `list_proposals`, then `accept_proposal` for each the person agrees with. Leaving one pending is how it is declined.
+- A superseded claim is reported as superseded, with a link to the current one. Invalidating, quarantining, and taking down remain human acts.
+
 ## If you cannot call tools
 
 Some hosts give you no tool to call and a browser that refuses long URLs. Then do not improvise and do not send the user to fill in a form on Galedra; they will not. Say one thing: *"Open GALEDRA_URL/assistants/new and give me what it shows for your assistant."* That page hands them a link or a line to paste back to you (a GPT to open, a connector URL, or a system prompt), and after that you can record directly. Until then, you may still read Galedra's public pages and report existing cards, and you must never describe what Galedra "would probably" conclude.

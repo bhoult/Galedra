@@ -186,9 +186,12 @@ module Ledger
       # only when every touched row belongs to the signer's own principal.
       def same_principal?(validated, *rows)
         signer = validated.contributor
-        return false unless signer&.human?
+        principal_id = if signer&.human? then signer.id
+        elsif signer&.agent? && validated.delegation&.permissions&.dig("direct_work") == true then validated.delegation.principal_contributor_id
+        end
+        return false if principal_id.nil?
 
-        rows.all? { |row| row.contribution.principal_contributor_id == signer.id }
+        rows.all? { |row| row.contribution.principal_contributor_id == principal_id }
       end
     end
   end

@@ -49,6 +49,10 @@ class ClaimsController < ApplicationController
     @evidence = Graph::Presenter.claim_evidence(@claim, @seq)
     @summary = @model && Summaries::Generate.call(@claim, @seq, @model, type: "STANDARD")
     @evaluable, @reason = @claim.evaluability_at(@seq)
+    @revision = Corrections.status(@claim, @seq)
+    @proposals = Corrections.proposals(claim: @claim)
+    principal = authenticated? ? Ui::Write.contributor_for(Current.user) : nil
+    @acceptable = @proposals.select { |x| principal && Corrections.may_accept?(principal, Contribution.find(x[:contribution_id])) }.map { |x| x[:contribution_id] }
     @history = Contributions::Presenter.status_history(@claim.contribution)
     @link_contributions = Contribution.where(id: @claim.evidence_claim_links.where(arel_lteq(@seq)).select(:contribution_id)).in_order
     @warnings = Claims::Atomicity.warnings(@claim.canonical_text)
@@ -65,6 +69,19 @@ class ClaimsController < ApplicationController
 
     Ui::Write.call(Current.user, "TAG_CLAIM", { "claim_id" => claim.id, "topics" => topics, "note" => params[:note].presence })
     redirect_to claim_path(claim), notice: "Tagged as a signed contribution."
+  end
+
+  # Stage 19: a signed-in person accepts a proposed correction on the claim page.
+  def accept
+    claim = Claim.find(params[:id])
+    return redirect_to new_session_path, alert: "Sign in to accept a correction." unless authenticated?
+
+    contribution = Contribution.find(params[:contribution_id])
+    principal = Ui::Write.contributor_for(Current.user) || Crypto::Custody.create_server_custodied(user: Current.user, display_name: Current.user.email_address.split("@").first)
+    Corrections.accept!(contribution, principal: principal) { |action, payload| Ui::Write.call(Current.user, action, payload) }
+    redirect_to claim_path(claim), notice: "Accepted as a signed contribution."
+  rescue Ledger::Rejected => e
+    redirect_to claim_path(claim), alert: e.errors.map { |x| x[:detail] || x["detail"] }.join("; ")
   end
 
   private

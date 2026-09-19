@@ -19,6 +19,8 @@ module Tasks
         next if task.open_slots <= 0
         # Stage 18: a principal never checks its own claim (04 §3.1, Article XI).
         next if own_target?(task, principal)
+        # Stage 19: whoever asked for a blind check does not perform it.
+        next if requested_by?(task, contributor, principal)
 
         assignment = TaskAssignment.create!(
           task: task, contributor: contributor, principal: principal, delegation_id: delegation&.id,
@@ -58,6 +60,14 @@ module Tasks
 
       accept = Contribution.where(action_type: "ACCEPT").where("payload->>'contribution_id' = ?", contribution.id).order(:seq).first
       accept.nil? || accept.contributor.nil? || accept.contributor.system? || [ accept.contributor_id, accept.principal_contributor_id ].compact.include?(principal.id)
+    end
+
+    def requested_by?(task, contributor, principal)
+      creator = task.created_by_contributor_id
+      return false if creator.nil?
+      return true if creator == contributor.id || (principal && creator == principal.id)
+
+      principal.present? && AgentDelegation.where(delegate_contributor_id: creator, principal_contributor_id: principal.id).exists?
     end
 
     def over_daily_limit?(contributor, delegation)

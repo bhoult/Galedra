@@ -23,6 +23,7 @@ module Mcp
               "presented as settled truth. When a person asks what they can do with Galedra, say these three things in plain " \
               "words before listing tools. If a search finds nothing, say so plainly and offer to investigate and record it."
     WORK = "Working open tasks: when the person says \"work N open tasks in Galedra\", call next_task, read the sources yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat N times or until next_task says nothing is available. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to have something to submit."
+    CORRECT = "Correcting what is recorded: nothing is deleted; a correction is a new entry. revise_claim, merge_claims, and revise_link take effect now on your own person's work and are proposals on anyone else's (say so; never say a proposal was fixed). A doubt about a passage or an origin becomes a task for someone else with open_task. When asked to review corrections proposed on their claims, call list_proposals and accept_proposal for each the person agrees with; leaving one pending declines it. A superseded claim is reported as superseded, with the current claim."
     RULES = "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
             "Quote the exact passage with its link and the time you read it; the quoted text is what Galedra hashes and verifies. Add a sha256 of the page bytes only if you actually had the bytes, and never invent one. One assertion per claim, typed. " \
             "Your own reasoning is never evidence; only quoted passages are. Look for what would count against a claim before recording it. " \
@@ -38,7 +39,7 @@ module Mcp
     } }.freeze
 
     TOOLS = [
-      { name: "search_claims", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Start here. Galedra is a public, signed record of claims and the evidence behind them. Three things a person does with it through you: (1) check something before sharing it and post a link to the record; (2) send someone a claim link so they see the reasons; (3) contribute: record investigations, add evidence, or say \"work N open tasks in Galedra\" (list_tasks, next_task, submit_task). Search accepted claims by words. Always call this first: if the claim is already recorded, report its card and URL instead of recording a twin.",
+      { name: "search_claims", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Start here. Galedra is a public, signed record of claims and the evidence behind them. Three things a person does with it through you: (1) check something before sharing it and post a link to the record; (2) send someone a claim link so they see the reasons; (3) contribute: record investigations, add evidence, correct what is wrong (revise_claim, merge_claims, open_task), or say \"work N open tasks in Galedra\" (list_tasks, next_task, submit_task). Search accepted claims by words. Always call this first: if the claim is already recorded, report its card and URL instead of recording a twin.",
         inputSchema: { type: "object", properties: { query: { type: "string", description: "Words from the claim" }, limit: { type: "integer", minimum: 1, maximum: 50, default: 10 } }, required: [ "query" ] },
         outputSchema: { type: "object", properties: { query: { type: "string" }, snapshot_seq: { type: "integer" }, claims: { type: "array", items: { type: "object", properties: { id: { type: "string" }, text: { type: "string" }, type: { type: "string" }, headline: { type: "string" }, plain_headline: { type: "string" }, url: { type: "string" } } } } } } },
       { name: "get_claim", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The answer card for one claim: a plain headline, what to say instead when the evidence supports it, review checks, labels, counted evidence for and against, and the URL. No probability here; use explain with calculation: true for the number.",
@@ -97,6 +98,31 @@ module Mcp
         description: "Give back a task you leased and will not finish, so someone else can take it.",
         inputSchema: { type: "object", properties: { task_id: { type: "string" } }, required: [ "task_id" ] },
         outputSchema: { type: "object", properties: { task_id: { type: "string" }, status: { type: "string" } } } },
+      # Stage 19: corrections. Own work is accepted at once; someone else's is a proposal.
+      { name: "revise_claim", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        description: "Correct a claim: a revised claim replaces it and the old one is marked superseded, pointing forward (nothing is deleted). On your own person's claim it takes effect now and the counted evidence links are carried onto the revision. On someone else's it is recorded as a proposal that waits for that person's acceptance; say so, never say it was fixed. Give a reason.",
+        inputSchema: { type: "object", properties: { claim_id: { type: "string" }, text: { type: "string", description: "the corrected claim, one atomic assertion" }, type: { type: "string", enum: Claim::TYPES }, reason: { type: "string" }, topics: { type: "array", items: { type: "string" } }, carry_links: { type: "boolean", default: true } }, required: %w[claim_id text reason] },
+        outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" }, old_claim_id: { type: "string" }, new_claim_id: { type: "string" }, url: { type: "string" }, carried_links: { type: "integer" }, card: CARD_SCHEMA } } },
+      { name: "merge_claims", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Fold a duplicate claim into another: from_claim_id is marked merged into into_claim_id once accepted. Accepted now when both are your own person's; otherwise a proposal for their principal. Reversible by a later invalidation. Give a reason.",
+        inputSchema: { type: "object", properties: { from_claim_id: { type: "string" }, into_claim_id: { type: "string" }, reason: { type: "string" } }, required: %w[from_claim_id into_claim_id reason] },
+        outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" } } } },
+      { name: "revise_link", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        description: "Revise an evidence link (its direction, strength, or interpretive steps) by id from get_claim's evidence. Your own link is revised now; someone else's is a proposal. Give a reason.",
+        inputSchema: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction reason] },
+        outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" }, new_link_id: { type: "string" } } } },
+      { name: "open_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Hand a doubt to a different principal as a blind task: OPPOSING_EVIDENCE_SEARCH, QUALIFIER_CHECK, SOURCE_INDEPENDENCE_CHECK (sources that share an origin), or EVIDENCE_VERIFICATION with the location_id of the passage (from get_claim's evidence) when a quoted passage looks wrong. An open task of the same kind is returned rather than duplicated. You cannot work a task you opened.",
+        inputSchema: { type: "object", properties: { claim_id: { type: "string" }, type: { type: "string", enum: Corrections::TASK_TYPES }, location_id: { type: "string" } }, required: %w[claim_id type] },
+        outputSchema: { type: "object", properties: { task_id: { type: "string" }, created: { type: "boolean" }, task_type: { type: "string" }, status: { type: "string" }, url: { type: "string" } } } },
+      { name: "list_proposals", annotations: { readOnlyHint: true, openWorldHint: false },
+        description: "Pending corrections: on one claim (claim_id), or on every claim of your own person when no claim is given. Each says what it would change, who proposed it, and whether you may accept it. Use when the person asks to review corrections proposed on their claims.",
+        inputSchema: { type: "object", properties: { claim_id: { type: "string" } } },
+        outputSchema: { type: "object", properties: { proposals: { type: "array", items: { type: "object" } }, how: { type: "string" } } } },
+      { name: "accept_proposal", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Accept a pending correction by contribution_id (from list_proposals), on behalf of your person. Allowed for the principal of the claims it touches, for anyone named when that principal is anonymous, and for moderators; never for the proposer's own principal. For a revised claim, the counted links are carried onto the revision. Leaving a proposal pending is how it is declined.",
+        inputSchema: { type: "object", properties: { contribution_id: { type: "string" }, carry_links: { type: "boolean", default: true } }, required: [ "contribution_id" ] },
+        outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, contribution_id: { type: "string" }, acceptance_id: { type: "string" }, carried_links: { type: "integer" } } } },
       # OpenAI's read-and-fetch connector shape (ChatGPT search and deep research): a
       # `search` returning ids, titles, and URLs, and a `fetch` returning one document.
       { name: "search", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Search Galedra's accepted claims. Returns ids, titles (the claim text with its plain headline), and URLs. Use fetch on an id for the full card, evidence, and why.",
@@ -141,7 +167,7 @@ module Mcp
     def initialize_result
       { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "galedra", version: VERSION },
-        instructions: "#{PURPOSE} #{RULES} #{WORK}" }
+        instructions: "#{PURPOSE} #{RULES} #{WORK} #{CORRECT}" }
     end
 
     def call_tool(params)
@@ -176,8 +202,10 @@ module Mcp
       model = Scoring::Registry.default_model
       card = Cards::ClaimCard.call(claim, seq, model)
       evidence = Graph::Presenter.claim_evidence(claim, seq) if Graph::Presenter.respond_to?(:claim_evidence)
+      revision = Corrections.status(claim, seq)
       { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card, topics: Topics.for_claim(claim, seq),
-        evidence: evidence, provisional_note: "Everything here stays open to audit; treat it as provisional." }
+        evidence: evidence, revision: revision.merge(superseded_by: revision[:superseded_by]&.merge(url: "#{@base_url}/claims/#{revision[:superseded_by][:claim_id]}")),
+        provisional_note: "Everything here stays open to audit; treat it as provisional." }
     end
 
     def tool_record_investigation(args)
@@ -236,7 +264,11 @@ module Mcp
       model = Scoring::Registry.default_model
       card = Cards::ClaimCard.call(claim, seq, model)
       why = Cards::Why.call(claim, seq, model)
+      revision = Corrections.status(claim, seq)
       lines = [ "Claim: #{claim.canonical_text}", "Galedra says: #{card[:plain][:headline]}" ]
+      lines << "Superseded at seq #{revision[:superseded_by][:seq]} by: #{revision[:superseded_by][:text]} (#{@base_url}/claims/#{revision[:superseded_by][:claim_id]})" if revision[:superseded_by]
+      lines << "Merged into #{@base_url}/claims/#{revision[:merged_into][:claim_id]}" if revision[:merged_into]
+      lines << "Revises: #{revision[:revises][:text]}" if revision[:revises]
       lines << "Say instead: #{card[:plain][:say_instead]}" if card[:plain][:say_instead]
       lines << "Assessment: #{card[:headline]} under #{card[:model]} at snapshot #{seq}; review checks #{card[:review_checks]}"
       lines.concat(card[:labels])
@@ -245,7 +277,7 @@ module Mcp
       lines << "What would most change this: #{why.dig(:what_would_most_change_this, :text)}" if why[:what_would_most_change_this]
       lines << "Provisional until audited. Model-conditional, not objective."
       { id: claim.id, title: claim.canonical_text, text: lines.join("\n"), url: url_for(claim),
-        metadata: { type: claim.claim_type, assessment_state: why[:assessment_state], snapshot_seq: seq, model: model.full_name } }
+        metadata: { type: claim.claim_type, assessment_state: why[:assessment_state], snapshot_seq: seq, model: model.full_name, status: revision[:status] } }
     end
 
     def tool_share_card(args)
@@ -300,6 +332,67 @@ module Mcp
       raise Ledger::Rejected.new([ { code: "LEASE_MISSING", path: "$.task_id", detail: "this task is not leased to this assistant" } ]) if assignment.nil?
 
       { task_id: task.id, status: Tasks::Lease.release(assignment).status }
+    end
+
+    def tool_revise_claim(args)
+      require_token!
+      claim = find_claim(args)
+      raise ArgumentError, "text and reason are required" if args["text"].to_s.strip.empty? || args["reason"].to_s.strip.empty?
+
+      out = Corrections.revise_claim(@token, claim, text: args["text"], type: args["type"], reason: args["reason"], topics: Array(args["topics"]), carry_links: args.fetch("carry_links", true))
+      seq = Contribution.maximum(:seq)
+      { accepted: out[:accepted], status: out[:accepted] ? "ACCEPTED" : "PENDING", contribution_id: out[:contribution].id, old_claim_id: claim.id, new_claim_id: out[:claim].id,
+        url: url_for(out[:claim]), carried_links: out[:carried].size, card: (Cards::ClaimCard.call(out[:claim], seq, Scoring::Registry.default_model) if out[:accepted]),
+        note: out[:accepted] ? "Revised now: the old claim reads SUPERSEDED and points here." : "Recorded as a proposal; it takes effect once #{Corrections.describe_principal(claim.contribution)} (or a moderator) accepts it. Tell the person it is proposed, not fixed." }.compact
+    end
+
+    def tool_merge_claims(args)
+      require_token!
+      from = find_claim("claim_id" => args["from_claim_id"])
+      into = find_claim("claim_id" => args["into_claim_id"])
+      raise ArgumentError, "reason is required" if args["reason"].to_s.strip.empty?
+
+      out = Corrections.merge_claims(@token, from, into, reason: args["reason"])
+      { accepted: out[:accepted], status: out[:accepted] ? "ACCEPTED" : "PENDING", contribution_id: out[:contribution].id,
+        note: out[:accepted] ? "Merged now." : "Recorded as a proposal awaiting the claims' principal (or a moderator). Say it is proposed, not done." }
+    end
+
+    def tool_revise_link(args)
+      require_token!
+      link = EvidenceClaimLink.find_by(id: args["link_id"].to_s) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.link_id", detail: "no such link" } ]))
+      raise ArgumentError, "reason is required" if args["reason"].to_s.strip.empty?
+
+      out = Corrections.revise_link(@token, link, direction: args["direction"], strength: args["strength"], steps: args["steps"], reason: args["reason"])
+      { accepted: out[:accepted], status: out[:accepted] ? "ACCEPTED" : "PENDING", contribution_id: out[:contribution].id, new_link_id: out[:link]&.id,
+        note: out[:accepted] ? "Revised now; the old link no longer counts." : "Recorded as a proposal; the old link still counts until the link's principal (or a moderator) accepts this." }
+    end
+
+    def tool_open_task(args)
+      require_delegation!
+      claim = find_claim(args)
+      out = Corrections.open_task(@token, claim, type: args["type"].to_s, location_id: args["location_id"])
+      { task_id: out[:task].id, created: out[:created], task_type: out[:task].task_type, status: out[:task].status, url: "#{@base_url}/tasks/#{out[:task].id}",
+        note: out[:created] ? "Opened for a different principal to work blind; you cannot lease it yourself." : "An open task of this kind already exists; returned instead of a duplicate." }
+    end
+
+    def tool_list_proposals(args)
+      claim = args["claim_id"].present? ? find_claim(args) : nil
+      principal = @token&.principal
+      raise ArgumentError, "claim_id is required when no named assistant is connected" if claim.nil? && (principal.nil? || principal.anonymous?)
+
+      list = claim ? Corrections.proposals(claim: claim) : Corrections.proposals(principal: principal)
+      list = list.map { |x| x.merge(you_may_accept: principal.present? && Corrections.may_accept?(principal, Contribution.find(x[:contribution_id])), urls: x[:claim_ids].map { |id| "#{@base_url}/claims/#{id}" }) }
+      { proposals: list, how: "accept_proposal with a contribution_id accepts one; leaving it pending declines it." }
+    end
+
+    def tool_accept_proposal(args)
+      require_delegation!
+      contribution = Contribution.find_by(id: args["contribution_id"].to_s) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.contribution_id", detail: "no such contribution" } ]))
+      unless Array(@token.delegation.permissions["allowed_actions"]).include?("ACCEPT")
+        raise Ledger::Rejected.new([ { code: "DELEGATION_INVALID", path: "$", detail: "this connection predates acceptance rights; disconnect and reconnect at #{@base_url}/assistants/new, then try again" } ])
+      end
+      out = Corrections.accept!(contribution, principal: @token.principal, carry_links: args.fetch("carry_links", true)) { |action, payload| Assistants::Write.call(@token, action, payload) }
+      { accepted: true, contribution_id: contribution.id, acceptance_id: out[:contribution].id, carried_links: out[:carried].size }
     end
 
     private

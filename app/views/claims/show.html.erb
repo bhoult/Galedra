@@ -8,12 +8,28 @@
   </div>
 <% else %>
   <h1>Claim</h1>
+  <% if @revision[:superseded_by] %>
+    <div class="card"><p class="headline">Revised</p><p>Superseded at seq <%= @revision[:superseded_by][:seq] %> by <%= @revision[:superseded_by][:by] %>: <%= link_to @revision[:superseded_by][:text], claim_path(@revision[:superseded_by][:claim_id]) %><% if @revision[:superseded_by][:reason] %> · reason: <%= @revision[:superseded_by][:reason] %><% end %>. This entry stays in the log; the current claim is the revision.</p></div>
+  <% elsif @revision[:merged_into] %>
+    <div class="card"><p class="headline">Merged</p><p>Merged at seq <%= @revision[:merged_into][:seq] %> into <%= link_to "another claim", claim_path(@revision[:merged_into][:claim_id]) %>.</p></div>
+  <% end %>
   <div class="card">
     <p><strong><%= @claim.canonical_text || "[redacted]" %></strong></p>
     <p class="meta">Type <%= @claim.claim_type %> · truth-evaluable: <%= @evaluable ? "yes" : "no (#{@reason})" %> · status at snapshot: <%= @claim.status_at(@seq) %> · <%= link_to "created seq #{@claim.created_seq}", contribution_path(@claim.contribution_id) %>
       <% if @claim.qualifiers.present? %>· qualifiers <code><%= @claim.qualifiers.to_json %></code><% end %></p>
     <% @warnings.each do |w| %><span class="warning"><%= w[:detail] %></span><% end %>
+    <% if @revision[:revises] %><p class="meta">Revises <%= link_to @revision[:revises][:text], claim_path(@revision[:revises][:claim_id]) %><% if @revision[:revises][:reason] %> · reason: <%= @revision[:revises][:reason] %><% end %></p><% end %>
   </div>
+
+  <% if @proposals.any? %>
+    <h2>Proposed corrections</h2>
+    <table><tr><th>seq</th><th>Proposal</th><th>By</th><th></th></tr>
+    <% @proposals.each do |x| %>
+      <tr><td><%= link_to x[:seq], contribution_path(x[:contribution_id]) %></td><td><%= x[:summary] %></td><td><%= x[:proposed_by] %></td>
+        <td><% if @acceptable.include?(x[:contribution_id]) %><%= button_to "Accept", accept_claim_path(@claim, contribution_id: x[:contribution_id]), class: "secondary" %><% else %><span class="muted">awaits the claim's principal</span><% end %></td></tr>
+    <% end %></table>
+    <p class="meta">A proposal takes effect once the principal of this claim (or a moderator) accepts it; leaving it here declines it. Every acceptance is a signed contribution.</p>
+  <% end %>
 
   <%= render "shared/selectors", url: claim_path(@claim), seq: @seq, extra_params: {} %>
 

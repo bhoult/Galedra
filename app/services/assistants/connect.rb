@@ -57,7 +57,7 @@ module Assistants
     def delegate(principal, agent, daily_cap)
       now = Time.now.utc
       payload = { "delegate_key_id" => agent.key_id,
-                  "permissions" => { "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains, "direct_work" => true },
+                  "permissions" => { "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains, "direct_work" => true, "allowed_actions" => [ "ACCEPT" ] },
                   "max_tasks_per_day" => daily_cap, "valid_from" => (now - 1.minute).iso8601, "valid_until" => (now + VALIDITY).iso8601 }
       envelope = Contributions::Envelope.build(action_type: "DELEGATE", payload: payload, key_pair: Crypto::Custody.signer_for_contributor(principal))
       result = Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
