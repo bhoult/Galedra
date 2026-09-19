@@ -105,10 +105,23 @@ Established by reading, so the next audit need not re-derive it.
   OAuth redirects pass `allow_other_host: true`, which is required there, and their targets
   are checked against the client's registered URIs first.
 
-## Smaller notes, not fixed
+## Smaller notes, since fixed
 
-- `Claims::Duplicates` interpolates `connection.quote(text)` rather than binding a
-  parameter. Correct today, and one careless edit from not being.
-- `lib/bench/report.rb` interpolates a table name. Development and test only.
-- The retrieval throttle calls `sleep(60)` inside the job, holding a worker for a minute.
-  That is availability, not security, and it belongs with the Stage 26 work.
+All three were addressed the same day. None was exploitable; each was a habit worth not
+keeping.
+
+- `Claims::Duplicates` interpolated `connection.quote(text)` rather than binding. It now
+  binds the parameter in the `where`, and builds the `select` fragment through
+  `sanitize_sql_array`, which `select` needs because it takes no binds. Brakeman's SQL
+  warnings drop from four to three as a result.
+- `lib/bench/report.rb` interpolated a table name. It now takes one from a closed list and
+  quotes it as an identifier.
+- The retrieval throttle slept the whole minute however recently the host had been fetched,
+  holding a worker for time it did not need to wait. It now waits only the remainder. That
+  was availability rather than security, but it is the same file as the finding above and
+  was fixed with it.
+
+## Re-scan after the fixes
+
+Brakeman: 3 SQL warnings and 1 cross-site scripting warning, all previously dismissed with
+reasons above. bundler-audit: no vulnerabilities.

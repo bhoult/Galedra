@@ -48,4 +48,4 @@ Both are in the development and test bundle groups already.
 
 | Date | Entry | Outcome |
 |---|---|---|
-| 2026-09-19 | [Full-application audit](2026-09-19-full-application-audit.md) | One finding: server-side request forgery by DNS rebinding in source retrieval. Fixed. |
+| 2026-09-19 | [Full-application audit](2026-09-19-full-application-audit.md) | One finding: server-side request forgery by DNS rebinding in source retrieval. Fixed, with the three smaller notes. |

@@ -46,8 +46,16 @@ module Bench
       @out.printf("%-42s %s\n", name, "skipped: #{e.class}: #{e.message.to_s[0, 60]}")
     end
 
+    # The caller passes literals today, but an identifier interpolated into SQL
+    # is a habit worth not having, even in a file that refuses to run outside
+    # development (security audit, 2026-09-19).
+    SIZED_TABLES = %w[claim_scores contributions].freeze
+
     def size_of(table)
-      ActiveRecord::Base.connection.select_value("SELECT pg_size_pretty(pg_total_relation_size('#{table}'))")
+      raise ArgumentError, "unknown table #{table}" unless SIZED_TABLES.include?(table)
+
+      conn = ActiveRecord::Base.connection
+      conn.select_value("SELECT pg_size_pretty(pg_total_relation_size(#{conn.quote(conn.quote_table_name(table))}))")
     end
   end
 end

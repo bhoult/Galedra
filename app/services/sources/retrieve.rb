@@ -201,13 +201,23 @@ module Sources
         [ response, body, too_large ]
       end
 
+      # One fetch per host per minute. It used to sleep the whole minute however
+      # recently the last fetch was, holding a worker for up to a minute it did
+      # not need to wait; now it waits only what is left (security audit,
+      # 2026-09-19, availability rather than security).
       def throttle!(host)
         key = "sources:retrieve:host:#{host}"
-        return if @cache.read(key).nil?.tap { |free| @cache.write(key, Time.now.to_i, expires_in: HOST_INTERVAL) if free }
+        last = @cache.read(key)
+        if last.nil?
+          @cache.write(key, Time.now.to_i, expires_in: HOST_INTERVAL)
+          return
+        end
 
-        sleep_seconds = HOST_INTERVAL
-        Rails.logger.info("sources:retrieve waiting #{sleep_seconds}s for #{host}")
-        sleep(sleep_seconds)
+        remaining = (HOST_INTERVAL - (Time.now.to_i - last.to_i)).clamp(0, HOST_INTERVAL)
+        if remaining.positive?
+          Rails.logger.info("sources:retrieve waiting #{remaining}s for #{host}")
+          sleep(remaining)
+        end
         @cache.write(key, Time.now.to_i, expires_in: HOST_INTERVAL)
       end
 
