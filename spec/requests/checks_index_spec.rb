@@ -36,7 +36,7 @@ RSpec.describe "Finding a recorded check again (owner request, 2026-09-19)", typ
 
     # It is reachable without knowing the link, which was the whole problem.
     get "/"
-    expect(response.body).to include(">Checks<")
+    expect(response.body.scan(">Investigations<").size).to eq(1), "under Browse only: Check is for making one, not for reading what was already checked"
 
     claim_id = Investigation.find(newer[:id]).claim_ids.first
     get "/claims/#{claim_id}"
