@@ -2,9 +2,10 @@
 
 **Status:** in progress · tag will be `stage-26-capacity`
 
-Built so far: `bench:seed`, `bench:report`, and the first pass at `/weaknesses`.
-Still to do: pagination, `claim_scores` retention, the tally index, the load test,
-and the decision below about what snapshot the report should answer for.
+Built so far: `bench:seed`, `bench:report`, the first pass at `/weaknesses`, and the
+profiling harness (`bench:cpu`, `bench:memory`, `bench:rss`, `bench:boot`).
+Still to do: the score-cache N+1 the profile found, `claim_scores` retention, the tally
+index, the load test, and the decision below about what snapshot the report answers for.
 
 ## Plan
 
@@ -156,3 +157,91 @@ rule versus N days); whether `/weaknesses` should be computed on a schedule rath
 demand, given it is a whole-graph report; whether to denormalise the principal onto
 `contributions` at append, which adds a column to the log's own table and so wants care;
 the droplet size to test against, since the answer to "how many claims" is a function of it.
+
+
+## Profiling, and what it found (2026-09-20)
+
+`stackprof`, `memory_profiler` and `rack-mini-profiler` are in the development bundle
+group only, so `BUNDLE_WITHOUT=development` keeps them out of the production image, and
+nothing requires them at boot: each task requires its gem when it runs, and the
+middleware only appears when `LEDGER_PROFILE` is set.
+
+- `bin/rails 'bench:cpu[weaknesses]'` — sampling profile, wall by default because much of
+  the time is spent waiting on Postgres and `MODE=cpu` cannot see that. Writes a dump the
+  `stackprof` CLI reads, so a frame can be chased to its callers.
+- `bin/rails 'bench:memory[...]'` — what one run allocates and what it retains, by file.
+- `bin/rails 'bench:rss[...]'` — resident set across N runs, with the slope taken over the
+  second half, because a Ruby process grows while its heap settles and never returns the
+  pages; measured from the first run, everything looks like a leak.
+- `bin/rails bench:boot` — what the process holds having served nothing.
+
+All of them, and `bench:report`, now run inside `Bench::Isolation`, which holds the
+reloader, verbose query logs and log writes still for the length of a measurement. In the
+first profile those three were a fifth of the samples, and none of them exists in
+production. Profiling also runs with the page cache swapped for a null store, so a page
+that caches its own answer is measured doing the work rather than reading yesterday's.
+
+### Measured at 3,026 claims / 30,779 contributions (24-cpu development machine, test env)
+
+| Operation | Median | Slowest |
+|---|---|---|
+| `GET /` | 4.8 ms | 105.9 ms |
+| `GET /claims` | 19.7 ms | 536.3 ms |
+| `GET /claims/:id` | 38.1 ms | 65.4 ms |
+| `GET /api/v1/claims?limit=50` | 296.2 ms | 310.6 ms |
+| `GET /contributors` | 22.2 ms | 30.9 ms |
+| `GET /weaknesses` | **3,103 ms** | 29,726 ms cold |
+| `Weaknesses::Report` | 2,797 ms | 3,110 ms |
+| `Scoring::Score` cold / cached | 5.1 ms / 0.2 ms | |
+| Append, unbatched / batched | 31.6/s / 85.7/s | |
+| `claim_scores` | 10,384 rows, 18 MB | `contributions` 70 MB |
+
+### Memory: the box is not the problem
+
+| | |
+|---|---|
+| Resident set after boot, having served nothing | 126 MB |
+| Settled after 300 claim-page requests | 162 MB |
+| Steady-state slope | flat, 3 KB a run |
+
+One Puma worker settles around 160 MB and does not grow, so the recommended droplet holds
+several workers with room to spare. Steady-state memory is not the ceiling.
+
+Allocation churn is. One `Weaknesses::Report` call at this corpus allocates **276 MB in
+3.0 million objects** and retains none of it:
+
+| Allocated by | |
+|---|---|
+| `bigdecimal` | 64.8 MB |
+| `json` | 55.0 MB |
+| Active Record result casting | 25.5 MB |
+| `json-canonicalization` | 18.1 MB |
+| `app/services/scoring/score.rb` | 7.1 MB |
+
+That is the scoring path: every claim is scored under every released model, each score
+building decimals and a canonical-JSON trace that is thrown away. The cost is garbage
+collection, not residency.
+
+### The score cache is an N+1, and it is 70% of the report
+
+The wall profile is unambiguous. `PG::Connection#exec_prepared` is 48.5% of samples on
+its own, and 70.1% of total time sits under one call site:
+
+    ActiveRecord::Core::ClassMethods#find_by
+      samples: 62 self (0.6%) / 6814 total (70.1%)
+      callers: 6814 (100.0%) Scoring::Score.call
+
+`Scoring::Score.call` opens with `ClaimScore.find_by(claim_id:, snapshot_seq:,
+scoring_model_id:)`, one round trip per claim per model. A whole-graph report at the head
+seq makes about 6,000 of them, and nearly all of them miss, because the head seq moves
+with every append. The report pays a query to learn nothing, then computes anyway.
+
+The fix is to look the cache up for the whole claim set in one query before scoring, and
+hand the hits to the scorer, rather than asking per claim. That is a change to how
+`Scoring::Score` is called, not to what it computes: the trace and the number are
+untouched, so Invariant 4 holds. It is the first thing to do in the remaining work, ahead
+of pagination, because it is the largest single cost and the cheapest to remove.
+
+Not addressed: `GET /api/v1/claims?limit=50` is still ~6 ms a claim in
+`Graph::Presenter.claim`. Bounded by `limit`, so it degrades with page size rather than
+corpus size.

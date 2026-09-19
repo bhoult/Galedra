@@ -76,6 +76,13 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # Profiling (Stage 26). Development only, so BUNDLE_WITHOUT=development keeps
+  # them out of the production image entirely, and inert even here unless
+  # LEDGER_PROFILE is set: none of them are required at boot.
+  gem "stackprof", require: false        # sampling CPU profiler
+  gem "memory_profiler", require: false  # allocation and retention by call site
+  gem "rack-mini-profiler", require: false # per-request SQL and render breakdown
 end
 
 group :test do

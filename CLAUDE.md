@@ -170,6 +170,12 @@ python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/referen
 Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`,
 `bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/demo --reset`, `bin/demo --example watchers --reset`,
 `bin/demo --example check --reset`, `bin/rails skills:build` (after editing `skills/galedra.md`), `bin/rails admin:grant[email]`, `bin/rails bugs:report`, `bin/rails features:report`, `bin/rails sources:retrieve[ID]` (`LEDGER_RETRIEVAL` on/off).
+Benchmarking and profiling (Stage 26, development and test only): `bin/rails 'bench:seed[n]'` (RESET=1),
+`bench:report`, `bench:workloads`, `bench:cpu[name]` (MODE=cpu, RUNS=n), `bench:memory[name]`, `bench:rss[name]`,
+`bench:boot`. The gems are in the development bundle group only, so the production image never carries them;
+`LEDGER_PROFILE=1` additionally turns on rack-mini-profiler in development. Seeding a corpus into the test
+database breaks the suite until it is rebuilt (`db:drop db:create db:schema:load`), and seeding in development
+needs RESET=1, which truncates the log: ask before doing that to someone's working data.
 The first account to sign up is the admin; `/admin/users` grants admin and moderator. Personal views and affiliations
 (`personal_assessments`, `user_affiliations`, `config/affiliations.yml`), claim reference counts, bug reports, and content
 reviews live outside the log and never reach scoring; see `implementation/implemented/personal-views.md`. Reviews are settled
