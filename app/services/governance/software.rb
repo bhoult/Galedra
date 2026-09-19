@@ -8,6 +8,15 @@ module Governance
   module Software
     NAME = "galedra"
     REPOSITORY = "https://github.com/bhoult/Galedra"
+    # Flip REPOSITORY_PUBLIC once the repository is open; the contact page says
+    # so rather than handing a visitor a link that will not resolve for them.
+    REPOSITORY_PUBLIC = ENV.fetch("GALEDRA_REPOSITORY_PUBLIC", "false") == "true"
+    MAINTAINER = {
+      name: "Brandon Hoult",
+      email: "bhoult@gmail.com",
+      linkedin: "https://www.linkedin.com/in/brandon-hoult-02b188b/",
+      github: "https://github.com/bhoult"
+    }.freeze
     REVISION_FILE = Rails.root.join("REVISION")
     REVISION_ENV = "GALEDRA_REVISION"
 
@@ -30,6 +39,8 @@ module Governance
     rescue SystemCallError
       nil
     end
+
+    def repository_public? = REPOSITORY_PUBLIC
 
     def to_h
       { name: NAME, revision: revision, repository: REPOSITORY, ruby: RUBY_VERSION, rails: Rails.version }

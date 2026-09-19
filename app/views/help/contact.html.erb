@@ -1,0 +1,27 @@
+<% content_for :title, "Contact" %>
+<% content_for :body_class, "document" %>
+<h1>Contact</h1>
+<p class="lede">Galedra is built and run by one person. Most things you might want to say have a better route than email, listed below; anything else, write directly.</p>
+
+<h2>The maintainer</h2>
+<div class="card">
+  <p><strong><%= @maintainer[:name] %></strong></p>
+  <p><strong>Email</strong> <%= mail_to @maintainer[:email] %></p>
+  <p><strong>LinkedIn</strong> <%= link_to @maintainer[:linkedin], @maintainer[:linkedin], rel: "me noopener", target: "_blank" %></p>
+  <p><strong>GitHub</strong> <%= link_to @maintainer[:github], @maintainer[:github], rel: "me noopener", target: "_blank" %></p>
+</div>
+
+<h2>The project</h2>
+<div class="card">
+  <p><strong>Source</strong> <%= link_to @software[:repository], @software[:repository], rel: "noopener", target: "_blank" %><% unless @repository_public %> <span class="badge">opening soon</span><% end %></p>
+  <p class="meta"><% unless @repository_public %>The repository is not public yet, so that link will not resolve for everyone today. <% end %>The licence terms are on the <%= link_to "licences page", licenses_path %>, and what is running here is on the <%= link_to "about page", about_path %>.</p>
+</div>
+
+<h2>Before you write</h2>
+<div class="card">
+  <p><strong>Something is broken.</strong> <%= link_to "Report a bug", new_bug_report_path %>. It reaches the maintainer with the page and the steps attached, and you need no account. An assistant can file one itself with <code>report_bug</code>.</p>
+  <p><strong>An assistant could not do something.</strong> It files that itself with <code>request_feature</code>, in its own words, at the moment it fell short. That is more useful than a description after the fact.</p>
+  <p><strong>A claim is wrong.</strong> Do not write; correct it. Evidence against a claim counts for more than an opinion about it, and your assistant can record it in one call. Every claim page has an <em>Evidence against</em> section, and open verification work is on the <%= link_to "task board", tasks_path %>.</p>
+  <p><strong>Something must come down.</strong> Content that is unlawful, or a claim about an identifiable private individual, is out of scope and can be quarantined or removed. Write with the claim's address and the basis. The removal itself stays visible in the <%= link_to "moderation log", moderation_path %>: what was removed is withdrawn, the fact that it was is not.</p>
+  <p><strong>You disagree with how this works.</strong> The rules are the <%= link_to "constitution", constitution_path %>, and Article XXV says how they change: an amendment is proposed in writing, with its reasoning and its risks, and adopted openly or not at all.</p>
+</div>

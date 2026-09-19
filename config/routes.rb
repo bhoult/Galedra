@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get "about", to: "help#about"
   get "licenses", to: "help#licenses"
   get "glossary", to: "help#glossary"
+  get "contact", to: "help#contact"
   # Admin (Stage 24): a website role, never a ledger one.
   namespace :admin do
     resources :content_reviews, only: [ :index ] do

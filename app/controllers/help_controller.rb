@@ -15,6 +15,13 @@ class HelpController < ApplicationController
   def glossary
   end
 
+  # Who to write to, and the routes that beat writing (owner request, 2026-09-19).
+  def contact
+    @maintainer = Governance::Software::MAINTAINER
+    @software = Governance::Software.to_h
+    @repository_public = Governance::Software.repository_public?
+  end
+
   # Every licence in the stack in full, and the policy behind it.
   def licenses
     @rows = Governance::Licenses.rows

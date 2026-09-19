@@ -50,6 +50,18 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(help).to include(">Glossary<")
   end
 
+  it "gives one place to write, and points the common reasons somewhere better" do
+    get "/contact"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Brandon Hoult").and include("bhoult@gmail.com")
+    expect(response.body).to include("linkedin.com/in/brandon-hoult").and include("github.com/bhoult")
+    expect(response.body).to include("opening soon")
+    expect(response.body).to include("Report a bug").and include("moderation log").and include("Article XXV")
+    get "/"
+    help = response.body[response.body.index("<summary>Help</summary>")..]
+    expect(help).to include(">Contact<")
+  end
+
   it "renders the about page with the running revision, the node, and the constitution hash" do
     get "/about"
     expect(response).to have_http_status(:ok)
