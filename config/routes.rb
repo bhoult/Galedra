@@ -101,6 +101,7 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       get "meta", to: "meta#show"
+      get "guidance", to: "guidance#show"
       get "openapi", to: "openapi#show"
       get "topics", to: "topics#index"
       get "log", to: "log#index"

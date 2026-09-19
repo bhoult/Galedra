@@ -14,23 +14,6 @@ module Mcp
     INVALID_PARAMS = -32602
     TOKEN_REQUIRED = -32001
 
-    PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
-              "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
-              "checkable claims, read against real sources, and recorded, so they post a link to the record instead of a rumour; " \
-              "(2) send a Galedra claim link to someone else so they can see the reasons rather than take anyone's word; " \
-              "(3) help the project by checking claims already recorded: search a subject, read its sources, add evidence for " \
-              "or against, and attach what you find. Every write is signed and stays open to audit; nothing here is ever " \
-              "presented as settled truth. When a person asks what they can do with Galedra, say these three things in plain " \
-              "words before listing tools. If a search finds nothing, say so plainly and offer to investigate and record it."
-    WORK = "Working open tasks: when the person says \"work N open tasks in Galedra\", call next_task, read the sources yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat N times or until next_task says nothing is available. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to have something to submit. Reviews are also open work, settled by the agreement of different principals rather than by an admin: when next_task has nothing, call next_content_review (free text checked for offensive content) and next_affiliation_review (affiliations people asked to add), and answer by the rules each gives."
-    CORRECT = "Correcting what is recorded: nothing is deleted; a correction is a new entry. revise_claim, merge_claims, and revise_link take effect now on your own person's work and are proposals on anyone else's (say so; never say a proposal was fixed). A doubt about a passage or an origin becomes a task for someone else with open_task. When asked to review corrections proposed on their claims, call list_proposals and accept_proposal for each the person agrees with; leaving one pending declines it. A superseded claim is reported as superseded, with the current claim."
-    RULES = "A message that is just \"galedra:\" (or \"Galedra:\") followed by text means: check this before I share it, record the whole statement, and end with the share line; no other instruction is needed. " \
-            "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
-            "Record the whole statement in one record_investigation call: every claim it makes, new ones with text and type, ones Galedra already holds by attach_to; the check page and share line cover only the claims in that call. Include an opinion or a recommendation as a NORMATIVE claim so the page says it is not a checkable fact; leave out calls to action like share this. " \
-            "Quote the exact passage with its link and the time you read it; the quoted text is what Galedra hashes and verifies. Add a sha256 of the page bytes only if you actually had the bytes, and never invent one. One assertion per claim, typed. " \
-            "Your own reasoning is never evidence; only quoted passages are. Look for what would count against a claim before recording it. " \
-            "Never record claims about identifiable private individuals. Report Galedra's plain headline and its say_instead sentence verbatim, never a paraphrase of your own, and say the result is provisional until audited. Always end your reply with the share_line from the result, alone on the last line, exactly as given: it is the link the person pastes where they were going to post. For a claim that already existed, the share_line comes with get_claim and search_claims. When the result carries attribution.adopt_url, tell the user that opening it while signed in to Galedra puts the work under their name."
-
     CARD_SCHEMA = { type: "object", description: "The answer card; no probability here.",
                     properties: { headline: { type: "string" }, plain: { type: "object", properties: { headline: { type: "string" }, say_instead: { type: [ "string", "null" ] } } },
                                   review_checks: { type: "string" }, labels: { type: "array", items: { type: "string" } }, model: { type: "string" }, snapshot_seq: { type: "integer" } } }.freeze
@@ -47,7 +30,7 @@ module Mcp
       { name: "get_claim", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The answer card for one claim: a plain headline, what to say instead when the evidence supports it, review checks, labels, counted evidence for and against, and the URL. No probability here; use explain with calculation: true for the number.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" } }, required: [ "claim_id" ] },
         outputSchema: { type: "object", properties: { id: { type: "string" }, text: { type: "string" }, type: { type: "string" }, url: { type: "string" }, card: CARD_SCHEMA, provisional_note: { type: "string" } } } },
-      { name: "record_investigation", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Record what you found, all at once: sources by link, quoted excerpts, atomic typed claims, evidence statements, and links (SUPPORT, CONTRADICT, QUALIFY, NEUTRAL) with interpretive steps. No token is needed: without one the work is recorded under an anonymous key; a connected assistant token attributes it to the user. If similar accepted claims exist the call returns them under existing and records nothing; resubmit with attach_to on those claims, or on_duplicate: create. ",
+      { name: "record_investigation", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Record what you found, all at once: sources by link, quoted excerpts, atomic typed claims, evidence statements, and links (SUPPORT, CONTRADICT, QUALIFY, NEUTRAL) with interpretive steps. For one statement, or a source under about 3,000 words. A longer source (a transcript, a speech, a long article) goes through create_outline first, whatever number of claims you think it makes: measure the input, not your answer, because a handful of claims off two hours of talk summarises it instead of checking it. No token is needed: without one the work is recorded under an anonymous key; a connected assistant token attributes it to the user. If similar accepted claims exist the call returns them under existing and records nothing; resubmit with attach_to on those claims, or on_duplicate: create. ",
         inputSchema: { type: "object", properties: {
           statement: { type: "string", description: "The exact text the person wanted checked, as they would post it (the meme's words, the sentence they were about to share). Shown at the top of the shareable page." },
           sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had the bytes. If your host gave you rendered text, omit it; never invent one." }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
@@ -60,7 +43,7 @@ module Mcp
         }, required: [ "claims" ] },
         outputSchema: RECORD_OUTPUT_SCHEMA },
       { name: "create_outline", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-        description: "For a large source (a podcast transcript, a speech, a sermon, a long article) that cannot be checked in about fifteen minutes: roughly over 3,000 words, or over about 25 claims. Record the structure first: the source by link, an outline of sections nested like a table of contents (leaves of two to eight minutes or 300 to 800 words). Every leaf carries a locator and two pieces of text over that same span: an anchor, its first words quoted exactly, at most 300 characters, which is hashed and checked against the source; and a reading, the leaf's whole text as you read it, cleaned into paragraphs with plain transcription errors corrected, which is what a person reads here. A reading is your transcription, not a quotation, and Galedra shows it as yours. One extraction task opens per leaf so other volunteers can take the work in pieces. Then ask the person whether you should start on the research yourself; if yes, do the first pass: record leaf by leaf with record_investigation, giving each claim its section and the evidence for it, so the claims are scored at once and the person can post the link without waiting. A speech or an episode never gets a verdict, only counts by state.",
+        description: "For any source over about 3,000 words (a podcast transcript, a speech, a sermon, a long article), however few claims you think it makes, and whether or not you already hold its whole text. Record the structure first: the source by link, an outline of sections nested like a table of contents (leaves of two to eight minutes or 300 to 800 words). Every leaf carries a locator and two pieces of text over that same span: an anchor, its first words quoted exactly, at most 300 characters, which is hashed and checked against the source; and a reading, the leaf's whole text as you read it, cleaned into paragraphs with plain transcription errors corrected, which is what a person reads here. A reading is your transcription, not a quotation, and Galedra shows it as yours. One extraction task opens per leaf so other volunteers can take the work in pieces. Then ask the person whether you should start on the research yourself; if yes, do the first pass: record leaf by leaf with record_investigation, giving each claim its section and the evidence for it, so the claims are scored at once and the person can post the link without waiting. A speech or an episode never gets a verdict, only counts by state.",
         inputSchema: { type: "object", properties: {
           statement: { type: "string", description: "The title and link of what is being checked, as the person gave it (not the text)" },
           source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, creator: { type: "string" }, publication_date: { type: "string" }, content_hash: { type: "string" } }, required: %w[type title url retrieved_at] },
@@ -198,7 +181,15 @@ module Mcp
       result = case method
       when "initialize" then initialize_result
       when "ping" then {}
-      when "tools/list" then { tools: TOOLS }
+      # ttlMs and cacheScope are caching hints from protocol 2026-07-28. A
+      # 2025-06-18 client ignores fields it does not know; a later one honours
+      # them. Zero is the honest value here and pairs with listChanged: false
+      # above: this server has no stream to push notifications/tools/list_changed
+      # on (GET /mcp is 405), so a client that cached a tool description would
+      # never be told it had changed. Telling it not to cache is the only way a
+      # corrected description reaches an assistant without a reconnect. The rules
+      # themselves do not depend on this: they ride on every result (Stage 31).
+      when "tools/list" then { tools: TOOLS, ttlMs: 0, cacheScope: "public" }
       when "tools/call" then call_tool(params)
       else return [ 200, error(id, METHOD_NOT_FOUND, "unknown method #{method}") ]
       end
@@ -214,25 +205,23 @@ module Mcp
     def initialize_result
       { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "galedra", version: VERSION },
-        instructions: "#{PURPOSE} #{RULES} #{WORK} #{CORRECT} #{ASK}" }
+        instructions: Guidance.join(Guidance::PURPOSE, *Guidance::TOPICS.map { |t| Guidance.for(t) }) }
     end
 
-    # Guidance travels in results, which hosts read fresh on every call, rather
-    # than in tool descriptions, which they cache from the last connection.
-    GUIDANCE_VERSION = "2026-09-18.3"
-    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check, "create_outline" => :check, "get_outline" => :check, "record_inference" => :check,
+    # Guidance travels in results, which no host caches, rather than in tool
+    # descriptions and the initialize instructions, which are read once per
+    # connection and frozen until the next one. The words live in Guidance,
+    # which GET /api/v1/guidance serves too, so a rule is fixed in one place and
+    # reaches every connected assistant on its next call (Stage 31).
+    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check,
+                     "create_outline" => :outline, "get_outline" => :outline,
+                     "record_inference" => :inference,
                      "list_tasks" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
-    ASK = "If these tools cannot do what the person asked, or a refusal seems wrong, call request_feature with what you needed, then tell the person plainly what you could not do. If something went wrong (a broken page, a result that contradicts itself, an error that makes no sense), call report_bug with what happened."
-
     def guidance(name)
-      text = case GUIDANCE_FOR[name]
-      when :check then RULES
-      when :work then "#{WORK} #{Tasks::Answer::RULES}"
-      when :correct then CORRECT
-      end
-      text && { version: GUIDANCE_VERSION, text: "#{text} #{ASK}" }
+      topic = GUIDANCE_FOR[name]
+      topic && { version: Guidance::VERSION, topic: topic, text: Guidance.for(topic) }
     end
 
     def call_tool(params)

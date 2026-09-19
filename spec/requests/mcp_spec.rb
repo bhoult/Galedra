@@ -113,4 +113,22 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     expect(response.parsed_body.dig("error", "code")).to eq(-32001)
     expect(response.headers["WWW-Authenticate"]).to include("oauth-protected-resource")
   end
+  # Stage 31. This server cannot push notifications/tools/list_changed: there is
+  # no stream to push it on. So it must tell clients not to cache the tool list,
+  # or a corrected description waits for a reconnect that may never come.
+  it "declares no listChanged and asks clients not to cache the tool list" do
+    post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "initialize", params: {} }.to_json,
+                 headers: { "CONTENT_TYPE" => "application/json" }
+    caps = response.parsed_body.dig("result", "capabilities", "tools")
+    expect(caps["listChanged"]).to be(false)
+
+    post "/mcp", params: { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }.to_json,
+                 headers: { "CONTENT_TYPE" => "application/json" }
+    result = response.parsed_body["result"]
+    expect(result["ttlMs"]).to eq(0)
+    expect(result["cacheScope"]).to eq("public")
+
+    get "/mcp"
+    expect(response).to have_http_status(:method_not_allowed), "a stream would make listChanged: true honest; there is none"
+  end
 end

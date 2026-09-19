@@ -10,7 +10,7 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stages 23 and 24 tagged (federation readiness; admins, help, and navigation); Stage 17 tagged (source retrieval by a trusted job); Stages 20–22 tagged (sections and placements; large requests from a connector; sharing outlines); Stage 25 tagged (inferences); Stage 26 (capacity) is half built: `bench:seed`, `bench:report`, the profiling harness and the first pass at `/weaknesses` are in; the `claim_scores` prune, the contributor-tally index and the load test are not. Stage 30 (a section's whole text, readable, with the quoted anchor kept separate) is built. Stages 27 (model provenance), 28 (export and import) and 29 (fallacy notes) are planned and not started.** `IMPLEMENTATION.md` indexes the
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stages 23 and 24 tagged (federation readiness; admins, help, and navigation); Stage 17 tagged (source retrieval by a trusted job); Stages 20–22 tagged (sections and placements; large requests from a connector; sharing outlines); Stage 25 tagged (inferences); Stage 26 (capacity) is half built: `bench:seed`, `bench:report`, the profiling harness and the first pass at `/weaknesses` are in; the `claim_scores` prune, the contributor-tally index and the load test are not. Stage 30 (a section's whole text, readable, with the quoted anchor kept separate) is built. Stage 31 (the working rules served live from `Guidance`, on every MCP result and at `/api/v1/guidance`, with the skill thinned to a pointer) is built. Stages 27 (model provenance), 28 (export and import), 29 (fallacy notes) and 32 (modern MCP alongside legacy) are planned and not started.** `IMPLEMENTATION.md` indexes the
 stages; each stage's plan and Decision Log entry is one file under `implementation/`
 (`planned/` or `implemented/`), built one stage per tag only when the owner asks. Read the
 relevant spec sections and the stage file before changing anything.
@@ -187,6 +187,15 @@ The first account to sign up is the admin; `/admin/users` grants admin and moder
 reviews live outside the log and never reach scoring; see `implementation/implemented/personal-views.md`. Reviews are settled
 by `Reviews::Consensus` (two agreeing principals, or one uncontradicted after 48 hours), never by the author. `Ledger::Node` is this node's
 identity (`LEDGER_NODE_URL`); `/about` and `/api/v1/meta` show the build (`GALEDRA_REVISION` at image build).
+**An operational rule for an assistant goes in `app/services/guidance.rb`, never in `skills/galedra.md`.**
+A skill is installed once and never re-read, so a rule written there is frozen until every user reinstalls,
+which is not realistic in production. `Guidance` is served on every MCP tool result (nothing caches a result)
+and at `GET /api/v1/guidance` for hosts that speak REST instead, so a change reaches a connected assistant on
+its next call. Bump `Guidance::VERSION` when the words change. Tool descriptions and the `initialize`
+instructions repeat some of it but are cached from the last connection and must never be the only home for a
+rule; claude.ai is reported to discard `instructions` entirely. The skill keeps only what cannot arrive in a
+result: what Galedra is, how to connect, the `galedra:` trigger, search first, and the two rules an assistant
+could break before its first call. `spec/lib/skills_spec.rb` fails if an operational rule migrates back into it.
 The topic vocabulary is `config/topics.yml`; tags are `TAG_CLAIM` contributions, never edited columns.
 The signed-out home page and `/constitution` render `CONSTITUTION.md` through `Governance::Constitution`;
 after adding a gem, run `docker compose exec app bundle install` and `docker compose restart app`.

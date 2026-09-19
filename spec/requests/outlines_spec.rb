@@ -109,7 +109,10 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
 
     tree, = call_tool("get_outline", { section_id: root_id }, requester)
     expect(tree["counts"]["claims"]).to eq(3)
-    expect(tree.to_json).not_to include("probability")
+    # The outline carries counts by state, never a number (Invariant 16). The
+    # guidance envelope is excluded because it is advice, not payload, and its
+    # standing rules mention probabilities in order to forbid quoting one.
+    expect(tree.except("guidance").to_json).not_to include("probability")
   end
 
   it "refuses a large unsectioned bundle, caps named assistants at 1,000, and validates the outline shape (#4)" do

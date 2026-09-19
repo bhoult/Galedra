@@ -68,6 +68,7 @@ module Api
       {
         "/api/v1/meta" => get_op("meta", "Ledger metadata: constitution hash, keys, models, endpoints."),
         "/api/v1/openapi" => get_op("getOpenapi", "This document."),
+        "/api/v1/guidance" => get_op("getGuidance", "The operational rules for an assistant working here, served live so a change reaches you without reinstalling anything. Read this at the start of a Galedra task. Assistants on MCP get the same text attached to every tool result instead.", params: [ query("topic", "One of: check, outline, inference, work, correct. All of them by default") ]),
         "/api/v1/schemas/{name}" => get_op("getSchema", "One JSON Schema by name: eir-contribution-v1, eir-task-v1, or eir-result-v1.", params: [ path_param("name", "Schema name without the .json") ]),
         "/api/v1/topics" => get_op("getTopics", "The topic vocabulary with the number of claims under each.", params: [ snapshot_seq_query ]),
         "/api/v1/claims" => get_op("searchClaims", "Search accepted claims. Call this before recording anything.", params: [ query("q", "Words from the claim"), query("type"), query("state"), query("limit", "1..200") ]),
@@ -144,7 +145,7 @@ module Api
       "An epistemic ledger: a signed, append-only record of claims, evidence, provenance, " \
         "audits, and reproducible scores. Not a source of truth, and it runs no model of its own: " \
         "every judgment enters as a signed contribution that stays open to audit.\n\n" \
-        "**Rules for an assistant using this API**\n\n#{Mcp::Server::RULES}"
+        "**Rules for an assistant using this API**\n\n#{Guidance.for(:check)}"
     end
 
     # The signed envelope of spec 02 §1.1. The authoritative version is served
