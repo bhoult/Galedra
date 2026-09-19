@@ -9,7 +9,13 @@ class RecomputeAffectedScoresJob < ApplicationJob
     return if contribution.nil?
 
     models = Scoring::Registry.released.to_a
-    Claim.where(id: Scoring::Affected.claim_ids(contribution)).find_each do |claim|
+    # Affected claims are found from the graph as it stands now, so a
+    # contribution early in a recorded investigation reaches claims that were
+    # written later in the same call. Those have no score at this seq, because
+    # they did not exist at it, and asking for one raised RecordNotFound and
+    # failed the job. Skipping them is the answer: there is nothing to
+    # recompute, not an error.
+    Claim.where(id: Scoring::Affected.claim_ids(contribution)).where(created_seq: ..seq).find_each do |claim|
       models.each { |model| Scoring::Score.recompute(claim, seq, model) }
     end
   end
