@@ -17,6 +17,7 @@ module Investigations
     def call(token, bundle, base_url:)
       Validate.call(bundle)
       ids = {}
+      readings = {}
       handles = {}
       root = nil
       count = 0
@@ -33,8 +34,17 @@ module Investigations
           payload["excerpt_hash"] = Crypto::Hashing.bytes(payload["excerpt"])
           ids[leaf["handle"]] = write(token, "CREATE_SOURCE_LOCATION", payload, "location", SourceLocation).id
           count += 1
+
+          reading = leaf["reading"].to_s.strip
+          next if reading.blank?
+
+          reading = reading[0, READING_MAX]
+          reading_payload = { "source_id" => source_id, "locator_type" => "TRANSCRIPTION", "locator" => locator,
+                              "excerpt" => reading, "excerpt_hash" => Crypto::Hashing.bytes(reading) }
+          readings[leaf["handle"]] = write(token, "CREATE_SOURCE_LOCATION", reading_payload, "location", SourceLocation).id
+          count += 1
         end
-        nodes = payload_nodes(bundle["sections"], ids)
+        nodes = payload_nodes(bundle["sections"], ids, readings)
         section_payload = parent ? { "parent_section_id" => parent.id, "sections" => nodes } : { "source_id" => source_id, "sections" => nodes }
         result = Assistants::Write.call(token, "CREATE_SECTION", section_payload)
         count += 1
@@ -47,7 +57,7 @@ module Investigations
       investigation = Investigation.create!(id: SecureRandom.uuid_v7, assistant_token: token, statement: bundle["statement"].presence, claim_ids: [], snapshot_seq: seq, section_id: root.id)
       url = "#{base_url}/sections/#{root.id}"
       { recorded: true, snapshot_seq: seq, contributions: count, root_id: root.id, root_url: url, sections: handles.transform_values { |id| { id: id, url: "#{base_url}/sections/#{id}" } },
-        locations: ids, tasks_opened: tasks, share_line: Record.outline_share_line(root, seq, url), investigation_url: "#{base_url}/investigations/#{investigation.id}",
+        locations: ids, readings: readings, tasks_opened: tasks, share_line: Record.outline_share_line(root, seq, url), investigation_url: "#{base_url}/investigations/#{investigation.id}",
         attribution: Record.attribution(token, base_url),
         next: format(NEXT, sections: handles.size, tasks: tasks, url: url) }
     end
@@ -62,12 +72,13 @@ module Investigations
         "publisher" => s["publisher"], "creator" => s["creator"], "publication_date" => s["publication_date"] }.compact
     end
 
-    def payload_nodes(nodes, ids)
+    def payload_nodes(nodes, ids, readings = {})
       nodes.map do |n|
         out = { "heading" => n["heading"] }
         out["location_id"] = ids[n["handle"]] if ids[n["handle"]]
+        out["reading_location_id"] = readings[n["handle"]] if readings[n["handle"]]
         children = n.fetch("sections", [])
-        out["sections"] = payload_nodes(children, ids) if children.any?
+        out["sections"] = payload_nodes(children, ids, readings) if children.any?
         out
       end
     end

@@ -94,6 +94,12 @@ aside.outline h2, .tree h2 { font-size: 1rem; border: 0; margin: 0 0 0.4rem; }
 .tree .claim-line { display: block; padding: 0.1rem 0.3rem; border-radius: 4px; }
 .tree .claim-line.current { background: var(--panel-2); font-weight: 600; }
 .tree summary.current { background: var(--panel-2); font-weight: 600; border-radius: 4px; }
+/* A section's text (Stage 30): long-form reading, set narrower than a card's
+   full width so it does not become a wall. */
+.card.reading .reading-body { max-width: 42rem; }
+.card.reading .reading-body p { margin: 0.5rem 0; }
+.card.reading .reading-heading { font-size: 1rem; margin: 1.2rem 0 0.2rem; }
+.card.reading .meta.small { font-size: 0.78rem; margin-top: 0.1rem; }
 dl.glossary dt { font-weight: 600; margin-top: 1rem; }
 dl.glossary dd { margin: 0.2rem 0 0 0; }
 dl.glossary dd ul { margin: 0.3rem 0 0; }

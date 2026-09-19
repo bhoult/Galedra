@@ -31,6 +31,8 @@ class SectionsController < ApplicationController
     @tree = @section.parent_id.nil? ? @subtree : Sections::Tree.call(@section.root, @seq, model: @model)
     @ancestors = @section.ancestors(@seq)
     @progress = Sections::Progress.call(@section.root, @seq)
+    # A leaf's own text, or a branch's leaves in order (Stage 30).
+    @text = Sections::Text.call(@section, @seq)
     @share_line = Sections::Progress.share_line(@section.root, @seq, section_url(@section.root))
     @current_claim = params[:claim].presence
   end

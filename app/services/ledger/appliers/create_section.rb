@@ -5,8 +5,17 @@ module Ledger
     # CREATE_SECTION (Stage 20): one contribution creates one subtree of an
     # outline over a source. Payload: source_id (a root) or parent_section_id
     # (a subtree under an existing section), and sections: an ordered array
-    # of {heading, location_id?, sections?}. Headings are untrusted display
-    # text like notes. Accepted on validation, like CREATE_CLAIM.
+    # of {heading, location_id?, reading_location_id?, sections?}. Headings are
+    # untrusted display text like notes. Accepted on validation, like
+    # CREATE_CLAIM.
+    #
+    # Stage 30: a leaf may carry two locations over the same span.
+    # location_id is the anchor, quoted exactly, which retrieval checks against
+    # the source. reading_location_id is the section's text as an assistant read
+    # it, cleaned into paragraphs, and must be typed TRANSCRIPTION: it is
+    # readable, but it is not a quotation and nothing checks it against the
+    # source. Keeping them apart is what stops edited speech being published
+    # with a hash and a real name beside it.
     module CreateSection
       extend Epistemic
 
@@ -40,6 +49,13 @@ module Ledger
             location = SourceLocation.find_by(id: node["location_id"].to_s)
             reject("TARGET_UNKNOWN", "#{here}.location_id", "no such location on this source") if location.nil? || location.source_id != source.id
           end
+          unless node["reading_location_id"].nil?
+            reading = SourceLocation.find_by(id: node["reading_location_id"].to_s)
+            reject("TARGET_UNKNOWN", "#{here}.reading_location_id", "no such location on this source") if reading.nil? || reading.source_id != source.id
+            unless reading.locator_type == "TRANSCRIPTION"
+              reject("SCHEMA_INVALID", "#{here}.reading_location_id", "a reading must be a TRANSCRIPTION: cleaned text is not a quotation, and only a quotation is checked against the source")
+            end
+          end
           children = node.fetch("sections", [])
           reject("SCHEMA_INVALID", "#{here}.sections", "expected an array") unless children.is_a?(Array)
           1 + (children.any? ? check_nodes!(children, "#{here}.sections", depth + 1, source) : 0)
@@ -60,7 +76,8 @@ module Ledger
           id = row_id(c, "section", index ? "#{index}-#{n}" : n)
           section = Section.create!(
             id: id, contribution_id: c.id, created_seq: c.seq, source_id: source_id, root_id: parent ? parent.root_id : id,
-            parent_id: parent&.id, depth: parent ? parent.depth + 1 : 0, position: start + i, heading: node["heading"].strip, location_id: node["location_id"]
+            parent_id: parent&.id, depth: parent ? parent.depth + 1 : 0, position: start + i, heading: node["heading"].strip,
+            location_id: node["location_id"], reading_location_id: node["reading_location_id"]
           )
           children = node.fetch("sections", [])
           create_nodes(c, children, section, source_id, 0, index, &next_index) if children.any?

@@ -89,7 +89,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 27 | Which model did this, and which work needs which model | planned | [implementation/planned/stage-27-model-provenance.md](implementation/planned/stage-27-model-provenance.md) |
 | 28 | Export and import a claim, a topic, or an outline | planned | [implementation/planned/stage-28-export-import.md](implementation/planned/stage-28-export-import.md) |
 | 29 | Noting a logical fallacy | planned | [implementation/planned/stage-29-fallacy-notes.md](implementation/planned/stage-29-fallacy-notes.md) |
-| 30 | The whole text, readable in Galedra | planned | [implementation/planned/stage-30-section-text.md](implementation/planned/stage-30-section-text.md) |
+| 30 | The whole text, readable in Galedra | implemented | [implementation/implemented/stage-30-section-text.md](implementation/implemented/stage-30-section-text.md) |
 
 Work done between stages, each with its own dated entry:
 

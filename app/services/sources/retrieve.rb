@@ -50,7 +50,12 @@ module Sources
 
     # The payload minus source and time: outcome, hash, size, type, final url, excerpts.
     def attempt(source, fetcher)
-      locations = source.source_locations.live.where(locator_type: %w[QUOTE TRANSCRIPTION]).order(:created_seq).to_a
+      # Anchors only. A section's reading is cleaned text, so it is not in the
+      # source verbatim and never could be; checking it would report a failure
+      # for something that was never a quotation (Stage 30).
+      readings = Section.where.not(reading_location_id: nil).pluck(:reading_location_id)
+      locations = source.source_locations.live.where(locator_type: %w[QUOTE TRANSCRIPTION])
+                        .where.not(id: readings).order(:created_seq).to_a
       uri = URI.parse(source.canonical_uri) rescue nil
       return { "outcome" => "UNSUPPORTED" } unless uri.is_a?(URI::HTTP) && uri.host.present?
 

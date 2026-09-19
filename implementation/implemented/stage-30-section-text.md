@@ -1,6 +1,6 @@
 # Stage 30 — The whole text, readable in Galedra
 
-**Status:** planned · tag will be `stage-30-section-text`
+**Status:** implemented · `stage-30-section-text`
 
 **Tag:** `stage-30-section-text` · **Spec:** 02 §1.1 and §3.2 (contributions, sources and
 locations), 02 §6 (canonical JSON and hashing), 06 §4 (display rules), 13 §Stage 17 (source
@@ -125,3 +125,47 @@ prevent.
 - The byte budget per outline, and what happens at the ceiling.
 - Whether `[unclear]` should be a closed marker the schema validates, so a reading cannot
   quietly invent a word.
+
+
+## Decision Log (2026-09-19)
+
+**Two locations over one span, not one field with a flag.** `sections.reading_location_id`
+sits beside `location_id`. The applier refuses a reading that is not typed `TRANSCRIPTION`,
+with an error that says why: cleaned text is not a quotation, and only a quotation is
+checked against the source. That refusal is the stage's whole safety property expressed as
+a validation rather than as a convention someone has to remember.
+
+**A branch composes, it does not store.** `Sections::Text` walks the subtree in document
+order and returns the readings it finds. A branch has no text of its own, so correcting one
+leaf corrects the root, and there is exactly one copy of anything (Invariant 2). The root's
+page is therefore the whole transcript without a transcript ever being written twice.
+
+**Retrieval excludes readings by identity, not by type.** The obvious filter is to stop
+checking `TRANSCRIPTION` locations, but that type has a legitimate prior use from Stage 13:
+text an assistant read off an image, which should still be looked for. So the exclusion is
+by id, from the set of locations that are some section's reading. A genuine transcription of
+an image is checked as before; a section's reading never is, because it never was a
+quotation and reporting it as not found would be reporting a failure that is not one.
+
+**Found while testing:** an outline's anchors are `TIME_RANGE`, and retrieval only ever
+looked for `QUOTE` and `TRANSCRIPTION` excerpts in a fetched source. So the claim in this
+plan that "retrieval checks anchors" was too strong: it checks quotations, and a time-range
+anchor is located by its range. Nothing regressed, but the acceptance test was written
+against the type retrieval actually looks for.
+
+**The skill carries the real constraint.** The cleaning rule is deliberately narrow and
+negative: paragraphs, misheard words, mangled names, punctuation, `[unclear]` for what
+cannot be made out, and nothing else. It says in as many words that a speaker who misspeaks
+stays misspoken, because that is often the thing worth checking, and that a reading must
+not be reconstructed from memory.
+
+### Outstanding
+
+- Acceptance 6 is not met. `bench:report` has not been run against a corpus carrying
+  readings, and `docs/HOSTING.md` §3 still holds numbers taken before this existed. The
+  seeder does not generate readings yet, so that needs doing before the figures mean
+  anything for a text-heavy node.
+- The copyright decision in the owner list is untouched and still wants settling before any
+  third-party transcript is public.
+- The existing Moonshots outline has no readings; it was recorded under the old rule. Its
+  pages render as before, with the anchor and no text section.

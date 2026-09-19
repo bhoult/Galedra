@@ -12,6 +12,10 @@ class Section < ApplicationRecord
   belongs_to :source
   belongs_to :parent, class_name: "Section", optional: true, inverse_of: :children
   belongs_to :location, class_name: "SourceLocation", optional: true
+  # Stage 30. The anchor above is quoted exactly and checked against the source;
+  # this is the section's text as an assistant read it, cleaned into paragraphs.
+  # Readable, but not a quotation, and nothing verifies it.
+  belongs_to :reading_location, class_name: "SourceLocation", optional: true
   has_many :children, class_name: "Section", foreign_key: :parent_id, inverse_of: :parent, dependent: nil
   has_many :placements, class_name: "ClaimPlacement", dependent: nil
 

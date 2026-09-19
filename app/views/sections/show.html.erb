@@ -22,7 +22,7 @@
   <p class="meta">Source: <%= link_to @section.source.title, source_path(@section.source) %><% if @section.location %> · <%= locator_label(@section.location) %><% end %> · <%= link_to "created seq #{@section.created_seq}", contribution_path(@section.contribution_id) %></p>
   <% if @section.location&.excerpt.present? %>
     <blockquote class="passage"><%= simple_format(@section.location.excerpt) %></blockquote>
-    <p class="meta">The opening words of this section, quoted exactly. It marks where the section starts and is what gets hashed and checked against the source; the rest of the text is at the source. Stage 30 will hold it here.</p>
+    <p class="meta">The opening words of this section, quoted exactly. This is what is hashed and checked against the source.</p>
   <% end %>
   <p><strong><%= Sections::Tree.counts_line(@subtree[:counts]) %></strong><% if @subtree[:pending].positive? %> · <%= @subtree[:pending] %> proposed claims awaiting acceptance<% end %></p>
   <% if @subtree[:children].empty? && @subtree[:claims].empty? %><p class="muted">Nothing under this section yet. Its claims arrive when the extraction task below is worked.</p><% end %>
@@ -30,6 +30,21 @@
   <p class="meta">Progress of the whole outline: <%= @progress[:leaves_extracted] %> of <%= @progress[:leaves] %> leaves extracted · <%= @progress[:checked] %> of <%= @progress[:claims] %> claims with evidence · <%= @progress[:open_tasks] %> open tasks.</p>
   <p><strong>Share:</strong> <code><%= @share_line %></code></p>
 </div>
+<% if @text.any? %>
+  <div class="card reading">
+    <h2><%= @section.parent_id.nil? ? "The whole text" : "The text" %></h2>
+    <p class="meta"><%= Sections::Text::NOTE %> <%= pluralize(Sections::Text.characters(@section, @seq), "character") %> across <%= pluralize(@text.size, "section") %>.</p>
+    <% @text.each do |part| %>
+      <% if part.section != @section %>
+        <h3 class="reading-heading" style="margin-left: <%= [ part.depth - 1, 3 ].min * 0.8 %>rem">
+          <%= link_to part.section.heading, section_path(part.section), data: { turbo_frame: outline_frame } %>
+        </h3>
+      <% end %>
+      <div class="reading-body"><%= simple_format(part.text) %></div>
+      <p class="meta small">Read by <%= link_to short_id(part.location.contribution_id), contribution_path(part.location.contribution_id), data: { turbo_frame: "_top" } %><% if part.section.location&.excerpt.present? %> · anchored on “<%= truncate(part.section.location.excerpt, length: 70) %>”<% end %></p>
+    <% end %>
+  </div>
+<% end %>
 <% open_tasks = Task.where(section_id: Tasks::Lease.subtree_ids(@section.id), status: %w[OPEN LEASED]).to_a.select { |t| t.open_slots.positive? } %>
 <div class="card">
   <p><strong>Open work under this section: <%= open_tasks.size %></strong><% if open_tasks.any? %> (<%= open_tasks.group_by(&:task_type).map { |k, v| "#{v.size} #{k.downcase.tr('_', ' ')}" }.join(", ") %>)<% end %>.</p>

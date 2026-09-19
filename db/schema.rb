@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_210210) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -593,10 +593,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_210210) do
     t.uuid "location_id"
     t.uuid "parent_id"
     t.integer "position", default: 0, null: false
+    t.uuid "reading_location_id"
     t.bigint "redacted_by_seq"
     t.uuid "root_id", null: false
     t.uuid "source_id", null: false
     t.index ["contribution_id"], name: "index_sections_on_contribution_id"
+    t.index ["reading_location_id"], name: "index_sections_on_reading_location_id"
     t.index ["root_id", "parent_id", "position"], name: "index_sections_on_root_id_and_parent_id_and_position"
     t.index ["source_id"], name: "index_sections_on_source_id"
   end
