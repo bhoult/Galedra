@@ -179,8 +179,7 @@ module Investigations
 
     # The whole outline's counts line and its page (06 §6), never a verdict.
     def outline_share_line(root, seq, url)
-      counts = Sections::Tree.call(root, seq)[:counts]
-      "Checked in Galedra: #{root.heading} · #{Sections::Tree.counts_line(counts)} · #{url}"
+      Sections::Progress.share_line(root, seq, url)
     end
   end
 

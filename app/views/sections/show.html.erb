@@ -1,4 +1,11 @@
 <% content_for :title, @section.heading %>
+<% content_for :head do %>
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Galedra">
+  <meta property="og:title" content="<%= @section.root.heading %>">
+  <meta property="og:description" content="<%= "#{@progress[:claims]} claims recorded, #{@progress[:checked]} checked · #{Sections::Tree.states_line(@tree[:counts])}. Checked in Galedra, an epistemic ledger; counts, never a verdict." %>">
+  <meta property="og:url" content="<%= section_url(@section) %>">
+<% end %>
 <% open_ids = ([ @section ] + @ancestors).map(&:id) %>
 <p class="meta"><%= link_to "Outlines", sections_path %><% @ancestors.each do |a| %> › <%= link_to a.heading, section_path(a) %><% end %> › <%= @section.heading %></p>
 <h1><%= @section.heading %></h1>
@@ -6,6 +13,8 @@
   <p class="meta">Source: <%= link_to @section.source.title, source_path(@section.source) %><% if @section.location %> · <%= @section.location.locator_type %> <code><%= @section.location.locator.to_json %></code><% if @section.location.excerpt.present? %> · “<%= truncate(@section.location.excerpt, length: 160) %>”<% end %><% end %> · <%= link_to "created seq #{@section.created_seq}", contribution_path(@section.contribution_id) %></p>
   <p><strong><%= Sections::Tree.counts_line(@tree[:counts]) %></strong><% if @tree[:pending].positive? %> · <%= @tree[:pending] %> proposed claims awaiting acceptance<% end %></p>
   <p class="meta"><%= Sections::Tree::NOTE %> As of snapshot <%= @seq %><%= " under #{@model.full_name}" if @model %>.</p>
+  <p class="meta">Progress of the whole outline: <%= @progress[:leaves_extracted] %> of <%= @progress[:leaves] %> leaves extracted · <%= @progress[:checked] %> of <%= @progress[:claims] %> claims with evidence · <%= @progress[:open_tasks] %> open tasks.</p>
+  <p><strong>Share:</strong> <code><%= @share_line %></code></p>
 </div>
 <% open_tasks = Task.where(section_id: Tasks::Lease.subtree_ids(@section.id), status: %w[OPEN LEASED]).to_a.select { |t| t.open_slots.positive? } %>
 <div class="card">

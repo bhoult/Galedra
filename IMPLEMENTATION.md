@@ -81,7 +81,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | — | Stages 20–22 — Large sources: outlines (shared goal and vocabulary) | context | [implementation/planned/stages-20-22-outlines.md](implementation/planned/stages-20-22-outlines.md) |
 | 20 | Sections and placements in the log | implemented | [implementation/implemented/stage-20-sections.md](implementation/implemented/stage-20-sections.md) |
 | 21 | Large requests from a connector | implemented | [implementation/implemented/stage-21-large-requests.md](implementation/implemented/stage-21-large-requests.md) |
-| 22 | Sharing and following an outline | planned | [implementation/planned/stage-22-outline-share.md](implementation/planned/stage-22-outline-share.md) |
+| 22 | Sharing and following an outline | implemented | [implementation/implemented/stage-22-outline-share.md](implementation/implemented/stage-22-outline-share.md) |
 | 23 | Federation readiness | implemented | [implementation/implemented/stage-23-federation-ready.md](implementation/implemented/stage-23-federation-ready.md) |
 | 24 | Admins, help, and navigation | implemented | [implementation/implemented/stage-24-admin-nav.md](implementation/implemented/stage-24-admin-nav.md) |
 | 25 | Inferences: recorded reasoning steps | planned | [implementation/planned/stage-25-inferences.md](implementation/planned/stage-25-inferences.md) |

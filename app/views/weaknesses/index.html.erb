@@ -2,6 +2,13 @@
 <h1>Where we are most likely to be wrong</h1>
 <p class="muted">Deterministic lists as of snapshot <%= @seq %> under <%= @report[:model] %>. Each entry shows what would most change it.</p>
 <%= render "shared/selectors", url: weaknesses_path, seq: @seq, extra_params: { kind: params[:kind] } %>
+<% unfinished = Sections::Progress.unfinished(@seq) %>
+<h2>unfinished outlines (<%= unfinished.size %>)</h2>
+<% if unfinished.any? %>
+  <table><tr><th>Outline</th><th>Leaves</th><th>Claims</th><th>With evidence</th><th>Open work</th></tr>
+  <% unfinished.each do |root, p| %><tr><td><%= link_to root.heading, section_path(root) %></td><td><%= p[:leaves_extracted] %> of <%= p[:leaves] %></td><td><%= p[:claims] %></td><td><%= p[:checked] %></td><td><%= p[:open_tasks] %></td></tr><% end %></table>
+  <p class="meta">Every leaf has been extracted but fewer than a quarter of the claims have any evidence: a big job that looks done and is not.</p>
+<% else %><p class="muted">None.</p><% end %>
 <% @report[:lists].each do |kind, entries| %>
   <h2><%= kind.tr("_", " ") %> (<%= entries.size %>)</h2>
   <% if entries.any? %>

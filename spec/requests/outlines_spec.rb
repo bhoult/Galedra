@@ -34,7 +34,7 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     expect(data["sections"].keys).to match_array(%w[root align openai anthropic math prize])
     expect(data["tasks_opened"]).to eq(3)
     expect(data["next"]).to include("ask whether they want you to start")
-    expect(data["share_line"]).to start_with("Checked in Galedra: Moonshots episode 123 · 0 claims")
+    expect(data["share_line"]).to start_with("Checked in Galedra: Moonshots episode 123 · 0 claims recorded, 0 checked · no claims yet")
     root_id = data["root_id"]
     openai_id = data["sections"]["openai"]["id"]
     expect(Section.find(openai_id).path).to eq([ "Moonshots episode 123", "LLM alignment", "OpenAI" ])
@@ -96,7 +96,7 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     data, err = call_tool("record_investigation", bundle, requester)
     expect(err).to be(false), data.inspect
     expect(data["recorded"]).to be(true)
-    expect(data["share_line"]).to start_with("Checked in Galedra: Moonshots episode 123 · 3 claims")
+    expect(data["share_line"]).to start_with("Checked in Galedra: Moonshots episode 123 · 3 claims recorded, 1 checked · 1 supported")
     expect(data["share_line"]).to include("/sections/#{root_id}")
     expect(Task.where(task_type: "CLAIM_EXTRACTION", section_id: other_leaf_id).first).to have_attributes(status: "CANCELLED", cancelled_reason: "RECORDED_BY_REQUESTER")
     claim = Claim.find_by(canonical_text: "Anthropic published a constitution for its models.")

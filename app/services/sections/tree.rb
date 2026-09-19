@@ -50,6 +50,12 @@ module Sections
       parts.join(" · ")
     end
 
+    # Only the states, in 06 §6 order: "74 supported · 21 leans supported · …".
+    def states_line(counts)
+      parts = STATES.filter_map { |s| "#{counts[s]} #{s.downcase.tr('_', ' ')}" if counts[s].positive? }
+      parts.empty? ? "no claims yet" : parts.join(" · ")
+    end
+
     # Sections holding a claim, as [{section, path}] at a seq.
     def placements_for(claim, seq)
       ClaimPlacement.counted_at(seq).where(claim_id: claim.id).includes(:section).map(&:section).select { |s| s.counted_at?(seq) }

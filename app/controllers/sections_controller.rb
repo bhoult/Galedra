@@ -1,11 +1,19 @@
-# Outlines (Stage 20): every root, one section's subtree as a directory tree,
-# and a signed-in person's "Add an outline" from indented headings.
+# Outlines (Stage 20, 22): every root ordered by open work or newest, filtered
+# by topic; one section's subtree as a directory tree; and a signed-in
+# person's "Add an outline" from indented headings.
 class SectionsController < ApplicationController
   allow_unauthenticated_access only: [ :index, :show ]
 
   def index
     @seq = current_seq
-    @roots = Sections::Tree.roots(@seq).includes(:source).limit(200).map { |r| [ r, Sections::Tree.call(r, @seq, model: selected_model) ] }
+    roots = Sections::Tree.roots(@seq).includes(:source).limit(200).to_a
+    if params[:topic].present?
+      claim_ids = ClaimTopic.current_at(@seq).where(topic: Topics.paths_under(params[:topic])).select(:claim_id)
+      root_ids = Section.counted_at(@seq).where(id: ClaimPlacement.counted_at(@seq).where(claim_id: claim_ids).select(:section_id)).distinct.pluck(:root_id)
+      roots = roots.select { |r| root_ids.include?(r.id) }
+    end
+    @rows = roots.map { |r| [ r, Sections::Tree.call(r, @seq, model: selected_model), Sections::Progress.call(r, @seq) ] }
+    @rows = @rows.sort_by { |_, _, p| [ -p[:open_tasks], -p[:claims] ] } unless params[:sort] == "newest"
   end
 
   def show
@@ -16,6 +24,8 @@ class SectionsController < ApplicationController
     @model = selected_model
     @tree = Sections::Tree.call(@section, @seq, model: @model)
     @ancestors = @section.ancestors(@seq)
+    @progress = Sections::Progress.call(@section.root, @seq)
+    @share_line = Sections::Progress.share_line(@section.root, @seq, section_url(@section.root))
     @current_claim = params[:claim].presence
   end
 

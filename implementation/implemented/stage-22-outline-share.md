@@ -1,6 +1,6 @@
 # Stage 22 — Sharing and following an outline
 
-**Status:** planned, not built · tag will be `stage-22-outline-share`
+**Status:** implemented · tag `stage-22-outline-share` · decisions recorded 2026-09-19
 
 ## Plan
 
@@ -42,6 +42,22 @@ by anyone (today an investigation belongs to the token that recorded it); whethe
 show per-speaker counts inside one debate transcript (planned: no, Article XVIII;
 sections may be named by speaker but no count is broken out by speaker).
 
-## Decision Log
+## Decision Log (2026-09-19)
 
-Written when the stage is executed.
+- `investigations.section_id` and the live reading of an outline's claims arrived with
+  Stage 21; the outline's own page is its check page (the investigation URL redirects to
+  it), so the page carries the Open Graph tags and the share line rather than a second
+  page. The counts card image was not built: link previews read the tags.
+- `Sections::Progress`: leaves, leaves extracted (an accepted claim under the leaf, or
+  its extraction task complete or cancelled), claims, claims checked (any counted
+  evidence), open work. The share line is fixed as
+  `Checked in Galedra: <heading> · N claims recorded, M checked · <states in 06 §6 order> · <url>`
+  with no adjective for the whole; `Sections::Tree.states_line` renders the states.
+- `/sections` orders by open work then claims (or newest), filters by topic through the
+  placed claims' current tags, and shows progress per outline; the landing page's help
+  sentence links it; `list_tasks` already names the three outlines with most open work.
+- Weaknesses page: an "unfinished outlines" table (every leaf extracted, fewer than a
+  quarter of claims with evidence) above the claim lists; the JSON report's kinds are
+  unchanged so the API and its goldens are untouched.
+- Per-speaker counts are not broken out (Article XVIII), as planned.
+
