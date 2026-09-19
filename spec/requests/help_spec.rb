@@ -58,6 +58,8 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(response.body).to include("cash.app/$bhoult")
     # bhoult1, not bhoult: the bare handle belongs to a different person.
     expect(response.body).to include("paypal.me/bhoult1")
+    # The QR code names its destination rather than hiding it behind a scan.
+    expect(response.body).to include("paypal-donate-qr").and include("qrcodes/managed/ac170975")
     expect(response.body).not_to match(%r{paypal\.me/bhoult[^1]})
     expect(response.body).to include("work five open tasks")
     expect(response.body).to include("A donation buys no claim")

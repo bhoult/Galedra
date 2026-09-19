@@ -15,6 +15,9 @@ module Governance
       linkedin: "https://www.linkedin.com/in/brandon-hoult-02b188b/",
       github: "https://github.com/bhoult",
       paypal: "https://paypal.me/bhoult1",
+      # The destination encoded in the PayPal QR code, so the page can say where
+      # it goes: a code nobody can read before scanning is a thing to distrust.
+      paypal_qr: "https://www.paypal.com/qrcodes/managed/ac170975-4a7b-4f9d-b410-0de46ab7e43e",
       cashapp: "https://cash.app/$bhoult",
       cashtag: "$bhoult"
     }.freeze
