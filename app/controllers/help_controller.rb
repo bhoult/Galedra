@@ -10,6 +10,8 @@ class HelpController < ApplicationController
     # The README uses GitHub fences; kramdown's own parser takes tildes.
     markdown = File.read(README).gsub(/^```(\w*)\s*$/) { "~~~#{$1}" }
     @readme_html = Kramdown::Document.new(markdown, auto_ids: true).to_html.html_safe
+    # Generated from the document clients read, so the table cannot drift.
+    @api_reference = Api::Openapi.reference
   end
 
   def glossary
