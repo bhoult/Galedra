@@ -178,6 +178,16 @@ The suite pins RFC 8032 test vector 1 as the system key so its signatures are re
 carries; seq 0 of `galedra_test` registers it, so rebuild that database (`db:drop db:create db:schema:load`)
 if the pinned key ever changes.
 
+## Checking what is left of the usage limits
+
+`claude -p "/usage"` prints them: the session window, the weekly all-model budget, and the
+weekly budget for this model, each with its reset time. There is no local file to read and
+nothing in `claude auth status`; ask the CLI. Worth doing before a multi-agent run, because
+the breakdown it prints is consistently the same story: subagent-heavy sessions at large
+context account for nearly all of it, and one `/code-review` at `max` or `ultra` costs more
+than a long stretch of ordinary editing. A review that dies halfway leaves findings applied
+but unverified, which is worse than not starting it.
+
 ## Git
 
 Commit messages are one short imperative sentence in sentence case with no type prefix,
