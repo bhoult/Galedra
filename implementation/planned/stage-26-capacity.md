@@ -1,6 +1,10 @@
 # Stage 26 — Capacity: seeding, profiling, and the pages that scan
 
-**Status:** planned, not built · tag will be `stage-26-capacity`
+**Status:** in progress · tag will be `stage-26-capacity`
+
+Built so far: `bench:seed`, `bench:report`, and the first pass at `/weaknesses`.
+Still to do: pagination, `claim_scores` retention, the tally index, the load test,
+and the decision below about what snapshot the report should answer for.
 
 ## Plan
 
@@ -101,7 +105,53 @@ Acceptance:
 5. Profiling is absent from the production image: `LEDGER_PROFILE` unset loads none of the
    gems, and `bundle list --without development` does not name them.
 
-Owner decisions to record: the retention window for `claim_scores` (a head-plus-snapshots
+## Progress (2026-09-19)
+
+`bin/rails 'bench:seed[n]'` builds a corpus through `Ledger::Append` (sources held by
+reference, quoted passages, mixed claim types, links in both directions, topics, audits
+on a sample) and `bin/rails bench:report` times the pages and services against it. Both
+run in development and test only; the seeder warns that a corpus left in the test
+database will fail the suite, which it does, because the specs expect a clean log.
+
+Measured at 2,025 claims / 20,549 contributions (24-cpu development machine, test env,
+so `Rails.cache` is the null store and every report call recomputes):
+
+| Operation | 27 claims | 2,025 claims | after batching |
+|---|---|---|---|
+| `Weaknesses::Report` | 1,188 ms | 3,709 ms | **1,616 ms** |
+| `GET /weaknesses` | 1,331 ms | 4,135 ms (worst 24.9 s) | 2,945 ms (worst 35 s cold) |
+| `GET /claims/:id` | 91 ms | 42 ms | 76 ms |
+| `GET /api/v1/claims?limit=50` | 838 ms | 468 ms | 471 ms |
+| `Scoring::Score`, cold / cached | — | 6.0 / 0.2 ms | 5.1 / 0.2 ms |
+| Append, unbatched | — | 48/s (21 ms) | — |
+| Append, batched transactions | — | 91–101/s | — |
+
+What the first pass changed: the three per-claim query loops in the report became set
+queries (`Weaknesses::Report::Facts`), `models_disagree` now skips claims with no counted
+evidence because no two models can disagree about an `INSUFFICIENT_EVIDENCE` claim
+(Invariant 5), and the whole report is cached per `(seq, model, kinds, limit)`, which is
+sound because a snapshot's answer never changes.
+
+What it did not fix, and why. The remaining cost is scoring every claim under every
+released model, about 4,000 cold scores at this corpus. `RecomputeAffectedScoresJob`
+materialises `claim_scores` only for the claims a contribution *affected*, at that seq, and
+the cache is keyed on the exact seq. Since the head seq moves with every append, a
+whole-graph report at the head finds almost nothing cached, however good the query plan is.
+That is not a bug in the report; it is the shape of the cache meeting the shape of the
+page, and fixing it is the decision below.
+
+Also found, not yet addressed: `GET /api/v1/claims?limit=50` spends ~9 ms a claim in
+`Graph::Presenter.claim`, which since Stages 20–25 calls `Inferences::View.for_claim`,
+`Sections::Tree.placements_for` and `ClaimReference.totals` once per claim. It is bounded
+by `limit`, so it degrades with page size rather than corpus size, but 50 claims should
+not cost half a second.
+
+Owner decisions to record: whether `/weaknesses` should answer for the latest pinned
+`graph_snapshot` rather than the head seq — snapshots are stable, so the cache and the
+materialised scores would both be reusable, the page would become citable, and Article
+XXII's report would stop being recomputed on every append (the alternative is a
+schedule, or a score cache keyed by a validity range rather than an exact seq); the
+retention window for `claim_scores` (a head-plus-snapshots
 rule versus N days); whether `/weaknesses` should be computed on a schedule rather than on
 demand, given it is a whole-graph report; whether to denormalise the principal onto
 `contributions` at append, which adds a column to the log's own table and so wants care;
