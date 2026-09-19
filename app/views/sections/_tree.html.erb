@@ -2,7 +2,10 @@
     lines, the current claim marked, and the section being read marked too so a
     reader can see where they are in the whole outline. %>
 <% current_section = local_assigns.fetch(:current_section, nil) %>
-<ul data-controller="tree">
+<%# The controller goes on the outermost list only: clicks bubble, so one
+    listener covers every branch, and one per level meant a click was handled
+    again by each list above it. %>
+<ul <%= 'data-controller="tree"'.html_safe if local_assigns.fetch(:root, true) %>>
   <% node[:children].each do |child| %>
     <% count = tag.span(child[:counts]["claims"].to_s + (child[:pending].positive? ? "+#{child[:pending]}" : ""),
                         class: "counts",
@@ -14,7 +17,7 @@
         <details <%= "open" if open_ids.include?(child[:section].id) %>>
           <summary class="<%= classes %>"><%= count %><%= heading %></summary>
           <div class="reveal">
-            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq %>
+            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq, root: false %>
           </div>
         </details>
       <% else %>

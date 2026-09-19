@@ -33,8 +33,13 @@ export default class extends Controller {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
 
       event.preventDefault()
-      window.location.href = link.href
-      return
+      // Clicking the title of the section you are already on would reload the
+      // same page, which looks like nothing happening and leaves no way to
+      // close a branch by its name. Here the title toggles instead.
+      if (new URL(link.href, window.location.href).pathname !== window.location.pathname) {
+        window.location.href = link.href
+        return
+      }
     }
 
     const summary = event.target.closest("summary")
