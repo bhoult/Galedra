@@ -27,8 +27,16 @@ module Demo
       verifier_key, verifier = h.register_key(kind: "AGENT", display_name: "AgentVerifier")
       mallory, = h.register_key(display_name: "Mallory")
       bad_key, bad = h.register_key(kind: "AGENT", display_name: "AgentBad")
+      # A second honest volunteer. Since the system accepts an extraction
+      # (2026-09-19), the claims belong to whoever extracted them, and a
+      # principal never checks its own claim (04 §3.1, Article XI). So the
+      # checks on what AgentVerifier extracted are answered by someone else,
+      # which is how this works outside a demo anyway.
+      bob, = h.register_key(display_name: "Bob")
+      checker_key, checker = h.register_key(kind: "AGENT", display_name: "AgentChecker")
       h.agent(:verifier, key: verifier_key, delegation: h.delegate(alice, verifier, domains: domains))
       h.agent(:bad, key: bad_key, delegation: h.delegate(mallory, bad, domains: domains), fixtures_agent: "bad")
+      h.agent(:checker, key: checker_key, delegation: h.delegate(bob, checker, domains: domains))
       [ curator, reviewer ]
     end
 

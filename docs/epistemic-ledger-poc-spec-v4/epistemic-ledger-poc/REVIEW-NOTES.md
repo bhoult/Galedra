@@ -153,6 +153,30 @@ epistemic thing and no altered procedure, that sponsors are named publicly, and 
 support which would make the record look bought is refused. The contact page states it in
 plain words and links the amendment log.
 
+## L. Extraction is accepted by the system, and the demo gains a second volunteer (2026-09-19)
+
+**What changed.** `CLAIM_EXTRACTION` results are now accepted by the system after
+validation, like the other object-adding task types, and their verification tasks open with
+them. `08 §7` and the reputation table in `08 §8` change with it: `AgentVerifier` extracts,
+and a second volunteer's agent, `AgentChecker` under `Bob`, answers T1, T3 and T4.
+
+**Why.** Extraction was the only task type held as a proposal, waiting for the outline's
+principal to accept it. It was the odd one out: a qualifier check and an inference review
+both create claims and are accepted by the system, and extraction only ever adds, which is
+exactly what `02 §1.1a` sanctions. In practice a volunteer's work sat unusable until someone
+came back to approve it, and outlines stalled at nothing.
+
+**What it forced.** Accepting the extraction makes those claims the extractor's principal's,
+and `04 §3.1` and Article XI say a principal never checks its own claim. The demo had
+`AgentVerifier` extract and then answer the checks on what it had extracted, which was only
+possible while the extraction was unaccepted. The rule is right and the narrative was wrong,
+so the narrative moved: the checks are another volunteer's, which is how this works outside
+a demo anyway.
+
+**What did not change.** Every scoring golden in `08 §8` and in Watchers `§7` is
+byte-identical, under both models. Only the reputation table moved, and only by which agent
+holds which bucket; every alpha, beta, mean and n is the same.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-1 through P-4?

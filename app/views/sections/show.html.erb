@@ -48,7 +48,7 @@
 <% open_tasks = Task.where(section_id: Tasks::Lease.subtree_ids(@section.id), status: %w[OPEN LEASED]).to_a.select { |t| t.open_slots.positive? } %>
 <div class="card">
   <p><strong>Open work under this section: <%= open_tasks.size %></strong><% if open_tasks.any? %> (<%= open_tasks.group_by(&:task_type).map { |k, v| "#{v.size} #{k.downcase.tr('_', ' ')}" }.join(", ") %>)<% end %>.</p>
-  <p class="meta">To help, tell your assistant: <code>work the open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are proposals until the outline's principal accepts them; then their verification tasks open.</p>
+  <p class="meta">To help, tell your assistant: <code>work the open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are recorded and their verification tasks open at once, so anyone can carry on from where the last person stopped.</p>
 </div>
 <% if authenticated? %>
   <details><summary>Add sections under this one</summary>

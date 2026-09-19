@@ -41,7 +41,9 @@ A user pastes this AI-drafted memo paragraph into **Analyze text**:
 | `Curator` | HUMAN | self | SERVER | the user checking the memo |
 | `Reviewer` | HUMAN, ESTABLISHED | self | SERVER | accepts proposals; audits |
 | `Alice` | HUMAN | self | SELF | principal for `AgentVerifier` |
-| `AgentVerifier` | AGENT | Alice | SELF | extraction, search, independence, qualifier tasks |
+| `AgentVerifier` | AGENT | Alice | SELF | extraction |
+| `Bob` | HUMAN | self | SELF | principal for `AgentChecker` |
+| `AgentChecker` | AGENT | Bob | SELF | search, independence, qualifier tasks on what AgentVerifier extracted |
 | `Mallory` | HUMAN | self | SELF | principal for `AgentBad` |
 | `AgentBad` | AGENT | Mallory | SELF | submits a false verification |
 
@@ -109,15 +111,19 @@ Each has one `CHAR_RANGE` location covering the relevant passage.
 Every step is a contribution through the real write path.
 
 ```text
- 1. Genesis: System key. REGISTER_KEY for Curator, Reviewer, Alice, Mallory, AgentVerifier, AgentBad;
-    delegations Alice→AgentVerifier, Mallory→AgentBad
+ 1. Genesis: System key. REGISTER_KEY for Curator, Reviewer, Alice, Mallory, Bob,
+    AgentVerifier, AgentBad, AgentChecker; delegations Alice→AgentVerifier,
+    Mallory→AgentBad, Bob→AgentChecker
  2. Curator: SD source + location
- 3. T0 CLAIM_EXTRACTION(SD) → AgentVerifier (fixture): proposes C2, C4, C5, C6
-    Curator: ACCEPT each (the stub also proposes nothing else; the atomicity warning is shown in the UI)
+ 3. T0 CLAIM_EXTRACTION(SD) → AgentVerifier (fixture): records C2, C4, C5, C6
+    System: ACCEPT after validation (02 §1.1a; the result only adds claims), and
+    their verification tasks open with them. The claims are therefore Alice's,
+    so AgentVerifier never checks them itself (04 §3.1, Article XI); the
+    atomicity warning is shown in the UI
  4. Curator: SR, SP, SN1–3, SX + locations; C1, C3
  5. Curator: E1, E2, E3, E4, E5, E7; G1 (assign E1, E2); G2 (assign E7)
  6. Curator: L1, L2, L3, L4, L5, L6, L7, L8, L9   (System ACCEPTs each after validation)
- 7. T1 OPPOSING_EVIDENCE_SEARCH(C4, direction SUPPORT) → AgentVerifier: NONE_FOUND
+ 7. T1 OPPOSING_EVIDENCE_SEARCH(C4, direction SUPPORT) → AgentChecker: NONE_FOUND
  8. Reviewer: AUDIT CONFIRMED on T0, T1, and each Curator link contribution
  ── checkpoint S1 "as drafted"
  9. T2 EVIDENCE_VERIFICATION(C4, SP location) → AgentBad: CONFIRMED, op L10
@@ -126,10 +132,10 @@ Every step is a contribution through the real write path.
 11. Reviewer: AUDIT SUBSTANTIVE_ERROR on T2 ("The press release is not the cited journal article.")
     → System INVALIDATE; L10 invalidated
  ── checkpoint S3 "audited"
-12. T3 SOURCE_INDEPENDENCE_CHECK(C2) → AgentVerifier: GROUPED; assign E3, E4, E5 → G1
+12. T3 SOURCE_INDEPENDENCE_CHECK(C2) → AgentChecker: GROUPED; assign E3, E4, E5 → G1
 13. Reviewer: AUDIT CONFIRMED on T3
  ── checkpoint S4 "grouped"
-14. T4 QUALIFIER_CHECK(C2) → AgentVerifier: ops CREATE_EVIDENCE E6; LINK L16;
+14. T4 QUALIFIER_CHECK(C2) → AgentChecker: ops CREATE_EVIDENCE E6; LINK L16;
         CREATE_CLAIM_EDGE C3 NARROWS C2; SUPERSEDE_LINK L3→L11 … L7→L15
     (supersessions are proposals on another contributor's links → pending)
 15. Reviewer: ACCEPT T4; AUDIT CONFIRMED on T4
@@ -184,7 +190,8 @@ Identical except:
 | Contributor | Bucket | alpha | beta | mean | n |
 |---|---|---|---|---|---|
 | AgentBad | EVIDENCE_VERIFICATION × general | 1 | 2 | 0.3333 | 1 |
-| AgentVerifier | CLAIM_EXTRACTION, OPPOSING_EVIDENCE_SEARCH, SOURCE_INDEPENDENCE_CHECK, QUALIFIER_CHECK × general | 2 | 1 | 0.6667 | 1 each |
+| AgentVerifier | CLAIM_EXTRACTION × general | 2 | 1 | 0.6667 | 1 |
+| AgentChecker | OPPOSING_EVIDENCE_SEARCH, SOURCE_INDEPENDENCE_CHECK, QUALIFIER_CHECK × general | 2 | 1 | 0.6667 | 1 each |
 | Curator | MANUAL × general | 10 | 1 | 0.9091 | 9 |
 
 ---

@@ -11,9 +11,12 @@ module Demo
       "public-demo" => [
         [ "AgentBad", "EVIDENCE_VERIFICATION", "general", "1.00", "2.00", "0.3333", "1.00" ],
         [ "AgentVerifier", "CLAIM_EXTRACTION", "general", "2.00", "1.00", "0.6667", "1.00" ],
-        [ "AgentVerifier", "OPPOSING_EVIDENCE_SEARCH", "general", "2.00", "1.00", "0.6667", "1.00" ],
-        [ "AgentVerifier", "SOURCE_INDEPENDENCE_CHECK", "general", "2.00", "1.00", "0.6667", "1.00" ],
-        [ "AgentVerifier", "QUALIFIER_CHECK", "general", "2.00", "1.00", "0.6667", "1.00" ],
+        # The checks on what AgentVerifier extracted are another volunteer's:
+        # the system accepts an extraction, so those claims are Alice's, and a
+        # principal never checks its own claim (04 §3.1, Article XI).
+        [ "AgentChecker", "OPPOSING_EVIDENCE_SEARCH", "general", "2.00", "1.00", "0.6667", "1.00" ],
+        [ "AgentChecker", "SOURCE_INDEPENDENCE_CHECK", "general", "2.00", "1.00", "0.6667", "1.00" ],
+        [ "AgentChecker", "QUALIFIER_CHECK", "general", "2.00", "1.00", "0.6667", "1.00" ],
         [ "Curator", "MANUAL", "general", "10.00", "1.00", "0.9091", "9.00" ]
       ],
       "watchers" => [

@@ -134,7 +134,16 @@ module GraphHelpers
   # Leases (if needed) and submits a TASK_RESULT for a task. Returns the Append result.
   def submit_result(pair, task, outcome:, ops:, delegation: nil, software: nil)
     contributor = Contributor.find_by!(key_id: pair.key_id)
-    task.assignments.find_by(contributor_id: contributor.id) || Tasks::Lease.next(contributor: contributor, delegation: delegation, types: [ task.task_type ], domains: [ task.domain ])
+    # Lease this task, not whichever of its type comes next. A claim can have
+    # more than one open task of a kind now that verification opens with the
+    # claim, and a fixture that made its own wants that one, whose packet lists
+    # the links as they stand. Leasing skips what this contributor already
+    # holds, so asking again walks through the others until it reaches this one.
+    5.times do
+      break if task.assignments.exists?(contributor_id: contributor.id)
+      break if Tasks::Lease.next(contributor: contributor, delegation: delegation, types: [ task.task_type ],
+                                 domains: [ task.domain ], target_id: task.target_id).nil?
+    end
     envelope = Contributions::Envelope.build_result(task: task, key_pair: pair, outcome: outcome, ops: ops, delegation_id: delegation&.id, software: software)
     Ledger::Append.call(envelope)
   end

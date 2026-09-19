@@ -13,11 +13,13 @@ module Demo
       # 2. the memo
       @x["SD"] = h.create_source(curator, title: "AI-drafted memo", type: "OTHER", content: MEMO)
       @x["SD.loc"] = h.create_location(curator, @x["SD"])
-      # 3. T0 extraction by AgentVerifier; the Curator accepts the proposals
+      # 3. T0 extraction by AgentVerifier, accepted by the system
       @x["T0"] = h.create_task("CLAIM_EXTRACTION", @x["SD"])
       t0 = h.run_task(:verifier, @x["T0"])
       @x["C2"], @x["C4"], @x["C5"], @x["C6"] = Claim.where(contribution_id: t0.id).order(:created_seq).to_a
-      h.accept(curator, t0)
+      # The system accepts an extraction now; this stands for a log recorded
+      # before that change.
+      h.accept(curator, t0) if t0.reload.current_status == Contribution::PENDING
       # 4. sources and the Curator's own claims
       @x["SR"] = h.create_source(curator, title: "Acme Remote Work Survey 2026", type: "DATASET",
                                  content: "Acme Remote Work Survey 2026. Respondents: 400 remote employees recruited from Acme customer accounts. Self-reported: 62% said their productivity was higher when working remotely.")
@@ -47,7 +49,7 @@ module Demo
       @x["L9"] = h.link(curator, @x["E1"], @x["C6"], strength: "WEAK", steps: 2, note: "a satisfaction survey is not a causal design")
       # 7. T1 opposing search on C4 → NONE_FOUND
       @x["T1"] = h.create_task("OPPOSING_EVIDENCE_SEARCH", @x["C4"])
-      t1 = h.run_task(:verifier, @x["T1"])
+      t1 = h.run_task(:checker, @x["T1"])
       # 8. audits
       h.audit(reviewer, t0, type: "SCHEMA_CHECK")
       h.audit(reviewer, t1)
@@ -64,12 +66,12 @@ module Demo
       checkpoint("S3", "audited")
       # 12–13. T3 independence check on C2
       @x["T3"] = h.create_task("SOURCE_INDEPENDENCE_CHECK", @x["C2"])
-      t3 = h.run_task(:verifier, @x["T3"])
+      t3 = h.run_task(:checker, @x["T3"])
       h.audit(reviewer, t3, type: "INDEPENDENCE_CHECK")
       checkpoint("S4", "grouped")
       # 14–15. T4 qualifier check on C2: proposal, accepted and audited by the Reviewer
       @x["T4"] = h.create_task("QUALIFIER_CHECK", @x["C2"])
-      t4 = h.run_task(:verifier, @x["T4"])
+      t4 = h.run_task(:checker, @x["T4"])
       raise "T4 should be a proposal" unless t4.reload.current_status == "PENDING"
 
       h.accept(reviewer, t4)

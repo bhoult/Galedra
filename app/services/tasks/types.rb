@@ -1,13 +1,21 @@
 # frozen_string_literal: true
 
 module Tasks
-  # The five P0 task types (spec 04 §2): allowed ops, outcomes, and whether a
-  # result that only adds objects is accepted automatically (02 §1.1a).
+  # The P0 task types (spec 04 §2): allowed ops, outcomes, and whether a result
+  # that only adds objects is accepted automatically (02 §1.1a).
+  #
+  # Extraction was the exception until 2026-09-19, waiting on the outline's
+  # principal. It was the odd one out: a qualifier check and an inference review
+  # both create claims and are accepted by the system, and extraction only ever
+  # adds, which is exactly what 02 §1.1a sanctions. Holding a volunteer's work
+  # for a person who may never return left outlines stalled at nothing, and a
+  # recorded claim asserts only that a source says something, which the evidence
+  # then bears on and an audit can overturn.
   module Types
     SPECS = {
       "CLAIM_EXTRACTION" => {
         target_type: "SOURCE", allowed_ops: %w[CREATE_CLAIM], outcomes: %w[CLAIMS_FOUND NO_CLAIMS], max_ops: 20,
-        lease_hours: 2, auto_accept: false, cost: "2",
+        lease_hours: 2, auto_accept: true, cost: "2",
         objective: "Extract the atomic claims the excerpt asserts. One proposition per claim, typed. Every claim must carry affirms_not_private_individual: true. Do not evaluate the claims."
       },
       "EVIDENCE_VERIFICATION" => {

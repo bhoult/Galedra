@@ -133,6 +133,17 @@ module Ledger
         end
       end
 
+      # Claims extracted by a task get the checks every counted claim gets, the
+      # moment the result is accepted. This lives here rather than beside the
+      # one service that used to accept them, so an acceptance by the system
+      # and an acceptance by a person have the same consequence.
+      def self.accept(target, seq)
+        super
+        return unless target.payload.to_h["ops"].to_a.any? { |op| op["op"] == "CREATE_CLAIM" }
+
+        Tasks::OpenVerification.for_extraction(target)
+      end
+
       def self.apply(c)
         refs = {}
         created = []

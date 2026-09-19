@@ -169,9 +169,9 @@ module Corrections
     reject("NOT_ACCEPTABLE", "$.contribution_id", "this contribution is #{contribution.current_status.downcase}, not pending") unless contribution.current_status == Contribution::PENDING
     reject("NOT_AUTHORIZED", "$.contribution_id", "only the principal of the claims this touches (or anyone named, when that principal is anonymous, or a moderator) may accept it here") unless may_accept?(principal, contribution)
 
+    # Extracted claims get their verification tasks when the ACCEPT is applied,
+    # in Ledger::Appliers::TaskResult, whoever signed it.
     result = yield("ACCEPT", { "contribution_id" => contribution.id })
-    # Stage 21: claims a volunteer extracted are now this principal's responsibility and get checked like any other.
-    Tasks::OpenVerification.for_extraction(contribution) if contribution.action_type == "TASK_RESULT" && contribution.payload.to_h["ops"].to_a.any? { |op| op["op"] == "CREATE_CLAIM" }
     carried = []
     if carry_links && contribution.action_type == "SUPERSEDE_CLAIM"
       old_claim = Claim.find(contribution.payload["claim_id"])

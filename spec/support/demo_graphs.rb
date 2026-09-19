@@ -17,6 +17,10 @@ module DemoGraphs
     reviewer, = register_key(display_name: "Reviewer", identity_tier: "ESTABLISHED")
     _alice, verifier, _verifier_c, verifier_delegation = principal_with_agent
     mallory, bad, _bad_c, bad_delegation = principal_with_agent
+    # A second honest volunteer: the system accepts an extraction, so its claims
+    # belong to whoever extracted them, and a principal never checks its own
+    # claim (04 §3.1, Article XI).
+    _bob, checker, _checker_c, checker_delegation = principal_with_agent
     h = {}
     cp = {}
 
@@ -24,7 +28,7 @@ module DemoGraphs
     h["SD"] = create_source(curator, title: "AI-drafted memo", type: "OTHER", content: memo)
     create_location(curator, h["SD"])
 
-    # T0 CLAIM_EXTRACTION by the verifier: one result proposing C2, C4, C5, C6; the Curator accepts it
+    # T0 CLAIM_EXTRACTION by the verifier: one result recording C2, C4, C5, C6, accepted by the system
     h["T0"] = create_task("CLAIM_EXTRACTION", h["SD"])
     extraction = submit_result(verifier, h["T0"], delegation: verifier_delegation, outcome: "CLAIMS_FOUND", ops: [
       { "op" => "CREATE_CLAIM", "canonical_text" => "62% of remote workers report higher productivity.", "claim_type" => "QUANTITATIVE", "affirms_not_private_individual" => true },
@@ -33,7 +37,9 @@ module DemoGraphs
       { "op" => "CREATE_CLAIM", "canonical_text" => "Remote work causes higher productivity.", "claim_type" => "CAUSAL", "affirms_not_private_individual" => true }
     ])
     h["C2"], h["C4"], h["C5"], h["C6"] = result_rows(extraction, Claim)
-    accept(curator, extraction.contribution)
+    # Extraction is accepted by the system now (2026-09-19); this stands for a
+    # fixture recorded before that, and for any task type still held.
+    accept(curator, extraction.contribution) if extraction.contribution.reload.current_status == Contribution::PENDING
 
     h["SR"] = create_source(curator, title: "Acme Remote Work Survey 2026", type: "DATASET",
                             content: "Acme Remote Work Survey 2026. Respondents: 400 remote employees recruited from Acme customer accounts. Self-reported: 62% said their productivity was higher when working remotely.")
@@ -67,7 +73,7 @@ module DemoGraphs
     h["L9"] = link_evidence(curator, h["E1"], h["C6"], strength: "WEAK", steps: 2, note: "a satisfaction survey is not a causal design")
     # Step 7: T1 OPPOSING_EVIDENCE_SEARCH on C4 (direction SUPPORT) finds nothing
     h["T1"] = create_task("OPPOSING_EVIDENCE_SEARCH", h["C4"])
-    t1 = submit_result(verifier, h["T1"], delegation: verifier_delegation, outcome: "NONE_FOUND", ops: [])
+    t1 = submit_result(checker, h["T1"], delegation: checker_delegation, outcome: "NONE_FOUND", ops: [])
     # Step 8: Reviewer audits T0, T1, and each Curator link contribution
     audit(reviewer, extraction.contribution, type: "SCHEMA_CHECK")
     audit(reviewer, t1.contribution, type: "SOURCE_CHECK")
@@ -88,14 +94,14 @@ module DemoGraphs
 
     # Steps 12–13: T3 SOURCE_INDEPENDENCE_CHECK on C2 groups the articles into G1
     h["T3"] = create_task("SOURCE_INDEPENDENCE_CHECK", h["C2"])
-    t3 = submit_result(verifier, h["T3"], delegation: verifier_delegation, outcome: "GROUPED",
+    t3 = submit_result(checker, h["T3"], delegation: checker_delegation, outcome: "GROUPED",
                        ops: %w[E3 E4 E5].map { |e| { "op" => "ASSIGN_INDEPENDENCE_GROUP", "evidence_item_id" => h[e].id, "independence_group_id" => h["G1"].id } })
     audit(reviewer, t3.contribution, type: "INDEPENDENCE_CHECK")
     cp["S4"] = Contribution.maximum(:seq)
 
     # Steps 14–15: T4 QUALIFIER_CHECK on C2: E6, L16, the NARROWS edge, and supersessions of L3–L7 (a proposal until the Reviewer accepts)
     h["T4"] = create_task("QUALIFIER_CHECK", h["C2"])
-    t4 = submit_result(verifier, h["T4"], delegation: verifier_delegation, outcome: "QUALIFIERS_FOUND", ops: [
+    t4 = submit_result(checker, h["T4"], delegation: checker_delegation, outcome: "QUALIFIERS_FOUND", ops: [
       { "op" => "CREATE_EVIDENCE", "ref" => "e6", "source_location_id" => loc["SR"].id, "observation_type" => "DATASET_RESULT",
         "statement" => "Respondents were recruited only from Acme customer accounts; answers are self-reported." },
       { "op" => "LINK_EVIDENCE", "evidence_item_id" => "e6", "claim_id" => h["C2"].id, "direction" => "QUALIFY", "relevance_strength" => "DIRECT", "interpretive_steps" => 0 },

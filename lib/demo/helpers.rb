@@ -110,9 +110,18 @@ module Demo
     end
 
     # Leases the given task with the named agent, answers from fixtures, submits. Returns the result contribution.
+    #
+    # A claim can have more than one open task of a kind, since verification now
+    # opens with the claim, and the demo wants the one it just made, whose
+    # packet lists the links as they stand. Leasing never hands back what this
+    # agent already holds, so asking again walks past the others.
     def run_task(name, task)
       client, verifier = @agents.fetch(name)
-      lease = client.lease_next(types: [ task.task_type ], domains: [ task.domain ])
+      lease = nil
+      5.times do
+        lease = client.lease_next(types: [ task.task_type ], domains: [ task.domain ])
+        break if lease.nil? || lease["assignment"]["task_id"] == task.id
+      end
       raise "agent #{name} could not lease #{task.task_type}" if lease.nil? || lease["assignment"]["task_id"] != task.id
 
       packet = client.verify_packet!(lease["packet"])

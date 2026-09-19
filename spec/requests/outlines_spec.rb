@@ -62,28 +62,29 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
       { handle: "c1", text: "OpenAI published its Preparedness Framework in December 2023.", type: "HISTORICAL" },
       { handle: "c2", text: "The framework defines four risk categories.", type: "TEXTUAL" } ] } }, volunteer)
     expect(err).to be(false), data.inspect
-    expect(data["accepted"]).to be(false)
+    # A volunteer's extraction is recorded at once (owner request, 2026-09-19).
+    # It only adds claims, which is what 02 §1.1a lets the system accept, and
+    # holding it for a person who may never come back left outlines stalled.
+    expect(data["accepted"]).to be(true)
     leaf_id = Task.find(task["task_id"]).section_id
-    pending_claims = Claim.where(canonical_text: [ "OpenAI published its Preparedness Framework in December 2023.", "The framework defines four risk categories." ])
-    expect(pending_claims.count).to eq(2)
-    expect(pending_claims.all? { |c| c.accepted_seq.nil? }).to be(true)
+    extracted = Claim.where(canonical_text: [ "OpenAI published its Preparedness Framework in December 2023.", "The framework defines four risk categories." ])
+    expect(extracted.count).to eq(2)
+    expect(extracted.all? { |c| c.accepted_seq.present? }).to be(true)
     expect(ClaimPlacement.where(section_id: leaf_id).count).to eq(2)
-    get "/sections/#{leaf_id}"
-    expect(response.body).to include("2 proposed claims awaiting acceptance")
-    expect(response.body).not_to include("Preparedness Framework")
 
+    # Their verification work opens with them, so the next volunteer has
+    # something to take rather than waiting on an approval.
+    expect(Task.where(task_type: %w[OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK], target_id: extracted.map(&:id)).count).to eq(4)
+    expect(Task.where(task_type: "EVIDENCE_VERIFICATION", target_id: extracted.map(&:id)).count).to eq(2)
+
+    # Nothing is left for the requester to approve.
     proposals, = call_tool("list_proposals", {}, requester)
     result_id = Contribution.where(action_type: "TASK_RESULT").last.id
-    expect(proposals.to_json).to include(result_id)
-    rejected, err = call_tool("accept_proposal", { contribution_id: result_id }, volunteer)
-    expect(err).to be(true)
-    accepted, err = call_tool("accept_proposal", { contribution_id: result_id }, requester)
-    expect(err).to be(false), accepted.inspect
-    expect(pending_claims.reload.all? { |c| c.reload.accepted_seq.present? }).to be(true)
-    expect(Task.where(task_type: %w[OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK], target_id: pending_claims.map(&:id)).count).to eq(4)
-    expect(Task.where(task_type: "EVIDENCE_VERIFICATION", target_id: pending_claims.map(&:id)).count).to eq(2)
+    expect(proposals.to_json).not_to include(result_id)
+
     get "/sections/#{leaf_id}"
     expect(response.body).to include("Preparedness Framework")
+    expect(response.body).not_to include("proposed claims awaiting acceptance")
 
     # The requester records another leaf directly: accepted at once, extraction task cancelled, share line is the outline's counts.
     other_leaf = (data = call_tool("get_outline", { section_id: root_id }, requester).first; nil)

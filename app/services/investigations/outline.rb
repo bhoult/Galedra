@@ -10,7 +10,7 @@ module Investigations
   module Outline
     ANCHOR_MAX = 300
     LOCATOR_TYPES = %w[TIME_RANGE CHAR_RANGE PAGE LINE_RANGE SECTION].freeze
-    NEXT = "Tell the person the outline is recorded with %<sections>d sections and %<tasks>d open extraction tasks at %<url>s, and ask whether they want you to start on the research yourself now. If yes, work leaf by leaf: read the leaf in the source, record its claims and evidence with record_investigation giving each claim its section id, say which leaf is done, and stop when the person says so or your daily cap nears. Anyone else can help by telling their assistant \"work the open tasks in Galedra on %<url>s\"."
+    NEXT = "Tell the person the outline is recorded with %<sections>d sections and %<tasks>d open extraction tasks at %<url>s, and ask whether they want you to start on the research yourself now. If yes, work leaf by leaf: read the leaf in the source, record its claims and evidence with record_investigation giving each claim its section id, say which leaf is done, and stop when the person says so or your daily cap nears. Anyone else can help by telling their assistant \"work the open tasks in Galedra on %<url>s\"; what they extract is recorded straight away and opens its own verification work."
 
     module_function
 
