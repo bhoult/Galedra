@@ -88,6 +88,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 26 | Capacity: seeding, profiling, and the pages that scan | planned | [implementation/planned/stage-26-capacity.md](implementation/planned/stage-26-capacity.md) |
 | 27 | Which model did this, and which work needs which model | planned | [implementation/planned/stage-27-model-provenance.md](implementation/planned/stage-27-model-provenance.md) |
 | 28 | Export and import a claim, a topic, or an outline | planned | [implementation/planned/stage-28-export-import.md](implementation/planned/stage-28-export-import.md) |
+| 29 | Noting a logical fallacy | planned | [implementation/planned/stage-29-fallacy-notes.md](implementation/planned/stage-29-fallacy-notes.md) |
 
 Work done between stages, each with its own dated entry:
 
