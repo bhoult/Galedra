@@ -253,8 +253,25 @@ body.document .statement > * { max-width: none; margin-inline: 0; }
 .answer.badged p.status-line { clear: both; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.78rem; letter-spacing: -0.01em; margin: 0.5rem 0 0.3rem; }
 @media (max-width: 30rem) { .answer.badged .badge-validity { width: 4.5rem; } .share .answer.badged p.claim-text { font-size: 1.25rem; } }
 
-/* /docs/api embeds Swagger UI, which brings a complete stylesheet of its own.
-   Keep this file's generic form rules out of it; widths, colours and the rest
-   are Swagger's business. */
-#swagger-ui label { display: inline-block; margin: 0; font-size: inherit; color: inherit; }
-#swagger-ui label > input, #swagger-ui label > select, #swagger-ui label > textarea { display: inline-block; margin-top: 0; font-size: inherit; }
+/* /docs/api embeds Swagger UI, which ships normalize.css rather than a reset,
+   so this file's bare element rules reach straight into it. Each rule below
+   sits at Swagger's own specificity (.swagger-ui + element) and this sheet is
+   loaded before Swagger's, so Swagger wins every tie: these only cancel what
+   Swagger leaves to the browser. Values are the browser defaults, so the
+   result is stock Swagger UI. */
+.swagger-ui table { display: table; background: none; border: 0; border-radius: 0; overflow: visible; margin: 0; font-size: inherit; }
+.swagger-ui th, .swagger-ui td, .swagger-ui td:first-child { padding: 0; border-bottom: 0; vertical-align: inherit; text-align: inherit; min-width: 0; }
+.swagger-ui th { font-weight: inherit; font-size: inherit; text-transform: none; letter-spacing: normal; white-space: normal; color: inherit; background: none; }
+.swagger-ui tr:last-child td, .swagger-ui tbody tr:hover td, .swagger-ui table tr:hover td { border-bottom: 0; background: none; }
+.swagger-ui button { display: inline-block; font-weight: inherit; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; }
+.swagger-ui code { background: none; padding: 0; border-radius: 0; overflow-wrap: normal; }
+.swagger-ui pre { background: none; border: 0; border-radius: 0; padding: 0; line-height: inherit; overflow-x: visible; white-space: pre; word-break: normal; }
+.swagger-ui h1, .swagger-ui h2, .swagger-ui h3, .swagger-ui h4 { font-family: inherit; font-weight: inherit; line-height: inherit; letter-spacing: normal; margin: 0; overflow-wrap: normal; }
+.swagger-ui h2 { border-bottom: 0; padding-bottom: 0; }
+.swagger-ui p { margin: 0; }
+.swagger-ui ul, .swagger-ui ol { padding-left: 0; }
+.swagger-ui li { margin: 0; }
+.swagger-ui hr { border: 0; margin: 0; }
+.swagger-ui label { display: inline-block; }
+.swagger-ui label > input, .swagger-ui label > select, .swagger-ui label > textarea { display: inline-block; margin-top: 0; color: inherit; }
+.swagger-ui input, .swagger-ui select, .swagger-ui textarea { width: auto; max-width: none; }
