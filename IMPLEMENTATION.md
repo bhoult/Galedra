@@ -85,6 +85,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 23 | Federation readiness | implemented | [implementation/implemented/stage-23-federation-ready.md](implementation/implemented/stage-23-federation-ready.md) |
 | 24 | Admins, help, and navigation | implemented | [implementation/implemented/stage-24-admin-nav.md](implementation/implemented/stage-24-admin-nav.md) |
 | 25 | Inferences: recorded reasoning steps | implemented | [implementation/implemented/stage-25-inferences.md](implementation/implemented/stage-25-inferences.md) |
+| 26 | Capacity: seeding, profiling, and the pages that scan | planned | [implementation/planned/stage-26-capacity.md](implementation/planned/stage-26-capacity.md) |
 
 Work done between stages, each with its own dated entry:
 
