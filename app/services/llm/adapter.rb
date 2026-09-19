@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 module Llm
-  # The optional LLM boundary (spec 07 Phase 8, 10 "LLM: optional"). The stub
-  # is the default and the only P0 implementation; a real adapter must produce
-  # the same shapes and pass the same validators.
+  # The deterministic boundary for functions the spec once called "LLM:
+  # optional" (07 Phase 8, 10). Galedra runs no model (CLAUDE.md Invariant 18):
+  # the stub is the only adapter, and no adapter that calls a model is added
+  # here. A function that needs a model becomes a task or a tool for a
+  # connected assistant, whose answer is a signed contribution open to audit.
   module Adapter
     ENV_KEY = "LEDGER_LLM_ADAPTER"
 

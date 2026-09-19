@@ -28,7 +28,7 @@ docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   01 … 11, 13                 scope, domain model, scoring, agent protocol, identity/security,
                               API/UI, roadmap/acceptance, public demo + goldens, deferred work,
                               agent handoff, Rails architecture, constitutional compliance map
-  CONSTITUTION-AMENDMENTS.md  append-only amendment log; P-1..P-4 are proposed, not adopted
+  CONSTITUTION-AMENDMENTS.md  append-only amendment log; P-1..P-5 are proposed, not adopted
   REVIEW-NOTES.md             what changed across revisions and why (numbered entries)
   scoring-config-v0.1.json, scoring-config-strict-v0.1.json   authoritative model configs
   reference/reference_scorer.py   Python cross-check reproducing every golden value
@@ -115,6 +115,12 @@ Condensed from `10-agent-handoff.md`. They must hold in any code written here.
     `MERGE_CLAIMS` merges.
 16. **Answers first, numbers on request.** The default claim view is the answer card.
 17. **Determinism is not objectivity.**
+18. **Galedra runs no model.** It is a deterministic framework through which people and the
+    AI assistants they bring collaborate on a durable record. The only `Llm::Adapter` is the
+    deterministic stub, and no adapter that calls a model is added to the server: a function
+    that needs a model (extraction, summary, deduplication, review) becomes a task or a tool
+    for a connected assistant, whose answer is a signed contribution open to audit. The
+    server's only outbound requests are Stage 17 source fetches.
 
 For any change touching scoring, identity, reputation, moderation, visibility, or
 history, answer the ten Constitutional Test questions (end of `12-constitution.md`) in
@@ -182,5 +188,5 @@ code, Apache-2.0 protocol and schemas, CC BY 4.0 docs, ODbL-1.0 database, CC0-1.
 `NOTICE`).
 
 Implement the conservative reading already in the spec and flag these when relevant:
-adopting amendments P-1 through P-4; who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
+adopting amendments P-1 through P-5 (P-5, the ledger runs no model, is implemented as Invariant 18 and awaits adoption); who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
 a legal model exists; whether `TEXTUAL` stays a distinct claim type.

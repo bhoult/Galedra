@@ -3308,6 +3308,13 @@ These came out of reconciling the constitution with the POC spec. The spec curre
 - **Risk of (b):** whoever sets `prior_class` holds real power over outcomes (Articles X, XII). Must be contestable and visible in the trace.
 - **Current spec:** option (a), recorded as a known gap; (b) listed as deferred in 09.
 
+### P-5 — The ledger runs no model
+
+- **Proposed text (addition to Article XIV):** *"The system itself shall perform no model inference. It is a deterministic framework, signed records, closed vocabularies, replayable projections, and versioned scoring, through which people and the AI agents they bring collaborate on a durable record of claims and the reasons for them. Every judgment that requires a model shall be made outside the system, by a person or by an agent acting for one, and shall enter it as an attributed contribution open to audit."*
+- **Why:** Article XIV makes humans and AI contributors, not oracles, and Article VII makes every probability model-conditional and reproducible. A model running inside the ledger would be an unattributed, unreproducible contributor whose outputs could not be replayed, audited, or challenged like any other. Keeping every model outside, behind a signed contribution, is what makes "reproducible from the log" true.
+- **Risk:** Some conveniences (drafting summaries, splitting text into claims, deduplicating requests) are worse without a model. Accepted: they run on deterministic stubs, or become tasks and tools for connected agents whose answers are signed.
+- **Compatibility:** Implemented since the owner's instruction of 2026-09-19: the only `Llm::Adapter` is the stub; summaries cite graph ids only (04 §10); extraction, review, and deduplication are tasks or tools for connected assistants (Stages 14, 18, 21, and the review queues); the server's only outbound requests are Stage 17 source fetches. Recorded as Invariant 18 in `CLAUDE.md`.
+
 ---
 
 # FILE: examples/watchers/README.md

@@ -133,6 +133,16 @@ The v4 review notes described seven fixes as "already made" but arrived without 
 
 66. Cross-reference and path fixes only; no semantic change. `04 §7` and `05 §2, §5` now use the versioned `/api/v1/` paths that `06` defines. `04 §4.2` derives `idempotency_key` from `signer_key_id`, matching the `02 §3.1` schema (it said `contributor_id`). `13` Article XV points at `02 §3.6a` (it said §3.7). `05 §16` no longer implies an `anomaly` factor already exists in the §9 formula. The reference scorer's docstring cites `08 §8` for the golden table.
 
+## J. Proposed amendment P-5 (2026-09-19)
+
+Added `P-5 — The ledger runs no model` to `CONSTITUTION-AMENDMENTS.md` on the owner's
+instruction. Verified against the code: the only `Llm::Adapter` is the deterministic stub,
+no gem or code calls a model API, and the server's only outbound requests are the Stage 17
+source fetches. The principle is recorded as Invariant 18 in `CLAUDE.md`, stated in the
+README and the FAQ, and the spec README's "LLM features are optional and stubbed by
+default" should be read in its light: optional means absent from the server, present in
+the connected assistants.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-1 through P-4?

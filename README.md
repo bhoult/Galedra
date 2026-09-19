@@ -253,6 +253,12 @@ Several "no"s mean the feature probably violates the spirit of the project.
 
 ## What this is not
 
+Galedra runs no model. It is a deterministic framework, signed records, closed
+vocabularies, replayable projections, and versioned scoring, through which people and
+the AI assistants they bring collaborate on a durable record of claims and the reasons
+for them. Every judgment that needs a model is made outside Galedra, by a person or by
+an assistant acting for one, and enters as a signed contribution open to audit.
+
 Not an arbiter of ultimate truth, one universal probability model, a moral
 authority, a replacement for courts or scientists or journalists or analysts, a
 blockchain, or a web index. It does not prevent coordinated attack, and it says
