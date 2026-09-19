@@ -48,4 +48,28 @@ module DisplayHelper
   rescue URI::InvalidURIError
     uri.to_s
   end
+
+  # Where in a source a passage sits, in words rather than as the JSON the
+  # locator is stored as. A time range on a video is the common case and
+  # "0:00–3:31" is what a reader expects; the stored form stays untouched,
+  # because it is what the hash and the retrieval check are over.
+  def locator_label(location)
+    locator = location.locator || {}
+    case location.locator_type
+    when "TIME_RANGE" then "#{clock(locator['start'])}–#{clock(locator['end'])}"
+    when "CHAR_RANGE" then "characters #{locator['start']}–#{locator['end']}"
+    when "PAGE_RANGE" then "pages #{locator['start']}–#{locator['end']}"
+    when "QUOTE", "TRANSCRIPTION" then location.locator_type.downcase
+    else location.locator_type.to_s.downcase.tr("_", " ")
+    end
+  end
+
+  # 00:03:31 reads as 3:31; an hour in, it keeps the hour.
+  def clock(value)
+    parts = value.to_s.split(":").map { |n| n.to_i }
+    return value.to_s unless parts.size == 3
+
+    h, m, sec = parts
+    h.positive? ? format("%d:%02d:%02d", h, m, sec) : format("%d:%02d", m, sec)
+  end
 end

@@ -148,11 +148,36 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Second part").and include("Third part").and include("First part")
     expect(response.body).to include(%(<summary class="current">))
-    expect(response.body).to include("The whole outline, with where you are marked.")
+    # The outline is a sidebar headed by its root, so there is always a way back
+    # to the top from anywhere in it.
+    expect(response.body).to include('<aside class="outline tree">').and include(">Root</a>")
 
     # The counts still describe the section being read, not the whole outline.
     expect(response.body).to include("Nothing under this section yet.")
     get "/sections/#{root.id}"
     expect(response.body).not_to include("Nothing under this section yet.")
+  end
+
+  it "shows the passage in full, names where it sits in words, and puts the outline beside it" do
+    pair, = register_key
+    source = create_source(pair, title: "An episode", type: "VIDEO",
+                           content: "AGI has arrived. Congratulations to OpenAI. Whether you call it AGI or not becomes irrelevant, he said.")
+    passage = source.content
+    location = create_location(pair, source, locator_type: "TIME_RANGE",
+                               locator: { "start" => "00:00:00", "end" => "01:03:31" }, excerpt: passage,
+                               excerpt_hash: Crypto::Hashing.bytes(passage))
+    result = append(action_type: "CREATE_SECTION", key_pair: pair,
+                    payload: { "source_id" => source.id, "sections" => [ { "heading" => "Cold open", "location_id" => location.id } ] })
+    section = Section.find(Ledger::Ids.derive(result.contribution.id, "section", 0))
+
+    get "/sections/#{section.id}"
+    expect(response).to have_http_status(:ok)
+    # The whole passage, not a preview of it.
+    expect(response.body).to include("Whether you call it AGI or not becomes irrelevant")
+    # The locator in words. The raw JSON read as timestamps left in the text.
+    expect(response.body).to include("0:00–1:03:31")
+    expect(response.body).not_to include(%(&quot;start&quot;:&quot;00:00:00&quot;))
+    # The outline sits beside the content, as it does on a claim page.
+    expect(response.body).to include('class="with-outline"').and include('<aside class="outline tree">')
   end
 end
