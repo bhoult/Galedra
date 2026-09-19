@@ -192,10 +192,13 @@ body.landing h2 { font-size: 1.7rem; border: 0; padding: 0; margin-bottom: 0.8re
 .usecase .tier { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0.8rem 0 0; }
 .rules .card h3 { margin-top: 0; }
 .rules ul { margin: 0.4rem 0 0; }
-.statement { text-align: center; font-family: var(--serif); font-size: 1.2rem; line-height: 1.5; }
-.statement > * { max-width: 44rem; margin-inline: auto; }
-.statement blockquote { border: 0; padding: 0; margin: 1rem 0; font-size: 1.35rem; font-style: italic; }
-.statement strong { font-weight: 600; }
+/* The foundational statement: one voice, one size, quoted lines set off only by italics. */
+.statement { text-align: center; font-family: var(--serif); font-size: 1.15rem; line-height: 1.6; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 2rem 0; }
+.statement > * { max-width: 40rem; margin: 0.55rem auto; }
+.statement .eyebrow { font-family: var(--sans); margin-bottom: 1rem; }
+.statement blockquote { border: 0; padding: 0; margin: 0.55rem auto; font-size: 1.15rem; font-style: italic; color: var(--accent-ink); }
+.statement blockquote p { margin: 0; }
+.statement strong { font-weight: 600; font-style: normal; letter-spacing: 0.01em; }
 .cta { text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 2.4rem 1.5rem; box-shadow: var(--shadow); }
 .cta h2 { margin-top: 0; }
 .cta p { max-width: 40rem; margin-inline: auto; }
