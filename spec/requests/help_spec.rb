@@ -4,10 +4,13 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
   it "shows Check, Browse, and Help menus to a visitor, with no Admin menu" do
     get "/"
     body = response.body
-    expect(body).to include("<summary>Check</summary>")
-    expect(body).to include("<summary>Browse</summary>")
-    expect(body).to include("<summary>Help</summary>")
-    expect(body).not_to include("<summary>Admin</summary>")
+    # Each menu carries its own description; the tooltip controller shows it
+    # after a second, and the title attribute covers a visitor without
+    # JavaScript.
+    %w[Check Browse Help].each { |menu| expect(body).to match(/<summary[^>]*>#{menu}<\/summary>/) }
+    expect(body).not_to match(%r{<summary[^>]*>Admin</summary>})
+    expect(body).to include('data-controller="menu tooltip"')
+    expect(body).to include('data-tip="Read what the record already holds."')
     expect(body).to include(">FAQ<").and include(">Docs<").and include(">Constitution<").and include(">About<")
     help = body[body.index("<summary>Help</summary>")..]
     expect(help).to include(">Connect an assistant<")

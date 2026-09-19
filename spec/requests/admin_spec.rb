@@ -27,7 +27,7 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
   it "shows the Admin menu only to admins and refuses the page to others" do
     admin = sign_up("first@example.com")
     get "/"
-    expect(response.body).to include("<summary>Admin</summary>")
+    expect(response.body).to match(%r{<summary[^>]*>Admin</summary>})
     expect(response.body).to include(">Help<")
     get "/admin/users"
     expect(response).to have_http_status(:ok)
@@ -36,7 +36,7 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     delete "/session"
     other = sign_up("second@example.com")
     get "/"
-    expect(response.body).not_to include("<summary>Admin</summary>")
+    expect(response.body).not_to match(%r{<summary[^>]*>Admin</summary>})
     get "/admin/users"
     expect(response).to redirect_to(root_path)
     post "/admin/users/#{admin.id}/revoke_admin"

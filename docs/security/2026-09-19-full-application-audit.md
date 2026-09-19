@@ -14,7 +14,7 @@ Not covered, and worth a later pass: the deployed configuration (TLS, firewall, 
 grants as actually applied rather than as written), the assistant skill's prompt-injection
 surface, denial of service by expensive queries, and anything about the host.
 
-## Finding: server-side request forgery by DNS rebinding
+## Finding: server-side request forgery by DNS rebinding · **FIXED**
 
 **Where:** `app/services/sources/retrieve.rb`, in `Fetcher#get`.
 
@@ -58,7 +58,7 @@ A resolver answers `93.184.216.34` the first time and `169.254.169.254` after, a
 test asserts the socket goes to the first while the hostname survives for verification.
 It was run against the unfixed code and fails there, reporting `connects_to: nil`.
 
-## Warnings dismissed, with reasons
+## Warnings dismissed · **NOT EXPLOITABLE**
 
 Brakeman raised five. None is exploitable. Each was read at the source rather than taken
 on its confidence rating.
@@ -105,7 +105,7 @@ Established by reading, so the next audit need not re-derive it.
   OAuth redirects pass `allow_other_host: true`, which is required there, and their targets
   are checked against the client's registered URIs first.
 
-## Smaller notes, since fixed
+## Smaller notes · **FIXED**
 
 All three were addressed the same day. None was exploitable; each was a habit worth not
 keeping.

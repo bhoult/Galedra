@@ -1,59 +1,59 @@
 <%# Primary navigation (Stage 24): drop-down menus built on details/summary so they work without JavaScript; menu_controller closes the others. Admin appears only to admins. %>
-<nav aria-label="Primary" data-controller="menu">
+<nav aria-label="Primary" data-controller="menu tooltip">
   <details class="menu" data-menu-target="item">
-    <summary>Check</summary>
+    <summary title="Check something before you share it." data-tip="Check something before you share it.">Check</summary>
     <div class="menu-panel">
-      <%= link_to "Record a check", new_investigation_path %>
-      <% if authenticated? %><%= link_to "Analyze text", new_analyze_path %><% end %>
+      <%= nav_link "Record a check", new_investigation_path, "Paste something you saw and have it broken into claims, read against sources, and recorded." %>
+      <% if authenticated? %><%= nav_link "Analyze text", new_analyze_path, "Paste a paragraph and get one answer card for each claim it makes." %><% end %>
     </div>
   </details>
   <details class="menu" data-menu-target="item">
-    <summary>Browse</summary>
+    <summary title="Read what the record already holds." data-tip="Read what the record already holds.">Browse</summary>
     <div class="menu-panel">
-      <%= link_to "Claims", claims_path %>
-      <%= link_to "Topics", topics_path %>
-      <%= link_to "Outlines", sections_path %>
-      <%= link_to "Contributors", contributors_path %>
-      <%= link_to "Tasks", tasks_path %>
-      <%= link_to "Weaknesses", weaknesses_path %>
-      <%= link_to "Audits", contributions_path(action_type: "AUDIT") %>
-      <%= link_to "Log", contributions_path %>
-      <%= link_to "Moderation log", moderation_path %>
+      <%= nav_link "Claims", claims_path, "Every accepted claim, newest first, filterable by type and by what its evidence says." %>
+      <%= nav_link "Topics", topics_path, "The subject vocabulary, with how many claims sit under each." %>
+      <%= nav_link "Outlines", sections_path, "Long sources broken into sections, showing how much of each has been checked." %>
+      <%= nav_link "Contributors", contributors_path, "Who has done the work, and how much of each kind. Volume, never reliability." %>
+      <%= nav_link "Tasks", tasks_path, "Open work waiting for a person or an assistant to take it." %>
+      <%= nav_link "Weaknesses", weaknesses_path, "Where this record is most likely wrong, by its own reckoning." %>
+      <%= nav_link "Audits", contributions_path(action_type: "AUDIT"), "Every independent check of a prior contribution, and what it found." %>
+      <%= nav_link "Log", contributions_path, "The signed, append-only record itself, entry by entry." %>
+      <%= nav_link "Moderation log", moderation_path, "Every quarantine, release, takedown and revocation, in the open." %>
     </div>
   </details>
   <% if admin? %>
     <details class="menu" data-menu-target="item">
-      <summary>Admin</summary>
+      <summary title="Site administration. Nothing here touches the log." data-tip="Site administration. Nothing here touches the log.">Admin</summary>
       <div class="menu-panel">
-        <%= link_to "Users", admin_users_path %>
-        <%= link_to "Affiliation requests", admin_affiliation_requests_path %>
-        <%= link_to "Content review", admin_content_reviews_path %>
-        <%= link_to "Feature requests", feature_requests_path %>
-        <%= link_to "Bug reports", bug_reports_path %>
+        <%= nav_link "Users", admin_users_path, "Accounts, and who holds admin or moderator." %>
+        <%= nav_link "Affiliation requests", admin_affiliation_requests_path, "Affiliations people asked for, waiting to be merged or added." %>
+        <%= nav_link "Content review", admin_content_reviews_path, "Submitted text flagged for review, and what the agents decided." %>
+        <%= nav_link "Feature requests", feature_requests_path, "What people and assistants have asked for." %>
+        <%= nav_link "Bug reports", bug_reports_path, "What people and assistants have reported as broken." %>
       </div>
     </details>
   <% elsif moderator? %>
     <details class="menu" data-menu-target="item">
-      <summary>Moderate</summary>
+      <summary title="The moderator queues." data-tip="The moderator queues.">Moderate</summary>
       <div class="menu-panel">
-        <%= link_to "Feature requests", feature_requests_path %>
-        <%= link_to "Bug reports", bug_reports_path %>
+        <%= nav_link "Feature requests", feature_requests_path, "What people and assistants have asked for." %>
+        <%= nav_link "Bug reports", bug_reports_path, "What people and assistants have reported as broken." %>
       </div>
     </details>
   <% end %>
   <details class="menu" data-menu-target="item">
-    <summary>Help</summary>
+    <summary title="Documentation, licences, and how to get in touch." data-tip="Documentation, licences, and how to get in touch.">Help</summary>
     <div class="menu-panel">
-      <%= link_to "FAQ", faq_path %>
-      <%= link_to "Glossary", glossary_path %>
-      <%= link_to "Connect an assistant", new_assistant_path %>
-      <%= link_to "Docs", docs_path %>
-      <%= link_to "API reference", api_docs_path %>
-      <%= link_to "Constitution", constitution_path %>
-      <%= link_to "Licences", licenses_path %>
-      <%= link_to "About", about_path %>
-      <%= link_to "Contact", contact_path %>
-      <%= link_to "Report a bug", new_bug_report_path %>
+      <%= nav_link "FAQ", faq_path, "What a number means, and what Galedra will not do." %>
+      <%= nav_link "Glossary", glossary_path, "The kinds of work, and the words for what each produces." %>
+      <%= nav_link "Connect an assistant", new_assistant_path, "Let ChatGPT, Claude or any MCP client check and record on your behalf." %>
+      <%= nav_link "Docs", docs_path, "This node's documentation, and pointers to the specification." %>
+      <%= nav_link "API reference", api_docs_path, "Every endpoint under /api/v1, rendered from the OpenAPI description." %>
+      <%= nav_link "Constitution", constitution_path, "The twenty-five articles this project is bound by." %>
+      <%= nav_link "Licences", licenses_path, "What applies to the code, the protocol, the database and the records." %>
+      <%= nav_link "About", about_path, "Which build is running, which node this is, and where the log stands." %>
+      <%= nav_link "Contact", contact_path, "How to reach the maintainer, and the routes that beat writing." %>
+      <%= nav_link "Report a bug", new_bug_report_path, "Tell us what broke. People and assistants file them the same way." %>
     </div>
   </details>
 </nav>

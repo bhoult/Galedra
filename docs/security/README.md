@@ -21,6 +21,12 @@ evidence; "the input is a Date from a closed `case` and is quoted besides" is.
 - **What held up**, so the next audit can start from what has already been established
   rather than re-deriving it.
 
+**Every finding carries a status, updated in place when it changes**: `FIXED` with what
+fixed it and the test that would catch a regression, `OPEN`, `WON'T FIX` with the argument,
+or `NOT EXPLOITABLE` for a dismissed warning. An audit that still reads as open after the
+work is done sends the next reader chasing a closed door, and worse, makes the genuinely
+open ones easy to miss.
+
 ## Standing rules this project is audited against
 
 These come from the constitution and `CLAUDE.md`, and an audit checks them as it checks

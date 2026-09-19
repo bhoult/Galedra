@@ -24,6 +24,8 @@ implementation/planned/       one file per stage not yet built (its plan)
 implementation/implemented/   one file per stage built (its plan, then its Decision Log entry)
 docs/profiler/                one file per profiling run: conditions, numbers, findings
 docs/security/                one file per security audit: findings, dismissals, what held up
+                              (every finding in both carries a status; update it in place
+                              when you fix one, or the log misleads the next reader)
 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   12-constitution.md          25 Articles + Constitutional Test. Outranks every other file.
   README.md                   purpose, principles, conventions, P0 Definition of Done

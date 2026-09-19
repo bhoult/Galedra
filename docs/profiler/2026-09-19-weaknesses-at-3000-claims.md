@@ -68,7 +68,9 @@ Allocation is a different story. One `Weaknesses::Report` call allocates **276 M
 
 ## Findings
 
-**1. The score cache is an N+1, and it is 70% of the report.** The wall profile is
+**1. The score cache is an N+1, and it is 70% of the report.** · **FIXED** (`Scoring::Score.call_many`)
+
+The wall profile is
 unambiguous. `PG::Connection#exec_prepared` is 48.5% of samples on its own, and chasing the
 dump to its callers lands on one line:
 
@@ -85,27 +87,37 @@ that is about 6,000 round trips, and nearly all of them miss, because the cache 
 the exact seq and the head seq moves with every append. The report pays a query to learn
 nothing, then computes anyway.
 
-**2. The box is not the ceiling, and that was worth knowing.** The question that started
+**2. The box is not the ceiling, and that was worth knowing.** · **NO ACTION NEEDED**, recorded in `docs/HOSTING.md` §3
+
+The question that started
 this stage was whether the node fits the recommended droplet. On steady-state memory the
 answer is comfortably yes: 162 MB a worker, flat. Nothing accumulates across 300 requests.
 What costs is garbage collection from the churn in finding 1, not residency.
 
-**3. BigDecimal and canonical JSON are the churn, and they are not a bug.** Half the
+**3. BigDecimal and canonical JSON are the churn, and they are not a bug.** · **WON'T FIX**, by the reasoning below
+
+Half the
 allocation is decimals and the canonical-JSON trace that every score builds and the report
 throws away. That is Invariant 4 being paid for: the trace is what makes a score
 reproducible by hand. It is worth reducing by scoring fewer claims, not by making scoring
 cheaper and less honest.
 
-**4. Ruled out: a leak.** 300 consecutive claim-page requests grow the process by nothing
+**4. Ruled out: a leak.** · **NO ACTION NEEDED**
+
+300 consecutive claim-page requests grow the process by nothing
 once the heap settles. This was the first thing checked and it is worth recording as a
 negative, so nobody spends a day on it.
 
-**5. Not the headline, but real:** `GET /api/v1/claims?limit=50` costs 296 ms, about 6 ms a
+**5. Not the headline, but real:** · **OPEN**, see the follow-up at the end of this entry
+
+`GET /api/v1/claims?limit=50` costs 296 ms, about 6 ms a
 claim in `Graph::Presenter.claim`, which since Stages 20–25 calls `Inferences::View.for_claim`,
 `Sections::Tree.placements_for` and `ClaimReference.totals` once per claim. It is bounded by
 `limit`, so it degrades with page size rather than corpus size.
 
-**6. A method note, learned the hard way.** The first profile of this page was nearly
+**6. A method note, learned the hard way.** · **FIXED** in the harness, and corrected further below
+
+The first profile of this page was nearly
 worthless twice over. Development's reloader, verbose query logs and log writes were a
 fifth of the samples, and the warm-up run populated the page's own cache so the profile
 measured cache hits. Both are now handled by `Bench::Isolation`, but the lesson generalises:
@@ -128,7 +140,7 @@ a profile of a cached page that does not defeat the cache is measuring the cache
 
 ---
 
-## Correction, same day, after acting on finding 1
+## Correction, same day, after acting on finding 1 · **APPLIED**
 
 Finding 1 says the cache lookups "nearly all miss, because the head seq moves with every
 append". That is wrong about the run that produced the 70% figure. The profile ran the
@@ -145,7 +157,7 @@ The method note in finding 6 was right about the page cache and wrong to stop th
 score cache is a table, not `Rails.cache`, so running an operation more than once warms it
 even with the page cache disabled. A cold measurement has to clear both.
 
-## Follow-up: what the cold path actually costs
+## Follow-up: what the cold path actually costs · **PARTLY FIXED**
 
 Statements rather than samples, on the development corpus of 27 claims. Small, but the
 ratio per claim is what matters and it does not improve with size.
@@ -186,7 +198,7 @@ for quarantines, one for independence assignments. That is a refactor of the pat
 project's correctness rests on, guarded only by the golden tests. It is recorded here as
 the next piece of work rather than attempted at the end of a session.
 
-## Finding 5, quantified and still untouched
+## Finding 5, quantified · **OPEN**
 
 `Graph::Presenter.claim` issues **37 queries per claim**. Quarantine, reference totals,
 evaluability, section placements, inferences, topics, supersession, merges and two evidence

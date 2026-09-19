@@ -20,6 +20,13 @@ numbers, and an entry that cannot say what it was measured against is not worth 
   person from chasing it.
 - **What changed as a result**, or what was decided not to change, and why.
 
+**Every finding carries a status, and the status is updated in place when it changes.**
+One of `FIXED`, `PARTLY FIXED`, `OPEN`, `WON'T FIX` or `NO ACTION NEEDED`, on the finding
+itself, with what fixed it. A log whose entries still read as open after the work is done
+is worse than no log: it sends the next reader chasing something that is already gone, and
+it hides the ones that are genuinely still there. Fixing a finding and leaving the entry
+alone is half the job.
+
 ## How a run is taken
 
 ```bash
