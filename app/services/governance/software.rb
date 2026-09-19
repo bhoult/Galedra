@@ -14,7 +14,7 @@ module Governance
       email: "bhoult@gmail.com",
       linkedin: "https://www.linkedin.com/in/brandon-hoult-02b188b/",
       github: "https://github.com/bhoult",
-      paypal: "https://paypal.me/bhoult",
+      paypal_email: "bhoult@gmail.com",
       cashapp: "https://cash.app/$bhoult",
       cashtag: "$bhoult"
     }.freeze

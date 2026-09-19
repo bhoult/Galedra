@@ -55,7 +55,11 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Brandon Hoult").and include("bhoult@gmail.com")
     expect(response.body).to include("linkedin.com/in/brandon-hoult").and include("github.com/bhoult")
-    expect(response.body).to include("paypal.me/bhoult").and include("$bhoult")
+    expect(response.body).to include("cash.app/$bhoult")
+    # paypal.me/bhoult is a different person: the page names an address to send
+    # to and must never link a PayPal handle.
+    expect(response.body).to include("send to <code>bhoult@gmail.com</code>")
+    expect(response.body).not_to match(/href="[^"]*paypal/)
     expect(response.body).to include("work five open tasks")
     expect(response.body).to include("A donation buys no claim")
     expect(response.body).to include("Report a bug").and include("moderation log").and include("Article XXV")
