@@ -10,17 +10,18 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stage 17 (source retrieval by a trusted job) is planned, not built.** `IMPLEMENTATION.md` is the
-staged plan and decision log. P1 is planned there as Stages 12–14 (assistants as
-contributors: tokens and custodied writes, the investigation bundle, MCP and the skill),
-built one stage per tag only when the owner asks. Read the relevant spec sections and the
-Decision Log before changing anything.
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stage 17 (source retrieval by a trusted job) and Stages 20–22 (outlines: large sources split into sections and shared-out work) are planned, not built.** `IMPLEMENTATION.md` indexes the
+stages; each stage's plan and Decision Log entry is one file under `implementation/`
+(`planned/` or `implemented/`), built one stage per tag only when the owner asks. Read the
+relevant spec sections and the stage file before changing anything.
 
 ## Layout
 
 ```
 README.md                     public summary derived from the spec; keep it consistent
-IMPLEMENTATION.md             staged plan, tag scheme, decision log
+IMPLEMENTATION.md             index: how a stage is executed, the stage table, decision-log rules
+implementation/planned/       one file per stage not yet built (its plan)
+implementation/implemented/   one file per stage built (its plan, then its Decision Log entry)
 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   12-constitution.md          25 Articles + Constitutional Test. Outranks every other file.
   README.md                   purpose, principles, conventions, P0 Definition of Done
@@ -43,8 +44,9 @@ docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
 3. The constitution outranks everything. Among spec files the more specific wins: `03`
    scoring, `02` schema, `04` agent protocol, `05` identity and audits, `06` API and
    display, `07` build order and acceptance, `11` stack. `09` is deferred: do not build it.
-4. If following the spec would violate an Article, stop, record the conflict in
-   `IMPLEMENTATION.md`, and take the reading that honors the Article. Never silently.
+4. If following the spec would violate an Article, stop, record the conflict in the
+   stage's file under `implementation/`, and take the reading that honors the Article.
+   Never silently.
 
 ## Rules for editing the spec
 
@@ -116,13 +118,14 @@ Condensed from `10-agent-handoff.md`. They must hold in any code written here.
 
 For any change touching scoring, identity, reputation, moderation, visibility, or
 history, answer the ten Constitutional Test questions (end of `12-constitution.md`) in
-`IMPLEMENTATION.md`. A "no" to 1, 5, 6, 7, 8, or 9, or a "yes" to 3 or 4, is a blocker
+the stage's file under `implementation/`. A "no" to 1, 5, 6, 7, 8, or 9, or a "yes" to 3 or 4, is a blocker
 until justified in writing.
 
 ## Implementation rules
 
-Stages, deliverables, and acceptance tests are in `IMPLEMENTATION.md`. Rules that apply
-to every stage:
+Stages, deliverables, and acceptance tests are one file per stage under `implementation/`,
+indexed in `IMPLEMENTATION.md`; a stage's Decision Log entry lives in its own file. Rules
+that apply to every stage:
 
 - **Stack is decided; do not re-evaluate.** Latest stable Ruby and Rails (Ruby 4.0.7 and
   Rails 8.1.3.1 when planned on 2026-09-17; re-check at Stage 0), PostgreSQL 16+, Solid
@@ -138,7 +141,7 @@ to every stage:
 - Test priority: security, log, and scoring tests before UI tests. Golden tests cover every
   row of `08 §8` and Watchers `§7` under both models.
 - When uncertain, choose the simplest reversible option that preserves the invariants,
-  record it in `IMPLEMENTATION.md`, and continue. Stop only when a requirement is
+  record it in the stage's file under `implementation/`, and continue. Stop only when a requirement is
   impossible or two requirements cannot both hold.
 - Success standard: `docker compose up -d && bin/demo` prints PASS for every golden row and
   the replay check, and exits 0.
