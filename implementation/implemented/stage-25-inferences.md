@@ -1,6 +1,6 @@
 # Stage 25 — Inferences: recorded reasoning steps
 
-**Status:** planned, not built · tag will be `stage-25-inferences`
+**Status:** implemented · tag `stage-25-inferences` · decisions recorded 2026-09-19
 
 ## Plan
 
@@ -95,3 +95,30 @@ strength field and only the type); whether `ENTAILS` deductive inferences should
 later model version, let a conclusion inherit the minimum of its premises' probabilities;
 whether inference authorship should be visible on the claim headline (planned: no, only
 on the inference line, like contributor reputation).
+
+## Decision Log (2026-09-19)
+
+- Built as planned. `CREATE_INFERENCE` is an epistemic action type with its applier;
+  `inferences` and `inference_premises` are in `PROJECTION_MODELS`; the applier also
+  records one `DERIVED_FROM` edge per premise in the same contribution (ids derive from
+  the contribution and the premise index), so `downstream_count`, priority, and the
+  edge display work unchanged. Cycles are recorded; no scorer follows edges.
+- No score input: the spec asserts byte-identical traces before and after an inference,
+  and that the trace never mentions it. `Inference::NOTE` travels with every rendering.
+- `INFERENCE_REVIEW` targets an inference (`tasks.target_type` gains `INFERENCE`).
+  Deviation from the plan: the released scoring configs are not edited to add its
+  `task_type_cost` (a config change would be a new model version, Invariant 4);
+  `Tasks::Priority` falls back to the type's own cost for a type the config predates.
+  Results are auto-accepted like other object-adding results; a `MISSING_PREMISE` answer
+  adds a claim and a corrected inference, and the original stays.
+- `Inferences::View` ranks premise states (supported 0 … contradicted 4) against the
+  polarity to mark the weakest premise; `strained` (conclusion supported, a premise
+  reading the opposite of its polarity) feeds the weaknesses page above the claim lists.
+- Connector: `record_inference`, `inferences` in `record_investigation` bundles and in
+  task answers, `inferences` on `get_claim` and the claim JSON, `GET /api/v1/inferences/:id`.
+  `explain` does not yet name the weakest premise; the claim page and `get_claim` do.
+- Owner decisions still open: the premise cap (12); whether `strength` should exist;
+  whether a later model version lets `ENTAILS` steps propagate; author visibility.
+- Constitutional Test: interpretation added as a distinct object (Article III). 1 yes;
+  2 n/a; 3 no; 4 no; 5 yes; 6 yes; 7 yes; 8 yes; 9 yes (a different principal reviews);
+  10 yes. No blocker.

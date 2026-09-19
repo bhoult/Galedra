@@ -8,7 +8,7 @@ module Tasks
   module Answer
     HANDLE = /\A[A-Za-z][A-Za-z0-9_-]{0,63}\z/
     RESERVED = %w[target packet].freeze
-    SECTIONS = %w[sources excerpts claims edges evidence links groups supersede].freeze
+    SECTIONS = %w[sources excerpts claims edges evidence links groups supersede inferences].freeze
 
     ANSWER_WITH = {
       "EVIDENCE_VERIFICATION" =>
@@ -19,6 +19,8 @@ module Tasks
         "Decide which of context.counted_evidence share one upstream origin (same press release, dataset, primary text, author). Answer GROUPED with groups: [{handle, type, description, members: [evidence_item_id, ...]}] using the ids from the packet; INDEPENDENT with an empty answer when none share an origin; CANNOT_DETERMINE when you cannot tell.",
       "QUALIFIER_CHECK" =>
         "Look in context.counted_links for omitted time ranges, populations, denominators, baselines, sampling limits, jurisdictions, or translations. Answer QUALIFIERS_FOUND with evidence and links of direction QUALIFY or CONTRADICT on claim: \"target\", or a narrower claim in claims: [{handle, text, type}] plus edges: [{from: handle, to: \"target\", type: \"NARROWS\"}], or supersede: [{link_id, direction, strength, steps, reason}] to revise a counted link. NONE_MATERIAL with an empty answer when nothing material is missing; CANNOT_DETERMINE otherwise.",
+      "INFERENCE_REVIEW" =>
+        "Read context.premises and context.untrusted_rule. Answer VALID with an empty answer when the conclusion follows from the premises as stated; MISSING_PREMISE with claims: [{handle, text, type}] naming what the step silently assumes and inferences: [{handle, conclusion: \"target\", premises: [{claim, polarity}, ...], type, rule}] giving the corrected step (premises may be claim ids, handles, or \"target\"'s own premise claim ids); NON_SEQUITUR with a reason in the rule of a corrected inference or with an empty answer; CANNOT_DETERMINE otherwise. Do not judge whether the premises are true.",
       "CLAIM_EXTRACTION" =>
         "Split context.excerpts into atomic claims: claims: [{handle, text, type}], one assertion each, typed. Outcome CLAIMS_FOUND or NO_CLAIMS. Do not evaluate them."
     }.freeze
@@ -30,7 +32,11 @@ module Tasks
     def present(task, assignment, base_url:)
       packet = task.packet
       spec = Types.spec(task.task_type)
-      target_url = task.target_type == "CLAIM" ? "#{base_url}/claims/#{task.target_id}" : "#{base_url}/sources/#{task.target_id}"
+      target_url = case task.target_type
+      when "CLAIM" then "#{base_url}/claims/#{task.target_id}"
+      when "INFERENCE" then "#{base_url}/claims/#{Inference.find(task.target_id).conclusion_claim_id}#inferences"
+      else "#{base_url}/sources/#{task.target_id}"
+      end
       context = packet["context"]
       if task.task_type == "EVIDENCE_VERIFICATION" && (location_id = context["source_location_id"])
         finding = SourceRetrieval.latest_for(context["source_id"])&.finding_for(location_id)
@@ -91,6 +97,12 @@ module Tasks
         handle = handle!(g)
         ops << { "op" => "CREATE_INDEPENDENCE_GROUP", "ref" => handle, "group_type" => g.fetch("type", "OTHER"), "description" => g["description"] }.compact
         Array(g["members"]).each { |m| ops << { "op" => "ASSIGN_INDEPENDENCE_GROUP", "evidence_item_id" => m, "independence_group_id" => handle } }
+      end
+      section(answer, "inferences").each do |inf|
+        conclusion = inf["conclusion"] == "target" && task.target_type == "INFERENCE" ? Inference.find(task.target_id).conclusion_claim_id : claim_ref.call(inf["conclusion"])
+        ops << { "op" => "CREATE_INFERENCE", "ref" => handle!(inf), "conclusion_claim_id" => conclusion,
+                 "premises" => Array(inf["premises"]).map { |p| { "claim_id" => claim_ref.call(p["claim"]), "polarity" => p.fetch("polarity", "HOLDS") } },
+                 "inference_type" => inf.fetch("type", "DEDUCTIVE"), "rule" => inf["rule"], "strength" => inf.fetch("strength", "SUPPORTS"), "affirms_not_private_individual" => true }.compact
       end
       section(answer, "supersede").each do |s|
         ops << { "op" => "SUPERSEDE_LINK", "link_id" => s["link_id"], "direction" => s["direction"], "relevance_strength" => s.fetch("strength", "DIRECT"),

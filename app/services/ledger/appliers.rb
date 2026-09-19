@@ -36,7 +36,8 @@ module Ledger
       "TASK_RESULT" => "Ledger::Appliers::TaskResult",
       "RETRIEVE_SOURCE" => "Ledger::Appliers::RetrieveSource",
       "CREATE_SECTION" => "Ledger::Appliers::CreateSection",
-      "PLACE_CLAIM" => "Ledger::Appliers::PlaceClaim"
+      "PLACE_CLAIM" => "Ledger::Appliers::PlaceClaim",
+      "CREATE_INFERENCE" => "Ledger::Appliers::CreateInference"
     }.freeze
 
     def self.for(action_type)

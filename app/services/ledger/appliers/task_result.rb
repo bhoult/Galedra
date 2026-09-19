@@ -79,6 +79,12 @@ module Ledger
             counted = task.packet.dig("context", "counted_evidence").to_a.map { |e| e["evidence_item_id"] }
             reject("TARGET_MISMATCH", "#{at}.evidence_item_id", "only the packet's counted evidence can be grouped") unless counted.include?(op["evidence_item_id"])
           end
+        when "INFERENCE_REVIEW"
+          inference = Inference.find_by(id: task.target_id)
+          involved = inference ? [ inference.conclusion_claim_id ] + inference.premises.pluck(:claim_id) : []
+          if op["op"] == "LINK_EVIDENCE" && !involved.include?(op["claim_id"]) && !refs.include?(op["claim_id"])
+            reject("TARGET_MISMATCH", "#{at}.claim_id", "must link the inference's conclusion, one of its premises, or a claim created in this result")
+          end
         when "QUALIFIER_CHECK"
           if op["op"] == "LINK_EVIDENCE"
             reject("OP_NOT_ALLOWED", "#{at}.direction", "qualifier links are QUALIFY or CONTRADICT") unless %w[QUALIFY CONTRADICT].include?(op["direction"])
@@ -117,13 +123,23 @@ module Ledger
         end
       end
 
+      # Refs may sit inside nested lists too (an inference's premises, Stage 25).
+      def self.resolve_refs(value, refs)
+        case value
+        when String then refs.fetch(value, value)
+        when Array then value.map { |v| resolve_refs(v, refs) }
+        when Hash then value.transform_values { |v| resolve_refs(v, refs) }
+        else value
+        end
+      end
+
       def self.apply(c)
         refs = {}
         created = []
         contributor = c.contributor
         delegation = AgentDelegation.find_by(id: c.envelope&.dig("delegation_id"))
         c.payload["ops"].to_a.each_with_index do |op, i|
-          payload = op.except("op", "ref").transform_values { |v| v.is_a?(String) && refs.key?(v) ? refs[v] : v }
+          payload = op.except("op", "ref").transform_values { |v| resolve_refs(v, refs) }
           applier = Appliers.for(op["op"])
           applier.authorize!(OpValidated.new(payload: payload, contributor: contributor, delegation: delegation, action_type: op["op"],
                                              envelope: c.envelope, in_task: true, created_ids: created))

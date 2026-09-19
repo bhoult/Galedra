@@ -69,7 +69,11 @@ module Tasks
     def own_target?(task, principal)
       return false if principal.nil?
 
-      row = task.target_type == "CLAIM" ? Claim.find_by(id: task.target_id) : Source.find_by(id: task.target_id)
+      row = case task.target_type
+      when "CLAIM" then Claim.find_by(id: task.target_id)
+      when "INFERENCE" then Inference.find_by(id: task.target_id)
+      else Source.find_by(id: task.target_id)
+      end
       contribution = row&.contribution
       return false if contribution.nil? || ![ contribution.contributor_id, contribution.principal_contributor_id ].compact.include?(principal.id)
 

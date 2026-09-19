@@ -68,6 +68,11 @@ module Mcp
           sections: { type: "array", description: "One root for a new outline, with nested sections: {handle, heading, locator?, anchor?, sections?}", items: { type: "object", properties: { handle: { type: "string" }, heading: { type: "string" }, locator: { type: "object", description: "{type: TIME_RANGE|CHAR_RANGE|PAGE|LINE_RANGE|SECTION, ...} e.g. {type: TIME_RANGE, start: \"00:41:10\", end: \"00:47:30\"}" }, anchor: { type: "string", description: "The first words of the leaf, quoted, at most 300 characters" }, sections: { type: "array" } }, required: %w[handle heading] } },
           open_tasks: { type: "boolean", default: true } }, required: %w[sections] },
         outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, root_id: { type: "string" }, root_url: { type: "string" }, sections: { type: "object" }, tasks_opened: { type: "integer" }, share_line: { type: "string" }, next: { type: "string" } } } },
+      { name: "record_inference", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Record a step of reasoning: because these claims hold (and those fail), this conclusion follows. Every premise and the conclusion must be recorded claims with their own evidence. An inference is interpretation, never evidence: it changes no assessment. It is shown on the claims, and a different principal reviews whether the step is valid. Give the rule in a sentence.",
+        inputSchema: { type: "object", properties: { conclusion_claim_id: { type: "string" }, premises: { type: "array", minItems: Inference::MIN_PREMISES, maxItems: Inference::MAX_PREMISES, items: { type: "object", properties: { claim: { type: "string", description: "a claim id" }, polarity: { type: "string", enum: InferencePremise::POLARITIES, default: "HOLDS" } }, required: %w[claim] } },
+                                                    type: { type: "string", enum: Inference::TYPES }, rule: { type: "string", description: "the warrant, at most 500 characters" }, strength: { type: "string", enum: Inference::STRENGTHS, default: "SUPPORTS" } }, required: %w[conclusion_claim_id premises type] },
+        outputSchema: { type: "object", properties: { inference_id: { type: "string" }, url: { type: "string" }, note: { type: "string" } } } },
       { name: "get_outline", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "An outline (or one section of it) as a tree with the claims filed under each section and counts by assessment state. Counts only; a section never has a probability.",
         inputSchema: { type: "object", properties: { section_id: { type: "string" }, depth: { type: "integer", default: 2 } }, required: %w[section_id] } },
@@ -106,6 +111,7 @@ module Mcp
                                                        evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string", description: "an excerpt handle, or \"packet\"" }, statement: { type: "string", description: "one plain sentence, at most 25 words" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
                                                        links: { type: "array", items: { type: "object", properties: { evidence: { type: "string" }, claim: { type: "string", description: "a claim handle, a claim id, or \"target\"" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS, default: "DIRECT" }, steps: { type: "integer", default: 0 }, note: { type: "string" } }, required: %w[evidence claim direction] } },
                                                        groups: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: IndependenceGroup::TYPES }, description: { type: "string" }, members: { type: "array", items: { type: "string" }, description: "evidence_item_id values from the packet" } }, required: %w[handle type members] } },
+                                                       inferences: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, conclusion: { type: "string", description: "a claim handle, id, or \"target\" for an inference review" }, premises: { type: "array", items: { type: "object", properties: { claim: { type: "string" }, polarity: { type: "string", enum: InferencePremise::POLARITIES } }, required: %w[claim] } }, type: { type: "string", enum: Inference::TYPES }, rule: { type: "string" }, strength: { type: "string", enum: Inference::STRENGTHS } }, required: %w[handle conclusion premises] } },
                                                        supersede: { type: "array", items: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction] } } } } },
                        required: %w[task_id outcome] },
         outputSchema: { type: "object", properties: { task_id: { type: "string" }, contribution_id: { type: "string" }, accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, items: { type: "integer" }, task_url: { type: "string" }, claim: { type: "object" } } } },
@@ -214,7 +220,7 @@ module Mcp
     # Guidance travels in results, which hosts read fresh on every call, rather
     # than in tool descriptions, which they cache from the last connection.
     GUIDANCE_VERSION = "2026-09-18.3"
-    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check, "create_outline" => :check, "get_outline" => :check,
+    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check, "create_outline" => :check, "get_outline" => :check, "record_inference" => :check,
                      "list_tasks" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
@@ -287,12 +293,19 @@ module Mcp
         evidence: evidence, revision: revision.merge(superseded_by: revision[:superseded_by]&.merge(url: "#{@base_url}/claims/#{revision[:superseded_by][:claim_id]}")),
         references: ClaimReference.totals(claim.id),
         sections: Sections::Tree.placements_for(claim, seq).map { |s| { id: s.id, path: s.path(seq), url: "#{@base_url}/sections/#{s.id}" } },
+        inferences: Inferences::View.for_claim(claim, seq, model),
         provisional_note: "Everything here stays open to audit; treat it as provisional." }
     end
 
     def tool_create_outline(args)
       require_token!
       Investigations::Outline.call(@token, args, base_url: @base_url)
+    end
+
+    def tool_record_inference(args)
+      require_token!
+      inference = Inferences::Record.call(@token, conclusion_claim_id: args["conclusion_claim_id"], premises: args["premises"], inference_type: args["type"], rule: args["rule"], strength: args["strength"])
+      { inference_id: inference.id, url: "#{@base_url}/claims/#{inference.conclusion_claim_id}#inferences", note: "#{Inference::NOTE} A review task is open for a different principal." }
     end
 
     def tool_get_outline(args)

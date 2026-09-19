@@ -9,6 +9,13 @@
   <% unfinished.each do |root, p| %><tr><td><%= link_to root.heading, section_path(root) %></td><td><%= p[:leaves_extracted] %> of <%= p[:leaves] %></td><td><%= p[:claims] %></td><td><%= p[:checked] %></td><td><%= p[:open_tasks] %></td></tr><% end %></table>
   <p class="meta">Every leaf has been extracted but fewer than a quarter of the claims have any evidence: a big job that looks done and is not.</p>
 <% else %><p class="muted">None.</p><% end %>
+<% strained = Inferences::View.strained(@seq) %>
+<h2>strained inferences (<%= strained.size %>)</h2>
+<% if strained.any? %>
+  <table><tr><th>Conclusion</th><th>Reads</th><th>Premise against it</th></tr>
+  <% strained.each do |inf, state, bad| %><tr><td><%= link_to inf[:conclusion][:text], claim_path(inf[:conclusion][:claim_id], anchor: "inferences") %></td><td><%= state_label(state) %></td><td><%= bad.map { |p| "#{p[:text]} (needs #{p[:polarity].downcase}, reads #{p[:state].to_s.downcase.tr('_', ' ')})" }.join("; ") %></td></tr><% end %></table>
+  <p class="meta">The conclusion reads supported while a premise reads the opposite of what the step needs. The step, or the conclusion's own evidence, deserves a look.</p>
+<% else %><p class="muted">None.</p><% end %>
 <% @report[:lists].each do |kind, entries| %>
   <h2><%= kind.tr("_", " ") %> (<%= entries.size %>)</h2>
   <% if entries.any? %>

@@ -98,6 +98,17 @@ module Tasks
                                "qualifier_kinds" => %w[time_range population denominator baseline sampling jurisdiction translation] } ]
     end
 
+    def context_for_inference_review(inference_id, seq, _location_id, _budget)
+      inference = Inference.find(inference_id)
+      premises = inference.premises.active_at(seq).order(:position).includes(:claim).map do |pr|
+        { "premise_id" => pr.id, "claim_id" => pr.claim_id, "claim_text" => pr.claim.canonical_text, "claim_type" => pr.claim.claim_type, "polarity" => pr.polarity }
+      end
+      [ { "inference_id" => inference.id, "conclusion" => claim_target(inference.conclusion), "inference_type" => inference.inference_type, "strength" => inference.strength }, {
+        "premises" => premises, "untrusted_rule" => excerpt(inference.rule),
+        "question" => "Given premises with these polarities, does the conclusion follow by the stated rule? Truth of the premises is not the question."
+      } ]
+    end
+
     def context_for_claim_extraction(source_id, seq, location_id, budget)
       source = Source.find(source_id)
       locations = location_id ? [ SourceLocation.find(location_id) ] : source.source_locations.active_at(seq).order(:created_seq).to_a

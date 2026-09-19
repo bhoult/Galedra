@@ -104,6 +104,7 @@ Rails.application.routes.draw do
       get "log", to: "log#index"
       get "claims/:id/views", to: "claims#views"
       resources :sections, only: [ :index, :show ]
+      get "inferences/:id", to: "inferences#show"
       resources :contributions, only: [ :create, :show ] do
         get :verify, on: :member
         get :redaction_manifest, on: :member

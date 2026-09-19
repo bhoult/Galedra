@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -414,6 +414,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_200000) do
     t.index ["contribution_id"], name: "index_independence_groups_on_contribution_id"
     t.index ["created_seq"], name: "index_independence_groups_on_created_seq"
     t.index ["invalidated_seq"], name: "index_independence_groups_on_invalidated_seq"
+  end
+
+  create_table "inference_premises", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "accepted_seq"
+    t.uuid "claim_id", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.uuid "inference_id", null: false
+    t.bigint "invalidated_seq"
+    t.string "polarity", null: false
+    t.integer "position", default: 0, null: false
+    t.index ["claim_id"], name: "index_inference_premises_on_claim_id"
+    t.index ["inference_id", "position"], name: "index_inference_premises_on_inference_id_and_position"
+  end
+
+  create_table "inferences", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "accepted_seq"
+    t.uuid "conclusion_claim_id", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.string "inference_type", null: false
+    t.bigint "invalidated_seq"
+    t.bigint "redacted_by_seq"
+    t.string "rule"
+    t.string "strength", null: false
+    t.index ["conclusion_claim_id"], name: "index_inferences_on_conclusion_claim_id"
+    t.index ["contribution_id"], name: "index_inferences_on_contribution_id"
   end
 
   create_table "investigation_receipts", id: :uuid, default: nil, force: :cascade do |t|

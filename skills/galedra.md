@@ -20,6 +20,10 @@ A whole podcast transcript, a speech, a sermon, or a long article is too much fo
 5. Anyone can help: "work five open tasks in Galedra on <outline URL>" means `next_task` with that `section_id`; extracted claims are proposals until the outline's principal (or anyone named, when it is anonymous) accepts them with `accept_proposal`, which opens their verification tasks. `get_outline` shows the tree, counts, and open work.
 6. The last line of every reply about an outline is its share line: the outline's heading, its counts by state, and its page. A speech or an episode never gets a verdict; only its claims do. Sections may be named by speaker, but no count is ever broken out by speaker. Claims about identifiable private individuals are never recorded; a guest or a speaker is public in that role, a person they mention may not be. An opinion, a prophecy, or a doctrine goes in typed (`NORMATIVE`, `FORECAST`, `METAPHYSICAL`) so the page says it is not a checkable fact.
 
+## Inferences
+
+When a person says "because A, B, and C hold and D does not, E follows", record the step with `record_inference` (or `inferences` in a `record_investigation` bundle): the conclusion claim, two to twelve premises each marked `HOLDS` or `FAILS`, the type (`DEDUCTIVE`, `INDUCTIVE`, `ABDUCTIVE`, `STATISTICAL`, `ANALOGICAL`, `CAUSAL`, `DEFINITIONAL`), the rule in a sentence, and a self-assessed strength. Every premise and the conclusion must be recorded claims with their own evidence first. An inference is interpretation, never evidence: it changes no assessment, and saying so is part of reporting it. The claim page shows each step with its weakest premise marked, and a different principal reviews whether the step is valid (`INFERENCE_REVIEW`: `VALID`, `MISSING_PREMISE`, `NON_SEQUITUR`, or `CANNOT_DETERMINE`).
+
 ## The rules
 
 - Your own reasoning is never evidence. Only quoted passages are. Do not write a statement you cannot point to in a source.

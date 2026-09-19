@@ -9,7 +9,7 @@ module Investigations
   module Record
     SIMILARITY_ATTACH = 0.6
     ANONYMOUS_PRIORITY_FACTOR = "1.5"
-    ORDER = %w[sources excerpts claims evidence links groups].freeze
+    ORDER = %w[sources excerpts claims evidence links groups inferences].freeze
     # Stage 21: a bundle this large without sections is a large source recorded as
     # if it were a paragraph; it is refused and pointed to create_outline.
     MAX_UNSECTIONED_CLAIMS = 40
@@ -122,6 +122,11 @@ module Investigations
                     "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => steps_for(l, bundle), "note" => l["note"] }.compact
         write.call("LINK_EVIDENCE", payload, nil, nil, nil)
       end
+      bundle.fetch("inferences", []).each do |inf|
+        payload = { "conclusion_claim_id" => ids.fetch(inf["conclusion"]), "inference_type" => inf.fetch("type", "DEDUCTIVE"), "rule" => inf["rule"], "strength" => inf.fetch("strength", "SUPPORTS"),
+                    "premises" => inf.fetch("premises", []).map { |pr| { "claim_id" => ids.fetch(pr["claim"]), "polarity" => pr.fetch("polarity", "HOLDS") } }, "affirms_not_private_individual" => true }.compact
+        write.call("CREATE_INFERENCE", payload, inf["handle"], "inference", Inference)
+      end
       bundle.fetch("groups", []).each do |g|
         group = write.call("CREATE_INDEPENDENCE_GROUP", { "group_type" => g.fetch("type", "OTHER"), "description" => g["description"] }, g["handle"], "group", IndependenceGroup)
         group_id = ids[g["handle"]] || IndependenceGroup.find(Ledger::Ids.derive(group.contribution.id, "group")).id
@@ -161,6 +166,7 @@ module Investigations
         excerpt && SourceLocation.find(ids.fetch(excerpt))
       end
       opened = Tasks::OpenVerification.call(claims, created_by: token.agent, priority_factor: factor, location_for: location_for)
+      bundle.fetch("inferences", []).each { |inf| Inferences::Record.open_review(Inference.find(ids[inf["handle"]]), created_by: token.agent, priority_factor: factor) && (opened += 1) }
       cancel_extraction_tasks(token, bundle)
       opened
     end
@@ -258,6 +264,15 @@ module Investigations
       add.call("#{path}.direction", "expected one of #{EvidenceClaimLink::DIRECTIONS.join(', ')}") unless EvidenceClaimLink::DIRECTIONS.include?(l["direction"])
       add.call("#{path}.strength", "expected one of #{EvidenceClaimLink::STRENGTHS.join(', ')}") unless EvidenceClaimLink::STRENGTHS.include?(l.fetch("strength", "DIRECT"))
       add.call("#{path}.steps", "expected an integer 0..#{EvidenceClaimLink::MAX_STEPS}") unless l.fetch("steps", 0).is_a?(Integer) && (0..EvidenceClaimLink::MAX_STEPS).cover?(l.fetch("steps", 0))
+    end
+
+    def check_inferences(inf, path, handles, add, _bundle)
+      add.call("#{path}.conclusion", "must name a claim handle") unless handles[inf["conclusion"]] == "claims"
+      premises = inf.fetch("premises", [])
+      add.call("#{path}.premises", "expected #{Inference::MIN_PREMISES} to #{Inference::MAX_PREMISES} of {claim, polarity}") unless premises.is_a?(Array) && premises.size.between?(Inference::MIN_PREMISES, Inference::MAX_PREMISES) && premises.all? { |p| p.is_a?(Hash) && handles[p["claim"]] == "claims" && InferencePremise::POLARITIES.include?(p.fetch("polarity", "HOLDS")) }
+      add.call("#{path}.type", "expected one of #{Inference::TYPES.join(', ')}") unless Inference::TYPES.include?(inf.fetch("type", "DEDUCTIVE"))
+      add.call("#{path}.strength", "expected one of #{Inference::STRENGTHS.join(', ')}") unless Inference::STRENGTHS.include?(inf.fetch("strength", "SUPPORTS"))
+      add.call("#{path}.rule", "at most #{Inference::MAX_RULE} characters") if inf["rule"].is_a?(String) && inf["rule"].length > Inference::MAX_RULE
     end
 
     def check_groups(g, path, handles, add, _bundle)

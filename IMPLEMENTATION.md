@@ -84,7 +84,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 22 | Sharing and following an outline | implemented | [implementation/implemented/stage-22-outline-share.md](implementation/implemented/stage-22-outline-share.md) |
 | 23 | Federation readiness | implemented | [implementation/implemented/stage-23-federation-ready.md](implementation/implemented/stage-23-federation-ready.md) |
 | 24 | Admins, help, and navigation | implemented | [implementation/implemented/stage-24-admin-nav.md](implementation/implemented/stage-24-admin-nav.md) |
-| 25 | Inferences: recorded reasoning steps | planned | [implementation/planned/stage-25-inferences.md](implementation/planned/stage-25-inferences.md) |
+| 25 | Inferences: recorded reasoning steps | implemented | [implementation/implemented/stage-25-inferences.md](implementation/implemented/stage-25-inferences.md) |
 
 Work done between stages, each with its own dated entry:
 

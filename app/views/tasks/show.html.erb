@@ -2,7 +2,7 @@
 <h1>Task: <%= @task.task_type %></h1>
 <div class="card">
   <p class="meta">Domain <%= @task.domain %> · priority <%= @task.priority.to_s("F") %> · estimated cost <%= @task.spec[:cost] %> · required assignments <%= @task.required_assignments %> · status <%= @task.status %> · audit requirement: sampled per <%= Audits::Policy.version %>, provisional until audited CONFIRMED</p>
-  <p>Target: <%= @target.is_a?(Claim) ? link_to(@target.canonical_text, claim_path(@target)) : link_to(@target.title, source_path(@target)) %></p>
+  <p>Target: <% if @target.is_a?(Claim) %><%= link_to @target.canonical_text, claim_path(@target) %><% elsif @target.is_a?(Inference) %>inference concluding <%= link_to @target.conclusion.canonical_text, claim_path(@target.conclusion, anchor: "inferences") %><% else %><%= link_to @target.title, source_path(@target) %><% end %></p>
   <p><strong>Hand this to my agent:</strong></p>
   <pre>ruby examples/agent/agent.rb run --base-url <%= request.base_url %> --key-file agent-key.json --delegation &lt;delegation id&gt; --types <%= @task.task_type %> --domains <%= @task.domain %> --once</pre>
 </div>

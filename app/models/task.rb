@@ -3,7 +3,7 @@
 # contributions.
 class Task < ApplicationRecord
   STATUSES = %w[OPEN LEASED COMPLETE EXPIRED CANCELLED].freeze
-  TARGET_TYPES = %w[CLAIM SOURCE].freeze
+  TARGET_TYPES = %w[CLAIM SOURCE INFERENCE].freeze
 
   has_many :assignments, class_name: "TaskAssignment", dependent: nil
 
@@ -13,7 +13,11 @@ class Task < ApplicationRecord
   validates :domain, inclusion: { in: ->(_) { Audits::Policy.domains } }
 
   def target
-    target_type == "CLAIM" ? Claim.find(target_id) : Source.find(target_id)
+    case target_type
+    when "CLAIM" then Claim.find(target_id)
+    when "INFERENCE" then Inference.find(target_id)
+    else Source.find(target_id)
+    end
   end
 
   def spec = Tasks::Types.spec(task_type)

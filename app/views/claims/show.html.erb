@@ -125,6 +125,25 @@
     <% suppressed.each do |l| %><tr><td><%= link_to short_id(l["evidence"]), evidence_path(l["evidence"]) %></td><td><%= short_id(l["group"]) %></td><td><%= short_id(l["kept"]) %></td></tr><% end %></table>
   <% else %><p class="muted">None.</p><% end %>
 
+  <h2 id="inferences">Inferences</h2>
+  <% [ [ "Concluded from", @inferences[:concluded_from] ], [ "Used as a premise in", @inferences[:premise_in] ] ].each do |title, list| %>
+    <h3><%= title %></h3>
+    <% if list.empty? %><p class="muted">None.</p><% else %>
+      <% list.each do |inf| %>
+        <div class="card">
+          <p><strong><%= inf[:conclusion][:text] %></strong> <span class="badge"><%= inf[:inference_type] %></span> <span class="badge">self-assessed: <%= inf[:strength].downcase.tr("_", " ") %></span> <%= link_to "seq #{inf[:created_seq]}", contribution_path(inf[:contribution_id]) %></p>
+          <% if inf[:rule].present? %><p class="meta">Rule: <%= inf[:rule] %></p><% end %>
+          <ul>
+            <% inf[:premises].each do |pr| %>
+              <li><%= pr[:polarity] == "HOLDS" ? "holds" : "fails" %>: <%= link_to pr[:text], claim_path(pr[:claim_id]) %> <span class="muted">(<%= pr[:state].to_s.downcase.tr("_", " ") %>)</span><% if pr[:weakest] %> <span class="badge">weakest premise</span><% end %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+  <p class="meta"><%= @inferences[:note] %></p>
+
   <h2>Claim edges</h2>
   <% edges = @claim.outgoing_edges.counted_at(@seq).to_a + @claim.incoming_edges.counted_at(@seq).to_a %>
   <% if edges.any? %>

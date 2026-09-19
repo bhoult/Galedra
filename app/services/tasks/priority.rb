@@ -10,7 +10,8 @@ module Tasks
       uncertainty = p.nil? ? BigDecimal(1) : BigDecimal(1) - (BigDecimal(2) * p - BigDecimal(1)).abs
       impact = BigDecimal(1) + Scoring::Decimal.ln(BigDecimal(1) + BigDecimal(downstream_count))
       coverage_gap = BigDecimal(1) - Scoring::Decimal.d(review_coverage)
-      cost = Scoring::Decimal.d(config.fetch("task_type_cost").fetch(task_type))
+      # A task type the released config predates (INFERENCE_REVIEW, Stage 25) costs the type's own figure; the config is never changed in place.
+      cost = Scoring::Decimal.d(config.fetch("task_type_cost").fetch(task_type) { Types.spec(task_type)[:cost] })
       Scoring::Decimal.fixed((uncertainty * impact * (BigDecimal("0.5") + coverage_gap)).div(cost, Scoring::Decimal::PRECISION), 4)
     end
   end

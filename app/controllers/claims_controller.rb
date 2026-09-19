@@ -63,6 +63,7 @@ class ClaimsController < ApplicationController
     ClaimReference.count!(@claim.id, "VIEWED")
     @references = ClaimReference.totals(@claim.id)
     @views = PersonalAssessments::Breakdown.call(@claim.id)
+    @inferences = Inferences::View.for_claim(@claim, @seq, @model)
     @sections = Sections::Tree.placements_for(@claim, @seq)
     @section = (params[:section].present? && @sections.find { |s| s.id == params[:section] }) || @sections.first
     @my_view = authenticated? ? Current.user.personal_assessments.find_by(claim_id: @claim.id) : nil

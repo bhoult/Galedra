@@ -51,7 +51,7 @@ class Contribution < ApplicationRecord
 
   PROJECTION_MODELS = %w[Source SourceLocation Claim ClaimEdge IndependenceGroup IndependenceGroupAssignment
                          EvidenceItem EvidenceClaimLink ClaimMerge ClaimEvaluabilitySetting ClaimTopic SourceRetrieval
-                         Section ClaimPlacement].freeze
+                         Section ClaimPlacement Inference InferencePremise].freeze
 
   # Every projection row this contribution created.
   def projection_rows

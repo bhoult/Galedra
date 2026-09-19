@@ -25,6 +25,11 @@ module Tasks
         lease_hours: 2, auto_accept: true, cost: "2",
         objective: "Decide which of the counted evidence items share an upstream origin. Group dependent items; leave independent ones alone."
       },
+      "INFERENCE_REVIEW" => {
+        target_type: "INFERENCE", allowed_ops: %w[CREATE_CLAIM CREATE_INFERENCE CREATE_EVIDENCE LINK_EVIDENCE], outcomes: %w[VALID MISSING_PREMISE NON_SEQUITUR CANNOT_DETERMINE], max_ops: 20,
+        lease_hours: 4, auto_accept: true, cost: "2",
+        objective: "Decide whether the conclusion follows from the premises as stated. Name a missing premise as a new claim, or a corrected step as a new inference. Do not evaluate the premises' truth; their evidence is their own."
+      },
       "QUALIFIER_CHECK" => {
         target_type: "CLAIM", allowed_ops: %w[CREATE_EVIDENCE LINK_EVIDENCE CREATE_CLAIM CREATE_CLAIM_EDGE SUPERSEDE_LINK], outcomes: %w[QUALIFIERS_FOUND NONE_MATERIAL CANNOT_DETERMINE], max_ops: 20,
         lease_hours: 4, auto_accept: true, cost: "2",

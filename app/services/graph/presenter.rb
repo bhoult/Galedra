@@ -20,6 +20,7 @@ module Graph
         id: claim.id, text: claim.canonical_text, type: claim.claim_type,
         truth_evaluable: evaluable, not_evaluable_reason: reason, references: references,
         sections: Sections::Tree.placements_for(claim, seq).map { |s| { id: s.id, root_id: s.root_id, path: s.path(seq) } },
+        inferences: Inferences::View.for_claim(claim, seq, model).slice(:concluded_from, :premise_in),
         status: claim.status_at(seq), qualifiers: claim.qualifiers, snapshot_seq: seq, redacted: claim.redacted?,
         created_seq: claim.created_seq, accepted_seq: claim.accepted_seq, invalidated_seq: claim.invalidated_seq,
         contribution_id: claim.contribution_id,
