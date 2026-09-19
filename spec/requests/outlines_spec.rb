@@ -209,4 +209,28 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     tree = response.body[response.body.index('<aside class="outline tree">')..response.body.index("</aside>")]
     expect(tree).to match(%r{<details[^>]*>\s*<summary[^>]*>.*?Has nothing yet}m)
   end
+
+  it "loads only the content column when a section is chosen, and leaves the outline in the page" do
+    pair, = register_key
+    source = create_source(pair, title: "A source")
+    result = append(action_type: "CREATE_SECTION", key_pair: pair,
+                    payload: { "source_id" => source.id, "sections" => [ { "heading" => "Root", "sections" => [
+                      { "heading" => "A part", "sections" => [ { "heading" => "A leaf" } ] } ] } ] })
+    root = Section.find(Ledger::Ids.derive(result.contribution.id, "section", 0))
+
+    get "/sections/#{root.id}"
+    body = response.body
+    # The content column is a frame, and the outline sits outside it, so
+    # choosing a section fetches the column rather than the document.
+    expect(body).to include(%(id="outline-content"))
+    expect(body.index('<aside class="outline tree">')).to be < body.index(%(id="outline-content"))
+    expect(body).to include(%(data-turbo-frame="outline-content"))
+    # Leaving the outline entirely is a whole-page move, not a frame one.
+    expect(body).to include(%(data-turbo-frame="_top"))
+
+    # Asking for the frame alone still answers, which is what Turbo requests.
+    get "/sections/#{root.children.first.id}", headers: { "Turbo-Frame" => "outline-content" }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(%(id="outline-content"))
+  end
 end

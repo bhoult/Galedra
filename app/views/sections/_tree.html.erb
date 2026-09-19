@@ -10,7 +10,7 @@
     <% count = tag.span(child[:counts]["claims"].to_s + (child[:pending].positive? ? "+#{child[:pending]}" : ""),
                         class: "counts",
                         title: pluralize(child[:counts]["claims"], "claim") + (child[:pending].positive? ? ", #{child[:pending]} proposed" : "")) %>
-    <% heading = link_to child[:section].heading, section_path(child[:section]) %>
+    <% heading = link_to child[:section].heading, section_path(child[:section]), data: { turbo_frame: outline_frame } %>
     <% classes = "#{'current' if child[:section].id == current_section}" %>
     <li>
       <% if child[:children].any? || child[:claims].any? %>

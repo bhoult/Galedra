@@ -7,13 +7,16 @@
   <meta property="og:url" content="<%= section_url(@section) %>">
 <% end %>
 <% open_ids = ([ @section ] + @ancestors).map(&:id) %>
-<p class="meta"><%= link_to "Outlines", sections_path %><% @ancestors.each do |a| %> › <%= link_to a.heading, section_path(a) %><% end %> › <%= @section.heading %></p>
 <div class="with-outline">
   <aside class="outline tree">
-    <h2><%= link_to @section.root.heading, section_path(@section.root) %></h2>
+    <h2><%= link_to @section.root.heading, section_path(@section.root), data: { turbo_frame: outline_frame } %></h2>
     <%= render "sections/tree", node: @tree, open_ids: open_ids, current_claim: @current_claim, current_section: @section.id, seq: @seq %>
   </aside>
-  <div>
+  <%# Only this reloads when a section is chosen. The outline beside it stays in
+      the page, which is what lets it animate and what stops a menu click from
+      fetching a whole document. %>
+  <%= turbo_frame_tag outline_frame, data: { turbo_action: "advance" } do %>
+<p class="meta"><%= link_to "Outlines", sections_path, data: { turbo_frame: "_top" } %><% @ancestors.each do |a| %> › <%= link_to a.heading, section_path(a), data: { turbo_frame: outline_frame } %><% end %> › <%= @section.heading %></p>
 <h1><%= @section.heading %></h1>
 <div class="card">
   <p class="meta">Source: <%= link_to @section.source.title, source_path(@section.source) %><% if @section.location %> · <%= locator_label(@section.location) %><% end %> · <%= link_to "created seq #{@section.created_seq}", contribution_path(@section.contribution_id) %></p>
@@ -42,5 +45,5 @@
     <% end %>
   </details>
 <% end %>
-  </div>
+  <% end %>
 </div>
