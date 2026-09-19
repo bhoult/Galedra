@@ -78,7 +78,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 17 | Source retrieval by a trusted job | implemented | [implementation/implemented/stage-17-retrieval.md](implementation/implemented/stage-17-retrieval.md) |
 | 18 | Work open tasks from a connector | implemented | [implementation/implemented/stage-18-work-tasks.md](implementation/implemented/stage-18-work-tasks.md) |
 | 19 | Correct what is recorded, from a connector | implemented | [implementation/implemented/stage-19-corrections.md](implementation/implemented/stage-19-corrections.md) |
-| — | Stages 20–22 — Large sources: outlines (shared goal and vocabulary) | context | [implementation/planned/stages-20-22-outlines.md](implementation/planned/stages-20-22-outlines.md) |
+| — | Stages 20–22 — Large sources: outlines (shared goal and vocabulary) | context | [implementation/implemented/stages-20-22-outlines.md](implementation/implemented/stages-20-22-outlines.md) |
 | 20 | Sections and placements in the log | implemented | [implementation/implemented/stage-20-sections.md](implementation/implemented/stage-20-sections.md) |
 | 21 | Large requests from a connector | implemented | [implementation/implemented/stage-21-large-requests.md](implementation/implemented/stage-21-large-requests.md) |
 | 22 | Sharing and following an outline | implemented | [implementation/implemented/stage-22-outline-share.md](implementation/implemented/stage-22-outline-share.md) |

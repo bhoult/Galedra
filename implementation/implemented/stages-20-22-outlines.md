@@ -1,7 +1,7 @@
 # Stages 20–22 — Large sources: outlines, sections, and work shared out
 
-Planned 2026-09-19, not built. Three stages, one tag each, executed only when the
-owner asks. They share one goal and are split so that each leaves the demo goldens,
+Planned and built 2026-09-19 as Stages 20, 21, and 22, one tag each; this file is the
+shared goal and vocabulary the three stage files rest on. They share one goal and are split so that each leaves the demo goldens,
 `ledger:replay`, and `ledger:verify` unchanged and can be reviewed on its own.
 
 The goal: Galedra so far takes a meme or a paragraph. It should take a whole podcast
