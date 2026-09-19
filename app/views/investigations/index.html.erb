@@ -1,0 +1,43 @@
+<% content_for :title, "Checks" %>
+<h1>Checks</h1>
+<p class="muted">
+  Every statement someone asked Galedra to check, newest first, with the reading of the
+  claims beneath it. A check is a reading of a statement against real sources, recorded
+  passage by passage; the claims themselves are under <%= link_to "Claims", claims_path %>.
+  Each reading is provisional until audited, and none of it is a verdict on the person who
+  posted the statement.
+</p>
+<p><%= link_to "Record a check", new_investigation_path %></p>
+<% if @investigations.empty? %>
+  <p class="muted">Nothing checked yet.</p>
+<% else %>
+  <% @investigations.each do |investigation| %>
+    <% claims = @claims_for[investigation.id] %>
+    <% verdict = @verdicts[investigation.id] %>
+    <% badge = Cards::Badge.for_key(verdict ? verdict[:badge] : :not_checked) %>
+    <div class="card answer badged">
+      <figure class="badge-validity" style="color: <%= badge[:color] %>">
+        <%= Cards::Badge.svg(badge[:key], size: 44) %>
+        <figcaption class="badge-label"><%= badge[:label] %></figcaption>
+      </figure>
+      <p class="claim-text">
+        <%= link_to investigation.outline? ? section_path(investigation.section_id) : investigation_path(investigation) do %>
+          “<%= truncate(investigation.title(claims).to_s, length: 220, separator: " ") %>”
+        <% end %>
+      </p>
+      <% if verdict %><p><strong><%= verdict[:headline] %></strong> <%= verdict[:sentence] %>.</p><% end %>
+      <p class="meta">
+        <%= pluralize(claims.size, "claim") %><%= " · an outline" if investigation.outline? %> ·
+        recorded <%= investigation.created_at.utc.strftime("%-d %B %Y") %> · provisional until audited
+      </p>
+    </div>
+  <% end %>
+  <% pages = (@total / InvestigationsController::PER_PAGE.to_f).ceil %>
+  <% if pages > 1 %>
+    <p class="meta">
+      Page <%= @page %> of <%= pages %>.
+      <% if @page > 1 %><%= link_to "Previous", investigations_path(page: @page - 1) %><% end %>
+      <% if @page < pages %><%= link_to "Next", investigations_path(page: @page + 1) %><% end %>
+    </p>
+  <% end %>
+<% end %>

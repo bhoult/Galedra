@@ -11,6 +11,16 @@ class Investigation < ApplicationRecord
 
   def outline? = section_id.present?
 
+  # The checks a claim appeared in, newest first. Containment against the array
+  # column, which the GIN index covers.
+  scope :covering, ->(claim_id) { where("claim_ids @> ARRAY[?]::uuid[]", claim_id).order(created_at: :desc) }
+
+  # What to show for a check in a list: the statement someone pasted, or the
+  # single claim that answered it.
+  def title(claims = nil)
+    statement.presence || (claims || self.claims).first&.canonical_text
+  end
+
   # Stage 21: an outline's investigation reads the claims under its root live.
   def claims
     if outline?

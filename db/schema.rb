@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_210001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_210210) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -461,6 +461,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_210001) do
     t.integer "snapshot_seq", null: false
     t.text "statement"
     t.datetime "updated_at", null: false
+    t.index ["claim_ids"], name: "index_investigations_on_claim_ids", using: :gin
     t.index ["created_at"], name: "index_investigations_on_created_at"
   end
 

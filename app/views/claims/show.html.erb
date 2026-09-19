@@ -109,6 +109,20 @@
     <p class="meta"><%= @views[:note] %></p>
   </div>
 
+  <% if @checks.any? %>
+    <h2 id="checks">Checked as part of</h2>
+    <p class="meta">Statements this claim was broken out of. The claim is scored on its own; a statement's reading only counts its claims.</p>
+    <ul>
+      <% @checks.each do |check| %>
+        <li>
+          <%= link_to check.outline? ? section_path(check.section_id) : investigation_path(check) do %>
+            “<%= truncate(check.title.to_s, length: 160, separator: " ") %>”
+          <% end %>
+          <span class="muted">· <%= pluralize(check.claim_ids.size, "claim") %> · <%= check.created_at.utc.strftime("%-d %B %Y") %></span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
   <h2>Evidence for</h2>
   <%= render "claims/links", links: @evidence[:counted].select { |l| l[:direction] == "SUPPORT" } %>
   <h2>Evidence against</h2>

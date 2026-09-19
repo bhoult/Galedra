@@ -29,8 +29,10 @@ module Investigations
       states.all?("SUPPORTED") ? :mostly_supported : :leans_supported
     end
 
-    def call(claims, seq, model)
-      results = claims.map { |c| Scoring::Score.call(c, seq, model) }
+    # results: lets a caller that has already scored a set hand the scores in,
+    # so a page listing many checks does not score each one separately.
+    def call(claims, seq, model, results: nil)
+      results = results ? claims.map { |c| results[c.id] }.compact : claims.map { |c| Scoring::Score.call(c, seq, model) }
       states = results.map(&:assessment_state)
       not_checkable = states.count("NOT_APPLICABLE")
       checkable = states.size - not_checkable

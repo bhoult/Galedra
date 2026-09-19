@@ -7,6 +7,28 @@ class InvestigationsController < ApplicationController
   allow_unauthenticated_access
   rate_limit to: 20, within: 1.minute, only: :create, with: -> { redirect_to new_investigation_path, alert: "Too many submissions. Wait a minute and try again." }
 
+  # Every recorded check, newest first (owner request, 2026-09-19). Until now a
+  # check was reachable only by the link handed back when it was recorded, so
+  # losing the link lost the page. The claims were always listed under Browse;
+  # what this adds is the statement they were checked as part of.
+  PER_PAGE = 20
+
+  def index
+    @page = params[:page].to_i.clamp(1, 500)
+    @seq = Contribution.maximum(:seq)
+    @model = Scoring::Registry.default_model
+    @total = Investigation.count
+    @investigations = Investigation.order(created_at: :desc).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
+
+    # One scoring pass for the whole page rather than one per check.
+    @claims_for = @investigations.to_h { |i| [ i.id, i.claims.reject { |c| Governance::Quarantines.live_for("CLAIM", c.id) } ] }
+    results = Scoring::Score.call_many(@claims_for.values.flatten.uniq, @seq, @model)
+    @verdicts = @investigations.to_h do |i|
+      claims = @claims_for[i.id]
+      [ i.id, claims.any? ? Investigations::Verdict.call(claims, @seq, @model, results: results) : nil ]
+    end
+  end
+
   def new
     @bundle_text = params[:bundle].presence || example_bundle
   end

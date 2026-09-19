@@ -4,6 +4,7 @@
     <summary>Check</summary>
     <div class="menu-panel">
       <%= nav_link "Record a check", new_investigation_path, "A check reads a statement against real sources and records what they say, passage by passage." %>
+      <%= nav_link "Checks", investigations_path, "Statements people have already had checked, each with the claims it was broken into." %>
       <% if authenticated? %><%= nav_link "Analyze text", new_analyze_path %><% end %>
     </div>
   </details>

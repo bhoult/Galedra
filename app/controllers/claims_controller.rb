@@ -65,6 +65,10 @@ class ClaimsController < ApplicationController
     @views = PersonalAssessments::Breakdown.call(@claim.id)
     @inferences = Inferences::View.for_claim(@claim, @seq, @model)
     @sections = Sections::Tree.placements_for(@claim, @seq)
+    # The checks this claim was recorded as part of. A reader arriving at one
+    # claim usually wants the statement it came out of, which until now was
+    # reachable only by the link handed back when it was recorded.
+    @checks = Investigation.covering(@claim.id).limit(10).to_a
     @section = (params[:section].present? && @sections.find { |s| s.id == params[:section] }) || @sections.first
     @my_view = authenticated? ? Current.user.personal_assessments.find_by(claim_id: @claim.id) : nil
 

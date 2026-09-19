@@ -37,7 +37,7 @@ Rails.application.routes.draw do
   resources :passwords, param: :token
   resources :users, only: [ :new, :create ]
   resources :assistants, only: [ :new, :create, :destroy ]
-  resources :investigations, only: [ :new, :create, :show ] do
+  resources :investigations, only: [ :index, :new, :create, :show ] do
     get :card, on: :member
   end
   get "adopt/:code", to: "adoptions#show", as: :adopt
