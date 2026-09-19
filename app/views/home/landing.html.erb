@@ -21,8 +21,13 @@
 </section>
 
 <figure class="flow">
-  <%= image_tag "how-galedra-checks-a-meme.svg", width: 2048, height: 682, decoding: "async",
+  <picture>
+    <%# Narrower than the banner's own breakpoint its labels fall under 8px and it
+        says nothing, so a phone matches the placeholder and never fetches it. %>
+    <source media="(max-width: 56rem)" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1">
+    <%= image_tag "how-galedra-checks-a-meme.svg", width: 2048, height: 682, decoding: "async",
                 alt: "Five steps, left to right. One: a person sees a meme claiming clean energy already powers half the world, and asks an assistant to check it before reposting. Two: the assistant breaks the meme into atomic claims, statistics, and quotes. Three: Galedra stores a permanent record, linking each claim to its sources and to the evidence that supports or contradicts it. Four: that evidence is reassembled into a sourced answer. Five: the person replies to the original post with it." %>
+  </picture>
   <figcaption>The loop the record makes possible: the answer at step four is kept, so the next person to meet the same claim starts from it instead of from nothing.</figcaption>
 </figure>
 

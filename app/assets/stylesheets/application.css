@@ -168,7 +168,11 @@ body.landing section { margin: 2.4rem 0; padding: 1rem 1.4rem; background: rgba(
 body.landing .hero { padding: 2rem 1.4rem 1.2rem; }
 body.landing .cta, body.landing .statement { background: rgba(255, 253, 249, 0.9); padding-block: 2rem; }
 body.landing h2 { font-size: 1.7rem; border: 0; padding: 0; margin-bottom: 0.8rem; }
+/* The banner is 2048 units wide; under 56rem its own labels render below 8px,
+   so it is dropped rather than shown as a smudge. The section below says the
+   same thing in words. */
 figure.flow { margin: 1.8rem 0 0; }
+@media (max-width: 56rem) { figure.flow { display: none; } }
 figure.flow img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 figure.flow figcaption { margin-top: 0.6rem; color: var(--muted); font-size: 0.92rem; text-align: center; }
 .tide { margin-top: 1.6rem; }
