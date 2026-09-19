@@ -26,7 +26,7 @@
       .label {
         fill: #0b244c;
         font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 800;
         letter-spacing: .2px;
         opacity: 0;
@@ -35,13 +35,13 @@
       .sub {
         fill: #274b7f;
         font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
         opacity: 0;
         animation: labelFade 12s infinite ease-in-out;
       }
       .labelBg {
-        fill: rgba(255,255,255,.82);
+        fill: rgba(255,255,255,.96);
         stroke: rgba(60,120,220,.20);
         stroke-width: 1.5;
         rx: 18; ry: 18;
@@ -171,6 +171,39 @@
         }
       }
 
+      .fixHeading {
+        fill: #173b6d;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-size: 15px;
+        font-weight: 800;
+      }
+      .fixBody {
+        fill: #48688f;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+      .fixSmall {
+        fill: #48688f;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-size: 10.5px;
+        font-weight: 650;
+      }
+      .brandWord {
+        fill: #ffffff;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-size: 40px;
+        font-weight: 900;
+        letter-spacing: .5px;
+      }
+      .brandLine {
+        fill: #c7eeff;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1px;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .stepBox, .stepGlow, .labelBg, .label, .sub, .centerPulse, .centerRing { animation: none; opacity: 1; }
         .arrow, .arrowHead { animation: none; opacity: .55; }
@@ -253,7 +286,7 @@
     <rect id="s4" class="stepBox shadow" x="1362" y="116" width="323" height="391"/>
     <rect id="bg4" class="labelBg shadow" x="1386" y="88" width="272" height="60"/>
     <text id="lb4" class="label" x="1522" y="113" text-anchor="middle">4. Evidence reassembled</text>
-    <text id="ls4" class="sub" x="1522" y="137" text-anchor="middle">Returns a sourced fact-check</text>
+    <text id="ls4" class="sub" x="1522" y="137" text-anchor="middle">Returns an evidence-backed answer</text>
   </g>
 
   <g>
@@ -263,4 +296,86 @@
     <text id="lb5" class="label" x="1857" y="125" text-anchor="middle">5. User replies back</text>
     <text id="ls5" class="sub" x="1857" y="149" text-anchor="middle">Responds to the original post</text>
   </g>
+
+
+  <!-- Corrected Galedra branding and answer card -->
+  <g id="corrected-content">
+
+    <!-- Blend over only the baked-in original logo/title area; no white panel -->
+    <rect x="884" y="135" width="305" height="79" rx="18" ry="18" fill="#0b4c78"/>
+
+    <!-- Galedra logo geometry, adapted for the dark panel -->
+    <g transform="translate(900 143) scale(.90)">
+      <g stroke="#bfefff" stroke-width="2.4" fill="none" stroke-linecap="round">
+        <line x1="14" y1="50" x2="23" y2="34"/><line x1="32" y1="50" x2="23" y2="34"/>
+        <line x1="32" y1="50" x2="41" y2="34"/><line x1="50" y1="50" x2="41" y2="34"/>
+        <line x1="23" y1="34" x2="32" y2="18"/><line x1="41" y1="34" x2="32" y2="18"/>
+        <line x1="14" y1="50" x2="50" y2="50"/><line x1="23" y1="34" x2="41" y2="34"/>
+      </g>
+      <g fill="#d4f6ff">
+        <circle cx="14" cy="50" r="5.5"/><circle cx="32" cy="50" r="5.5"/><circle cx="50" cy="50" r="5.5"/>
+        <circle cx="23" cy="34" r="5.5"/><circle cx="41" cy="34" r="5.5"/>
+      </g>
+      <circle cx="32" cy="18" r="5.5" fill="#0b4c78" stroke="#d4f6ff" stroke-width="2.5"/>
+    </g>
+
+    <text class="brandWord" x="966" y="174">Galedra</text>
+    <text class="brandLine" x="1041" y="198" text-anchor="middle" style="font-size:9px;letter-spacing:.8px;">CLAIMS · EVIDENCE · TRACEABLE REASONS</text>
+
+    <!-- Correct Step 4 card. Solid fills only, aligned to the original card footprint. -->
+    <rect x="1388" y="211" width="272" height="299" rx="19" ry="19" fill="#f8fbff" stroke="#d5e4f5" stroke-width="2"/>
+    <rect x="1403" y="230" width="242" height="263" rx="15" ry="15" fill="#ffffff" stroke="#dce8f5" stroke-width="1.5"/>
+
+    <!-- card header -->
+    <rect x="1417" y="243" width="30" height="30" rx="8" ry="8" fill="#eaf4ff"/>
+    <path d="M1425 255h14v10h-14z" fill="#4aa8ff"/>
+    <path d="M1427 252h10v3h-10z" fill="#78c7ff"/>
+    <text class="fixHeading" x="1457" y="264">Evidence summary</text>
+
+    <line x1="1417" y1="281" x2="1631" y2="281" stroke="#dce8f5" stroke-width="1"/>
+
+    <!-- assessment -->
+    <text class="fixHeading" x="1417" y="303">Assessment</text>
+    <rect x="1527" y="286" width="104" height="24" rx="12" ry="12" fill="#fff0cf" stroke="#eed49d" stroke-width="1"/>
+    <text x="1579" y="302" text-anchor="middle"
+          style="fill:#8a6120;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:10px;font-weight:800;">
+      Leans contradicted
+    </text>
+
+    <text class="fixBody" x="1417" y="323">The meme overstates the evidence and</text>
+    <text class="fixBody" x="1417" y="338">collapses distinct energy categories.</text>
+
+    <line x1="1417" y1="352" x2="1631" y2="352" stroke="#dce8f5" stroke-width="1"/>
+
+    <!-- why -->
+    <text class="fixHeading" x="1417" y="373">Why</text>
+    <circle cx="1423" cy="391" r="2.2" fill="#4aa8ff"/>
+    <text class="fixSmall" x="1433" y="394">Clean electricity is ~30%, not 50%.</text>
+    <circle cx="1423" cy="408" r="2.2" fill="#4aa8ff"/>
+    <text class="fixSmall" x="1433" y="411">Regional grids differ in their mix.</text>
+    <circle cx="1423" cy="425" r="2.2" fill="#4aa8ff"/>
+    <text class="fixSmall" x="1433" y="428">The claim merges several categories.</text>
+
+    <line x1="1417" y1="441" x2="1631" y2="441" stroke="#dce8f5" stroke-width="1"/>
+
+    <text class="fixSmall" x="1433" y="463">4 sources, 2 independent lineages</text>
+    <circle cx="1423" cy="460" r="2.2" fill="#4aa8ff"/>
+    <text class="fixSmall" x="1433" y="482">Review checks: 3 of 4</text>
+    <circle cx="1423" cy="479" r="2.2" fill="#4aa8ff"/>
+  </g>
+
+
+  <!-- Replace baked-in fact-checker wording under step 1 -->
+  <g id="step1-caption-fix">
+    <rect x="91" y="579" width="260" height="44" rx="7" ry="7" fill="#ffffff"/>
+    <text x="221" y="597" text-anchor="middle"
+          style="fill:#597293;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:11px;font-weight:600;">
+      The user shares a post and asks an LLM
+    </text>
+    <text x="221" y="613" text-anchor="middle"
+          style="fill:#597293;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:11px;font-weight:600;">
+      to check its claims against evidence.
+    </text>
+  </g>
+
 </svg>
