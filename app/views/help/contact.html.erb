@@ -14,7 +14,7 @@
 <h2>The project</h2>
 <div class="card">
   <p><strong>Source</strong> <%= link_to @software[:repository], @software[:repository], rel: "noopener", target: "_blank" %><% unless @repository_public %> <span class="badge">opening soon</span><% end %></p>
-  <p class="meta"><% unless @repository_public %>The repository is not public yet, so that link will not resolve for everyone today. <% end %>The licence terms are on the <%= link_to "licences page", licenses_path %>, and what is running here is on the <%= link_to "about page", about_path %>.</p>
+  <p class="meta"><% unless @repository_public %>The repository is not public yet, so that link will not resolve for everyone today. <% end %><%= link_to "Issues", "#{@software[:repository]}/issues", rel: "noopener", target: "_blank" %> and <%= link_to "pull requests", "#{@software[:repository]}/pulls", rel: "noopener", target: "_blank" %> are open. The licence terms are on the <%= link_to "licences page", licenses_path %>, and what is running here is on the <%= link_to "about page", about_path %>.</p>
 </div>
 
 <h2>Supporting it</h2>
@@ -46,5 +46,6 @@
   <p><strong>An assistant could not do something.</strong> It files that itself with <code>request_feature</code>, in its own words, at the moment it fell short. That is more useful than a description after the fact.</p>
   <p><strong>A claim is wrong.</strong> Do not write; correct it. Evidence against a claim counts for more than an opinion about it, and your assistant can record it in one call. Every claim page has an <em>Evidence against</em> section, and open verification work is on the <%= link_to "task board", tasks_path %>.</p>
   <p><strong>Something must come down.</strong> Content that is unlawful, or a claim about an identifiable private individual, is out of scope and can be quarantined or removed. Write with the claim's address and the basis. The removal itself stays visible in the <%= link_to "moderation log", moderation_path %>: what was removed is withdrawn, the fact that it was is not.</p>
+  <p><strong>You want to work on the code.</strong> Pull requests are welcome at <%= link_to "#{@software[:repository]}/pulls", "#{@software[:repository]}/pulls", rel: "noopener", target: "_blank" %>, and an issue first is welcome but not required. The suite has to pass, the server is AGPL-3.0-or-later and the protocol and schemas are Apache-2.0 (<%= link_to "licences", licenses_path %>), and the project takes a sign-off rather than a contributor agreement, so commits carry a <code>Signed-off-by</code> line certifying you have the right to submit the work. <code>IMPLEMENTATION.md</code> in the repository says how a change becomes a stage, and <code>CLAUDE.md</code> holds the conventions, including the invariants that must survive any change.</p>
   <p><strong>You disagree with how this works.</strong> The rules are the <%= link_to "constitution", constitution_path %>, and Article XXV says how they change: an amendment is proposed in writing, with its reasoning and its risks, and adopted openly or not at all.</p>
 </div>

@@ -65,6 +65,8 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(response.body).to include("one tired old programmer")
     expect(response.body).to include("Sponsorship").and include("proposed amendment P-6")
     expect(response.body).to include("No sponsor gets a say")
+    expect(response.body).to include("Pull requests are welcome").and include("Signed-off-by")
+    expect(response.body).to include("github.com/bhoult/Galedra/pulls")
     expect(response.body).to include("A donation buys no claim")
     expect(response.body).to include("Report a bug").and include("moderation log").and include("Article XXV")
     get "/"
