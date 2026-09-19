@@ -1,6 +1,6 @@
 <% content_for :title, "Outlines" %>
 <h1>Outlines</h1>
-<p class="meta">Long sources (a transcript, a speech, a long article) read as a tree of sections with the claims filed under each. <%= Sections::Tree::NOTE %> To help with one, tell your assistant: <code>work five open tasks in Galedra on</code> its address.</p>
+<p class="meta">Long sources (a transcript, a speech, a long article) read as a tree of sections with the claims filed under each. <%= Sections::Tree::NOTE %> To help with one, tell your assistant: <code>work the open tasks in Galedra on</code> its address.</p>
 <%= form_with url: sections_path, method: :get, class: "filters" do |f| %>
   <label>Order <%= f.select :sort, [ [ "most open work first", "" ], [ "newest", "newest" ] ], { selected: params[:sort] } %></label>
   <label>Topic <%= f.select :topic, [ [ "any", "" ] ] + Topics.index.values.map { |n| [ n.top? ? n.label : "#{n.parent.label} / #{n.label}", n.path ] }, { selected: params[:topic] } %></label>
