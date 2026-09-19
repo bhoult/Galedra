@@ -362,7 +362,7 @@ module Mcp
       if args["calculation"]
         result = Scoring::Score.call(claim, seq, model)
         out[:calculation] = { assessment_state: result.assessment_state, probability: result.probability, model: model.full_name, snapshot_seq: seq,
-                              stated_as: result.probability && "#{result.probability} under #{model.full_name} at snapshot #{seq}",
+                              stated_as: Cards::DisplayRules.stated(result.probability, model.full_name, seq),
                               review_checklist: result.review_checklist, stability: result.stability, note: "Model-conditional and reproducible, not objective; never a percentage true." }
       end
       out

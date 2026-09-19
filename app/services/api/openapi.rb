@@ -20,9 +20,8 @@ module Api
           schemas: {
             Errors: { type: "object", properties: { errors: { type: "array", items: { type: "object", properties: { code: { type: "string" }, path: { type: "string" }, detail: { type: "string" } } } } } },
             InvestigationBundle: Mcp::Server::TOOLS.find { |t| t[:name] == "record_investigation" }[:inputSchema],
-            Card: { type: "object", description: "The answer card. No probability here; see /claims/{id}/score.",
-                    properties: { headline: { type: "string" }, plain: { type: "object", properties: { headline: { type: "string" }, say_instead: { type: [ "string", "null" ] } } },
-                                  review_checks: { type: "string" }, labels: { type: "array", items: { type: "string" } }, model: { type: "string" }, snapshot_seq: { type: "integer" } } }
+            # One description of Cards::ClaimCard's return value, shared with the connector.
+            Card: Mcp::Server::CARD_SCHEMA.merge(description: "The answer card. No probability here; see /claims/{id}/score.")
           }
         },
         paths: {

@@ -22,8 +22,10 @@ module Governance
       @bytes ||= File.binread(PATH)
     end
 
+    # Through Crypto::Hashing, which owns the prefix and its validator: this is
+    # the one hash an outside auditor checks a running ledger against.
     def digest
-      "sha256:#{Digest::SHA256.hexdigest(bytes)}"
+      Crypto::Hashing.bytes(bytes)
     end
 
     def version

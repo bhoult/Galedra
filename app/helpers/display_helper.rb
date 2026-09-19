@@ -9,23 +9,20 @@ module DisplayHelper
   # Rule 3: no number at all for INSUFFICIENT_EVIDENCE and NOT_APPLICABLE.
   # Rule 2: when shown, always with model and snapshot.
   def assessment_number(assessment)
-    return nil if assessment.nil? || NO_NUMBER_STATES.include?(assessment[:assessment_state]) || assessment[:probability].nil?
+    return nil if assessment.nil? || NO_NUMBER_STATES.include?(assessment[:assessment_state])
 
-    "#{assessment[:probability]} under #{assessment[:model]} at snapshot #{assessment[:snapshot_seq]}"
+    Cards::DisplayRules.stated(assessment[:probability], assessment[:model], assessment[:snapshot_seq])
   end
 
   # Rule 5: review coverage is always a count of checks, never a percentage or low/medium/high.
   def review_checks_text(checklist)
-    "Review checks: #{checklist.count { |_, v| v['ok'] }} of #{checklist.size}"
+    "Review checks: #{Cards::DisplayRules.checks_count(checklist)}"
   end
 
-  # Rule 4, 6: labels shown beside the state.
+  # Rules 4, 6: the labels beside the state, the same ones the answer card
+  # shows. Both blocks appear on the claim page, so they read from one place.
   def assessment_labels(assessment)
-    labels = []
-    labels << "Not yet independently audited." if assessment[:provisional]
-    labels << "Evidence points both ways." if assessment[:contested]
-    labels << "This assessment depends heavily on modeling choices." if assessment[:model_dependent]
-    labels
+    Cards::DisplayRules.for_assessment(assessment)
   end
 
   # Rule 7: raw and independent counts together.

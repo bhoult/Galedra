@@ -39,8 +39,10 @@ module Cards
       [ canvas.composite2(layer, :over, x: MARGIN + 14, y: y), y + mask.height ]
     end
 
-    def escape(text) = text.to_s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
+    # Vips::Image.text parses Pango markup, and claim text is untrusted.
+    def escape(text) = CGI.escapeHTML(text.to_s)
 
+    # Not String#truncate: the ellipsis follows the last word, not a space.
     def truncate(text, max)
       text = text.to_s
       text.length > max ? "#{text[0, max - 1].rstrip}…" : text

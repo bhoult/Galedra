@@ -119,7 +119,7 @@ module Investigations
       end
       bundle.fetch("links", []).each do |l|
         payload = { "evidence_item_id" => ids.fetch(l["evidence"]), "claim_id" => ids.fetch(l["claim"]), "direction" => l["direction"],
-                    "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => steps_for(l, bundle), "note" => l["note"] }.compact
+                    "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => Steps.for_link(l, bundle), "note" => l["note"] }.compact
         write.call("LINK_EVIDENCE", payload, nil, nil, nil)
       end
       bundle.fetch("inferences", []).each do |inf|
@@ -135,14 +135,6 @@ module Investigations
         end
       end
       count
-    end
-
-    # A transcription is a reading, not a quotation: at least one interpretive step.
-    def steps_for(link, bundle)
-      steps = link.fetch("steps", 0).to_i
-      excerpt_handle = bundle.fetch("evidence", []).find { |e| e["handle"] == link["evidence"] }&.dig("excerpt")
-      kind = bundle.fetch("excerpts", []).find { |e| e["handle"] == excerpt_handle }&.fetch("kind", "QUOTE")
-      kind == "TRANSCRIPTION" ? [ steps, 1 ].max : steps
     end
 
     def existing_for(bundle)

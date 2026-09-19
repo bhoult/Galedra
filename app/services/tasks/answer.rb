@@ -91,7 +91,7 @@ module Tasks
       end
       section(answer, "links").each do |l|
         ops << { "op" => "LINK_EVIDENCE", "evidence_item_id" => l["evidence"], "claim_id" => claim_ref.call(l["claim"]), "direction" => l["direction"],
-                 "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => steps_for(l, answer), "note" => l["note"] }.compact
+                 "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => Investigations::Steps.for_link(l, answer), "note" => l["note"] }.compact
       end
       section(answer, "groups").each do |g|
         handle = handle!(g)
@@ -124,14 +124,6 @@ module Tasks
       raise ArgumentError, "handle #{handle.inspect} must match #{HANDLE.source} and not be #{RESERVED.join(' or ')}" unless handle.is_a?(String) && HANDLE.match?(handle) && !RESERVED.include?(handle)
 
       handle
-    end
-
-    # A transcription is a reading, not a quotation: at least one interpretive step.
-    def steps_for(link, answer)
-      steps = link.fetch("steps", 0).to_i
-      excerpt = answer.fetch("evidence", []).find { |e| e["handle"] == link["evidence"] }&.dig("excerpt")
-      kind = answer.fetch("excerpts", []).find { |e| e["handle"] == excerpt }&.fetch("kind", "QUOTE")
-      kind == "TRANSCRIPTION" ? [ steps, 1 ].max : steps
     end
   end
 end

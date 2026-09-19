@@ -16,6 +16,17 @@ class Audit < ApplicationRecord
   validates :audit_type, inclusion: { in: TYPES }
   validates :result, inclusion: { in: RESULTS }
 
+  # Audits on these contributions, at or before a seq, that were left
+  # unresolved or later overturned. The claim page's main unresolved issue
+  # (06 §4 rule 5a) and the Weaknesses page (Art. XXII) must agree on what
+  # "disputed" means, so both ask here.
+  scope :disputed_for, ->(contribution_ids, seq) {
+    where(target_contribution_id: contribution_ids)
+      .where(arel_table[:created_seq].lteq(seq))
+      .where(arel_table[:result].eq("UNRESOLVED").or(arel_table[:invalidated_seq].not_eq(nil)))
+      .order(:created_seq)
+  }
+
   def re_audit? = audit_type == "RE_AUDIT"
   def disagrees? = DISAGREEING.include?(result)
 end

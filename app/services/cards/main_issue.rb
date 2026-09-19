@@ -27,9 +27,7 @@ module Cards
     end
 
     def disputed_audit(links, seq)
-      ids = links.map(&:contribution_id)
-      Audit.where(target_contribution_id: ids).where("created_seq <= ?", seq)
-           .where("result = 'UNRESOLVED' OR invalidated_seq IS NOT NULL").order(:created_seq).first
+      Audit.disputed_for(links.map(&:contribution_id), seq).first
     end
   end
 end

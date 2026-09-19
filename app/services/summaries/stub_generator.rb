@@ -52,7 +52,7 @@ module Summaries
         out << { "text" => text, "cites" => [ t["task_id"] ] }
       end
       checks = input["review_checklist"]
-      out << { "text" => "Review checks: #{checks.count { |_, v| v['ok'] }} of #{checks.size}.", "cites" => [ "coverage:#{claim_id}" ] }
+      out << { "text" => "Review checks: #{Cards::DisplayRules.checks_count(checks)}.", "cites" => [ "coverage:#{claim_id}" ] }
       out
     end
   end

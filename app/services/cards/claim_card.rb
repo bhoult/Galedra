@@ -14,34 +14,21 @@ module Cards
       card = {
         headline: Headline.for(result.assessment_state),
         independent_lineages: lineages,
-        review_checks: "#{checks.count { |_, v| v['ok'] }} of #{checks.size}",
+        review_checks: DisplayRules.checks_count(checks),
         stability: result.stability,
         main_issue: MainIssue.call(claim, seq, result),
-        labels: labels(result, anonymous: anonymous_provisional?(claim, seq)),
+        labels: DisplayRules.for_result(result, anonymous: anonymous_provisional?(claim, seq)),
         related: related(claim, seq, model),
         plain: Plain.call(claim, seq, model, result),
         model: model.full_name, snapshot_seq: seq,
         # The number in the one form the display rules allow (06 §4 rule 2, CLAUDE.md
         # vocabulary): with its model and snapshot, never as "N% true". Nil when
         # the state carries no probability.
-        stated: (result.probability && "#{result.probability} under #{model.full_name} at snapshot #{seq}")
+        stated: DisplayRules.stated(result.probability, model.full_name, seq)
       }
       card[:reason] = Headline.reason_text(result.not_applicable_reason) if result.assessment_state == "NOT_APPLICABLE"
       card[:labels] += retrieval_labels(claim, seq)
       card
-    end
-
-    def labels(result, anonymous: false)
-      labels = []
-      labels << (anonymous ? "Not yet independently audited; some evidence was recorded by an anonymous contributor." : "Not yet independently audited.") if result.provisional
-      labels << "Evidence points both ways." if result.contested
-      labels << "This assessment depends heavily on modeling choices." if result.model_dependent
-      checks = result.review_checklist
-      done = checks.count { |_, v| v["ok"] }
-      if %w[SUPPORTED CONTRADICTED].include?(result.assessment_state) && done <= 1
-        labels << "Evidence reviewed so far #{result.assessment_state == 'SUPPORTED' ? 'supports' : 'contradicts'} this claim, but only #{done} of #{checks.size} review checks #{done == 1 ? 'has' : 'have'} been done."
-      end
-      labels
     end
 
     # Stage 17: what Galedra's own fetch found for the quoted passages behind the

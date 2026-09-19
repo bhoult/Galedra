@@ -33,7 +33,7 @@ module Weaknesses
     def low_coverage_scored(claims, scored, *)
       claims.filter_map do |c|
         r = scored[c.id]
-        done = r.review_checklist.count { |_, v| v["ok"] }
+        done = Cards::DisplayRules.checks_done(r.review_checklist)
         [ c, { review_checks_done: done } ] if r.probability && done <= 1
       end
     end
@@ -67,8 +67,7 @@ module Weaknesses
     def disputed_audits(claims, _scored, seq, *)
       claims.filter_map do |c|
         links = c.evidence_claim_links.effective_at(seq)
-        audits = Audit.where(target_contribution_id: links.map(&:contribution_id)).where("created_seq <= ?", seq)
-                      .where("result = 'UNRESOLVED' OR invalidated_seq IS NOT NULL")
+        audits = Audit.disputed_for(links.map(&:contribution_id), seq)
         [ c, { audits: audits.map { |a| { audit_id: a.id, result: a.result, overturned: a.invalidated? } } } ] if audits.any?
       end
     end
