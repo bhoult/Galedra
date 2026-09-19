@@ -22,7 +22,7 @@
   <p class="meta">Source: <%= link_to @section.source.title, source_path(@section.source) %><% if @section.location %> · <%= locator_label(@section.location) %><% end %> · <%= link_to "created seq #{@section.created_seq}", contribution_path(@section.contribution_id) %></p>
   <% if @section.location&.excerpt.present? %>
     <blockquote class="passage"><%= simple_format(@section.location.excerpt) %></blockquote>
-    <p class="meta">The passage this section covers, as the assistant quoted it. What is hashed and checked against the source is exactly this text.</p>
+    <p class="meta">The opening words of this section, quoted exactly. It marks where the section starts and is what gets hashed and checked against the source; the rest of the text is at the source. Stage 30 will hold it here.</p>
   <% end %>
   <p><strong><%= Sections::Tree.counts_line(@subtree[:counts]) %></strong><% if @subtree[:pending].positive? %> · <%= @subtree[:pending] %> proposed claims awaiting acceptance<% end %></p>
   <% if @subtree[:children].empty? && @subtree[:claims].empty? %><p class="muted">Nothing under this section yet. Its claims arrive when the extraction task below is worked.</p><% end %>
