@@ -6,15 +6,12 @@ module Api
     # claims, evidence, links, and groups with local handles, recorded as a
     # sequence of custodied contributions, all or nothing.
     #
-    # Two doors to the same service. POST /api/v1/investigations with the
-    # bundle as the body and the token as a bearer header. GET
-    # /api/v1/investigations/record?bundle=... for assistants that can only
-    # open links: the bundle is base64url JSON in the query. The token is
-    # optional on both: without one the caller is an anonymous assistant keyed
-    # to its address for the day. A write on GET is deliberately non-standard
-    # (IMPLEMENTATION.md, "The write link"); it is made safe by the rate
-    # limits and cap, log filtering, and idempotency: the same assistant and
-    # bundle record once.
+    # POST /api/v1/investigations with the bundle as the body and the token as
+    # a bearer header. The token is optional: without one the caller is an
+    # anonymous assistant keyed to its address for the day. The same assistant
+    # and bundle record once (InvestigationReceipt). The GET "write link" of
+    # 2026-09-18 was removed on 2026-09-19: a state-changing GET that a link
+    # preview or a crawler could trigger, built for a host that never used it.
     class InvestigationsController < BaseController
       include AssistantAuth
 
@@ -30,10 +27,6 @@ module Api
         record(JSON.parse(request.raw_post.presence || "{}"))
       rescue JSON::ParserError => e
         raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$", detail: "body is not valid JSON: #{e.message}" } ])
-      end
-
-      def record_by_link
-        record(decode_bundle(request.path_parameters[:bundle].presence || request.query_parameters["bundle"].to_s))
       end
 
       private
@@ -59,14 +52,6 @@ module Api
 
       # The link form carries the bundle as base64url JSON; plain JSON is
       # accepted too, for hand-built links.
-      def decode_bundle(text)
-        raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.bundle", detail: "bundle is required: base64url of the investigation JSON" } ]) if text.blank?
-
-        json = text.lstrip.start_with?("{") ? text : Base64.urlsafe_decode64(text.tr(" ", "+"))
-        JSON.parse(json)
-      rescue ArgumentError, JSON::ParserError => e
-        raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.bundle", detail: "bundle is not base64url JSON: #{e.message}" } ])
-      end
     end
   end
 end

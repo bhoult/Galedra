@@ -23,3 +23,14 @@
   minted on first use, so the work is still signed, delegated, capped per source per
   day, sampled at the anonymous rate, and labelled. Idempotency is keyed to that
   assistant. Raw custodied writes and token management still need a real token.
+
+
+## Removed (2026-09-19)
+
+The write link (`GET /api/v1/investigations/record`, with the bundle in the query or the
+path) was removed on the owner's instruction: a state-changing GET that a link preview
+or a crawler could trigger, needing no credential in its tokenless form, built for a
+host whose browser refused long URLs and so never served it. Hosted assistants use OAuth
+over MCP (Stage 16). What it shared with the POST door stays: idempotent recording
+through `InvestigationReceipt`, and anonymous assistants keyed to their address for the
+day. The spec that covered it now covers those over POST.

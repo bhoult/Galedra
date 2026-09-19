@@ -113,9 +113,6 @@ Rails.application.routes.draw do
       resources :assistants, only: [ :create, :destroy ]
       post "custodied/contributions", to: "custodied#create"
       post "investigations", to: "investigations#create"
-      get "investigations/record", to: "investigations#record_by_link", as: :record_investigation
-      # Some fetchers strip query strings from links; the bundle may ride in the path.
-      get "investigations/record/:bundle", to: "investigations#record_by_link", constraints: { bundle: /[A-Za-z0-9_\-=]+/ }, as: :record_investigation_path_form
       post "tasks/next", to: "tasks#next"
       resources :tasks, only: [ :show ] do
         post :release, on: :member

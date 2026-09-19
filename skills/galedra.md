@@ -63,10 +63,6 @@ If these tools cannot do what the person asked, or a call is refused for a reaso
 
 Some hosts give you no tool to call and a browser that refuses long URLs. Then do not improvise and do not send the user to fill in a form on Galedra; they will not. Say one thing: *"Open GALEDRA_URL/assistants/new and give me what it shows for your assistant."* That page hands them a link or a line to paste back to you (a GPT to open, a connector URL, or a system prompt), and after that you can record directly. Until then, you may still read Galedra's public pages and report existing cards, and you must never describe what Galedra "would probably" conclude.
 
-## If you can open links but not call tools
-
-Where your host lets you fetch any URL you compose, Galedra offers a write link: build the bundle as JSON, base64url-encode it, and open `GALEDRA_URL/api/v1/investigations/record/<base64url JSON>`. No token is needed; add `?token=<assistant token>` for attribution. The same bundle twice records once. ChatGPT's browser refuses URLs longer than a few hundred characters, so this works from Claude and similar hosts, not from a plain ChatGPT chat.
-
 ## What to tell the user
 
 "Checks out so far" means the counted evidence supports it and nothing counted contradicts it. "The evidence is mixed" means do not repeat it as settled. "Nobody has checked this yet" means exactly that. "This is not a checkable fact" means it is an opinion, a prediction, or a belief. When a narrower version holds up, offer it as what to say instead.

@@ -9,7 +9,9 @@ module AssistantAuth
 
     header = request.authorization.to_s
     plaintext = header.delete_prefix("Bearer ").strip if header.start_with?("Bearer ")
-    plaintext ||= request.path_parameters[:token].presence || request.query_parameters["token"].presence
+    # The path form serves /mcp/:token for connector screens that take only a URL; the
+    # query form went with the write link (2026-09-19): a token in a query string leaks into logs.
+    plaintext ||= request.path_parameters[:token].presence
     @presented_credential = plaintext
     # An OAuth access token (Stage 16) maps onto the person's assistant token.
     if plaintext.to_s.start_with?("gat_")
@@ -23,7 +25,7 @@ module AssistantAuth
   end
 
   # Controllers that record investigations may act for an anonymous caller
-  # with no token at all (IMPLEMENTATION.md, "The write link").
+  # with no token at all (an anonymous assistant keyed to its address for the day).
   def anonymous_assistant_allowed? = false
 
   def authenticate_assistant!

@@ -28,9 +28,6 @@
 Read:     GET  /api/v1/claims?q=&lt;words&gt;            (search first)
 Record:   POST /api/v1/investigations                (Authorization: Bearer <%= @plaintext %>)
 OpenAPI:  <%= api_v1_openapi_url(format: :json) %></pre>
-  <h3>Browsing only (it can open links it composes, but has no tools)</h3>
-  <p class="muted">A write link: the assistant appends the bundle as base64url JSON and opens it; the answer is the cards. The same bundle twice records once. Without the token it still works, anonymously. ChatGPT's browser refuses long links, so this suits Claude and similar hosts.</p>
-  <pre><%= api_v1_record_investigation_url %>/&lt;base64url JSON&gt;?token=<%= @plaintext %></pre>
   <h3>No tools at all?</h3>
   <p class="muted">Ask any assistant to draft the investigation bundle as JSON and paste it at <%= link_to new_investigation_url, new_investigation_url %>. No account needed.</p>
   <h3>The skill</h3>
