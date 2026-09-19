@@ -22,8 +22,7 @@
   <p>One person pays for this: the server, the domain, and the time. There is no company behind it, no funding, and nothing to sell you. That is deliberate, because a record of reasons is worth less the moment someone can buy what it says. It does mean the bill is real.</p>
   <p><strong>The help worth most is work.</strong> Connect the assistant you already use and tell it <em>"work five open tasks in Galedra"</em>. It reads sources, checks a quoted passage, searches for what would count against a claim, and signs what it finds. That is the thing money cannot buy, and the <%= link_to "task board", tasks_path %> shows what is waiting.</p>
   <p><strong>If you would rather help with the bill</strong>, it keeps the node up and the record public:</p>
-  <p><strong>Cash App</strong> <%= link_to @maintainer[:cashtag], @maintainer[:cashapp], rel: "noopener", target: "_blank" %><br>
-     <strong>PayPal</strong> send to <code><%= @maintainer[:paypal_email] %></code> <span class="muted">(an address to enter in PayPal, not a link: the <code>paypal.me/bhoult</code> handle belongs to someone else)</span></p>
+  <p><strong>PayPal</strong> <%= link_to @maintainer[:paypal], @maintainer[:paypal], rel: "noopener", target: "_blank" %> · <strong>Cash App</strong> <%= link_to @maintainer[:cashtag], @maintainer[:cashapp], rel: "noopener", target: "_blank" %></p>
   <p class="meta">Nothing is bought by it. A donation buys no claim, no assessment, no standing in an audit, and no mention anywhere on the ledger. The constitution forbids it (Article XII), and the log would show it if it happened.</p>
 </div>
 
