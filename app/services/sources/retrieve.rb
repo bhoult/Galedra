@@ -6,7 +6,9 @@ module Sources
   # found as a system-signed RETRIEVE_SOURCE. The only input is a link already
   # in the log. Rules: public hosts only (the address is refused after DNS
   # resolution when it is private, loopback, link-local, or a metadata range,
-  # and re-checked on every redirect); http or https; at most five redirects;
+  # re-checked on every redirect, and the connection is pinned to the address
+  # that passed, so a second lookup cannot answer differently); http or https;
+  # at most five redirects;
   # a byte cap and a timeout; a fixed user agent; robots exclusions respected;
   # one fetch per host per minute; no script execution. Page text is never
   # stored. LEDGER_RETRIEVAL turns it off (default off in test).
@@ -141,11 +143,16 @@ module Sources
       def get(uri)
         redirects = 0
         loop do
-          Retrieve.refuse_private!(uri.host, resolver: @resolver)
+          # Keep the address that passed the check and connect to that one.
+          # Resolving again at connect time would let a name with a short TTL
+          # answer public here and private there, which is the whole of a DNS
+          # rebinding attack; the throttle below can sleep a minute between the
+          # two, so the window is not theoretical.
+          address = Retrieve.refuse_private!(uri.host, resolver: @resolver).first
           throttle!(uri.host)
-          return Response.new(status: "BLOCKED", final_url: uri.to_s) if @robots && disallowed?(uri)
+          return Response.new(status: "BLOCKED", final_url: uri.to_s) if @robots && disallowed?(uri, address)
 
-          response, body, too_large = request(uri)
+          response, body, too_large = request(uri, address)
           case response
           when Net::HTTPRedirection
             redirects += 1
@@ -168,8 +175,12 @@ module Sources
 
       private
 
-      def request(uri)
+      # address is the checked IP. Net::HTTP opens the socket to ipaddr while
+      # keeping the hostname for the Host header, for SNI and for certificate
+      # verification, so pinning it costs nothing and closes the rebinding gap.
+      def request(uri, address = nil)
         http = Net::HTTP.new(uri.host, uri.port)
+        http.ipaddr = address if address.present? && address != uri.host
         http.use_ssl = uri.scheme == "https"
         http.open_timeout = OPEN_TIMEOUT
         http.read_timeout = READ_TIMEOUT
@@ -200,10 +211,12 @@ module Sources
         @cache.write(key, Time.now.to_i, expires_in: HOST_INTERVAL)
       end
 
-      def disallowed?(uri)
+      # Same host, so the same checked address: robots.txt must not be the way
+      # in either.
+      def disallowed?(uri, address = nil)
         robots = URI::HTTP.build(scheme: uri.scheme, host: uri.host, port: uri.port, path: "/robots.txt")
         robots = URI.parse(robots.to_s.sub(/\Ahttp:/, "https:")) if uri.scheme == "https"
-        response, body, = request(robots)
+        response, body, = request(robots, address)
         return false unless response.is_a?(Net::HTTPSuccess)
 
         Retrieve.robots_disallow?(body, uri.path.presence || "/")

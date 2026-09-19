@@ -23,6 +23,7 @@ IMPLEMENTATION.md             index: how a stage is executed, the stage table, d
 implementation/planned/       one file per stage not yet built (its plan)
 implementation/implemented/   one file per stage built (its plan, then its Decision Log entry)
 docs/profiler/                one file per profiling run: conditions, numbers, findings
+docs/security/                one file per security audit: findings, dismissals, what held up
 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   12-constitution.md          25 Articles + Constitutional Test. Outranks every other file.
   README.md                   purpose, principles, conventions, P0 Definition of Done

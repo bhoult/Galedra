@@ -154,4 +154,31 @@ RSpec.describe "Source retrieval by a trusted job (Stage 17)" do
     expect(presented[:context]["retrieval"]).to include("found" => "NOT_FOUND")
     expect(task.packet.dig("context", "retrieval")).to be_nil
   end
+
+  it "connects to the address it checked, so a second lookup cannot answer differently (#6)" do
+    # DNS rebinding: the name answers with a public address while it is being
+    # checked and with the cloud metadata address a moment later. The fetch has
+    # to go to the address that passed the check, not to a fresh lookup.
+    resolver = Class.new do
+      def initialize = @calls = 0
+
+      def getaddresses(_host)
+        @calls += 1
+        @calls == 1 ? [ "93.184.216.34" ] : [ "169.254.169.254" ]
+      end
+    end.new
+
+    seen = nil
+    allow_any_instance_of(Net::HTTP).to receive(:start) do |http|
+      seen = { host: http.address, connects_to: http.ipaddr, ssl: http.use_ssl? }
+      raise Net::OpenTimeout
+    end
+
+    fetcher = Sources::Retrieve::Fetcher.new(resolver: resolver, cache: ActiveSupport::Cache::NullStore.new, robots: false)
+    expect { fetcher.get(URI.parse("https://rebind.example/page")) }.to raise_error(Net::OpenTimeout)
+
+    # The hostname stays for the Host header and certificate verification; only
+    # the socket is pinned.
+    expect(seen).to eq(host: "rebind.example", connects_to: "93.184.216.34", ssl: true)
+  end
 end
