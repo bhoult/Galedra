@@ -15,4 +15,12 @@ Licensing (adopted 2026-09-19, following docs/LICENSE-POLICY.md; full texts in L
   Project-authored factual records           CC0-1.0 where legally possible
   Imported third-party material              remains under its source's terms
 
+Bundled third-party material:
+
+  vendor/assets/swagger-ui/ holds Swagger UI 5.33.0, vendored unmodified from
+  the swagger-ui-dist npm package and served on /docs/api so that the API
+  reference renders without reaching a CDN. Copyright the Swagger UI
+  contributors, licensed under Apache-2.0; its own LICENSE and NOTICE are kept
+  beside it in that directory.
+
 SPDX-License-Identifier: AGPL-3.0-or-later

@@ -14,6 +14,14 @@ class HelpController < ApplicationController
     @api_reference = Api::Openapi.reference
   end
 
+  # The OpenAPI description rendered by Swagger UI, the reference renderer. The
+  # page holds nothing of its own: it points the renderer at the same JSON every
+  # client reads, so it cannot show an API that is not there.
+  def api
+    @openapi_url = api_v1_openapi_path(format: :json)
+    @version = Api::Openapi::VERSION
+  end
+
   def glossary
   end
 

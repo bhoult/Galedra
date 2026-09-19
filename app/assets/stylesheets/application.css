@@ -252,3 +252,9 @@ body.document .statement > * { max-width: none; margin-inline: 0; }
 /* One line under the assertion and the say-instead line: never wrapped, never flowed around the badge. */
 .answer.badged p.status-line { clear: both; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.78rem; letter-spacing: -0.01em; margin: 0.5rem 0 0.3rem; }
 @media (max-width: 30rem) { .answer.badged .badge-validity { width: 4.5rem; } .share .answer.badged p.claim-text { font-size: 1.25rem; } }
+
+/* /docs/api embeds Swagger UI, which brings a complete stylesheet of its own.
+   Keep this file's generic form rules out of it; widths, colours and the rest
+   are Swagger's business. */
+#swagger-ui label { display: inline-block; margin: 0; font-size: inherit; color: inherit; }
+#swagger-ui label > input, #swagger-ui label > select, #swagger-ui label > textarea { display: inline-block; margin-top: 0; font-size: inherit; }

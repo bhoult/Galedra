@@ -23,6 +23,28 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(response.body).to include("The problem")
   end
 
+  it "renders the API reference with Swagger UI served from this node, linked in the Help menu" do
+    get "/docs/api"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('data-controller="openapi"')
+    expect(response.body).to include('data-openapi-url-value="/api/v1/openapi.json"')
+
+    # Vendored, not a CDN: the page must not reach out to anyone to render.
+    script, css = response.body.scan(/data-openapi-(?:script|css)-value="([^"]+)"/).flatten
+    expect(script).to start_with("/assets/swagger-ui-bundle-")
+    expect(css).to start_with("/assets/swagger-ui-")
+    [ script, css ].each do |path|
+      get path
+      expect(response).to have_http_status(:ok), "#{path} is not served"
+    end
+    get "/docs/api"
+    expect(response.body).not_to match(%r{src="https?://(?!localhost)}) # no third-party script
+
+    get "/"
+    help = response.body[response.body.index("<summary>Help</summary>")..]
+    expect(help).to include(">API reference<")
+  end
+
   it "shows every licence in the stack in full, with what is in force today" do
     get "/licenses"
     expect(response).to have_http_status(:ok)

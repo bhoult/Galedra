@@ -8,13 +8,36 @@ module Api
   module Openapi
     VERSION = "0.3.0"
 
+    # How the endpoints are grouped, for the renderer and for the docs table.
+    # Matched in order, so the last entry catches whatever is left; the same
+    # order is the order the sections are shown in.
+    TAGS = [
+      { name: "Claims", match: %r{\A/api/v1/claims},
+        description: "A claim, what bears on it, and the number with its model and snapshot." },
+      { name: "Sources and sections", match: %r{\A/api/v1/(sources|evidence|sections|inferences)},
+        description: "Where the evidence came from, how a long source is broken up, and recorded reasoning steps." },
+      { name: "Recording", match: %r{\A/api/v1/(investigations|custodied)},
+        description: "How an assistant records what it read. One call, all or nothing." },
+      { name: "The log", match: %r{\A/api/v1/(contributions|log|snapshots)},
+        description: "The signed, hash-chained record everything else is projected from." },
+      { name: "Tasks", match: %r{\A/api/v1/tasks},
+        description: "Open work: lease a signed packet, do it, give it back. Results arrive as contributions." },
+      { name: "Contributors", match: %r{\A/api/v1/contributors},
+        description: "Who did the work, and how reliably. Never authority, and never a scoring input." },
+      { name: "Assistants", match: %r{\A/api/v1/assistants},
+        description: "Tokens for a connected assistant." },
+      { name: "Moderator", match: %r{\A/api/v1/admin},
+        description: "Signed moderator requests. Visible in the moderation log like everything else." },
+      { name: "This node", match: //,
+        description: "What this node is, what it runs, and where it is weakest." }
+    ].freeze
+
     module_function
 
     def document(base_url)
       {
         openapi: "3.1.0",
-        info: { title: "Galedra", version: VERSION,
-                description: "An epistemic ledger: a signed, append-only record of claims, evidence, provenance, audits, and reproducible scores. Not a source of truth. #{Mcp::Server::RULES}" },
+        info: { title: "Galedra", version: VERSION, description: info_description },
         servers: [ { url: base_url } ],
         components: {
           securitySchemes: { assistantToken: { type: "http", scheme: "bearer", description: "A connected assistant's token from /assistants/new" } },
@@ -27,9 +50,18 @@ module Api
             SignedRequest: signed_request_schema
           }
         },
-        paths: read_paths.merge(write_paths)
+        tags: TAGS.map { |t| { name: t[:name], description: t[:description] } },
+        paths: tagged(read_paths.merge(write_paths))
       }
     end
+
+    # Every operation carries the tag of its path, so the renderer groups them
+    # and nothing can land untagged.
+    def tagged(paths)
+      paths.to_h { |path, ops| [ path, ops.transform_values { |op| op.merge(tags: [ tag_for(path) ]) } ] }
+    end
+
+    def tag_for(path) = TAGS.find { |t| t[:match].match?(path) }[:name]
 
     # Every GET. A read is never consequential: it appends nothing.
     def read_paths
@@ -107,17 +139,31 @@ module Api
     # The same paths arranged for the docs page: one row per operation, reads
     # first. The page renders this, so it cannot fall behind the API.
     def reference
-      { "Reads" => rows(read_paths), "Writes" => rows(write_paths) }
+      all = rows(read_paths) + rows(write_paths)
+      TAGS.filter_map { |t|
+        group = all.select { |row| row[:tag] == t[:name] }
+        { name: t[:name], description: t[:description], rows: group } if group.any?
+      }
     end
 
     def rows(paths)
       paths.flat_map { |path, ops|
         ops.map { |verb, op|
-          { verb: verb.to_s.upcase, path: path, summary: op[:summary],
+          { verb: verb.to_s.upcase, path: path, summary: op[:summary], tag: tag_for(path),
             parameters: Array(op[:parameters]).map { |p| p[:name] },
             body: op[:requestBody].present?, token: Array(op[:security]).any?(&:present?) }
         }
       }
+    end
+
+    # Markdown, because both readers of this document render it: Swagger UI on
+    # /docs/api, and a GPT Action that takes the rules as its instructions. The
+    # rules stay verbatim; the heading keeps them from reading as one wall.
+    def info_description
+      "An epistemic ledger: a signed, append-only record of claims, evidence, provenance, " \
+        "audits, and reproducible scores. Not a source of truth, and it runs no model of its own: " \
+        "every judgment enters as a signed contribution that stays open to audit.\n\n" \
+        "**Rules for an assistant using this API**\n\n#{Mcp::Server::RULES}"
     end
 
     # The signed envelope of spec 02 §1.1. The authoritative version is served

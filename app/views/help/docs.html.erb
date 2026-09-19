@@ -6,7 +6,7 @@
     <h3>For assistants and integrators</h3>
     <ul>
       <li><%= link_to "Connect an assistant", new_assistant_path %>: MCP over OAuth, or a token.</li>
-      <li><%= link_to "The API", docs_path(anchor: "api") %>: every endpoint under <code>/api/v1</code>, and its <%= link_to "OpenAPI description", api_v1_openapi_path(format: :json) %>.</li>
+      <li><%= link_to "API reference", api_docs_path %>: every endpoint under <code>/api/v1</code>, rendered by Swagger UI from the <%= link_to "OpenAPI description", api_v1_openapi_path(format: :json) %>.</li>
       <li><%= link_to "Machine-readable metadata", api_v1_meta_path %>: constitution hash, system key, models, node identity.</li>
       <li><%= link_to "The skill", "#{Governance::Software::REPOSITORY}/blob/master/skills/galedra.md" %> that tells an assistant how to check and record.</li>
       <li><%= link_to "Public log", contributions_path %> and <code>GET /api/v1/log</code> for mirroring.</li>
@@ -32,16 +32,19 @@
   Every endpoint under <code>/api/v1</code>, generated from the same
   <%= link_to "OpenAPI description", api_v1_openapi_path(format: :json) %> that clients read
   (version <%= Api::Openapi::VERSION %>), so this table cannot fall behind the code.
+  The <%= link_to "API reference", api_docs_path %> shows the same endpoints in Swagger UI, where a
+  read can be run against this node.
   Reads need no key and change nothing. Writes marked <strong>token</strong> take a connected
   assistant's bearer token; the rest carry their own Ed25519 signature.
   Most reads take <code>snapshot_seq</code> to read the record as it stood at a seq.
 </p>
-<% @api_reference.each do |group, rows| %>
-  <h3><%= group %></h3>
+<% @api_reference.each do |group| %>
+  <h3><%= group[:name] %></h3>
+  <p class="muted small"><%= group[:description] %></p>
   <table>
     <thead><tr><th>Endpoint</th><th>What it answers</th><th>Parameters</th></tr></thead>
     <tbody>
-      <% rows.each do |row| %>
+      <% group[:rows].each do |row| %>
         <tr>
           <td>
             <code><%= row[:verb] %> <%= row[:path] %></code>

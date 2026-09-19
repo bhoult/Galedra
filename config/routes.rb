@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   get "constitution", to: "home#constitution"
   get "faq", to: "home#faq"
   get "docs", to: "help#docs"
+  get "docs/api", to: "help#api", as: :api_docs
   get "about", to: "help#about"
   get "licenses", to: "help#licenses"
   get "glossary", to: "help#glossary"

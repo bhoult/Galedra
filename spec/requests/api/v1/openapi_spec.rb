@@ -30,6 +30,19 @@ RSpec.describe "OpenAPI document (Stage 14)", type: :request do
     expect(doc_ops - routed_operations).to be_empty
   end
 
+  it "tags every operation with a declared tag, so the renderer groups them" do
+    doc = Api::Openapi.document("http://x")
+    declared = doc[:tags].map { |t| t[:name] }
+    expect(declared).to eq(Api::Openapi::TAGS.map { |t| t[:name] })
+    doc[:paths].each do |path, ops|
+      ops.each do |verb, op|
+        expect(op[:tags]).to be_present, "#{verb.upcase} #{path} has no tag"
+        expect(declared).to include(*op[:tags])
+      end
+    end
+    expect(Api::Openapi.reference.sum { |g| g[:rows].size }).to eq(doc[:paths].sum { |_, ops| ops.size })
+  end
+
   it "is a valid 3.1 document whose every read responds (#2)" do
     get "/api/v1/openapi.json"
     expect(response).to have_http_status(:ok)
