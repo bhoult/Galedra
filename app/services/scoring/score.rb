@@ -35,7 +35,13 @@ module Scoring
       return {} if claims.empty?
 
       hits = ClaimScore.where(claim_id: claims.map(&:id), snapshot_seq: seq, scoring_model_id: model.id).index_by(&:claim_id)
-      computed = claims.reject { |c| hits.key?(c.id) }.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, seq), model) ] }
+      misses = claims.reject { |c| hits.key?(c.id) }
+      # Audit state is a function of the log up to this seq, and the log does
+      # not move while the set is being scored; the same contributions recur
+      # across links and across models, so ask once.
+      computed = Audits::Status.memoized do
+        misses.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, seq), model) ] }
+      end
       store_all(computed, seq, model)
 
       claims.to_h { |c| [ c.id, hits[c.id] ? from_cache(hits[c.id]) : computed[c.id] ] }

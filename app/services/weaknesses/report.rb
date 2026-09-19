@@ -42,6 +42,10 @@ module Weaknesses
     end
 
     def compute(seq, kinds, model)
+      Audits::Status.memoized { compute_lists(seq, kinds, model) }
+    end
+
+    def compute_lists(seq, kinds, model)
       models = Scoring::Registry.released.to_a
       claims = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids).order(:created_seq).to_a
       scored = Scoring::Score.call_many(claims, seq, model)

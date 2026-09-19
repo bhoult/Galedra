@@ -19,7 +19,11 @@ module Scoring
     end
 
     def links_for(claim, seq)
-      links = claim.evidence_claim_links.effective_at(seq).includes(evidence_item: { source_location: :source }).order(:id)
+      # :contribution too, because the audit checks below ask every link for it
+      # and loading them one at a time was the single largest source of queries
+      # in a whole-graph pass (Stage 26).
+      links = claim.evidence_claim_links.effective_at(seq)
+                   .includes(:contribution, evidence_item: { source_location: :source }).order(:id)
       links.filter_map do |link|
         item = link.evidence_item
         location = item.source_location
