@@ -168,6 +168,9 @@ body.landing section { margin: 2.4rem 0; padding: 1rem 1.4rem; background: rgba(
 body.landing .hero { padding: 2rem 1.4rem 1.2rem; }
 body.landing .cta, body.landing .statement { background: rgba(255, 253, 249, 0.9); padding-block: 2rem; }
 body.landing h2 { font-size: 1.7rem; border: 0; padding: 0; margin-bottom: 0.8rem; }
+figure.flow { margin: 1.8rem 0 0; }
+figure.flow img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+figure.flow figcaption { margin-top: 0.6rem; color: var(--muted); font-size: 0.92rem; text-align: center; }
 .tide { margin-top: 1.6rem; }
 .tide h3 { font-size: 1.05rem; margin-top: 0.2rem; }
 .tide-points { margin: 1rem 0 0; padding-left: 1.2rem; }
