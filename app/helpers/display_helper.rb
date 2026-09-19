@@ -72,4 +72,13 @@ module DisplayHelper
     h, m, sec = parts
     h.positive? ? format("%d:%02d:%02d", h, m, sec) : format("%d:%02d", m, sec)
   end
+
+  # One character for a claim's state, for the tree's left column where a word
+  # would not fit. The full state is the title attribute, and every page that
+  # has room spells it out: this is a space constraint, not a new vocabulary.
+  STATE_MARKS = { "SUPPORTED" => "++", "LEANS_SUPPORTED" => "+", "UNRESOLVED" => "~",
+                  "LEANS_CONTRADICTED" => "-", "CONTRADICTED" => "--",
+                  "INSUFFICIENT_EVIDENCE" => "?", "NOT_APPLICABLE" => "n/a" }.freeze
+
+  def state_mark(state) = STATE_MARKS.fetch(state.to_s, "·")
 end

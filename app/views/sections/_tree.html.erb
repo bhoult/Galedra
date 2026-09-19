@@ -2,16 +2,24 @@
     lines, the current claim marked, and the section being read marked too so a
     reader can see where they are in the whole outline. %>
 <% current_section = local_assigns.fetch(:current_section, nil) %>
-<ul>
+<ul data-controller="tree">
   <% node[:children].each do |child| %>
     <li>
       <details <%= "open" if open_ids.include?(child[:section].id) %>>
-        <summary class="<%= "current" if child[:section].id == current_section %>"><%= link_to child[:section].heading, section_path(child[:section]) %> <span class="counts"><%= child[:counts]["claims"] %><%= " · #{child[:pending]} proposed" if child[:pending].positive? %></span></summary>
-        <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq %>
+        <summary class="<%= "current" if child[:section].id == current_section %>">
+          <span class="counts" title="<%= pluralize(child[:counts]["claims"], "claim") %><%= ", #{child[:pending]} proposed" if child[:pending].positive? %>"><%= child[:counts]["claims"] %><%= "+#{child[:pending]}" if child[:pending].positive? %></span>
+          <%= link_to child[:section].heading, section_path(child[:section]) %>
+        </summary>
+        <div class="reveal">
+          <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq %>
+        </div>
       </details>
     </li>
   <% end %>
   <% node[:claims].each do |claim| %>
-    <li><%= link_to claim.canonical_text.truncate(90), claim_path(claim, section: node[:section].id), class: "claim-line #{'current' if claim.id == current_claim}" %> <span class="counts"><%= node[:states][claim.id].to_s.downcase.tr("_", " ") %></span></li>
+    <li class="claim-row">
+      <span class="counts state" title="<%= node[:states][claim.id].to_s.downcase.tr('_', ' ') %>"><%= state_mark(node[:states][claim.id]) %></span>
+      <%= link_to claim.canonical_text.truncate(90), claim_path(claim, section: node[:section].id), class: "claim-line #{'current' if claim.id == current_claim}" %>
+    </li>
   <% end %>
 </ul>
