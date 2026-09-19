@@ -28,7 +28,7 @@ docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   01 … 11, 13                 scope, domain model, scoring, agent protocol, identity/security,
                               API/UI, roadmap/acceptance, public demo + goldens, deferred work,
                               agent handoff, Rails architecture, constitutional compliance map
-  CONSTITUTION-AMENDMENTS.md  append-only amendment log; P-1..P-5 are proposed, not adopted
+  CONSTITUTION-AMENDMENTS.md  append-only amendment log; P-1..P-6 are proposed, not adopted
   REVIEW-NOTES.md             what changed across revisions and why (numbered entries)
   scoring-config-v0.1.json, scoring-config-strict-v0.1.json   authoritative model configs
   reference/reference_scorer.py   Python cross-check reproducing every golden value
@@ -201,5 +201,5 @@ code, Apache-2.0 protocol and schemas, CC BY 4.0 docs, ODbL-1.0 database, CC0-1.
 `NOTICE`).
 
 Implement the conservative reading already in the spec and flag these when relevant:
-adopting amendments P-1 through P-5 (P-5, the ledger runs no model, is implemented as Invariant 18 and awaits adoption); who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
+adopting amendments P-1 through P-6 (P-5, the ledger runs no model, is Invariant 18; P-6, money buys no part of the record, is stated on /contact); both await adoption; who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
 a legal model exists; whether `TEXTUAL` stays a distinct claim type.

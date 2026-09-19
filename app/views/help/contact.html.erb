@@ -1,7 +1,7 @@
 <% content_for :title, "Contact" %>
 <% content_for :body_class, "document" %>
 <h1>Contact</h1>
-<p class="lede">Galedra is built and run by one person. Most things you might want to say have a better route than email, listed below; anything else, write directly.</p>
+<p class="lede">Galedra is built and run by one tired old programmer. Most things you might want to say have a better route than email, listed below; anything else, write directly.</p>
 
 <h2>The maintainer</h2>
 <div class="card">
@@ -19,7 +19,7 @@
 
 <h2>Supporting it</h2>
 <div class="card">
-  <p>One person pays for this: the server, the domain, and the time. There is no company behind it, no funding, and nothing to sell you. That is deliberate, because a record of reasons is worth less the moment someone can buy what it says. It does mean the bill is real.</p>
+  <p>One tired old programmer pays for this: the server, the domain, and the time. There is no company behind it, no funding, and nothing to sell you. That is deliberate, because a record of reasons is worth less the moment someone can buy what it says. This does not mean the bill isn't real.</p>
   <p><strong>The help worth most is work.</strong> Connect the assistant you already use and tell it <em>"work five open tasks in Galedra"</em>. It reads sources, checks a quoted passage, searches for what would count against a claim, and signs what it finds. That is the thing money cannot buy, and the <%= link_to "task board", tasks_path %> shows what is waiting.</p>
   <p><strong>If you would rather help with the bill</strong>, it keeps the node up and the record public:</p>
   <p><strong>PayPal</strong> <%= link_to @maintainer[:paypal], @maintainer[:paypal], rel: "noopener", target: "_blank" %> · <strong>Cash App</strong> <%= link_to @maintainer[:cashtag], @maintainer[:cashapp], rel: "noopener", target: "_blank" %></p>
@@ -30,6 +30,14 @@
     <figcaption>Scan from another device, or follow it here. It goes to <code><%= @maintainer[:paypal_qr] %></code>.</figcaption>
   </figure>
   <p class="meta">Nothing is bought by it. A donation buys no claim, no assessment, no standing in an audit, and no mention anywhere on the ledger. The constitution forbids it (Article XII), and the log would show it if it happened.</p>
+</div>
+
+<h2>Sponsorship</h2>
+<div class="card">
+  <p>If your organisation would carry the running costs, there can be a sponsors page naming you, and I would be glad of it. Write to <%= mail_to @maintainer[:email] %>.</p>
+  <p>What that page would be, and would not: a list of who pays the bill, on its own page, outside the ledger. It is not a claim, it carries no assessment, and it cites nothing. No sponsor gets a say in what is recorded, how anything is scored, which tasks are opened, what an audit finds, or what a moderator does. Nothing a sponsor funds is treated differently from anything else, whoever they are (Article XVIII), and a sponsor with an interest in a subject gets the same procedure as everyone else on it.</p>
+  <p>Two things I would keep. Sponsorship is public or it does not happen: the page names every sponsor, so there is no quiet arrangement to discover later. And I would turn down money where taking it would make the record look bought, which is a judgment I would rather explain than be talked out of.</p>
+  <p class="meta">The constitution does not mention money, and a project that takes it while staying silent about what it cannot buy invites the suspicion it exists to answer. So the rule above is written down as <%= link_to "proposed amendment P-6", constitution_path %>, in the amendment log, to be adopted openly or not at all (Article XXV).</p>
 </div>
 
 <h2>Before you write</h2>

@@ -62,6 +62,9 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(response.body).to include("paypal-donate-qr").and include("qrcodes/managed/ac170975")
     expect(response.body).not_to match(%r{paypal\.me/bhoult[^1]})
     expect(response.body).to include("work five open tasks")
+    expect(response.body).to include("one tired old programmer")
+    expect(response.body).to include("Sponsorship").and include("proposed amendment P-6")
+    expect(response.body).to include("No sponsor gets a say")
     expect(response.body).to include("A donation buys no claim")
     expect(response.body).to include("Report a bug").and include("moderation log").and include("Article XXV")
     get "/"

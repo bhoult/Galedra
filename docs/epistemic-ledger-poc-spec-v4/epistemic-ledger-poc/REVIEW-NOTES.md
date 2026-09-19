@@ -143,6 +143,16 @@ README and the FAQ, and the spec README's "LLM features are optional and stubbed
 default" should be read in its light: optional means absent from the server, present in
 the connected assistants.
 
+## K. Proposed amendment P-6 (2026-09-19)
+
+Added `P-6 — Money buys no part of the record` after the owner asked whether offering a
+sponsors page in exchange for meeting the running costs is consistent with the
+constitution. It is: Article XII forbids silent capture rather than funding, and says
+nothing about money at all. P-6 writes the missing rule down, that support buys no
+epistemic thing and no altered procedure, that sponsors are named publicly, and that
+support which would make the record look bought is refused. The contact page states it in
+plain words and links the amendment log.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-1 through P-4?
