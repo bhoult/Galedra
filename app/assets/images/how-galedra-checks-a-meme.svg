@@ -23,31 +23,6 @@
         opacity: 0;
         animation: stepGlow 12s infinite ease-in-out;
       }
-      .label {
-        fill: #0b244c;
-        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        font-size: 26px;
-        font-weight: 800;
-        letter-spacing: .2px;
-        opacity: 0;
-        animation: labelFade 12s infinite ease-in-out;
-      }
-      .sub {
-        fill: #274b7f;
-        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        font-size: 18px;
-        font-weight: 600;
-        opacity: 0;
-        animation: labelFade 12s infinite ease-in-out;
-      }
-      .labelBg {
-        fill: rgba(255,255,255,.96);
-        stroke: rgba(60,120,220,.20);
-        stroke-width: 1.5;
-        rx: 18; ry: 18;
-        opacity: 0;
-        animation: labelFade 12s infinite ease-in-out;
-      }
       .arrow {
         stroke: #4ba9ff;
         stroke-width: 8;
@@ -109,13 +84,6 @@
         24% { opacity: 0; }
         100% { opacity: 0; }
       }
-      @keyframes labelFade {
-        0% { opacity: 0; transform: translateY(8px); }
-        8% { opacity: 1; transform: translateY(0); }
-        18% { opacity: 1; transform: translateY(0); }
-        24% { opacity: 0; transform: translateY(-4px); }
-        100% { opacity: 0; transform: translateY(-4px); }
-      }
 
       @keyframes arrowPulse1 {
         0%, 5% { opacity: .15; }
@@ -164,13 +132,6 @@
         to { transform: rotate(360deg); }
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        .stepBox, .stepGlow, .label, .sub, .labelBg, .progress1, .progress2, .progress3, .progress4, .centerPulse, .centerRing, .dot, .scan {
-          animation: none !important;
-          opacity: 0.001;
-        }
-      }
-
       .fixHeading {
         fill: #173b6d;
         font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -205,9 +166,9 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .stepBox, .stepGlow, .labelBg, .label, .sub, .centerPulse, .centerRing { animation: none; opacity: 1; }
-        .arrow, .arrowHead { animation: none; opacity: .55; }
-        .dot { animation: none; opacity: 0; }
+        .stepBox, .stepGlow, .centerPulse, .centerRing { animation: none !important; opacity: 1; }
+        .arrow, .arrowHead, .progress1, .progress2, .progress3, .progress4 { animation: none !important; opacity: .55; }
+        .dot, .scan { animation: none !important; opacity: 0; }
       }
     ]]>
   </style>
@@ -260,41 +221,26 @@
   <g>
     <rect id="g1" class="stepGlow" x="22" y="136" width="332" height="365"/>
     <rect id="s1" class="stepBox shadow" x="20" y="134" width="336" height="369"/>
-    <rect id="bg1" class="labelBg shadow" x="70" y="100" width="250" height="60"/>
-    <text id="lb1" class="label" x="195" y="125" text-anchor="middle">1. User asks an LLM</text>
-    <text id="ls1" class="sub" x="195" y="149" text-anchor="middle">Checks a meme through chat</text>
   </g>
 
   <g>
     <rect id="g2" class="stepGlow" x="382" y="120" width="305" height="384"/>
     <rect id="s2" class="stepBox shadow" x="380" y="118" width="309" height="388"/>
-    <rect id="bg2" class="labelBg shadow" x="408" y="88" width="252" height="60"/>
-    <text id="lb2" class="label" x="534" y="113" text-anchor="middle">2. LLM extracts claims</text>
-    <text id="ls2" class="sub" x="534" y="137" text-anchor="middle">Breaks the meme down atomically</text>
   </g>
 
   <g>
     <rect id="g3" class="stepGlow" x="708" y="106" width="619" height="414"/>
     <rect id="s3" class="stepBox shadow" x="704" y="102" width="627" height="422"/>
-    <rect id="bg3" class="labelBg shadow" x="832" y="72" width="390" height="60"/>
-    <text id="lb3" class="label" x="1027" y="97" text-anchor="middle">3. Galedra stores a permanent record</text>
-    <text id="ls3" class="sub" x="1027" y="121" text-anchor="middle">Evidence, links, and support/contradict graph</text>
   </g>
 
   <g>
     <rect id="g4" class="stepGlow" x="1366" y="120" width="315" height="383"/>
     <rect id="s4" class="stepBox shadow" x="1362" y="116" width="323" height="391"/>
-    <rect id="bg4" class="labelBg shadow" x="1386" y="88" width="272" height="60"/>
-    <text id="lb4" class="label" x="1522" y="113" text-anchor="middle">4. Evidence reassembled</text>
-    <text id="ls4" class="sub" x="1522" y="137" text-anchor="middle">Returns an evidence-backed answer</text>
   </g>
 
   <g>
     <rect id="g5" class="stepGlow" x="1702" y="137" width="326" height="364"/>
     <rect id="s5" class="stepBox shadow" x="1698" y="133" width="334" height="372"/>
-    <rect id="bg5" class="labelBg shadow" x="1738" y="100" width="238" height="60"/>
-    <text id="lb5" class="label" x="1857" y="125" text-anchor="middle">5. User replies back</text>
-    <text id="ls5" class="sub" x="1857" y="149" text-anchor="middle">Responds to the original post</text>
   </g>
 
 
