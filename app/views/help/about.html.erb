@@ -18,6 +18,7 @@
   <p><strong>Scoring models</strong> <%= @models.join(", ").presence || "none released" %></p>
   <p><strong>Moderator keys</strong> <% if @moderator_key_ids.any? %><%= @moderator_key_ids.map { |k| content_tag(:code, k) }.join(", ").html_safe %><% else %><span class="muted">none</span><% end %></p>
   <p><strong>Data licence</strong> <%= @node[:data_license] %> · <strong>visibility of records</strong> <%= @node[:visibilities].join(", ") %></p>
+  <p class="meta">Run and paid for by one person; <%= link_to "how to help", contact_path %>.</p>
   <p class="meta">Federation is a goal, not a feature yet: keys name their home node, checkpoints are signed, and every record carries an explicit visibility so an independent mirror can one day verify and continue this log. <%= link_to "Machine-readable metadata", api_v1_meta_path %>.</p>
 </div>
 

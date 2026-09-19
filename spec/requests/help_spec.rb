@@ -55,7 +55,9 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Brandon Hoult").and include("bhoult@gmail.com")
     expect(response.body).to include("linkedin.com/in/brandon-hoult").and include("github.com/bhoult")
-    expect(response.body).to include("opening soon")
+    expect(response.body).to include("paypal.me/bhoult").and include("$bhoult")
+    expect(response.body).to include("work five open tasks")
+    expect(response.body).to include("A donation buys no claim")
     expect(response.body).to include("Report a bug").and include("moderation log").and include("Article XXV")
     get "/"
     help = response.body[response.body.index("<summary>Help</summary>")..]
