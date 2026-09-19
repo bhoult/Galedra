@@ -56,7 +56,7 @@ module Investigations
       badge = badge_for(states, results, checkable: checkable, against: against, holds: holds, open: open)
       { headline: headline, sentence: parts.join("; "), stated: stated, badge: badge,
         counts: { claims: states.size, checkable: checkable, against: against, holds: holds, open: open, not_checkable: not_checkable },
-        note: "The number is the model's figure for every checkable claim holding at once, treating them as independent; it is model-conditional, not a share of truth." }
+        note: "The number is the model's figure for every checkable claim holding at once, treating them as independent." }
     end
   end
 end
