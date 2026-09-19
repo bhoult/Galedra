@@ -25,7 +25,7 @@ module Sections
         pending = mine.count { |p| !p.accepted_at?(seq) }
         counted.each { |c| states[c.id] ||= model ? Scoring::Score.call(c, seq, model).assessment_state : nil }
         children = depth && level >= depth ? [] : by_parent.fetch(section.id, []).map { |child| node.call(child, level + 1) }
-        counts = tally(counted.map { |c| states[c.id] }) 
+        counts = tally(counted.map { |c| states[c.id] })
         children.each { |ch| counts = merge(counts, ch[:counts]) }
         { section: section, children: children, claims: counted, states: counted.to_h { |c| [ c.id, states[c.id] ] }, pending: pending + children.sum { |ch| ch[:pending] }, counts: counts }
       end

@@ -33,7 +33,7 @@ module Summaries
         "qualifiers" => qualifiers.map { |l| { "link" => l["link"], "evidence" => l["evidence"], "statement" => statements[l["evidence"]] } },
         "suppressed" => suppressed.map { |l| { "link" => l["link"], "evidence" => l["evidence"], "group" => l["group"], "kept" => l["kept"] } },
         "related" => related_entries,
-        "audits" => audits.map { |a| { "audit" => a.id, "result" => a.result, "overturned" => a.invalidated? } },
+        "audits" => audits.map { |a| { "audit" => a.id, "result" => a.result, "overturned" => !a.active_at?(seq) } },
         "task_results" => Tasks::Checks.accepted_results(claim.id, seq).map { |task, result| { "task_id" => task.id, "task_type" => task.task_type, "outcome" => result.payload&.dig("outcome") } }
       }
     end

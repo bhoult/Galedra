@@ -67,8 +67,9 @@ module Weaknesses
     def disputed_audits(claims, _scored, seq, *)
       claims.filter_map do |c|
         links = c.evidence_claim_links.effective_at(seq)
-        audits = Audit.disputed_for(links.map(&:contribution_id), seq)
-        [ c, { audits: audits.map { |a| { audit_id: a.id, result: a.result, overturned: a.invalidated? } } } ] if audits.any?
+        audits = Audit.disputed_for(links.map(&:contribution_id), seq).to_a
+        # Overturned as of this seq, not merely overturned at some later one.
+        [ c, { audits: audits.map { |a| { audit_id: a.id, result: a.result, overturned: !a.active_at?(seq) } } } ] if audits.any?
       end
     end
   end

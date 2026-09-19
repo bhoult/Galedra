@@ -190,4 +190,23 @@ RSpec.describe "Audits and reputation (07 Phase 4)", type: :request do
     audit(reviewer, link)
     expect(Scoring::Score.call(claim, Contribution.maximum(:seq), model).support_groups).to eq(1)
   end
+
+  it "keeps a disputed audit inside the snapshot window: a later re-audit does not overturn it in the past" do
+    claim, link, = scored_graph
+    confirmation = audit(reviewer, link)
+    snapshot = Contribution.maximum(:seq)
+    before = Cards::MainIssue.call(claim, snapshot, Scoring::Score.call(claim, snapshot, model))
+    expect(Audit.disputed_for([ link.contribution_id ], snapshot)).to be_empty
+
+    third = register_reviewer.first
+    audit(third, confirmation, type: "RE_AUDIT", result: "SUBSTANTIVE_ERROR", note: "the confirmation was wrong")
+
+    expect(Audit.disputed_for([ link.contribution_id ], snapshot)).to be_empty
+    expect(Cards::MainIssue.call(claim, snapshot, Scoring::Score.call(claim, snapshot, model))).to eq(before)
+    expect(Weaknesses::Report.call(snapshot, kind: "disputed_audits")[:lists]["disputed_audits"]).to be_empty
+
+    head = Contribution.maximum(:seq)
+    expect(Cards::MainIssue.call(claim, head, Scoring::Score.call(claim, head, model)))
+      .to include(kind: "DISPUTED_AUDIT", text: a_string_including("overturned"))
+  end
 end

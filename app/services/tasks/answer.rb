@@ -68,6 +68,11 @@ module Tasks
       location = task.packet.dig("context", "source_location_id")
       claim_ref = ->(h) { h == "target" ? target : h }
       excerpt_ref = ->(h) { h == "packet" ? location : h }
+      # The packet's own passage is cited as "packet" and never appears in the
+      # answer's excerpts, so its kind has to come from the location itself for
+      # the transcription rule to weigh it as record_investigation would. Read
+      # from the row, never from the packet's contributor-supplied locator.
+      packet_kinds = { "packet" => (SourceLocation.find_by(id: location)&.locator_type if location) }.compact
       ops = []
       section(answer, "sources").each do |s|
         ops << { "op" => "CREATE_SOURCE", "ref" => handle!(s), "source_type" => s["type"], "title" => s["title"], "canonical_uri" => s["url"], "publisher" => s["publisher"],
@@ -91,7 +96,7 @@ module Tasks
       end
       section(answer, "links").each do |l|
         ops << { "op" => "LINK_EVIDENCE", "evidence_item_id" => l["evidence"], "claim_id" => claim_ref.call(l["claim"]), "direction" => l["direction"],
-                 "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => Investigations::Steps.for_link(l, answer), "note" => l["note"] }.compact
+                 "relevance_strength" => l.fetch("strength", "DIRECT"), "interpretive_steps" => Investigations::Steps.for_link(l, answer, known_kinds: packet_kinds), "note" => l["note"] }.compact
       end
       section(answer, "groups").each do |g|
         handle = handle!(g)

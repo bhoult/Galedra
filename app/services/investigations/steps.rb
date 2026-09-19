@@ -10,10 +10,14 @@ module Investigations
   module Steps
     module_function
 
-    def for_link(link, bundle)
+    # known_kinds maps an excerpt handle the bundle does not declare to its
+    # kind: a task answer cites the packet's own passage as "packet"
+    # (Tasks::Answer), and its kind is in the packet, not in the answer.
+    def for_link(link, bundle, known_kinds: {})
       steps = link.fetch("steps", 0).to_i
       excerpt_handle = bundle.fetch("evidence", []).find { |e| e["handle"] == link["evidence"] }&.dig("excerpt")
       kind = bundle.fetch("excerpts", []).find { |e| e["handle"] == excerpt_handle }&.fetch("kind", "QUOTE")
+      kind ||= known_kinds[excerpt_handle]
       kind == "TRANSCRIPTION" ? [ steps, 1 ].max : steps
     end
   end

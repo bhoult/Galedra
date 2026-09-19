@@ -9,8 +9,9 @@ module Cards
 
     def call(claim, seq, result)
       links = claim.evidence_claim_links.effective_at(seq).includes(:evidence_item)
-      if (audit = disputed_audit(links, seq))
-        return { kind: "DISPUTED_AUDIT", cites: [ "audit:#{audit.id}" ], text: "A verification of this claim's evidence was #{audit.invalidated? ? 'overturned' : 'left unresolved'} on audit" }
+      if (audit = Audit.disputed_for(links.map(&:contribution_id), seq).first)
+        # Overturned as of this seq, not merely overturned at some later one.
+        return { kind: "DISPUTED_AUDIT", cites: [ "audit:#{audit.id}" ], text: "A verification of this claim's evidence was #{audit.active_at?(seq) ? 'left unresolved' : 'overturned'} on audit" }
       end
       if result.independence_unreviewed.positive?
         return { kind: "INDEPENDENCE_UNREVIEWED", cites: [ "coverage:#{claim.id}" ], text: "#{result.independence_unreviewed} counted evidence item#{'s' if result.independence_unreviewed != 1} #{result.independence_unreviewed == 1 ? 'has' : 'have'} no independence review; repeats of one origin may be counted as several" }
@@ -24,10 +25,6 @@ module Cards
       return { kind: "REVIEW_CHECK_MISSING", cites: [ "coverage:#{claim.id}" ], text: "Review check not yet done: #{unmet.tr('_', ' ')}" } if unmet
 
       { kind: "NONE", cites: [], text: "none recorded" }
-    end
-
-    def disputed_audit(links, seq)
-      Audit.disputed_for(links.map(&:contribution_id), seq).first
     end
   end
 end

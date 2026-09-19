@@ -219,4 +219,31 @@ RSpec.describe "Tasks, leases, packets, and results (07 Phase 5)", type: :reques
                     ops: [ { "op" => "CREATE_SOURCE", "source_type" => "WEBSITE", "title" => "x", "content" => "fetched text", "content_hash" => Crypto::Hashing.bytes("fetched text") } ])
     end
   end
+
+  it "weighs a TRANSCRIPTION passage alike whether it arrives by record_investigation or submit_task" do
+    source = create_source(curator, type: "IMAGE", content: "Anthropic took a different route with its constitution.")
+    location = create_location(curator, source, locator_type: "TRANSCRIPTION", locator: {})
+    claim = create_claim(curator, "Anthropic took a different route.")
+    task = create_task("EVIDENCE_VERIFICATION", claim, location: location)
+
+    bundle = { "excerpts" => [ { "handle" => "x", "source" => "s", "kind" => "TRANSCRIPTION", "text" => source.content } ],
+               "evidence" => [ { "handle" => "e", "excerpt" => "x", "statement" => "The image reads that way." } ],
+               "links" => [ { "evidence" => "e", "claim" => "c", "direction" => "SUPPORT" } ] }
+    expect(Investigations::Steps.for_link(bundle["links"].first, bundle)).to eq(1)
+
+    answer = { "evidence" => [ { "handle" => "e", "excerpt" => "packet", "statement" => "The image reads that way." } ],
+               "links" => [ { "evidence" => "e", "claim" => "target", "direction" => "SUPPORT" } ] }
+    link_op = ->(t, a) { Tasks::Answer.ops_for(t, a).find { |o| o["op"] == "LINK_EVIDENCE" }["interpretive_steps"] }
+    expect(link_op.call(task, answer)).to eq(1)
+    expect(link_op.call(task, answer.merge("links" => [ answer["links"].first.merge("steps" => 3) ]))).to eq(3)
+
+    quoted = create_task("EVIDENCE_VERIFICATION", claim, location: create_location(curator, source, locator_type: "QUOTE", locator: {}))
+    expect(link_op.call(quoted, answer)).to eq(0)
+
+    # A contributor-supplied locator never shadows the server's locator_type.
+    shadowed = create_location(curator, source, locator_type: "TRANSCRIPTION", locator: { "type" => "QUOTE" })
+    shadow_task = create_task("EVIDENCE_VERIFICATION", claim, location: shadowed)
+    expect(shadow_task.packet.dig("context", "locator", "type")).to eq("TRANSCRIPTION")
+    expect(link_op.call(shadow_task, answer)).to eq(1)
+  end
 end

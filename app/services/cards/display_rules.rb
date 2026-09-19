@@ -17,7 +17,10 @@ module Cards
     def checks_done(checklist) = checklist.to_h.count { |_, v| v["ok"] }
 
     # Rule 5, in the form every surface shows: "2 of 4".
-    def checks_count(checklist) = "#{checks_done(checklist)} of #{checklist.to_h.size}"
+    def checks_count(checklist)
+      checks = checklist.to_h
+      "#{checks_done(checks)} of #{checks.size}"
+    end
 
     # Rule 2. Nil when the state carries no number, so a caller can render the
     # "no probability" branch without repeating the condition.
@@ -32,10 +35,11 @@ module Cards
       out << (anonymous ? "Not yet independently audited; some evidence was recorded by an anonymous contributor." : "Not yet independently audited.") if provisional
       out << "Evidence points both ways." if contested
       out << "This assessment depends heavily on modeling choices." if model_dependent
-      done = checks_done(review_checklist)
+      checks = review_checklist.to_h
+      done = checks_done(checks)
       if DIRECTIONAL_STATES.include?(state) && done <= 1
         out << "Evidence reviewed so far #{state == 'SUPPORTED' ? 'supports' : 'contradicts'} this claim, " \
-               "but only #{done} of #{review_checklist.to_h.size} review checks #{done == 1 ? 'has' : 'have'} been done."
+               "but only #{done} of #{checks.size} review checks #{done == 1 ? 'has' : 'have'} been done."
       end
       out
     end

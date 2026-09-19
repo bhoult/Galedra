@@ -45,7 +45,9 @@ module Tasks
       existing = location.evidence_items.active_at(seq).order(:created_seq).map { |e| { "evidence_item_id" => e.id, "statement" => e.statement } }
       [ claim_target(claim), {
         "source_id" => location.source_id, "source_location_id" => location.id,
-        "locator" => { "type" => location.locator_type }.merge(location.locator),
+        # The contributor's free-form locator never shadows the server's own
+        # locator_type: untrusted JSON stays inert (Invariant 11).
+        "locator" => location.locator.to_h.merge("type" => location.locator_type),
         "untrusted_excerpt" => excerpt(location.excerpt), "excerpt_hash" => location.excerpt_hash,
         "known_qualifiers" => claim.qualifiers,
         "existing_evidence" => existing
@@ -112,7 +114,7 @@ module Tasks
     def context_for_claim_extraction(source_id, seq, location_id, budget)
       source = Source.find(source_id)
       locations = location_id ? [ SourceLocation.find(location_id) ] : source.source_locations.active_at(seq).order(:created_seq).to_a
-      excerpts = locations.map { |l| { "source_location_id" => l.id, "locator" => { "type" => l.locator_type }.merge(l.locator), "untrusted_excerpt" => excerpt(l.excerpt) } }
+      excerpts = locations.map { |l| { "source_location_id" => l.id, "locator" => l.locator.to_h.merge("type" => l.locator_type), "untrusted_excerpt" => excerpt(l.excerpt) } }
       excerpts = [ { "source_location_id" => nil, "untrusted_excerpt" => excerpt(source.content) } ] if excerpts.empty?
       [ { "source_id" => source.id, "title" => source.title, "source_type" => source.source_type }, {
         "excerpts" => excerpts.first([ budget / 500, 1 ].max),

@@ -16,14 +16,15 @@ class Audit < ApplicationRecord
   validates :audit_type, inclusion: { in: TYPES }
   validates :result, inclusion: { in: RESULTS }
 
-  # Audits on these contributions, at or before a seq, that were left
-  # unresolved or later overturned. The claim page's main unresolved issue
-  # (06 §4 rule 5a) and the Weaknesses page (Art. XXII) must agree on what
-  # "disputed" means, so both ask here.
+  # Audits on these contributions that, as of a seq, were left unresolved or
+  # had been overturned. The claim page's main unresolved issue (06 §4 rule 5a)
+  # and the Weaknesses page (Art. XXII) must agree on what "disputed" means, so
+  # both ask here. Both ends are windowed on the seq (02 §1.3): an overturn that
+  # lands later is not visible at an earlier snapshot.
   scope :disputed_for, ->(contribution_ids, seq) {
     where(target_contribution_id: contribution_ids)
       .where(arel_table[:created_seq].lteq(seq))
-      .where(arel_table[:result].eq("UNRESOLVED").or(arel_table[:invalidated_seq].not_eq(nil)))
+      .where(arel_table[:result].eq("UNRESOLVED").or(arel_table[:invalidated_seq].lteq(seq)))
       .order(:created_seq)
   }
 
