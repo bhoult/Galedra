@@ -49,10 +49,29 @@ export default class extends Controller {
     // height can be animated, and so a title click does not do both.
     event.preventDefault()
     if (this.reduced.matches) {
+      if (!details.open) this.closeOthers(details)
       details.open = !details.open
       return
     }
     details.open ? this.close(details, reveal) : this.open(details, reveal)
+  }
+
+  // Opening one branch closes the others, so the outline stays short enough to
+  // take in at a glance. A branch on the path to the one being opened stays
+  // open, or opening a child would close its own parent.
+  closeOthers(opening) {
+    const path = new Set()
+    for (let el = opening; el; el = el.parentElement && el.parentElement.closest("details")) path.add(el)
+
+    this.element.querySelectorAll("details[open]").forEach((other) => {
+      if (path.has(other)) return
+
+      const reveal = other.querySelector(":scope > .reveal")
+      if (!reveal) return
+
+      // One already in flight is left to settle where it was heading.
+      reveal.dataset.animating ? (other.open = false) : this.close(other, reveal)
+    })
   }
 
   // Where you are, kept in step with the content beside it.
@@ -63,6 +82,7 @@ export default class extends Controller {
   }
 
   open(details, reveal) {
+    this.closeOthers(details)
     details.open = true
     this.animate(reveal, 0, reveal.scrollHeight)
   }
