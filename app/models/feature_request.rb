@@ -24,6 +24,6 @@ class FeatureRequest < ApplicationRecord
     end
     [ create!(id: SecureRandom.uuid_v7, assistant_token: token, asked: asked.to_s.strip[0, MAX_CHARS], needed: needed.to_s.strip[0, MAX_CHARS],
               expected: expected.presence&.strip&.[](0, 200), context_tool: context_tool.presence&.[](0, 200), last_error: last_error.presence&.[](0, 200),
-              anonymous: token.anonymous?, digest: digest), true ]
+              anonymous: token.anonymous?, digest: digest).tap { |r| ContentReview.enqueue!(r) }, true ]
   end
 end

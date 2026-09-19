@@ -79,12 +79,30 @@ module Corrections
   def proposals(claim: nil, principal: nil)
     Contribution.where(current_status: Contribution::PENDING, action_type: PROPOSAL_ACTIONS).order(:seq).filter_map do |c|
       claims = touched_claims(c)
-      next if claims.empty?
+      if claims.empty?
+        # Stage 21: an extraction result under an outline waits for the outline's principal.
+        owner = outline_owner_id(c)
+        next if owner.nil? || claim
+        next if principal && owner != principal.id && !Contributor.find_by(id: owner)&.anonymous?
+
+        next describe(c, [])
+      end
       next if claim && claims.none? { |k| k.id == claim.id }
       next if principal && claims.none? { |k| principal_id_of(k) == principal.id }
 
       describe(c, claims)
     end
+  end
+
+  # The principal of the outline an extraction task serves, if any (Stage 21).
+  def outline_owner_id(c)
+    return nil unless c.action_type == "TASK_RESULT"
+
+    task = Task.find_by(id: c.task_id)
+    return nil if task.nil? || task.section_id.nil?
+
+    root = Section.find_by(id: task.section_id)&.root
+    root && (root.contribution.principal_contributor_id || root.contribution.contributor_id)
   end
 
   def touched_claims(c)
@@ -105,7 +123,13 @@ module Corrections
     when "SUPERSEDE_CLAIM" then "Revise to: #{p['canonical_text']}#{" (#{p['reason']})" if p['reason']}"
     when "MERGE_CLAIMS" then "Merge #{p['from_claim_id']} into #{p['into_claim_id']}#{" (#{p['reason']})" if p['reason']}"
     when "SUPERSEDE_LINK" then "Revise link #{p['link_id']} to #{p['direction']} #{p['relevance_strength']} with #{p['interpretive_steps']} steps#{" (#{p['reason']})" if p['reason']}"
-    when "TASK_RESULT" then "Task result #{p['outcome']} with #{Array(p['ops']).size} items"
+    when "TASK_RESULT"
+      task = Task.find_by(id: c.task_id)
+      if task&.section_id
+        "#{Array(p['ops']).count { |op| op['op'] == 'CREATE_CLAIM' }} claims extracted for #{Section.find_by(id: task.section_id)&.path&.join(' › ')}"
+      else
+        "Task result #{p['outcome']} with #{Array(p['ops']).size} items"
+      end
     end
     proposer = c.principal_contributor
     { contribution_id: c.id, kind: c.action_type, seq: c.seq, claim_ids: claims.map(&:id), claims: claims.map { |k| k.canonical_text.to_s[0, 160] },
@@ -126,7 +150,13 @@ module Corrections
     return true if Governance::Moderators.moderator?(principal)
 
     claims = touched_claims(contribution)
-    return false if claims.empty?
+    if claims.empty?
+      owner = outline_owner_id(contribution)
+      return false if owner.nil?
+
+      owner_contributor = Contributor.find_by(id: owner)
+      return owner_contributor.nil? || owner_contributor.anonymous? || owner == principal.id
+    end
 
     claims.all? do |claim|
       owner = Contributor.find_by(id: principal_id_of(claim))
@@ -140,6 +170,8 @@ module Corrections
     reject("NOT_AUTHORIZED", "$.contribution_id", "only the principal of the claims this touches (or anyone named, when that principal is anonymous, or a moderator) may accept it here") unless may_accept?(principal, contribution)
 
     result = yield("ACCEPT", { "contribution_id" => contribution.id })
+    # Stage 21: claims a volunteer extracted are now this principal's responsibility and get checked like any other.
+    Tasks::OpenVerification.for_extraction(contribution) if contribution.action_type == "TASK_RESULT" && contribution.payload.to_h["ops"].to_a.any? { |op| op["op"] == "CREATE_CLAIM" }
     carried = []
     if carry_links && contribution.action_type == "SUPERSEDE_CLAIM"
       old_claim = Claim.find(contribution.payload["claim_id"])

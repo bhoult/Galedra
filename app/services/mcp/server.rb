@@ -22,7 +22,7 @@ module Mcp
               "or against, and attach what you find. Every write is signed and stays open to audit; nothing here is ever " \
               "presented as settled truth. When a person asks what they can do with Galedra, say these three things in plain " \
               "words before listing tools. If a search finds nothing, say so plainly and offer to investigate and record it."
-    WORK = "Working open tasks: when the person says \"work N open tasks in Galedra\", call next_task, read the sources yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat N times or until next_task says nothing is available. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to have something to submit."
+    WORK = "Working open tasks: when the person says \"work N open tasks in Galedra\", call next_task, read the sources yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat N times or until next_task says nothing is available. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to have something to submit. Reviews are also open work, settled by the agreement of different principals rather than by an admin: when next_task has nothing, call next_content_review (free text checked for offensive content) and next_affiliation_review (affiliations people asked to add), and answer by the rules each gives."
     CORRECT = "Correcting what is recorded: nothing is deleted; a correction is a new entry. revise_claim, merge_claims, and revise_link take effect now on your own person's work and are proposals on anyone else's (say so; never say a proposal was fixed). A doubt about a passage or an origin becomes a task for someone else with open_task. When asked to review corrections proposed on their claims, call list_proposals and accept_proposal for each the person agrees with; leaving one pending declines it. A superseded claim is reported as superseded, with the current claim."
     RULES = "A message that is just \"galedra:\" (or \"Galedra:\") followed by text means: check this before I share it, record the whole statement, and end with the share line; no other instruction is needed. " \
             "Search Galedra before recording. Do your own reading: Galedra never fetches URLs. " \
@@ -52,13 +52,25 @@ module Mcp
           statement: { type: "string", description: "The exact text the person wanted checked, as they would post it (the meme's words, the sentence they were about to share). Shown at the top of the shareable page." },
           sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had the bytes. If your host gave you rendered text, omit it; never invent one." }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
           excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION] }, text: { type: "string" } }, required: %w[handle source text] } },
-          claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type. Every claim the statement makes goes in this one call: ones Galedra already holds (from search_claims) go in by attach_to, with or without new evidence, so the check page and share line cover the whole statement" } }, required: [ "handle" ] } },
+          claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type. Every claim the statement makes goes in this one call: ones Galedra already holds (from search_claims) go in by attach_to, with or without new evidence, so the check page and share line cover the whole statement" }, section: { type: "string", description: "A section id from create_outline: the claim is filed there. Use it when recording one leaf of a large source; the share line then covers the whole outline" } }, required: [ "handle" ] } },
           evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string" }, statement: { type: "string", description: "One plain sentence, at most 25 words, that a stranger could read aloud; it may become the card's say-instead line" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
           links: { type: "array", items: { type: "object", properties: { evidence: { type: "string" }, claim: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer", minimum: 0, maximum: EvidenceClaimLink::MAX_STEPS }, note: { type: "string" } }, required: %w[evidence claim direction] } },
           groups: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: IndependenceGroup::TYPES }, members: { type: "array", items: { type: "string" } } }, required: %w[handle members] } },
           on_duplicate: { type: "string", enum: %w[ask create], default: "ask" }
         }, required: [ "claims" ] },
         outputSchema: RECORD_OUTPUT_SCHEMA },
+      { name: "create_outline", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "For a large source (a podcast transcript, a speech, a sermon, a long article) that cannot be checked in about fifteen minutes: roughly over 3,000 words, or over about 25 claims. Record the structure first: the source by link, an outline of sections nested like a table of contents (leaves of two to eight minutes or 300 to 800 words, each with a locator and a short quoted anchor of at most 300 characters; the transcript itself is never stored), and one extraction task per leaf so other volunteers can take the work in pieces. Then ask the person whether you should start on the research yourself; if yes, record leaf by leaf with record_investigation giving each claim its section. A speech or an episode never gets a verdict, only counts by state.",
+        inputSchema: { type: "object", properties: {
+          statement: { type: "string", description: "The title and link of what is being checked, as the person gave it (not the text)" },
+          source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, creator: { type: "string" }, publication_date: { type: "string" }, content_hash: { type: "string" } }, required: %w[type title url retrieved_at] },
+          parent_section_id: { type: "string", description: "Instead of source: extend an existing outline under this section" },
+          sections: { type: "array", description: "One root for a new outline, with nested sections: {handle, heading, locator?, anchor?, sections?}", items: { type: "object", properties: { handle: { type: "string" }, heading: { type: "string" }, locator: { type: "object", description: "{type: TIME_RANGE|CHAR_RANGE|PAGE|LINE_RANGE|SECTION, ...} e.g. {type: TIME_RANGE, start: \"00:41:10\", end: \"00:47:30\"}" }, anchor: { type: "string", description: "The first words of the leaf, quoted, at most 300 characters" }, sections: { type: "array" } }, required: %w[handle heading] } },
+          open_tasks: { type: "boolean", default: true } }, required: %w[sections] },
+        outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, root_id: { type: "string" }, root_url: { type: "string" }, sections: { type: "object" }, tasks_opened: { type: "integer" }, share_line: { type: "string" }, next: { type: "string" } } } },
+      { name: "get_outline", annotations: { readOnlyHint: true, openWorldHint: false },
+        description: "An outline (or one section of it) as a tree with the claims filed under each section and counts by assessment state. Counts only; a section never has a probability.",
+        inputSchema: { type: "object", properties: { section_id: { type: "string" }, depth: { type: "integer", default: 2 } }, required: %w[section_id] } },
       { name: "add_evidence", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Attach one quoted passage to an existing claim as evidence for, against, or qualifying it. No token needed; anonymous without one. ",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" }, source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had them" }, retrieved_at: { type: "string" }, publisher: { type: "string" } }, required: %w[type title url retrieved_at] }, excerpt: { type: "string" }, excerpt_kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" }, statement: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS, default: "DIRECT" }, steps: { type: "integer", default: 0 }, note: { type: "string" } }, required: %w[claim_id source excerpt statement direction] },
         outputSchema: RECORD_OUTPUT_SCHEMA },
@@ -77,11 +89,11 @@ module Mcp
       # Stage 18: working open tasks from a connector.
       { name: "list_tasks", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
-        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, limit: { type: "integer", default: 5 } } },
+        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, section_id: { type: "string", description: "Only work under this outline or section" }, limit: { type: "integer", default: 5 } } },
         outputSchema: { type: "object", properties: { open: { type: "integer" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
       { name: "next_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Lease the next open task for this assistant: highest priority first, never one on a claim your own principal recorded. Returns the task in plain form with answer_with saying exactly what to send to submit_task, and the lease expiry. Do the reading yourself. Optional filters: types, domains, claim_id. Needs a connected (non-anonymous) assistant.",
-        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" } } },
+        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" }, section_id: { type: "string", description: "Only work under this outline or section (from an outline URL the person gave)" } } },
         outputSchema: { type: "object", properties: { available: { type: "boolean" }, reason: { type: "string" }, task_id: { type: "string" }, task_type: { type: "string" }, domain: { type: "string" }, objective: { type: "string" }, target: { type: "object" }, context: { type: "object" }, outcomes: { type: "array", items: { type: "string" } }, lease_expires_at: { type: "string" }, task_url: { type: "string" }, answer_with: { type: "string" }, rules: { type: "string" } } } },
       { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim and excerpt: \"packet\" for the task's passage. An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
@@ -131,6 +143,27 @@ module Mcp
         description: "Tell Galedra's maintainers what you could not do: use it whenever these tools cannot do what the person asked, or a refusal seems wrong, before you tell the person. Say what they asked, what you needed, and the tool or field you expected. Read by maintainers only; never shown to other assistants or the public.",
         inputSchema: { type: "object", properties: { asked: { type: "string", description: "what the person asked for, in a sentence" }, needed: { type: "string", description: "what you needed and could not do" }, expected: { type: "string", description: "the tool or field you expected, if any" }, context_tool: { type: "string", description: "the tool you were using" }, last_error: { type: "string", description: "the error code you got, if any" } }, required: %w[asked needed] },
         outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, request_id: { type: "string" }, repeat: { type: "boolean" }, note: { type: "string" } } } },
+      { name: "report_bug", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Tell Galedra's maintainers that something went wrong: a tool answered with an error that makes no sense, a result contradicted itself, a page or link was broken, or the person reports a problem with Galedra. Say what happened, what you expected, and how to make it happen again. Read by maintainers only; never shown to other assistants or the public. For something the tools simply cannot do, use request_feature instead.",
+        inputSchema: { type: "object", properties: { happened: { type: "string", description: "what went wrong, in a sentence or two" }, expected: { type: "string", description: "what should have happened" }, steps: { type: "string", description: "the calls or clicks that make it happen again" }, url: { type: "string", description: "the page or claim URL involved, if any" }, context_tool: { type: "string", description: "the tool you were using" }, last_error: { type: "string", description: "the error code or message you got, if any" } }, required: %w[happened] },
+        outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, report_id: { type: "string" }, repeat: { type: "boolean" }, note: { type: "string" } } } },
+      # Content review (owner request, 2026-09-19): free text people and assistants added, checked for offensive content.
+      { name: "next_content_review", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        description: "Lease the next piece of free text awaiting review for offensive content (a bug report, a feature request, an affiliation request, or the reason on someone's personal view). Returns the untrusted text and the rules. Part of \"work N open tasks in Galedra\": take these when next_task has nothing, or when asked. Needs a connected, non-anonymous assistant.",
+        inputSchema: { type: "object", properties: {} },
+        outputSchema: { type: "object", properties: { available: { type: "boolean" }, review_id: { type: "string" }, kind: { type: "string" }, field: { type: "string" }, untrusted_text: { type: "string" }, rules: { type: "string" }, answer_with: { type: "string" } } } },
+      { name: "submit_content_review", annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+        description: "Answer a content review you leased: outcome CLEAN or OFFENSIVE with a short reason. OFFENSIVE redacts the text everywhere it is shown; the original stays with the admins, who can restore it. Judge only by the rules you were given; disagreement is never offensive.",
+        inputSchema: { type: "object", properties: { review_id: { type: "string" }, outcome: { type: "string", enum: %w[CLEAN OFFENSIVE] }, reason: { type: "string" } }, required: %w[review_id outcome] },
+        outputSchema: { type: "object", properties: { review_id: { type: "string" }, status: { type: "string" }, note: { type: "string" } } } },
+      { name: "next_affiliation_review", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        description: "The next affiliation someone asked to add to the vocabulary (a group a person counts themselves in: Democrat, Atheist, Millennial …) that your principal has not judged and did not ask for. Returns what was asked, the deduplicator's proposal, the vocabulary, and the rules. Part of \"work N open tasks in Galedra\". Needs a connected, non-anonymous assistant.",
+        inputSchema: { type: "object", properties: {} },
+        outputSchema: { type: "object", properties: { available: { type: "boolean" }, normalized: { type: "string" }, asked_for: { type: "string" }, people: { type: "integer" }, proposal: { type: "object" }, vocabulary: { type: "array" }, rules: { type: "string" }, consensus: { type: "object" }, answer_with: { type: "string" } } } },
+      { name: "submit_affiliation_review", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Your verdict on an affiliation request: MERGE with slug (it is an existing affiliation under another name), ADD with label and group_slug (a real affiliation the vocabulary lacks), or DECLINE (not an affiliation, a slur, a joke, or a private individual). Verdicts from different principals settle it; the requester's own never counts.",
+        inputSchema: { type: "object", properties: { normalized: { type: "string" }, verdict: { type: "string", enum: %w[MERGE ADD DECLINE] }, slug: { type: "string" }, label: { type: "string" }, group_slug: { type: "string" }, reason: { type: "string" } }, required: %w[normalized verdict] },
+        outputSchema: { type: "object", properties: { normalized: { type: "string" }, settled: { type: "boolean" }, status: { type: "string" }, became: { type: "string" }, consensus: { type: "object" }, note: { type: "string" } } } },
       # OpenAI's read-and-fetch connector shape (ChatGPT search and deep research): a
       # `search` returning ids, titles, and URLs, and a `fetch` returning one document.
       { name: "search", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Search Galedra's accepted claims. Returns ids, titles (the claim text with its plain headline), and URLs. Use fetch on an id for the full card, evidence, and why.",
@@ -181,11 +214,11 @@ module Mcp
     # Guidance travels in results, which hosts read fresh on every call, rather
     # than in tool descriptions, which they cache from the last connection.
     GUIDANCE_VERSION = "2026-09-18.3"
-    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check,
-                     "list_tasks" => :work, "next_task" => :work, "submit_task" => :work,
+    GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check, "create_outline" => :check, "get_outline" => :check,
+                     "list_tasks" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
-    ASK = "If these tools cannot do what the person asked, or a refusal seems wrong, call request_feature with what you needed, then tell the person plainly what you could not do."
+    ASK = "If these tools cannot do what the person asked, or a refusal seems wrong, call request_feature with what you needed, then tell the person plainly what you could not do. If something went wrong (a broken page, a result that contradicts itself, an error that makes no sense), call report_bug with what happened."
 
     def guidance(name)
       text = case GUIDANCE_FOR[name]
@@ -243,6 +276,7 @@ module Mcp
 
     def tool_get_claim(args)
       claim = find_claim(args)
+      ClaimReference.count!(claim.id, "LOOKED_UP")
       seq = Contribution.maximum(:seq)
       model = Scoring::Registry.default_model
       card = Cards::ClaimCard.call(claim, seq, model)
@@ -251,7 +285,28 @@ module Mcp
       { id: claim.id, text: claim.canonical_text, type: claim.claim_type, url: url_for(claim), card: card, topics: Topics.for_claim(claim, seq), caller: caller_note,
         share_url: "#{url_for(claim)}/card", share_line: share_line_for(claim, card),
         evidence: evidence, revision: revision.merge(superseded_by: revision[:superseded_by]&.merge(url: "#{@base_url}/claims/#{revision[:superseded_by][:claim_id]}")),
+        references: ClaimReference.totals(claim.id),
+        sections: Sections::Tree.placements_for(claim, seq).map { |s| { id: s.id, path: s.path(seq), url: "#{@base_url}/sections/#{s.id}" } },
         provisional_note: "Everything here stays open to audit; treat it as provisional." }
+    end
+
+    def tool_create_outline(args)
+      require_token!
+      Investigations::Outline.call(@token, args, base_url: @base_url)
+    end
+
+    def tool_get_outline(args)
+      section = Section.find_by(id: args["section_id"].to_s) or raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.section_id", detail: "no such section" } ])
+      seq = Contribution.maximum(:seq)
+      tree = Sections::Tree.call(section, seq, depth: args.fetch("depth", 2).to_i.clamp(0, Section::MAX_DEPTH))
+      { section: { id: section.id, heading: section.heading, path: section.path(seq), url: "#{@base_url}/sections/#{section.id}" }, counts: tree[:counts], counts_line: Sections::Tree.counts_line(tree[:counts]),
+        pending_claims: tree[:pending], tree: outline_node(tree), open_tasks: Task.where(section_id: Tasks::Lease.subtree_ids(section.id), status: %w[OPEN LEASED]).count, note: Sections::Tree::NOTE }
+    end
+
+    def outline_node(node)
+      { id: node[:section].id, heading: node[:section].heading, counts_line: Sections::Tree.counts_line(node[:counts]),
+        claims: node[:claims].map { |c| { id: c.id, text: c.canonical_text, state: node[:states][c.id], url: url_for(c) } },
+        children: node[:children].map { |ch| outline_node(ch) } }
     end
 
     def tool_record_investigation(args)
@@ -286,6 +341,7 @@ module Mcp
 
     def tool_explain(args)
       claim = find_claim(args)
+      ClaimReference.count!(claim.id, "LOOKED_UP")
       seq = Contribution.maximum(:seq)
       model = Scoring::Registry.default_model
       why = Cards::Why.call(claim, seq, model)
@@ -306,6 +362,7 @@ module Mcp
 
     def tool_fetch(args)
       claim = find_claim("claim_id" => args["id"])
+      ClaimReference.count!(claim.id, "LOOKED_UP")
       seq = Contribution.maximum(:seq)
       model = Scoring::Registry.default_model
       card = Cards::ClaimCard.call(claim, seq, model)
@@ -344,6 +401,54 @@ module Mcp
         note: created ? "Recorded for the maintainers. Now tell the person plainly what you could not do; do not improvise around it." : "The same need was already on file; counted again. Tell the person plainly what you could not do." }
     end
 
+    def tool_next_content_review(_args)
+      item = ContentReview.next_for(@token)
+      return { available: false, note: "Nothing awaits your review." } if item.nil?
+
+      item.to_h.merge(available: true)
+    end
+
+    def tool_submit_content_review(args)
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
+
+      item = ContentReview.find(args["review_id"].to_s)
+      item.vote!(@token, args["outcome"].to_s, reason: args["reason"])
+      note = case item.status
+      when "REDACTED" then "Consensus reached: redacted. The original is kept for the admins."
+      when "CLEAN" then "Consensus reached: clean."
+      else "Your verdict is recorded; it waits for another principal to agree, or stands alone after #{Reviews::Consensus::ALONE_AFTER.inspect}."
+      end
+      { review_id: item.id, status: item.status, consensus: item.consensus, note: note }
+    end
+
+    def tool_next_affiliation_review(_args)
+      request = AffiliationRequest.next_review_for(@token)
+      return { available: false, note: "No affiliation request awaits your review." } if request.nil?
+
+      AffiliationRequest.review_packet(request).merge(available: true)
+    end
+
+    def tool_submit_affiliation_review(args)
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
+
+      normalized = args["normalized"].to_s
+      winner = AffiliationRequest.vote!(@token, normalized: normalized, verdict: args["verdict"].to_s, slug: args["slug"], label: args["label"], group_slug: args["group_slug"], reason: args["reason"])
+      settled = AffiliationRequest.where(normalized: normalized).where.not(status: "PENDING").first
+      { normalized: normalized, settled: winner.present?, status: settled&.status || "PENDING", became: settled&.resolved_slug && Affiliations.label(settled.resolved_slug),
+        consensus: Reviews::Consensus.status("AffiliationRequest", normalized),
+        note: winner ? "Consensus reached and applied to every requester." : "Your verdict is recorded; it waits for another principal to agree, or stands alone after #{Reviews::Consensus::ALONE_AFTER.inspect}." }
+    end
+
+    def tool_report_bug(args)
+      raise ArgumentError, "happened is required" if args["happened"].to_s.strip.empty?
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
+
+      report, created = BugReport.record!(token: @token, happened: args["happened"], expected: args["expected"], steps: args["steps"], url: args["url"],
+                                          context_tool: args["context_tool"], last_error: args["last_error"])
+      { recorded: true, report_id: report.id, repeat: !created,
+        note: created ? "Recorded for the maintainers. Tell the person what went wrong and that it has been reported." : "The same report was already on file; counted again. Tell the person what went wrong and that it has been reported." }
+    end
+
     # One structured line per tool call: shapes and outcomes, never claim text or excerpts.
     def log_call(name, args, started, outcome:, codes: [], detail: nil)
       ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
@@ -365,12 +470,15 @@ module Mcp
       scope = Task.where(status: %w[OPEN LEASED])
       scope = scope.where(task_type: Array(args["types"]).map(&:to_s)) if args["types"].present?
       scope = scope.where(domain: Array(args["domains"]).map(&:to_s)) if args["domains"].present?
+      scope = scope.where(section_id: Tasks::Lease.subtree_ids(args["section_id"].to_s)) if args["section_id"].present?
       open = scope.order(priority: :desc, created_at: :asc).to_a.select { |t| t.open_slots.positive? }
       top = open.first(args.fetch("limit", 5).to_i.clamp(1, 20)).map do |t|
         { task_id: t.id, task_type: t.task_type, domain: t.domain, priority: t.priority.to_s("F"),
           target: t.packet["target"].slice("claim_id", "claim_text", "claim_type", "source_id", "title"), url: "#{@base_url}/tasks/#{t.id}" }
       end
       { open: open.size, by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
+        content_reviews_pending: ContentReview.pending.count, affiliation_reviews_pending: AffiliationRequest.pending.distinct.count(:normalized),
+        by_outline: open.filter_map { |t| t.section_id && Section.find_by(id: t.section_id)&.root_id }.tally.map { |root_id, n| { root_id: root_id, heading: Section.find(root_id).heading, open: n, url: "#{@base_url}/sections/#{root_id}" } }.sort_by { |o| -o[:open] }.first(3),
         how: "Say \"work N open tasks in Galedra\": the assistant then calls next_task and submit_task N times. Leasing needs a connected, non-anonymous assistant." }
     end
 
@@ -379,7 +487,7 @@ module Mcp
       types = Array(args["types"]).map(&:to_s)
       domains = Array(args["domains"]).map(&:to_s)
       target_id = args["claim_id"].presence && find_claim("claim_id" => args["claim_id"]).id
-      assignment = Tasks::Lease.next(contributor: @token.agent, delegation: @token.delegation, types: types, domains: domains, target_id: target_id)
+      assignment = Tasks::Lease.next(contributor: @token.agent, delegation: @token.delegation, types: types, domains: domains, target_id: target_id, section_id: args["section_id"].presence)
       return { available: false, reason: nothing_available(types, domains, target_id) } if assignment.nil?
 
       { available: true }.merge(Tasks::Answer.present(assignment.task, assignment, base_url: @base_url))

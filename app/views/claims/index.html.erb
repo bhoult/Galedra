@@ -7,17 +7,21 @@
   <label>Status <%= f.select :status, [ [ "any", "" ] ] + Claim::STATUSES.map { |s| [ s, s ] }, { selected: params[:status] } %></label>
   <label>Topic <%= f.select :topic, [ [ "any", "" ] ] + Topics.index.values.map { |n| [ n.top? ? n.label : "#{n.parent.label} / #{n.label}", n.path ] }, { selected: params[:topic] } %></label>
   <label>Model <%= f.select :model, released_models.map { |m| [ m.full_name, m.full_name ] }, { selected: selected_model&.full_name } %></label>
+  <label>Order <%= f.select :sort, [ [ "newest", "" ], [ "most referenced", "references" ] ], { selected: params[:sort] } %></label>
+  <label>Counting <%= f.select :kind, [ [ "every reference", "" ] ] + ClaimReference::KINDS.map { |k| [ k.downcase.tr("_", " "), k ] }, { selected: params[:kind] } %></label>
+  <label>Over <%= f.select :window, [ [ "all time", "" ], [ "7 days", "7d" ], [ "30 days", "30d" ], [ "a year", "365d" ] ], { selected: params[:window] } %></label>
   <%= f.hidden_field :snapshot_seq, value: params[:snapshot_seq] %>
   <%= f.submit "Filter", class: "secondary" %>
 <% end %>
-<p class="meta">As of snapshot <%= @seq %><%= " under #{selected_model.full_name}" if selected_model %>.</p>
-<table><tr><th>Claim</th><th>Type</th><th>Assessment</th><th>Review checks</th></tr>
+<p class="meta">As of snapshot <%= @seq %><%= " under #{selected_model.full_name}" if selected_model %>.<% if params[:sort] == "references" %> Ordered by how often each claim was checked, looked up, viewed, or shared: a count of attention, not of truth or error. Filter by state to see, for instance, the most-met claims whose evidence contradicts them.<% end %></p>
+<table><tr><th>Claim</th><th>Type</th><th>Assessment</th><th>Review checks</th><th>References</th></tr>
 <% @rows.each do |claim, result| %>
   <tr>
     <td><%= link_to claim.canonical_text, claim_path(claim, model: selected_model&.full_name, snapshot_seq: @seq) %></td>
     <td><%= claim.claim_type %></td>
     <td><%= result ? state_label(result.assessment_state) : "no model released" %></td>
     <td><%= result ? "#{result.review_checklist.count { |_, v| v['ok'] }} of #{result.review_checklist.size}" : "" %></td>
+    <td><%= @references.fetch(claim.id, 0) %></td>
   </tr>
 <% end %></table>
 <% if @rows.empty? %><p class="muted">No claims match.</p><% end %>

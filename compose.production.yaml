@@ -30,6 +30,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        GALEDRA_REVISION: ${GALEDRA_REVISION:-unknown}
     command: bash -c "bin/rails db:prepare ledger:genesis ledger:release_models && exec ./bin/thrust ./bin/rails server"
     environment:
       DB_HOST: db

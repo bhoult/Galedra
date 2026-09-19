@@ -2,8 +2,9 @@
 
 module Api
   module V1
-    # GET /api/v1/meta (spec 06 §2). Later stages add the scoring model list
-    # and schema URLs.
+    # GET /api/v1/meta (spec 06 §2). node (Stage 23, spec 14 §25) says which
+    # node this is: address, key, protocol and schema versions, data licence,
+    # and the software build.
     class MetaController < BaseController
       def show
         constitution = Governance::Constitution.new
@@ -19,6 +20,7 @@ module Api
           current_seq: head&.seq,
           chain_head: head&.entry_hash,
           protocol: Ledger::PROTOCOL,
+          node: Ledger::Node.to_h,
           schema_urls: Contributions::Schemas::NAMES.to_h { |n| [ n, api_v1_schema_url(n) ] },
           task_types: Tasks::Types::ALL,
           domains: Audits::Policy.domains,

@@ -12,12 +12,14 @@ module Graph
       end
 
       model ||= Scoring::Registry.default_model
+      references = ClaimReference.totals(claim.id)
       evaluable, reason = claim.evaluability_at(seq)
       links = claim.evidence_claim_links.active_at(seq)
       counted = links.effective_at(seq)
       {
         id: claim.id, text: claim.canonical_text, type: claim.claim_type,
-        truth_evaluable: evaluable, not_evaluable_reason: reason,
+        truth_evaluable: evaluable, not_evaluable_reason: reason, references: references,
+        sections: Sections::Tree.placements_for(claim, seq).map { |s| { id: s.id, root_id: s.root_id, path: s.path(seq) } },
         status: claim.status_at(seq), qualifiers: claim.qualifiers, snapshot_seq: seq, redacted: claim.redacted?,
         created_seq: claim.created_seq, accepted_seq: claim.accepted_seq, invalidated_seq: claim.invalidated_seq,
         contribution_id: claim.contribution_id,
@@ -122,9 +124,16 @@ module Graph
         retrieved_at: source.retrieved_at, license: source.license, previous_version_id: source.previous_version_id,
         lineage_key: source.lineage_key, metadata: source.metadata, created_seq: source.created_seq,
         invalidated_seq: source.invalidated_seq, contribution_id: source.contribution_id, redacted: source.redacted?,
-        retrieval_pending: source.retrieval_pending
+        retrieval_pending: source.retrieval_pending,
+        retrievals: SourceRetrieval.where(source_id: source.id).latest_first.map { |r| retrieval(r) }
       }
       with_content ? base.merge(content: source.content) : base
+    end
+
+    # Stage 17: the server's finding, beside the reader's record, never replacing it.
+    def retrieval(r)
+      { id: r.id, outcome: r.outcome, fetched_at: r.fetched_at&.utc&.iso8601, content_hash: r.content_hash, content_length: r.content_length,
+        media_type: r.media_type, final_url: r.final_url, excerpts: r.excerpts, created_seq: r.created_seq, contribution_id: r.contribution_id }
     end
 
     def edge(edge)
@@ -140,6 +149,7 @@ module Graph
         id: contributor.id, key_id: contributor.key_id, public_key: contributor.public_key, kind: contributor.kind,
         display_name: contributor.display_name, identity_tier: contributor.identity_tier,
         created_seq: contributor.created_seq, revoked_seq: contributor.revoked_seq, metadata: contributor.metadata,
+        home_url: contributor.home_node_url,
         server_custodied: contributor.server_custodied?,
         contributions: contributor.contributions.group(:action_class).count
       }

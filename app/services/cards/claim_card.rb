@@ -27,6 +27,7 @@ module Cards
         stated: (result.probability && "#{result.probability} under #{model.full_name} at snapshot #{seq}")
       }
       card[:reason] = Headline.reason_text(result.not_applicable_reason) if result.assessment_state == "NOT_APPLICABLE"
+      card[:labels] += retrieval_labels(claim, seq)
       card
     end
 
@@ -40,6 +41,19 @@ module Cards
       if %w[SUPPORTED CONTRADICTED].include?(result.assessment_state) && done <= 1
         labels << "Evidence reviewed so far #{result.assessment_state == 'SUPPORTED' ? 'supports' : 'contradicts'} this claim, but only #{done} of #{checks.size} review checks #{done == 1 ? 'has' : 'have'} been done."
       end
+      labels
+    end
+
+    # Stage 17: what Galedra's own fetch found for the quoted passages behind the
+    # counted evidence. A fact for the reader and for auditors, not a score input.
+    def retrieval_labels(claim, seq)
+      findings = claim.evidence_claim_links.counted_at(seq).includes(evidence_item: :source_location).filter_map do |link|
+        location = link.evidence_item.source_location
+        SourceRetrieval.latest_for(location.source_id, seq)&.finding_for(location.id)
+      end
+      labels = []
+      labels << "A quoted passage was not found on the page when Galedra fetched it." if findings.include?("NOT_FOUND")
+      labels << "Every quoted passage was confirmed on the page when Galedra fetched it." if findings.any? && findings.all? { |f| %w[VERBATIM NORMALIZED].include?(f) }
       labels
     end
 

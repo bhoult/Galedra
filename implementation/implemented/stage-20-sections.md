@@ -1,6 +1,6 @@
 # Stage 20 — Sections and placements in the log
 
-**Status:** planned, not built · tag will be `stage-20-sections`
+**Status:** implemented · tag `stage-20-sections` · decisions recorded 2026-09-19
 
 ## Plan
 
@@ -118,6 +118,32 @@ answer); whether placements should be proposals when the placer is not the outli
 principal (planned: accepted at once, since a placement changes no score and is
 reversible).
 
-## Decision Log
+## Decision Log (2026-09-19)
 
-Written when the stage is executed.
+- Built as planned. `CREATE_SECTION` and `PLACE_CLAIM` are epistemic action types with
+  their own appliers; `sections` and `claim_placements` are in `PROJECTION_MODELS`, so
+  digests, replay, and `ledger:verify` cover them. Section ids derive from the
+  contribution and a preorder index (`Ledger::Ids.derive(id, "section", n)`); a placement
+  born with a claim shares the claim's contribution and seqs.
+- `PLACE_CLAIM` is accepted for any principal (`auto_accept?` true): filing changes no
+  score and is reversible by `INVALIDATE`. `CREATE_SECTION` follows `CREATE_CLAIM`'s rule
+  (a human's own, or a connected assistant's, is accepted on validation). The same claim
+  in the same section twice is `DUPLICATE`; an identical resubmission is absorbed by the
+  log's idempotency before it reaches the applier.
+- `Sections::Tree` computes counts per section in the 06 §6 form; "checkable" means
+  truth-evaluable (everything but `NOT_APPLICABLE`), as the spec's example counts it.
+  Nothing returns a probability, headline, or badge for a section; the fixed granularity
+  note travels with every rendering and JSON.
+- Website: `/sections` (roots with counts), `/sections/:id` (breadcrumb, counts line, the
+  subtree as `details` elements open along the path, claims as lines with their state),
+  the claim page's left column when the claim is placed (`?section=` picks which), "Add an
+  outline" on the source and section pages from indented headings (`Sections::Outline`),
+  and "File under a section" on the claim page. API: `GET /api/v1/sections`,
+  `GET /api/v1/sections/:id?depth=`; `claim.sections` on the claim JSON and `get_claim`.
+- Lazy rendering of collapsed branches by Turbo Frame was not needed: the tree renders
+  whole and the browser collapses it; revisit at thousands of claims.
+- `ClaimsController#place` needed `require_authentication` because the controller allows
+  unauthenticated access for every other action.
+- Constitutional Test: adds display structure only. 1 yes; 2 n/a; 3 no; 4 no; 5 yes; 6 yes;
+  7 yes (replay byte-identical); 8 yes; 9 yes; 10 yes. No blocker.
+

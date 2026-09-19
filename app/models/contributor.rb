@@ -12,6 +12,17 @@ class Contributor < ApplicationRecord
   # ANONYMOUS (Stage 12): a server-custodied key with no account. Weighted in audit
   # sampling, caps, and labels; never in claim scores (Art. XI).
   IDENTITY_TIERS = %w[ANONYMOUS PSEUDONYMOUS ESTABLISHED EXTERNALLY_VERIFIED INSTITUTIONAL].freeze
+  MAX_HOME_URL = 200
+
+  # A key's home node (Stage 23, spec 14 §5): an http(s) origin, no query, no fragment.
+  def self.home_url?(value)
+    return false unless value.is_a?(String) && value.length <= MAX_HOME_URL
+
+    uri = URI.parse(value)
+    uri.is_a?(URI::HTTP) && uri.host.present? && uri.query.nil? && uri.fragment.nil? && uri.userinfo.nil?
+  rescue URI::InvalidURIError
+    false
+  end
 
   has_one :custodied_key, dependent: nil
   has_many :contributions, dependent: nil
@@ -31,6 +42,8 @@ class Contributor < ApplicationRecord
   def system? = kind == SYSTEM
 
   def revoked? = revoked_seq.present?
+  # The node this key lives on; null on the row means this node.
+  def home_node_url = Ledger::Node.home_url_for(self)
   def anonymous? = identity_tier == "ANONYMOUS"
   def adopted_by_key_id = metadata["adopted_by"]
   def adopted? = adopted_by_key_id.present?

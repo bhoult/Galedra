@@ -1,0 +1,9 @@
+<% content_for :title, "Outlines" %>
+<h1>Outlines</h1>
+<p class="meta">Long sources (a transcript, a speech, a long article) read as a tree of sections with the claims filed under each. <%= Sections::Tree::NOTE %></p>
+<% if @roots.empty? %><p class="muted">None yet. Add one from a source page.</p><% else %>
+<table><tr><th>Outline</th><th>Source</th><th>Claims</th><th>Counts by state</th></tr>
+<% @roots.each do |root, tree| %>
+  <tr><td><%= link_to root.heading, section_path(root) %></td><td><%= link_to root.source.title, source_path(root.source) %></td><td><%= tree[:counts]["claims"] %><%= " (+#{tree[:pending]} proposed)" if tree[:pending].positive? %></td><td class="meta"><%= Sections::Tree.counts_line(tree[:counts]) %></td></tr>
+<% end %></table>
+<% end %>

@@ -1,6 +1,7 @@
 # Claim pages (spec 06 §4 display rules, §5 claim page order).
 class ClaimsController < ApplicationController
   allow_unauthenticated_access
+  before_action :require_authentication, only: [ :place ]
 
   def index
     @seq = current_seq
@@ -13,9 +14,26 @@ class ClaimsController < ApplicationController
     if params[:source_id].present?
       scope = scope.where(id: EvidenceClaimLink.joins(evidence_item: :source_location).where(source_locations: { source_id: params[:source_id] }).select(:claim_id))
     end
-    claims = scope.limit(100).to_a
+    # Most referenced first (owner request, 2026-09-19): ordered by how often, never by how "wrong" (06 §4 rule 12).
+    @since = ClaimReference.since_for(params[:window])
+    @counted_kind = ClaimReference::KINDS.include?(params[:kind]) ? params[:kind] : nil
+    if params[:sort] == "references"
+      top = ClaimReference.top_claim_ids(kind: @counted_kind, since: @since, limit: 500)
+      by_id = scope.where(id: top).index_by(&:id)
+      claims = top.filter_map { |id| by_id[id] }.first(100)
+    else
+      claims = scope.limit(100).to_a
+    end
+    @references = ClaimReference.counts_for(claims.map(&:id), kind: @counted_kind, since: @since)
     @rows = claims.map { |c| [ c, selected_model && Scoring::Score.call(c, @seq, selected_model) ] }
     @rows = @rows.select { |_, r| r&.assessment_state == params[:state] } if params[:state].present?
+  end
+
+  # Stage 20: file this claim under a section (a signed PLACE_CLAIM).
+  def place
+    claim = Claim.find(params[:id])
+    Ui::Write.call(Current.user, "PLACE_CLAIM", { "claim_id" => claim.id, "section_id" => params[:section_id].to_s })
+    redirect_to claim_path(claim, section: params[:section_id]), notice: "Filed. The placement is a signed contribution."
   end
 
   # The share card (Stage 14): Open Graph tags for link previews and a PNG.
@@ -24,6 +42,7 @@ class ClaimsController < ApplicationController
     @seq = head_seq
     raise ActiveRecord::RecordNotFound if Governance::Quarantines.live_for("CLAIM", @claim.id)
 
+    ClaimReference.count!(@claim.id, "SHARED")
     @model = Scoring::Registry.default_model
     @card = Cards::ClaimCard.call(@claim, @seq, @model)
     @plain = @card[:plain]
@@ -40,6 +59,13 @@ class ClaimsController < ApplicationController
 
     @quarantine = Governance::Quarantines.live_for("CLAIM", @claim.id)
     return if @quarantine
+
+    ClaimReference.count!(@claim.id, "VIEWED")
+    @references = ClaimReference.totals(@claim.id)
+    @views = PersonalAssessments::Breakdown.call(@claim.id)
+    @sections = Sections::Tree.placements_for(@claim, @seq)
+    @section = (params[:section].present? && @sections.find { |s| s.id == params[:section] }) || @sections.first
+    @my_view = authenticated? ? Current.user.personal_assessments.find_by(claim_id: @claim.id) : nil
 
     @model = selected_model
     @result = @model && Scoring::Score.call(@claim, @seq, @model)

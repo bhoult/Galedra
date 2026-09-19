@@ -10,6 +10,10 @@ module Investigations
     SIMILARITY_ATTACH = 0.6
     ANONYMOUS_PRIORITY_FACTOR = "1.5"
     ORDER = %w[sources excerpts claims evidence links groups].freeze
+    # Stage 21: a bundle this large without sections is a large source recorded as
+    # if it were a paragraph; it is refused and pointed to create_outline.
+    MAX_UNSECTIONED_CLAIMS = 40
+    RECORDED_BY_REQUESTER = "RECORDED_BY_REQUESTER"
 
     module_function
 
@@ -38,12 +42,24 @@ module Investigations
           card: Cards::ClaimCard.call(claim, seq, model) }
       end
       share = share_for(token, bundle, claims, seq, base_url)
+      ClaimReference.count!(claims.map { |c| c[:id] }, "CHECKED")
       { recorded: true, snapshot_seq: seq, contributions: count, tasks_opened: tasks, ids: ids, claims: claims, existing: with_urls(existing, base_url),
         attribution: attribution(token, base_url), share: share, share_line: share[:line] }
     end
 
     # The page that answers what was asked, and the one line to paste (after Stage 19).
+    # Stage 21: when every claim sits under one outline, the share line is that
+    # outline's counts and page, never a verdict for a speech or an episode.
     def share_for(token, bundle, claims, seq, base_url)
+      roots = bundle.fetch("claims", []).map { |c| c["section"].presence && Section.find_by(id: c["section"])&.root_id }
+      if roots.any? && roots.uniq.size == 1 && roots.none?(&:nil?)
+        root = Section.find(roots.first)
+        investigation = Investigation.create!(id: SecureRandom.uuid_v7, assistant_token: token, statement: bundle["statement"].presence,
+                                              claim_ids: claims.map { |c| c[:id] }, snapshot_seq: seq, section_id: root.id)
+        url = "#{base_url}/sections/#{root.id}"
+        return { url: url, investigation_url: "#{base_url}/investigations/#{investigation.id}", line: outline_share_line(root, seq, url), verdict: nil,
+                 note: "A section check: the share line is the whole outline's counts and page. End your reply with it on its own line, exactly as given." }
+      end
       investigation = Investigation.create!(id: SecureRandom.uuid_v7, assistant_token: token, statement: bundle["statement"].presence,
                                             claim_ids: claims.map { |c| c[:id] }, snapshot_seq: seq)
       url = "#{base_url}/investigations/#{investigation.id}"
@@ -86,9 +102,13 @@ module Investigations
       bundle.fetch("claims", []).each do |c|
         if c["attach_to"]
           ids[c["handle"]] = c["attach_to"]
+          if c["section"].present? && !ClaimPlacement.live.exists?(claim_id: c["attach_to"], section_id: c["section"])
+            write.call("PLACE_CLAIM", { "claim_id" => c["attach_to"], "section_id" => c["section"] }, nil, nil, nil)
+          end
           next
         end
         payload = { "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => c.fetch("qualifiers", {}) }
+        payload["section_id"] = c["section"] if c["section"].present?
         write.call("CREATE_CLAIM", payload, c["handle"], "claim", Claim)
         topics = Array(c["topics"]).reject(&:blank?)
         write.call("TAG_CLAIM", { "claim_id" => ids[c["handle"]], "topics" => topics }, nil, nil, nil) if topics.any?
@@ -132,24 +152,35 @@ module Investigations
 
     def open_tasks(token, bundle, ids)
       factor = token.anonymous? ? ANONYMOUS_PRIORITY_FACTOR : "1"
-      opened = 0
-      bundle.fetch("claims", []).each do |c|
-        next if c["attach_to"]
-
-        claim = Claim.find(ids[c["handle"]])
-        domain = Topics.domain_for_claim(claim, Contribution.maximum(:seq)) || Audits::Policy.default_domain
-        %w[OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK].each do |type|
-          Tasks::Create.call(task_type: type, target: claim, domain: domain, created_by: token.agent, priority_factor: factor)
-          opened += 1
-        end
-        link = bundle.fetch("links", []).find { |l| l["claim"] == c["handle"] }
+      new_claims = bundle.fetch("claims", []).reject { |c| c["attach_to"] }
+      claims = new_claims.map { |c| Claim.find(ids[c["handle"]]) }
+      location_for = lambda do |claim|
+        handle = new_claims.find { |c| ids[c["handle"]] == claim.id }&.dig("handle")
+        link = bundle.fetch("links", []).find { |l| l["claim"] == handle }
         excerpt = link && bundle.fetch("evidence", []).find { |e| e["handle"] == link["evidence"] }&.dig("excerpt")
-        next if excerpt.nil?
-
-        Tasks::Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, domain: domain, location: SourceLocation.find(ids.fetch(excerpt)), created_by: token.agent, priority_factor: factor)
-        opened += 1
+        excerpt && SourceLocation.find(ids.fetch(excerpt))
       end
+      opened = Tasks::OpenVerification.call(claims, created_by: token.agent, priority_factor: factor, location_for: location_for)
+      cancel_extraction_tasks(token, bundle)
       opened
+    end
+
+    # Stage 21: a leaf the outline's own principal filled directly no longer needs
+    # its extraction task. Cancelling a task is not a log event.
+    def cancel_extraction_tasks(token, bundle)
+      section_ids = bundle.fetch("claims", []).filter_map { |c| c["section"].presence }.uniq
+      section_ids.each do |section_id|
+        section = Section.find_by(id: section_id)
+        next if section.nil? || section.root.contribution.principal_contributor_id != token.principal_contributor_id
+
+        Task.where(task_type: "CLAIM_EXTRACTION", section_id: section.id, status: %w[OPEN LEASED]).update_all(status: "CANCELLED", cancelled_reason: RECORDED_BY_REQUESTER)
+      end
+    end
+
+    # The whole outline's counts line and its page (06 §6), never a verdict.
+    def outline_share_line(root, seq, url)
+      counts = Sections::Tree.call(root, seq)[:counts]
+      "Checked in Galedra: #{root.heading} · #{Sections::Tree.counts_line(counts)} · #{url}"
     end
   end
 
@@ -179,6 +210,8 @@ module Investigations
         end
       end
       add.call("$.claims", "at least one claim is required") if bundle.fetch("claims", []).empty?
+      unsectioned = bundle.fetch("claims", []).count { |c| c.is_a?(Hash) && c["attach_to"].nil? && c["section"].blank? }
+      add.call("$.claims", "more than #{Record::MAX_UNSECTIONED_CLAIMS} new claims without sections: this is a large source; record its structure first with create_outline, then record leaf by leaf with section on each claim") if unsectioned > Record::MAX_UNSECTIONED_CLAIMS
       statement = bundle["statement"]
       add.call("$.statement", "the exact text the person wanted checked, at most #{Investigation::MAX_STATEMENT_CHARS} characters") unless statement.nil? || (statement.is_a?(String) && statement.length <= Investigation::MAX_STATEMENT_CHARS)
       raise Ledger::Rejected.new(errors) if errors.any?
@@ -207,6 +240,7 @@ module Investigations
         add.call("#{path}.text", "required: one atomic assertion") unless c["text"].is_a?(String) && c["text"].present?
         add.call("#{path}.type", "expected one of #{Claim::TYPES.join(', ')}") unless Claim::TYPES.include?(c["type"])
       end
+      add.call("#{path}.section", "no such section") if c["section"].present? && !Section.live.exists?(id: c["section"].to_s)
       topics = Array(c["topics"])
       unknown = topics.reject { |t| Topics.valid?(t) }
       add.call("#{path}.topics", "not in the vocabulary: #{unknown.join(', ')}; see /api/v1/topics") if unknown.any?

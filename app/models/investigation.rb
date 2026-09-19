@@ -7,9 +7,20 @@ class Investigation < ApplicationRecord
   belongs_to :assistant_token
 
   validates :statement, length: { maximum: MAX_STATEMENT_CHARS }, allow_nil: true
-  validates :claim_ids, presence: true
+  validates :claim_ids, presence: true, unless: :section_id
 
+  def outline? = section_id.present?
+
+  # Stage 21: an outline's investigation reads the claims under its root live.
   def claims
+    if outline?
+      seq = Contribution.maximum(:seq)
+      root = Section.find_by(id: section_id)
+      return [] if root.nil?
+
+      ids = ClaimPlacement.counted_at(seq).where(section_id: Section.counted_at(seq).where(root_id: root.root_id).select(:id)).pluck(:claim_id)
+      return Claim.counted_at(seq).where(id: ids).order(:created_seq).to_a
+    end
     by_id = Claim.where(id: claim_ids).index_by(&:id)
     claim_ids.filter_map { |id| by_id[id] }
   end

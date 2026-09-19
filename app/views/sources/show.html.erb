@@ -10,6 +10,36 @@
     <% if @source.content %><details><summary>Stored text (<%= @source.content_length %> characters)</summary><pre><%= @source.content %></pre></details><% end %>
   </div>
 
+  <% roots = Section.counted_at(@seq).where(source_id: @source.id, parent_id: nil).order(:created_seq) %>
+  <% if roots.any? || authenticated? %>
+    <h2>Outlines of this source</h2>
+    <% if roots.any? %><ul><% roots.each do |r| %><li><%= link_to r.heading, section_path(r) %></li><% end %></ul><% else %><p class="muted">None yet.</p><% end %>
+    <% if authenticated? %>
+      <details><summary>Add an outline</summary>
+        <%= form_with url: sections_path, method: :post do |f| %>
+          <%= f.hidden_field :source_id, value: @source.id %>
+          <p><%= f.label :outline, "Headings, one per line, indented two spaces per level" %><br><%= f.text_area :outline, rows: 8, placeholder: "Episode 123\n  LLM alignment\n    OpenAI\n    Anthropic\n  Math is cooked" %></p>
+          <p><%= f.submit "Record the outline", class: "secondary" %></p>
+        <% end %>
+      </details>
+    <% end %>
+  <% end %>
+  <% retrievals = SourceRetrieval.where(source_id: @source.id).latest_first.to_a %>
+  <% if retrievals.any? || @source.retrieval_pending %>
+    <h2>Retrieval by Galedra</h2>
+    <% if retrievals.empty? %><p class="muted">Not yet fetched. Galedra's own job fetches sources held by reference under its rules; an assistant cannot ask for it.</p><% end %>
+    <% retrievals.each do |r| %>
+      <div class="card">
+        <p><strong><%= r.outcome %></strong> at <%= r.fetched_at.utc.iso8601 %><% if r.final_url.present? %> · <%= safe_source_link(r.final_url) %><% end %> · <%= link_to "seq #{r.created_seq}", contribution_path(r.contribution_id) %></p>
+        <% if r.fetched? %><p class="meta">Server hash <code><%= r.content_hash %></code> · <%= r.content_length %> bytes · <%= r.media_type %><% if @source.content_hash && @source.content_hash != r.content_hash %> · differs from the reader's hash<% elsif @source.content_hash %> · matches the reader's hash<% end %>. The reader's record is unchanged; this is the server's finding beside it.</p><% end %>
+        <% if r.excerpts.any? %>
+          <table><tr><th>Excerpt</th><th>Finding</th></tr>
+          <% r.excerpts.each do |e| %><% loc = SourceLocation.find_by(id: e["location_id"]) %><tr><td><%= truncate(loc&.excerpt.to_s, length: 160) %></td><td><%= e["found"].to_s.downcase.tr("_", " ") %></td></tr><% end %></table>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
   <% if @cards %>
     <h2>Claims from this source</h2>
     <p><%= @cards[:summary] %></p>

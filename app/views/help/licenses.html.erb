@@ -1,0 +1,28 @@
+<% content_for :title, "Licences" %>
+<% content_for :body_class, "document" %>
+<h1>Licences</h1>
+<p class="lede">Galedra's parts carry different licences: the software, the protocol, the public database as a whole, individual factual records, the prose, and material imported from elsewhere. The project adopted the stack its licensing policy recommends on 2026-09-19. This page shows what is in force, and the full text of every licence in that stack.</p>
+
+<h2>What applies to what</h2>
+<table>
+  <tr><th>Component</th><th>In force today</th><th>Policy recommends</th></tr>
+  <% @rows.each do |r| %>
+    <tr><td><%= r[:component] %></td><td><%= r[:in_force] %></td><td><% if r[:recommended] %><a href="#license-<%= r[:recommended] %>"><%= r[:recommended] %></a><% else %>none: rights stay with the source<% end %></td></tr>
+  <% end %>
+</table>
+<p class="meta">"In force today" for the code is the repository's <code>LICENSE</code> file; for the public database it is this node's <code>LEDGER_DATA_LICENSE</code>, published in <%= link_to "machine-readable metadata", api_v1_meta_path %>. Per-directory notices are in <code>NOTICE</code>.</p>
+
+<h2 id="license-in-force">The code licence in force: <%= @code_license_name %></h2>
+<pre><%= @code_license_text %></pre>
+
+<h2>Full text of every licence in the stack</h2>
+<% if @texts.empty? %><p class="muted">No texts under <code>LICENSES/</code>.</p><% end %>
+<% @texts.each do |t| %>
+  <details id="license-<%= t[:id] %>">
+    <summary><strong><%= t[:id] %></strong> <span class="muted">(SPDX canonical text, <%= t[:text].lines.count %> lines)</span></summary>
+    <pre><%= t[:text] %></pre>
+  </details>
+<% end %>
+
+<h2>Licensing policy</h2>
+<div class="readme"><%= @policy_html %></div>

@@ -1,0 +1,27 @@
+<% content_for :title, "About" %>
+<% content_for :body_class, "document" %>
+<h1>About this instance</h1>
+<p class="lede">Galedra is an epistemic ledger: a signed, append-only record of claims, evidence, provenance, audits, and reproducible scores. It is not a source of truth. This page says which build is running and which node this is.</p>
+
+<h2>Software</h2>
+<div class="card">
+  <p><strong>Revision</strong> <code><%= @software[:revision] %></code></p>
+  <p><strong>Repository</strong> <%= link_to @software[:repository], @software[:repository] %> · <%= link_to "issues", "#{@software[:repository]}/issues" %> · <%= link_to "licences", licenses_path %></p>
+  <p class="meta">Ruby <%= @software[:ruby] %> · Rails <%= @software[:rails] %><% if @postgres %> · PostgreSQL <%= @postgres.split(" ").first %><% end %> · protocol <code><%= @node[:protocol] %></code> · schema <code><%= @node[:schema_version] %></code></p>
+</div>
+
+<h2>This node</h2>
+<div class="card">
+  <p><strong>Address</strong> <% if @node[:url] %><%= link_to @node[:url], @node[:url] %><% else %><span class="muted">not configured (set LEDGER_NODE_URL)</span><% end %></p>
+  <p><strong>Node key</strong> <code><%= @node[:key_id] || "not configured" %></code> <span class="muted">signs every log entry and every checkpoint</span></p>
+  <p><strong>Log head</strong> <% if @head %>seq <%= @head.seq %> · <code><%= @head.entry_hash %></code><% else %>empty<% end %></p>
+  <p><strong>Scoring models</strong> <%= @models.join(", ").presence || "none released" %></p>
+  <p><strong>Moderator keys</strong> <% if @moderator_key_ids.any? %><%= @moderator_key_ids.map { |k| content_tag(:code, k) }.join(", ").html_safe %><% else %><span class="muted">none</span><% end %></p>
+  <p><strong>Data licence</strong> <%= @node[:data_license] %> · <strong>visibility of records</strong> <%= @node[:visibilities].join(", ") %></p>
+  <p class="meta">Federation is a goal, not a feature yet: keys name their home node, checkpoints are signed, and every record carries an explicit visibility so an independent mirror can one day verify and continue this log. <%= link_to "Machine-readable metadata", api_v1_meta_path %>.</p>
+</div>
+
+<h2>Constitution</h2>
+<div class="card">
+  <p>Version <%= @constitution.version %> · integrity <code><%= @constitution.digest %></code> · <%= link_to "read it", constitution_path %></p>
+</div>

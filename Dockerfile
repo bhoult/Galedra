@@ -47,6 +47,11 @@ RUN bundle install && \
 # Copy application code
 COPY . .
 
+# The build's git revision, shown on /about and in /api/v1/meta. .git is not in
+# the image, so pass it in: --build-arg GALEDRA_REVISION=$(git describe --tags --always)
+ARG GALEDRA_REVISION=unknown
+RUN echo "$GALEDRA_REVISION" > REVISION
+
 # Precompile bootsnap code for faster boot times.
 # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
 RUN bundle exec bootsnap precompile -j 1 app/ lib/

@@ -20,28 +20,10 @@
     <%= yield :background %>
     <header class="site">
       <%= link_to root_path, class: "brand" do %><%= image_tag "logo.svg", alt: "", class: "brand-mark", width: 26, height: 26 %> Galedra<% end %>
-      <nav aria-label="Primary">
-        <% if authenticated? %>
-          <%= link_to "Analyze text", new_analyze_path %>
-          <%= link_to "Claims", claims_path %>
-          <%= link_to "Topics", topics_path %>
-          <%= link_to "Tasks", tasks_path %>
-          <%= link_to "Audits", contributions_path(action_type: "AUDIT") %>
-          <%= link_to "Weaknesses", weaknesses_path %>
-          <%= link_to "Moderation", moderation_path %>
-          <%= link_to "Log", contributions_path %>
-          <%= link_to "Assistant", new_assistant_path %>
-          <%= link_to "Constitution", constitution_path %>
-        <% else %>
-          <%= link_to "Constitution", constitution_path %>
-          <%= link_to "FAQ", faq_path %>
-          <%= link_to "Connect an assistant", new_assistant_path %>
-          <%= link_to "Record", new_investigation_path %>
-        <% end %>
-      </nav>
+      <%= render "layouts/nav" %>
       <div class="account">
         <% if authenticated? %>
-          <span class="muted"><%= Current.user.email_address %></span>
+          <%= link_to Current.user.email_address, account_path, class: "muted", title: "Your account" %>
           <%= button_to "Sign out", session_path, method: :delete, class: "secondary small", form_class: "inline" %>
         <% else %>
           <%= link_to "Sign in", new_session_path %>
@@ -55,14 +37,15 @@
       <%= yield %>
     </main>
     <footer class="site">
-      <% constitution = Governance::Constitution.new %>
-      <p>Galedra is not a source of truth. It is a source of traceable reasons for believing or doubting a claim.</p>
-      <p class="meta">
-        <%= link_to "Constitution", constitution_path %> <%= constitution.version %> ·
-        integrity <code><%= constitution.digest %></code> ·
-        <%= link_to "machine-readable metadata", api_v1_meta_path %> ·
-        <%= link_to "FAQ", faq_path %> ·
-        <%= link_to "public log", contributions_path %>
+      <p>Not a source of truth. A source of traceable reasons.</p>
+      <p class="links">
+        <%= link_to "Constitution", constitution_path %>
+        <%= link_to "FAQ", faq_path %>
+        <%= link_to "Docs", docs_path %>
+        <%= link_to "Licences", licenses_path %>
+        <%= link_to "About", about_path %>
+        <%= link_to "API", api_v1_meta_path %>
+        <%= link_to "Log", contributions_path %>
       </p>
     </footer>
   </body>

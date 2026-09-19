@@ -49,7 +49,7 @@ module Ledger
       end
 
       def self.apply_payload(c, p, index = nil)
-        Source.create!(
+        source = Source.create!(
           id: row_id(c, "source", index), contribution_id: c.id, created_seq: c.seq, retrieval_pending: !p.key?("content"),
           source_type: p["source_type"], title: p["title"], creator: p["creator"], publisher: p["publisher"],
           publication_date: p["publication_date"], canonical_uri: p["canonical_uri"],
@@ -57,6 +57,12 @@ module Ledger
           retrieved_at: p["retrieved_at"], license: p["license"], previous_version_id: p["previous_version_id"],
           lineage_key: p["lineage_key"], metadata: p.fetch("metadata", {})
         )
+        # Stage 17: a source by reference, outside a task, is fetched later by
+        # Galedra's own job (never on an assistant's say-so). Not during replay.
+        if source.retrieval_pending && index.nil? && source.canonical_uri.present? && Sources::Retrieve.enabled? && !Ledger.replaying?
+          RetrieveSourceJob.perform_later(source.id, source.created_seq)
+        end
+        source
       end
     end
   end

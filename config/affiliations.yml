@@ -1,0 +1,71 @@
+# Self-declared affiliations (owner request, 2026-09-19): what a person says
+# about themselves so that, in aggregate, Galedra can show how different
+# groups agree or disagree on a claim. Closed vocabulary, several groups, any
+# number of picks, none required. Private to the account; shown only as
+# counts, and only when a group is large enough (PersonalAssessments::MIN_GROUP).
+# Adding an entry is a code change reviewed like any other.
+groups:
+  - slug: politics
+    label: Politics
+    options:
+      - { slug: democrat, label: Democrat }
+      - { slug: republican, label: Republican }
+      - { slug: independent, label: Independent }
+      - { slug: libertarian, label: Libertarian }
+      - { slug: green, label: Green }
+      - { slug: progressive, label: Progressive }
+      - { slug: conservative, label: Conservative }
+      - { slug: socialist, label: Socialist }
+      - { slug: apolitical, label: Not political }
+  - slug: religion
+    label: Religion or worldview
+    options:
+      - { slug: christian, label: Christian }
+      - { slug: catholic, label: Catholic }
+      - { slug: protestant, label: Protestant }
+      - { slug: orthodox, label: Orthodox Christian }
+      - { slug: jewish, label: Jewish }
+      - { slug: muslim, label: Muslim }
+      - { slug: hindu, label: Hindu }
+      - { slug: buddhist, label: Buddhist }
+      - { slug: sikh, label: Sikh }
+      - { slug: spiritual, label: Spiritual, not religious }
+      - { slug: agnostic, label: Agnostic }
+      - { slug: atheist, label: Atheist }
+  - slug: nationality
+    label: Nationality
+    options:
+      - { slug: american, label: American }
+      - { slug: canadian, label: Canadian }
+      - { slug: mexican, label: Mexican }
+      - { slug: brazilian, label: Brazilian }
+      - { slug: british, label: British }
+      - { slug: irish, label: Irish }
+      - { slug: french, label: French }
+      - { slug: german, label: German }
+      - { slug: spanish, label: Spanish }
+      - { slug: italian, label: Italian }
+      - { slug: indian, label: Indian }
+      - { slug: chinese, label: Chinese }
+      - { slug: japanese, label: Japanese }
+      - { slug: australian, label: Australian }
+      - { slug: nigerian, label: Nigerian }
+      - { slug: south-african, label: South African }
+      - { slug: other-nationality, label: Other }
+  - slug: generation
+    label: Generation
+    options:
+      - { slug: silent, label: Silent generation (born before 1946) }
+      - { slug: boomer, label: Baby boomer (1946–1964) }
+      - { slug: gen-x, label: Generation X (1965–1980) }
+      - { slug: millennial, label: Millennial (1981–1996) }
+      - { slug: gen-z, label: Generation Z (1997–2012) }
+      - { slug: gen-alpha, label: Generation Alpha (2013 on) }
+  - slug: education
+    label: Education
+    options:
+      - { slug: secondary, label: Secondary school }
+      - { slug: trade, label: Trade or vocational }
+      - { slug: bachelors, label: Bachelor's degree }
+      - { slug: masters, label: Master's degree }
+      - { slug: doctorate, label: Doctorate or professional degree }

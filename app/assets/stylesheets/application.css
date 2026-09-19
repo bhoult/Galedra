@@ -48,9 +48,44 @@ header.site nav { display: flex; gap: 0.2rem 1rem; flex-wrap: wrap; font-size: 0
 header.site nav a { color: var(--ink); opacity: 0.85; padding: 0.15rem 0; border-bottom: 2px solid transparent; }
 header.site nav a:hover { opacity: 1; text-decoration: none; border-bottom-color: var(--accent); }
 header.site .account { margin-left: auto; display: flex; align-items: center; gap: 0.8rem; font-size: 0.92rem; }
+/* Drop-down menus (Stage 24): details/summary, styled like the old links. */
+header.site nav details.menu { position: relative; }
+header.site nav details.menu > summary { list-style: none; cursor: pointer; color: var(--ink); opacity: 0.85; padding: 0.15rem 0; border-bottom: 2px solid transparent; user-select: none; }
+header.site nav details.menu > summary::-webkit-details-marker { display: none; }
+header.site nav details.menu > summary::after { content: " ▾"; font-size: 0.8em; opacity: 0.7; }
+header.site nav details.menu > summary:hover, header.site nav details.menu[open] > summary { opacity: 1; border-bottom-color: var(--accent); }
+header.site nav .menu-panel { position: absolute; left: 0; top: calc(100% + 0.4rem); min-width: 13rem; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(30, 29, 26, 0.12); padding: 0.4rem 0; z-index: 20; }
+header.site nav .menu-panel a { padding: 0.4rem 1rem; border-bottom: 0; white-space: nowrap; }
+header.site nav .menu-panel a:hover { background: var(--panel-2); }
+@media (max-width: 40rem) { header.site nav .menu-panel { position: static; box-shadow: none; border: 0; padding: 0 0 0 0.8rem; } }
+.readme h1 { font-size: 1.6rem; }
+/* Personal views (Article XV): a visibly different panel from the shared assessment. */
+.card.personal { border-style: dashed; background: var(--panel-2); }
+/* Outlines (Stage 20): a directory tree beside the claim, ancestors open, current claim marked. */
+.with-outline { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+@media (max-width: 56rem) { .with-outline { grid-template-columns: 1fr; } }
+aside.outline { position: sticky; top: 3.6rem; font-size: 0.9rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.7rem 0.9rem; max-height: calc(100vh - 5rem); overflow: auto; }
+aside.outline h2, .tree h2 { font-size: 1rem; border: 0; margin: 0 0 0.4rem; }
+.tree ul { list-style: none; margin: 0; padding-left: 0.9rem; border-left: 1px dotted var(--line-strong); }
+.tree > ul { padding-left: 0; border-left: 0; }
+.tree li { margin: 0.15rem 0; }
+.tree details > summary { cursor: pointer; list-style: none; }
+.tree details > summary::before { content: "▸ "; color: var(--muted); }
+.tree details[open] > summary::before { content: "▾ "; }
+.tree .claim-line { display: block; padding: 0.1rem 0.3rem; border-radius: 4px; }
+.tree .claim-line.current { background: var(--panel-2); font-weight: 600; }
+.tree .counts { color: var(--muted); font-size: 0.85em; }
+dl.glossary dt { font-weight: 600; margin-top: 1rem; }
+dl.glossary dd { margin: 0.2rem 0 0 0; }
+dl.glossary dd ul { margin: 0.3rem 0 0; }
+label.check { display: inline-flex; gap: 0.4rem; align-items: baseline; font-size: 0.95rem; }
+table td.actions form { display: inline; margin-right: 0.3rem; }
 main { max-width: 68rem; margin: 1.4rem auto 3rem; padding: 0 1.4rem; }
-footer.site { border-top: 1px solid var(--line); padding: 1.6rem 1.4rem 2.4rem; max-width: 68rem; margin: 0 auto; color: var(--muted); font-size: 0.92rem; }
-footer.site p { margin: 0.3rem 0; }
+footer.site { border-top: 1px solid var(--line); padding: 1.2rem 1.4rem 2rem; max-width: 68rem; margin: 2rem auto 0; color: var(--muted); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem 1.5rem; flex-wrap: wrap; }
+footer.site p { margin: 0; }
+footer.site .links { display: flex; gap: 0.2rem 1.1rem; flex-wrap: wrap; }
+footer.site .links a { color: var(--muted); }
+footer.site .links a:hover { color: var(--accent-ink); }
 
 /* Cards, badges, tables */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.25rem; margin: 0.9rem 0; }

@@ -22,6 +22,18 @@ module Ledger
     end
   end
 
+  def self.replaying?
+    ActiveSupport::IsolatedExecutionState[:ledger_replaying] == true
+  end
+
+  def self.replaying
+    previous = ActiveSupport::IsolatedExecutionState[:ledger_replaying]
+    ActiveSupport::IsolatedExecutionState[:ledger_replaying] = true
+    yield
+  ensure
+    ActiveSupport::IsolatedExecutionState[:ledger_replaying] = previous
+  end
+
   def self.applying?
     ActiveSupport::IsolatedExecutionState[:ledger_applying] == true
   end

@@ -1,6 +1,6 @@
 # Stage 17 — Source retrieval by a trusted job
 
-**Status:** planned, not built · tag will be `stage-17-retrieval`
+**Status:** implemented · tag `stage-17-retrieval` · decisions recorded 2026-09-19
 
 ## Plan
 
@@ -79,6 +79,42 @@ toward the review checklist (the conservative reading, no, is what this stage pl
 whether to re-fetch periodically to detect changed or vanished pages; the byte cap and
 timeout.
 
-## Decision Log
+## Decision Log (2026-09-19)
 
-Written when the stage is executed.
+- Built as planned, with these readings where the plan left room:
+  - `RETRIEVE_SOURCE` is a control action (system-signed, takes effect on append) with
+    its own applier; `source_retrievals` is in `PROJECTION_MODELS`, so digests, replay,
+    `ledger:verify`, and `TAKEDOWN` redaction cover it. Ids derive from the contribution
+    (`Ledger::Ids.derive(id, "retrieval")`). Several retrievals of one source are allowed;
+    the job refuses to repeat one for the same `created_seq`, `sources:retrieve[ID]` forces.
+  - The fetch is behind `Sources::Retrieve::Fetcher`, one method `get(uri)`, so tests use
+    canned pages and a fake resolver and no network is touched. The real fetcher resolves
+    the host first and refuses private, loopback, link-local, carrier-grade NAT, multicast,
+    reserved, and IPv6 local ranges, re-checking on every redirect; five redirects; 2 MB
+    streamed with an abort; 5 s open and 10 s read; a fixed user agent naming the build and
+    the node; one fetch per host per minute through `Rails.cache`; robots.txt read for the
+    `galedra` group, else `*`, longest match wins.
+  - Outcomes: `FETCHED` on 2xx; `NOT_FOUND` on 404, 410, 5xx, and connection errors;
+    `BLOCKED` on other 4xx, a robots exclusion, or too many redirects; `TIMEOUT`;
+    `TOO_LARGE`; `UNSUPPORTED` for a non-http(s) link; `REFUSED` for a non-public address.
+  - Excerpt findings: `VERBATIM` (the excerpt occurs in the tag-stripped text),
+    `NORMALIZED` (after NFKC, case, quote and dash unification, and whitespace collapse),
+    `NOT_FOUND`, or `UNSUPPORTED` (an `IMAGE` source, a non-text media type, or an empty
+    excerpt). HTML loses scripts, styles, comments, and tags before the check.
+  - `Ledger.replaying?` was added so the `CREATE_SOURCE` applier enqueues a fetch only on a
+    live append, never while `ledger:replay` rebuilds; the job is also idempotent.
+  - Display: the source page and JSON carry every retrieval; the claim card gains a label
+    ("a quoted passage was not found…" or "every quoted passage was confirmed…") derived
+    at read time; the `EVIDENCE_VERIFICATION` task page and the connector's task
+    presentation carry the finding for the packet's location. The signed packet itself is
+    untouched, so packet hashes are stable.
+- Deviation from the plan's wording: the plan said the card's "review checks" would say
+  "excerpt confirmed". Review checks are part of the scored checklist and must not change
+  (Article XI reading in the plan), so the finding is a label beside them, not a check.
+- Constitutional Test: touches history and visibility only by adding a system-signed fact.
+  1 yes (no score changes; the spec proves byte-identical results); 2 n/a; 3 no; 4 no;
+  5 yes (the finding is public, beside the reader's record, never replacing it); 6 yes;
+  7 yes (replay reproduces the projection); 8 yes; 9 yes; 10 yes. No blocker.
+- Owner decisions still open: whether an all-confirmed retrieval should count toward the
+  review checklist (no, as planned); periodic re-fetching; the caps.
+

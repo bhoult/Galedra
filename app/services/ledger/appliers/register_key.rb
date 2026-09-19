@@ -3,7 +3,8 @@
 module Ledger
   module Appliers
     # REGISTER_KEY (spec 02 §1.2a): self-signed by the key being registered,
-    # contributor_id null; creates the contributor row.
+    # contributor_id null; creates the contributor row. home_url (Stage 23,
+    # spec 14 §5) names the node the key lives on; absent means this node.
     module RegisterKey
       extend Checks
 
@@ -14,6 +15,8 @@ module Ledger
         tier = payload.fetch("identity_tier", "PSEUDONYMOUS")
         reject("SCHEMA_INVALID", "$.payload.identity_tier", "expected one of #{Contributor::IDENTITY_TIERS.join(', ')}") unless Contributor::IDENTITY_TIERS.include?(tier)
         reject("SCHEMA_INVALID", "$.payload.metadata", "expected an object") unless payload.fetch("metadata", {}).is_a?(Hash)
+        home = payload["home_url"]
+        reject("SCHEMA_INVALID", "$.payload.home_url", "expected an http(s) URL of at most #{Contributor::MAX_HOME_URL} characters, the node this key lives on") unless home.nil? || Contributor.home_url?(home)
       end
 
       def self.apply(contribution)
@@ -26,6 +29,7 @@ module Ledger
           display_name: payload["display_name"],
           identity_tier: payload.fetch("identity_tier", "PSEUDONYMOUS"),
           metadata: payload.fetch("metadata", {}),
+          home_url: payload["home_url"],
           created_seq: contribution.seq
         )
       end

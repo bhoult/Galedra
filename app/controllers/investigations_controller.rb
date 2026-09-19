@@ -33,9 +33,11 @@ class InvestigationsController < ApplicationController
   # The shareable page for one check (after Stage 19): what was asked, and the answers.
   def show
     @investigation = Investigation.find(params[:id])
+    return redirect_to section_path(@investigation.section_id) if @investigation.outline? # Stage 21: the outline page is the check page
     @seq = Contribution.maximum(:seq)
     @model = Scoring::Registry.default_model
     @claims = @investigation.claims.reject { |c| Governance::Quarantines.live_for("CLAIM", c.id) }
+    ClaimReference.count!(@claims.map(&:id), "SHARED")
     @results = @claims.to_h { |c| [ c.id, Scoring::Score.call(c, @seq, @model) ] }
     @cards = @claims.to_h { |c| [ c.id, Cards::ClaimCard.call(c, @seq, @model, @results[c.id]) ] }
     @headlines = @cards.values.map { |k| k[:plain][:headline] }
@@ -48,6 +50,7 @@ class InvestigationsController < ApplicationController
 
   def card
     investigation = Investigation.find(params[:id])
+    ClaimReference.count!(investigation.claim_ids, "SHARED")
     send_data Cards::StatementImage.render(investigation, base_url: request.host), type: "image/png", disposition: "inline"
   end
 

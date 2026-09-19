@@ -25,3 +25,5 @@ coverage/
 !/tmp/pids/.keep
 /tmp/storage/*
 !/tmp/storage/.keep
+# Written at image build; see Dockerfile.
+/REVISION

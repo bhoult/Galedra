@@ -7,6 +7,19 @@
     <p>Appeal status: <%= @quarantine.released? ? "released" : "open" %> · <%= link_to "moderation log", moderation_path %></p>
   </div>
 <% else %>
+  <% if @section %>
+    <% outline_tree = Sections::Tree.call(@section.root, @seq, model: @model) %>
+    <% open_ids = ([ @section ] + @section.ancestors(@seq)).map(&:id) %>
+  <% end %>
+  <div class="<%= 'with-outline' if @section %>">
+  <% if @section %>
+    <aside class="outline tree">
+      <h2><%= link_to @section.root.heading, section_path(@section.root) %></h2>
+      <%= render "sections/tree", node: outline_tree, open_ids: open_ids, current_claim: @claim.id, seq: @seq %>
+      <% if @sections.size > 1 %><p class="meta">Also in: <% (@sections - [ @section ]).each do |s| %><%= link_to s.heading, claim_path(@claim, section: s.id) %> <% end %></p><% end %>
+    </aside>
+  <% end %>
+  <div>
   <h1>Claim</h1>
   <% if @revision[:superseded_by] %>
     <div class="card"><p class="headline">Revised</p><p>Superseded at seq <%= @revision[:superseded_by][:seq] %> by <%= @revision[:superseded_by][:by] %>: <%= link_to @revision[:superseded_by][:text], claim_path(@revision[:superseded_by][:claim_id]) %><% if @revision[:superseded_by][:reason] %> · reason: <%= @revision[:superseded_by][:reason] %><% end %>. This entry stays in the log; the current claim is the revision.</p></div>
@@ -18,6 +31,7 @@
     <p class="meta">Type <%= @claim.claim_type %> · truth-evaluable: <%= @evaluable ? "yes" : "no (#{@reason})" %> · status at snapshot: <%= @claim.status_at(@seq) %> · <%= link_to "created seq #{@claim.created_seq}", contribution_path(@claim.contribution_id) %>
       <% if @claim.qualifiers.present? %>· qualifiers <code><%= @claim.qualifiers.to_json %></code><% end %></p>
     <% @warnings.each do |w| %><span class="warning"><%= w[:detail] %></span><% end %>
+    <% if @references && @references["total"].positive? %><p class="meta">Referenced <%= pluralize(@references["total"], "time") %>: checked <%= @references["CHECKED"] %>, looked up by assistants <%= @references["LOOKED_UP"] %>, viewed <%= @references["VIEWED"] %>, shared <%= @references["SHARED"] %>. A count of attention, not evidence.</p><% end %>
     <% if @revision[:revises] %><p class="meta">Revises <%= link_to @revision[:revises][:text], claim_path(@revision[:revises][:claim_id]) %><% if @revision[:revises][:reason] %> · reason: <%= @revision[:revises][:reason] %><% end %></p><% end %>
   </div>
 
@@ -67,6 +81,35 @@
     <% end %>
   <% end %>
 
+  <h2 id="your-view">Your view</h2>
+  <div class="card personal">
+    <% if authenticated? %>
+      <p class="meta">Yours, not Galedra's: a personal view never changes the assessment above and is never counted as evidence (Article XV).</p>
+      <% if @my_view %><p><strong>You <%= @my_view.stance == "AGREE" ? "agree" : "disagree" %></strong><% if @my_view.rationale.present? %>: <%= @my_view.rationale %><% end %> <%= button_to "Remove", claim_view_path(@claim), method: :delete, class: "secondary small", form_class: "inline" %></p><% end %>
+      <%= form_with url: claim_view_path(@claim), method: :post, class: "filters" do |f| %>
+        <label>Why (optional) <%= f.text_field :rationale, value: @my_view&.rationale, maxlength: PersonalAssessment::MAX_RATIONALE, placeholder: "in your own words" %></label>
+        <%= f.button "👍 Agree", name: "stance", value: "AGREE", class: "secondary" %>
+        <%= f.button "👎 Disagree", name: "stance", value: "DISAGREE", class: "secondary" %>
+      <% end %>
+    <% else %>
+      <p class="meta"><%= link_to "Sign in", new_session_path %> to register whether you agree or disagree. A view is yours alone and never changes the assessment.</p>
+    <% end %>
+  </div>
+
+  <h2>Registered views</h2>
+  <div class="card personal">
+    <% if @views[:total].zero? %>
+      <p class="muted">Nobody has registered a view yet.</p>
+    <% else %>
+      <p><strong><%= @views[:agree] %> agree · <%= @views[:disagree] %> disagree</strong> <span class="muted">(<%= pluralize(@views[:total], "person") %>)</span></p>
+      <% if @views[:by_affiliation].any? %>
+        <table><tr><th>Affiliation</th><th>Agree</th><th>Disagree</th></tr>
+        <% @views[:by_affiliation].each do |r| %><tr><td><%= r[:label] %> <span class="muted">(<%= r[:group] %>)</span></td><td><%= r[:agree] %></td><td><%= r[:disagree] %></td></tr><% end %></table>
+      <% end %>
+    <% end %>
+    <p class="meta"><%= @views[:note] %></p>
+  </div>
+
   <h2>Evidence for</h2>
   <%= render "claims/links", links: @evidence[:counted].select { |l| l[:direction] == "SUPPORT" } %>
   <h2>Evidence against</h2>
@@ -112,4 +155,14 @@
     <h2>Score trace</h2>
     <pre id="trace"><%= JSON.pretty_generate(@result.trace) %></pre>
   <% end %>
+  <% if authenticated? %>
+    <details><summary>File under a section</summary>
+      <%= form_with url: place_claim_path(@claim), method: :post, class: "filters" do |f| %>
+        <label>Section id <%= f.text_field :section_id, placeholder: "from an outline page" %></label>
+        <%= f.submit "File", class: "secondary" %>
+      <% end %>
+    </details>
+  <% end %>
+  </div>
+  </div>
 <% end %>

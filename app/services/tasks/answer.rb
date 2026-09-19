@@ -31,8 +31,17 @@ module Tasks
       packet = task.packet
       spec = Types.spec(task.task_type)
       target_url = task.target_type == "CLAIM" ? "#{base_url}/claims/#{task.target_id}" : "#{base_url}/sources/#{task.target_id}"
+      context = packet["context"]
+      if task.task_type == "EVIDENCE_VERIFICATION" && (location_id = context["source_location_id"])
+        finding = SourceRetrieval.latest_for(context["source_id"])&.finding_for(location_id)
+        context = context.merge("retrieval" => finding && { "found" => finding, "note" => "Galedra's own fetch of the page: #{finding.downcase.tr('_', ' ')}. A fact for you to weigh, not a verdict." })
+      end
+      if task.section_id && (section = Section.find_by(id: task.section_id))
+        context = context.merge("section" => { "id" => section.id, "path" => section.path, "url" => "#{base_url}/sections/#{section.id}",
+                                               "note" => "Read this section of the source yourself, between the anchor and the next section's; the packet's excerpt is only the anchor." })
+      end
       { task_id: task.id, task_type: task.task_type, domain: task.domain, objective: packet["objective"],
-        target: packet["target"].merge("url" => target_url), context: packet["context"],
+        target: packet["target"].merge("url" => target_url), context: context,
         outcomes: spec[:outcomes], max_items: spec[:max_ops], lease_expires_at: assignment.lease_expires_at.utc.iso8601,
         task_url: "#{base_url}/tasks/#{task.id}", answer_with: ANSWER_WITH.fetch(task.task_type), rules: RULES }
     end
@@ -64,7 +73,9 @@ module Tasks
                  "excerpt" => text, "excerpt_hash" => (Crypto::Hashing.bytes(text) if text.is_a?(String)) }.compact
       end
       section(answer, "claims").each do |c|
-        ops << { "op" => "CREATE_CLAIM", "ref" => handle!(c), "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => c.fetch("qualifiers", {}) }
+        op = { "op" => "CREATE_CLAIM", "ref" => handle!(c), "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => c.fetch("qualifiers", {}) }
+        op["section_id"] = task.section_id if task.task_type == "CLAIM_EXTRACTION" && task.section_id # Stage 21: born in the leaf
+        ops << op
       end
       section(answer, "edges").each do |e|
         ops << { "op" => "CREATE_CLAIM_EDGE", "from_claim_id" => claim_ref.call(e["from"]), "to_claim_id" => claim_ref.call(e["to"]), "relationship_type" => e.fetch("type", "NARROWS") }

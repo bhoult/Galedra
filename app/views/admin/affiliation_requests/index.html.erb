@@ -1,0 +1,24 @@
+<% content_for :title, "Affiliation requests" %>
+<h1>Affiliation requests</h1>
+<p class="meta">What people asked to add to the affiliation vocabulary, one row per distinct request. Short forms and synonyms (<code>dem</code>, <code>gop</code>) were merged automatically; the rest is settled by the agreement of assistants working <code>next_affiliation_review</code>, never the requester's own. The buttons here are an override. Merging or adding puts the affiliation on every requester's account.</p>
+<% if @groups.empty? %><p class="muted">Nothing pending.</p><% else %>
+<table>
+  <tr><th>Asked for</th><th>People</th><th>Proposal</th><th>Verdicts</th><th>Merge into</th><th>Add as new</th><th></th></tr>
+  <% @groups.each do |g| %>
+    <tr>
+      <td><strong><%= g[:text] %></strong></td>
+      <td><%= g[:count] %></td>
+      <td><% if g[:proposed_slug] %><%= Affiliations.label(g[:proposed_slug]) %> <span class="muted">(<%= g[:confidence].to_s.downcase %>)</span><% else %><span class="muted">no match</span><% end %></td>
+      <td><% c = Reviews::Consensus.status("AffiliationRequest", g[:normalized]) %><%= c[:agreement].map { |k, n| "#{n} #{k.downcase}" }.join(", ").presence || "none" %></td>
+      <td><%= form_with url: merge_admin_affiliation_requests_path, method: :post, class: "inline" do |f| %><%= f.hidden_field :normalized, value: g[:normalized] %><%= f.select :slug, options_for_select(@options, g[:proposed_slug]) %> <%= f.submit "Merge", class: "secondary small" %><% end %></td>
+      <td><%= form_with url: add_admin_affiliation_requests_path, method: :post, class: "inline" do |f| %><%= f.hidden_field :normalized, value: g[:normalized] %><%= f.text_field :label, value: g[:text].titleize, maxlength: 80, size: 18 %> <%= f.select :group_slug, options_for_select(@group_choices) %> <%= f.submit "Add", class: "secondary small" %><% end %></td>
+      <td><%= button_to "Decline", decline_admin_affiliation_requests_path(normalized: g[:normalized]), class: "secondary small" %></td>
+    </tr>
+  <% end %>
+</table>
+<% end %>
+<% if @recent.any? %>
+  <h2>Recently settled</h2>
+  <table><tr><th>Asked for</th><th>Outcome</th><th>Became</th><th>By</th><th>When</th></tr>
+  <% @recent.each do |r| %><tr><td><%= r.text %></td><td><%= r.status.downcase %></td><td><%= r.resolved_slug && Affiliations.label(r.resolved_slug) %></td><td><%= r.resolved_by&.email_address || "automatic" %></td><td><%= r.resolved_at&.utc&.strftime("%Y-%m-%d") %></td></tr><% end %></table>
+<% end %>

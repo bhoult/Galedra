@@ -1,0 +1,14 @@
+<%# A subtree as a directory tree: open along the path to `open_ids`, claims as lines, the current claim marked. %>
+<ul>
+  <% node[:children].each do |child| %>
+    <li>
+      <details <%= "open" if open_ids.include?(child[:section].id) %>>
+        <summary><%= link_to child[:section].heading, section_path(child[:section]) %> <span class="counts"><%= child[:counts]["claims"] %><%= " · #{child[:pending]} proposed" if child[:pending].positive? %></span></summary>
+        <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, seq: seq %>
+      </details>
+    </li>
+  <% end %>
+  <% node[:claims].each do |claim| %>
+    <li><%= link_to claim.canonical_text.truncate(90), claim_path(claim, section: node[:section].id), class: "claim-line #{'current' if claim.id == current_claim}" %> <span class="counts"><%= node[:states][claim.id].to_s.downcase.tr("_", " ") %></span></li>
+  <% end %>
+</ul>

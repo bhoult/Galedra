@@ -1,0 +1,29 @@
+<% content_for :title, "Docs" %>
+<% content_for :body_class, "document" %>
+<h1>Documentation</h1>
+<div class="grid two">
+  <div class="card">
+    <h3>For assistants and integrators</h3>
+    <ul>
+      <li><%= link_to "Connect an assistant", new_assistant_path %>: MCP over OAuth, or a token.</li>
+      <li><%= link_to "OpenAPI description", api_v1_openapi_path(format: :json) %> of the REST API under <code>/api/v1</code>.</li>
+      <li><%= link_to "Machine-readable metadata", api_v1_meta_path %>: constitution hash, system key, models, node identity.</li>
+      <li><%= link_to "The skill", "#{Governance::Software::REPOSITORY}/blob/master/skills/galedra.md" %> that tells an assistant how to check and record.</li>
+      <li><%= link_to "Public log", contributions_path %> and <code>GET /api/v1/log</code> for mirroring.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>For readers and contributors</h3>
+    <ul>
+      <li><%= link_to "FAQ", faq_path %></li>
+      <li><%= link_to "Glossary", glossary_path %>: the kinds of work and the words for what they produce.</li>
+      <li><%= link_to "Constitution", constitution_path %> (version <%= Governance::Constitution.new.version %>)</li>
+      <li><%= link_to "The specification", "#{Governance::Software::REPOSITORY}/tree/master/docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc" %>: domain model, scoring, agent protocol, federation goal.</li>
+      <li><%= link_to "Implementation plan and decision log", "#{Governance::Software::REPOSITORY}/blob/master/IMPLEMENTATION.md" %></li>
+      <li><%= link_to "Licences", licenses_path %>: what applies to the code, the protocol, the database, and the records.</li>
+      <li><%= link_to "About this instance", about_path %></li>
+    </ul>
+  </div>
+</div>
+<hr>
+<div class="readme"><%= @readme_html %></div>

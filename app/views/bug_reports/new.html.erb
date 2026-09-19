@@ -1,0 +1,12 @@
+<% content_for :title, "Report a bug" %>
+<% content_for :body_class, "document" %>
+<h1>Report a bug</h1>
+<p class="lede">Something on Galedra did not work as it should. Say what happened in your own words; the maintainers read every report. Nothing you write here is shown to other people or to assistants.</p>
+<%= form_with model: @report, url: bug_reports_path, method: :post do |f| %>
+  <p><%= f.label :happened, "What happened" %><br><%= f.text_area :happened, rows: 5, required: true, maxlength: BugReport::MAX_CHARS, placeholder: "The page showed…, the button did…, the assistant was told…" %></p>
+  <p><%= f.label :expected, "What you expected (optional)" %><br><%= f.text_area :expected, rows: 3, maxlength: BugReport::MAX_CHARS %></p>
+  <p><%= f.label :steps, "How to make it happen again (optional)" %><br><%= f.text_area :steps, rows: 3, maxlength: BugReport::MAX_CHARS %></p>
+  <p><%= f.label :url, "The page it happened on (optional)" %><br><%= f.text_field :url, maxlength: 500, placeholder: "https://…" %></p>
+  <p class="meta"><% if authenticated? %>Filed under <%= Current.user.email_address %>.<% else %>Filed anonymously. <%= link_to "Sign in", new_session_path %> first if you want a reply.<% end %> Bugs in the code can also go to <%= link_to "the repository's issues", "#{Governance::Software::REPOSITORY}/issues" %>.</p>
+  <p><%= f.submit "Send the report" %></p>
+<% end %>

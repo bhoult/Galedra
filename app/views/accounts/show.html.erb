@@ -1,0 +1,47 @@
+<% content_for :title, "Account" %>
+<% content_for :body_class, "document" %>
+<h1>Your account</h1>
+<p class="meta"><%= Current.user.email_address %><% if Current.user.admin? %> · admin<% end %><% if Current.user.moderator? %> · moderator<% end %></p>
+
+<% if (c = Current.user.contributor) %>
+  <% tally = Contributors::Tally.for(c.id) %>
+  <h2>Your work</h2>
+  <p><strong><%= tally[:total] %></strong> in all: <%= tally[:recorded] %> recorded, <%= tally[:task_results] %> tasks answered, <%= tally[:audits] %> audits, <%= tally[:acceptances] %> acceptances, <%= tally[:reviews] %> reviews. <span class="muted"><%= Contributors::Tally::NOTE %> <%= link_to "Your public page", contributor_path(c) %> · <%= link_to "all contributors", contributors_path %>.</span></p>
+<% end %>
+
+<h2>Affiliations</h2>
+<p>Say, if you wish, which groups you count yourself in. This is optional, private to your account, and used only in counts: on a claim, Galedra can then show how people of different affiliations agree or disagree, and only for groups of <%= PersonalAssessments::Breakdown::MIN_GROUP %> or more. Nothing here changes any assessment. Untick everything to remove it all.</p>
+<%= form_with url: account_path, method: :patch do |f| %>
+  <div class="grid two">
+    <% @groups.each do |g| %>
+      <div class="card">
+        <h3><%= g.label %></h3>
+        <% g.options.each do |o| %>
+          <label class="check"><%= check_box_tag "affiliations[]", o.slug, @mine.include?(o.slug), id: "affiliation-#{o.slug}" %> <%= o.label %></label><br>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+  <p><%= f.submit "Save affiliations" %></p>
+<% end %>
+
+<h3>Missing one?</h3>
+<%= form_with url: affiliation_requests_path, method: :post, class: "filters" do |f| %>
+  <label>Ask for it <%= f.text_field :text, maxlength: AffiliationRequest::MAX_CHARS, placeholder: "e.g. Arkansan, Quaker, Gen Jones" %></label>
+  <%= f.submit "Request", class: "secondary" %>
+<% end %>
+<p class="meta">A short form or synonym of an existing affiliation is applied at once; anything new waits for an admin, who adds it, merges it, or declines it.</p>
+<% if @requests.any? %>
+  <table><tr><th>Asked for</th><th>Outcome</th><th>Became</th></tr>
+  <% @requests.each do |r| %><tr><td><%= r.text %></td><td><%= r.status.downcase %></td><td><%= r.resolved_slug && Affiliations.label(r.resolved_slug) %></td></tr><% end %></table>
+<% end %>
+
+<h2>Views you have registered</h2>
+<% if @views.empty? %>
+  <p class="muted">None yet. On any claim page, use the "Your view" panel.</p>
+<% else %>
+  <table><tr><th>Claim</th><th>Your view</th><th>Why</th><th>When</th></tr>
+  <% @views.each do |v| %>
+    <tr><td><%= link_to v.claim.canonical_text, claim_path(v.claim) %></td><td><%= v.stance == "AGREE" ? "Agree" : "Disagree" %></td><td><%= v.rationale %></td><td><%= v.updated_at.utc.strftime("%Y-%m-%d") %></td></tr>
+  <% end %></table>
+<% end %>

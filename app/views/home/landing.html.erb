@@ -131,7 +131,7 @@
 
 <section class="constitution-pointer">
   <h2>The constitution</h2>
-  <p>Twenty-five articles, adopted as version <%= @constitution.version %>, outrank every other decision in this project: claims are not truth, evidence must be traceable, contradiction is preserved, “unknown” is a valid conclusion, reputation measures reliability rather than authority, corrections do not erase history, and the system must reveal its own weaknesses. This running ledger publishes the integrity hash of the exact text at <%= link_to "its metadata endpoint", api_v1_meta_path %>.</p>
+  <p>Twenty-five articles, adopted as version <%= @constitution.version %>, outrank every other decision in this project: claims are not truth, evidence must be traceable, contradiction is preserved, “unknown” is a valid conclusion, reputation measures reliability rather than authority, corrections do not erase history, and the system must reveal its own weaknesses. This running ledger publishes the integrity hash of the exact text, <code><%= @constitution.digest %></code>, at <%= link_to "its metadata endpoint", api_v1_meta_path %>.</p>
   <p class="actions">
     <%= link_to "Read the constitution", constitution_path, class: "button secondary" %>
     <%= link_to "Frequently asked questions", faq_path, class: "quiet" %>

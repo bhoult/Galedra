@@ -1,0 +1,94 @@
+# Short forms and synonyms people type when asking for an affiliation that
+# already exists (owner request, 2026-09-19). Affiliations::Resolve maps a
+# request through this table before trying similarity. Keys are normalized
+# (lower case, letters and digits, single spaces); values are option slugs.
+aliases:
+  dem: democrat
+  dems: democrat
+  democratic: democrat
+  democrats: democrat
+  gop: republican
+  rep: republican
+  reps: republican
+  republicans: republican
+  indy: independent
+  independents: independent
+  lib: libertarian
+  libertarians: libertarian
+  greens: green
+  progressives: progressive
+  conservatives: conservative
+  socialists: socialist
+  christians: christian
+  xtian: christian
+  catholics: catholic
+  rc: catholic
+  roman catholic: catholic
+  protestants: protestant
+  evangelical: protestant
+  jew: jewish
+  jews: jewish
+  muslims: muslim
+  islam: muslim
+  hindus: hindu
+  buddhists: buddhist
+  sikhs: sikh
+  atheists: atheist
+  agnostics: agnostic
+  none: agnostic
+  usa: american
+  us: american
+  americans: american
+  united states: american
+  canadians: canadian
+  canada: canadian
+  mex: mexican
+  mexicans: mexican
+  mexico: mexican
+  brazil: brazilian
+  uk: british
+  brit: british
+  english: british
+  britain: british
+  ireland: irish
+  france: french
+  germany: german
+  spain: spanish
+  italy: italian
+  india: indian
+  china: chinese
+  japan: japanese
+  australia: australian
+  aussie: australian
+  nigeria: nigerian
+  south africa: south-african
+  boomers: boomer
+  baby boomer: boomer
+  baby boomers: boomer
+  gen x: gen-x
+  genx: gen-x
+  generation x: gen-x
+  millennials: millennial
+  millenial: millennial
+  gen y: millennial
+  gen z: gen-z
+  genz: gen-z
+  zoomer: gen-z
+  zoomers: gen-z
+  gen alpha: gen-alpha
+  silent generation: silent
+  high school: secondary
+  hs: secondary
+  ba: bachelors
+  bs: bachelors
+  bachelor: bachelors
+  bachelor s: bachelors
+  undergrad: bachelors
+  ma: masters
+  ms: masters
+  msc: masters
+  master: masters
+  master s: masters
+  phd: doctorate
+  md: doctorate
+  jd: doctorate

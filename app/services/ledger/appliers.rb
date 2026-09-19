@@ -33,7 +33,10 @@ module Ledger
       "ASSIGN_INDEPENDENCE_GROUP" => "Ledger::Appliers::AssignIndependenceGroup",
       "SUPERSEDE_LINK" => "Ledger::Appliers::SupersedeLink",
       "MERGE_CLAIMS" => "Ledger::Appliers::MergeClaims",
-      "TASK_RESULT" => "Ledger::Appliers::TaskResult"
+      "TASK_RESULT" => "Ledger::Appliers::TaskResult",
+      "RETRIEVE_SOURCE" => "Ledger::Appliers::RetrieveSource",
+      "CREATE_SECTION" => "Ledger::Appliers::CreateSection",
+      "PLACE_CLAIM" => "Ledger::Appliers::PlaceClaim"
     }.freeze
 
     def self.for(action_type)

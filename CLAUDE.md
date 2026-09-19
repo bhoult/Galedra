@@ -10,7 +10,7 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stage 17 (source retrieval by a trusted job) and Stages 20–22 (outlines: large sources split into sections and shared-out work) are planned, not built.** `IMPLEMENTATION.md` indexes the
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stages 23 and 24 tagged (federation readiness; admins, help, and navigation); Stage 17 tagged (source retrieval by a trusted job); Stages 20 and 21 tagged (sections and placements; large requests from a connector); Stage 22 (sharing outlines) and Stage 25 (inferences: recorded reasoning steps) are planned, not built.** `IMPLEMENTATION.md` indexes the
 stages; each stage's plan and Decision Log entry is one file under `implementation/`
 (`planned/` or `implemented/`), built one stage per tag only when the owner asks. Read the
 relevant spec sections and the stage file before changing anything.
@@ -158,7 +158,12 @@ python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/referen
 
 Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`,
 `bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/demo --reset`, `bin/demo --example watchers --reset`,
-`bin/demo --example check --reset`, `bin/rails skills:build` (after editing `skills/galedra.md`).
+`bin/demo --example check --reset`, `bin/rails skills:build` (after editing `skills/galedra.md`), `bin/rails admin:grant[email]`, `bin/rails bugs:report`, `bin/rails features:report`, `bin/rails sources:retrieve[ID]` (`LEDGER_RETRIEVAL` on/off).
+The first account to sign up is the admin; `/admin/users` grants admin and moderator. Personal views and affiliations
+(`personal_assessments`, `user_affiliations`, `config/affiliations.yml`), claim reference counts, bug reports, and content
+reviews live outside the log and never reach scoring; see `implementation/implemented/personal-views.md`. Reviews are settled
+by `Reviews::Consensus` (two agreeing principals, or one uncontradicted after 48 hours), never by the author. `Ledger::Node` is this node's
+identity (`LEDGER_NODE_URL`); `/about` and `/api/v1/meta` show the build (`GALEDRA_REVISION` at image build).
 The topic vocabulary is `config/topics.yml`; tags are `TAG_CLAIM` contributions, never edited columns.
 The signed-out home page and `/constitution` render `CONSTITUTION.md` through `Governance::Constitution`;
 after adding a gem, run `docker compose exec app bundle install` and `docker compose restart app`.
@@ -172,7 +177,10 @@ P0 Definition of Done.
 
 ## Decisions reserved for the owner
 
+Decided 2026-09-19: the licence stack in `docs/LICENSE-POLICY.md` is adopted (AGPL-3.0-or-later
+code, Apache-2.0 protocol and schemas, CC BY 4.0 docs, ODbL-1.0 database, CC0-1.0 records; see
+`NOTICE`).
+
 Implement the conservative reading already in the spec and flag these when relevant:
-adopting amendments P-1 through P-4; the data license for the public log (CC0 vs CC-BY);
-who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
+adopting amendments P-1 through P-4; who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
 a legal model exists; whether `TEXTUAL` stays a distinct claim type.

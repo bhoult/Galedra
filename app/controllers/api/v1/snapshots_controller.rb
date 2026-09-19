@@ -23,7 +23,7 @@ module Api
       private
 
       def snapshot(s)
-        { seq: s.seq, entry_hash: s.entry_hash, label: s.label, created_at: s.created_at&.utc&.iso8601 }
+        { seq: s.seq, entry_hash: s.entry_hash, label: s.label, created_at: s.created_at&.utc&.iso8601, checkpoint: s.checkpoint }
       end
     end
   end

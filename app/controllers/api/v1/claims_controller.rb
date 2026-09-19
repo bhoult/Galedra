@@ -3,9 +3,11 @@
 module Api
   module V1
     class ClaimsController < BaseController
-      # GET /api/v1/claims?type=&status=&state=&q=&similar_to=&model=&limit=
+      # GET /api/v1/claims?type=&status=&state=&q=&similar_to=&model=&limit=&sort=&kind=&window=
       # Lists accepted, live claims (proposals are reachable by id only).
       # state= filters on the assessment state under the chosen model.
+      # sort=references orders by how often claims were referenced (kind= one of
+      # ClaimReference::KINDS, window= 7d|30d|365d): attention, never truth or error.
       def index
         seq = snapshot_seq
         claims = if params[:similar_to].present?
@@ -16,7 +18,14 @@ module Api
           scope = scope.where(status: params[:status]) if params[:status].present?
           scope = scope.where("to_tsvector('english', canonical_text) @@ plainto_tsquery('english', ?)", params[:q]) if params[:q].present?
           scope = scope.where(id: ClaimTopic.current_at(seq).where(topic: Topics.paths_under(params[:topic])).select(:claim_id)) if params[:topic].present?
-          scope.limit(limit_param(default: 50, max: 200))
+          if params[:sort] == "references"
+            kind = ClaimReference::KINDS.include?(params[:kind]) ? params[:kind] : nil
+            top = ClaimReference.top_claim_ids(kind: kind, since: ClaimReference.since_for(params[:window]), limit: 500)
+            by_id = scope.where(id: top).index_by(&:id)
+            top.filter_map { |id| by_id[id] }.first(limit_param(default: 50, max: 200))
+          else
+            scope.limit(limit_param(default: 50, max: 200))
+          end
         end
         rendered = claims.map { |c| Graph::Presenter.claim(c, seq, model: model).merge(similarity: c.try(:similarity)).compact }
         rendered = rendered.select { |c| c.dig(:assessment, :assessment_state) == params[:state] } if params[:state].present?
@@ -29,6 +38,14 @@ module Api
         raise ActiveRecord::RecordNotFound if claim.created_seq > seq
 
         render json: { claim: Graph::Presenter.claim(claim, seq, model: model), warnings: Claims::Atomicity.warnings(claim.canonical_text) }
+      end
+
+      # GET /api/v1/claims/:id/views: registered personal views in aggregate
+      # (spec 02 §3.6a, Article XV). Counts only; affiliations only for groups
+      # of PersonalAssessments::Breakdown::MIN_GROUP or more; never a score input.
+      def views
+        claim = Claim.find(params[:id])
+        render json: { claim_id: claim.id, views: PersonalAssessments::Breakdown.call(claim.id) }
       end
 
       def evidence

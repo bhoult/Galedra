@@ -10,10 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
+
+  create_table "affiliation_requests", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "confidence"
+    t.datetime "created_at", null: false
+    t.string "normalized", null: false
+    t.string "proposed_slug"
+    t.datetime "resolved_at"
+    t.bigint "resolved_by_id"
+    t.string "resolved_slug"
+    t.string "status", default: "PENDING", null: false
+    t.string "text", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["status", "normalized"], name: "index_affiliation_requests_on_status_and_normalized"
+    t.index ["user_id"], name: "index_affiliation_requests_on_user_id"
+  end
 
   create_table "agent_delegations", id: :uuid, default: nil, force: :cascade do |t|
     t.bigint "created_seq", null: false
@@ -81,6 +97,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["target_contribution_id"], name: "index_audits_on_target_contribution_id"
   end
 
+  create_table "bug_reports", id: :uuid, default: nil, force: :cascade do |t|
+    t.boolean "anonymous", default: false, null: false
+    t.uuid "assistant_token_id"
+    t.string "context_tool"
+    t.integer "count", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.string "digest", null: false
+    t.text "expected"
+    t.text "happened", null: false
+    t.string "last_error"
+    t.text "steps"
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.bigint "user_id"
+    t.index ["created_at"], name: "index_bug_reports_on_created_at"
+    t.index ["digest"], name: "index_bug_reports_on_digest"
+  end
+
   create_table "claim_edges", id: :uuid, default: nil, force: :cascade do |t|
     t.bigint "accepted_seq"
     t.uuid "contribution_id", null: false
@@ -121,6 +155,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["contribution_id"], name: "index_claim_merges_on_contribution_id"
     t.index ["from_claim_id"], name: "index_claim_merges_on_from_claim_id"
     t.index ["into_claim_id"], name: "index_claim_merges_on_into_claim_id"
+  end
+
+  create_table "claim_placements", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "accepted_seq"
+    t.uuid "claim_id", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.bigint "invalidated_seq"
+    t.integer "position", default: 0, null: false
+    t.uuid "section_id", null: false
+    t.index ["claim_id"], name: "index_claim_placements_on_claim_id"
+    t.index ["contribution_id"], name: "index_claim_placements_on_contribution_id"
+    t.index ["section_id", "position"], name: "index_claim_placements_on_section_id_and_position"
+  end
+
+  create_table "claim_references", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "claim_id", null: false
+    t.integer "count", default: 0, null: false
+    t.date "day", null: false
+    t.string "kind", null: false
+    t.index ["claim_id", "kind", "day"], name: "index_claim_references_on_claim_id_and_kind_and_day", unique: true
+    t.index ["kind", "day"], name: "index_claim_references_on_kind_and_day"
   end
 
   create_table "claim_scores", id: :uuid, default: nil, force: :cascade do |t|
@@ -184,6 +240,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["supersedes_claim_id"], name: "index_claims_on_supersedes_claim_id"
   end
 
+  create_table "content_reviews", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "author_principal_id"
+    t.datetime "created_at", null: false
+    t.string "field", null: false
+    t.datetime "lease_expires_at"
+    t.uuid "leased_by_token_id"
+    t.text "original_text", null: false
+    t.string "reason"
+    t.datetime "reviewed_at"
+    t.uuid "reviewed_by_token_id"
+    t.bigint "reviewed_by_user_id"
+    t.string "status", default: "PENDING", null: false
+    t.uuid "subject_id"
+    t.bigint "subject_int_id"
+    t.string "subject_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status", "created_at"], name: "index_content_reviews_on_status_and_created_at"
+    t.index ["subject_type", "subject_id", "field"], name: "index_content_reviews_on_subject_type_and_subject_id_and_field"
+  end
+
   create_table "contributions", id: :uuid, default: nil, force: :cascade do |t|
     t.string "action_class", null: false
     t.string "action_type", null: false
@@ -207,6 +283,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.jsonb "software"
     t.uuid "task_id"
     t.string "task_packet_hash"
+    t.string "visibility", default: "PUBLIC", null: false
     t.index ["action_type"], name: "index_contributions_on_action_type"
     t.index ["contributor_id", "seq"], name: "index_contributions_on_contributor_id_and_seq"
     t.index ["entry_hash"], name: "index_contributions_on_entry_hash", unique: true
@@ -218,6 +295,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
   create_table "contributors", id: :uuid, default: nil, force: :cascade do |t|
     t.bigint "created_seq"
     t.string "display_name"
+    t.string "home_url"
     t.string "identity_tier", default: "PSEUDONYMOUS", null: false
     t.string "key_id", null: false
     t.string "kind", null: false
@@ -235,6 +313,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.bigint "user_id"
     t.index ["contributor_id"], name: "index_custodied_keys_on_contributor_id", unique: true
     t.index ["user_id"], name: "index_custodied_keys_on_user_id"
+  end
+
+  create_table "custom_affiliations", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.string "group_slug", null: false
+    t.string "label", null: false
+    t.string "slug", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_custom_affiliations_on_slug", unique: true
   end
 
   create_table "evidence_claim_links", id: :uuid, default: nil, force: :cascade do |t|
@@ -293,6 +381,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
   end
 
   create_table "graph_snapshots", id: :uuid, default: nil, force: :cascade do |t|
+    t.jsonb "checkpoint"
     t.timestamptz "created_at", null: false
     t.string "entry_hash", null: false
     t.string "label"
@@ -340,6 +429,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.uuid "assistant_token_id", null: false
     t.uuid "claim_ids", default: [], null: false, array: true
     t.datetime "created_at", null: false
+    t.uuid "section_id"
     t.integer "snapshot_seq", null: false
     t.text "statement"
     t.datetime "updated_at", null: false
@@ -393,6 +483,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["token_digest"], name: "index_oauth_tokens_on_token_digest", unique: true
   end
 
+  create_table "personal_assessments", id: :uuid, default: nil, force: :cascade do |t|
+    t.jsonb "cites", default: [], null: false
+    t.uuid "claim_id", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "lens", default: {}, null: false
+    t.string "personal_probability"
+    t.text "rationale"
+    t.string "stance", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.string "visibility", default: "PRIVATE", null: false
+    t.index ["claim_id", "stance"], name: "index_personal_assessments_on_claim_id_and_stance"
+    t.index ["user_id", "claim_id"], name: "index_personal_assessments_on_user_id_and_claim_id", unique: true
+  end
+
   create_table "quarantines", id: :uuid, default: nil, force: :cascade do |t|
     t.uuid "contribution_id", null: false
     t.bigint "created_seq", null: false
@@ -423,6 +528,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["principal_contributor_id", "task_type", "domain"], name: "idx_on_principal_contributor_id_task_type_domain_8c73a2ddc9"
   end
 
+  create_table "review_verdicts", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "assistant_token_id"
+    t.datetime "created_at", null: false
+    t.jsonb "detail", default: {}, null: false
+    t.uuid "principal_contributor_id", null: false
+    t.string "reason"
+    t.string "subject_key", null: false
+    t.string "subject_type", null: false
+    t.string "verdict", null: false
+    t.index ["subject_type", "subject_key", "principal_contributor_id"], name: "index_review_verdicts_one_per_principal", unique: true
+  end
+
   create_table "scoring_models", id: :uuid, default: nil, force: :cascade do |t|
     t.string "code_hash", null: false
     t.jsonb "config", null: false
@@ -435,6 +552,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.string "test_suite_result_hash"
     t.index ["contribution_id"], name: "index_scoring_models_on_contribution_id"
     t.index ["name", "semantic_version"], name: "index_scoring_models_on_name_and_semantic_version", unique: true
+  end
+
+  create_table "sections", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "accepted_seq"
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.integer "depth", default: 0, null: false
+    t.string "heading", null: false
+    t.bigint "invalidated_seq"
+    t.uuid "location_id"
+    t.uuid "parent_id"
+    t.integer "position", default: 0, null: false
+    t.bigint "redacted_by_seq"
+    t.uuid "root_id", null: false
+    t.uuid "source_id", null: false
+    t.index ["contribution_id"], name: "index_sections_on_contribution_id"
+    t.index ["root_id", "parent_id", "position"], name: "index_sections_on_root_id_and_parent_id_and_position"
+    t.index ["source_id"], name: "index_sections_on_source_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -633,6 +768,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["source_id"], name: "index_source_locations_on_source_id"
   end
 
+  create_table "source_retrievals", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "content_hash"
+    t.integer "content_length"
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.jsonb "excerpts", default: [], null: false
+    t.timestamptz "fetched_at", null: false
+    t.string "final_url"
+    t.bigint "invalidated_seq"
+    t.string "media_type"
+    t.string "outcome", null: false
+    t.bigint "redacted_by_seq"
+    t.bigint "source_created_seq", null: false
+    t.uuid "source_id", null: false
+    t.index ["contribution_id"], name: "index_source_retrievals_on_contribution_id"
+    t.index ["source_id", "created_seq"], name: "index_source_retrievals_on_source_id_and_created_seq"
+  end
+
   create_table "sources", id: :uuid, default: nil, force: :cascade do |t|
     t.string "canonical_uri"
     t.text "content"
@@ -688,6 +841,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
   end
 
   create_table "tasks", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "cancelled_reason"
     t.datetime "created_at", null: false
     t.uuid "created_by_contributor_id"
     t.string "domain", null: false
@@ -696,18 +850,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.string "packet_hash", null: false
     t.decimal "priority", precision: 10, scale: 4, default: "0.0", null: false
     t.integer "required_assignments", default: 1, null: false
+    t.uuid "section_id"
     t.string "status", default: "OPEN", null: false
     t.uuid "target_id", null: false
     t.string "target_type", null: false
     t.string "task_type", null: false
     t.datetime "updated_at", null: false
     t.index ["packet_hash"], name: "index_tasks_on_packet_hash", unique: true
+    t.index ["section_id"], name: "index_tasks_on_section_id"
     t.index ["status", "priority"], name: "index_tasks_on_status_and_priority", order: { priority: :desc }
     t.index ["target_type", "target_id"], name: "index_tasks_on_target_type_and_target_id"
     t.index ["task_type"], name: "index_tasks_on_task_type"
   end
 
+  create_table "user_affiliations", force: :cascade do |t|
+    t.string "affiliation", null: false
+    t.datetime "created_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["affiliation"], name: "index_user_affiliations_on_affiliation"
+    t.index ["user_id", "affiliation"], name: "index_user_affiliations_on_user_id_and_affiliation", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
+    t.boolean "admin", default: false, null: false
+    t.datetime "admin_granted_at"
+    t.bigint "admin_granted_by_id"
     t.datetime "created_at", null: false
     t.string "email_address", null: false
     t.boolean "moderator", default: false, null: false
@@ -716,6 +883,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "affiliation_requests", "users"
+  add_foreign_key "bug_reports", "assistant_tokens"
+  add_foreign_key "bug_reports", "users"
   add_foreign_key "claim_edges", "claims", column: "from_claim_id"
   add_foreign_key "claim_edges", "claims", column: "to_claim_id"
   add_foreign_key "claim_evaluability_settings", "claims"
@@ -735,6 +905,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
   add_foreign_key "oauth_authorization_codes", "oauth_clients"
   add_foreign_key "oauth_tokens", "assistant_tokens"
   add_foreign_key "oauth_tokens", "oauth_clients"
+  add_foreign_key "personal_assessments", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
@@ -746,4 +917,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_001000) do
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "source_locations", "sources"
   add_foreign_key "task_assignments", "tasks"
+  add_foreign_key "user_affiliations", "users"
 end

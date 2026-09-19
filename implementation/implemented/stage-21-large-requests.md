@@ -1,6 +1,6 @@
 # Stage 21 — Large requests from a connector
 
-**Status:** planned, not built · tag will be `stage-21-large-requests`
+**Status:** implemented · tag `stage-21-large-requests` · decisions recorded 2026-09-19
 
 ## Plan
 
@@ -135,6 +135,45 @@ responsible); the copyright stance for anchors (planned: at most 300 quoted char
 per leaf and never the passage; stored full text stays the signed-in Analyze-text path
 where the person affirms they may store it).
 
-## Decision Log
+## Decision Log (2026-09-19)
 
-Written when the stage is executed.
+- Built as planned with these readings:
+  - `create_outline` (`Investigations::Outline`) writes the source by reference, one
+    location per leaf with an anchor (`locator.type` in TIME_RANGE, CHAR_RANGE, PAGE,
+    LINE_RANGE, SECTION; excerpt at most 300 characters), one `CREATE_SECTION` for the
+    tree, and one `CLAIM_EXTRACTION` task per anchored leaf with `tasks.section_id` set.
+    A new outline must have exactly one root. Section ids by handle are derived in the
+    applier's preorder, so the reply can name them without a second query.
+  - `record_investigation` takes `section` per claim (a new claim is born placed; an
+    `attach_to` claim gets a `PLACE_CLAIM` unless already there). When every claim sits
+    under one root the reply's share line is the outline's counts line and page, and the
+    investigation row points at the root (`investigations.section_id`); the check page
+    redirects to the outline page. A leaf the outline's own principal records directly has
+    its extraction task set `CANCELLED` with `cancelled_reason: RECORDED_BY_REQUESTER`.
+  - The size rule is in the skill and the tool description. The server refuses more than
+    40 new claims without sections in one bundle (`MAX_UNSECTIONED_CLAIMS`), pointing to
+    `create_outline`; the 2,000-character statement limit already existed.
+  - `Tasks::Answer` puts the leaf's `section_id` on every `CREATE_CLAIM` op of an
+    extraction result, so extracted claims land as pending placements; `Corrections.accept!`
+    opens verification tasks (`Tasks::OpenVerification`) for the claims of an accepted
+    extraction, against the leaf's anchor location. `Investigations::Record` uses the same
+    helper, so verification tasks are opened once per claim and type everywhere.
+  - `list_tasks` and `next_task` take `section_id` meaning the whole subtree
+    (`Tasks::Lease.subtree_ids`); `list_tasks` names the three outlines with the most open
+    work; the task presentation carries the section path and a note that the packet's
+    excerpt is only the anchor. The signed packet is unchanged.
+  - Named assistants (a user behind the token) get a daily cap of 1,000; anonymous and
+    pasted ones keep 200. The cap message is unchanged.
+- `Corrections.proposals` and `may_accept?` treat an extraction result under an outline
+  as a proposal to the outline's principal (or anyone named when that principal is
+  anonymous, or a moderator), since its claims are new and touch nobody's existing claim.
+  The applier still refuses the extractor's own principal.
+- Extraction tasks target the source with the leaf's location, as `Tasks::BuildContext`
+  already supported; `tasks.section_id` is a server column, not a packet field.
+- Not done: `explain` and `share_card` refusing a section id (they take claim ids only, so
+  a section id is `NOT_FOUND` already); the OpenAPI document does not yet describe
+  `POST /api/v1/outlines` because no REST endpoint was added, only the connector tool.
+- Constitutional Test: 1 yes (no scoring change); 2 n/a; 3 no; 4 no; 5 yes; 6 yes; 7 yes;
+  8 yes; 9 yes (extracted claims stay proposals until a different principal accepts);
+  10 yes. No blocker.
+

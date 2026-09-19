@@ -1,0 +1,73 @@
+<% content_for :title, "Glossary" %>
+<% content_for :body_class, "document" %>
+<h1>Glossary</h1>
+<p class="lede">The words Galedra uses, in the sense it uses them. The first part is the kinds of work a person or an assistant can do; the second is what that work produces. Every term here is the one used in the pages, the API, and the assistant tools, with no synonyms.</p>
+
+<h2 id="work">Kinds of work</h2>
+<p class="meta">Every kind of work is counted on the <%= link_to "contributors list", contributors_path %> under the heading given in brackets. The counts measure volume, never reliability.</p>
+<dl class="glossary">
+  <dt id="check">Check, or record an investigation <span class="muted">[recorded]</span></dt>
+  <dd>What most people do: give a statement they were about to share to their assistant and say "check this in Galedra". The assistant searches for existing claims, reads real sources itself, splits the statement into atomic claims, and records the sources, quoted excerpts, claims, evidence, and links in one signed call. The result is a check page and one line to paste instead of the rumour. Recording from the site by hand, through <em>Analyze text</em> or <em>Record a check</em>, counts the same way.</dd>
+
+  <dt id="add-evidence">Add evidence <span class="muted">[recorded]</span></dt>
+  <dd>Attach one quoted passage from a source to an existing claim as evidence for it, against it, or qualifying it. Only quoted passages are evidence; an assistant's own reasoning never is.</dd>
+
+  <dt id="task">Work a task <span class="muted">[tasks]</span></dt>
+  <dd>Volunteer research. Galedra opens a task on every new claim and hands each to a different principal than the one who recorded it, so nobody checks their own work. An assistant leases the highest-priority task it may hold, does the reading, and answers. The five kinds:
+    <ul>
+      <li><strong>Opposing evidence search</strong>: look for evidence in the direction the claim currently leans away from. Finding nothing after a real search is a result.</li>
+      <li><strong>Qualifier check</strong>: look for what the counted evidence leaves out: time ranges, populations, denominators, baselines, sampling limits, jurisdictions, translations. Record a narrower claim when one holds.</li>
+      <li><strong>Evidence verification</strong>: decide whether one quoted passage really supports the claim it is linked to.</li>
+      <li><strong>Source independence check</strong>: decide which pieces of evidence share one origin (a press release, a dataset, a primary text) so they are not counted twice.</li>
+      <li><strong>Claim extraction</strong>: split a source into atomic claims. The result is a proposal until a different principal accepts it.</li>
+    </ul>
+  </dd>
+
+  <dt id="audit">Audit <span class="muted">[audits]</span></dt>
+  <dd>A human check of a recorded contribution, by someone with standing in the domain: was the passage quoted correctly, does the link hold, was anything invented. Audits are assigned, not pulled from a queue. They are what turns "provisional" into audited, and what reputation is built from.</dd>
+
+  <dt id="accept">Accept a proposal <span class="muted">[acceptances]</span></dt>
+  <dd>A correction to someone else's work (a revised claim, a merge, a revised link, extracted claims) is a proposal until a different principal accepts it. Accepting is a signed act and makes the acceptor responsible for what they accepted.</dd>
+
+  <dt id="correct">Correct <span class="muted">[recorded]</span></dt>
+  <dd>Revise a claim, merge a duplicate into another, or revise an evidence link. On your own work it takes effect at once; on someone else's it is a proposal. Nothing is deleted: a correction is a new entry that points at what it corrects.</dd>
+
+  <dt id="review">Review <span class="muted">[reviews]</span></dt>
+  <dd>Judging things that live outside the log and have no admin: free text people and assistants add (bug reports, feature requests, affiliation requests, the reasons on personal views), reviewed for offensive content and redacted if found; and affiliations people asked to add, merged into an existing one, added, or declined. Reviews are settled by the agreement of different principals, never the author's own: two that agree, or one that nobody contradicts within two days.</dd>
+
+  <dt id="personal-view">Register a view</dt>
+  <dd>Say whether you personally agree or disagree with a claim, with an optional reason. This is belief, not evidence: it never changes an assessment, is shown in its own panel, and is counted by affiliation only for groups of five or more. Not counted as work.</dd>
+
+  <dt id="report">Report a bug, request a feature</dt>
+  <dd>Tell the maintainers what went wrong, or what the tools could not do. Read by admins and moderators only. Not counted as work.</dd>
+
+  <dt id="moderate">Moderate</dt>
+  <dd>Quarantine or take down content, release a quarantine, invalidate an entry. Moderator keys are published so the power is visible, and every act appears in the public moderation log. A ledger role, distinct from an admin, who manages accounts and menus and has no power over the log.</dd>
+</dl>
+
+<h2 id="things">What the work produces</h2>
+<dl class="glossary">
+  <dt>Claim</dt><dd>One minimal proposition that could be assessed on its own. Typed (quantitative, causal, textual, normative, and so on). A statement with several assertions is split into several claims.</dd>
+  <dt>Source</dt><dd>Where evidence comes from: a page, a paper, a dataset, a video, a post, an image. Recorded by link and, when the reader had the bytes, a hash; page text is not stored.</dd>
+  <dt>Excerpt</dt><dd>The exact passage read from a source, with its location. Hashed, so anyone can check it against the page. A transcription from an image or audio is marked as such.</dd>
+  <dt>Evidence</dt><dd>What an excerpt shows, in one plain sentence. Evidence carries weight only through its links.</dd>
+  <dt>Link</dt><dd>Evidence tied to a claim with a direction (support, contradict, qualify, neutral), a relevance strength, and the number of interpretive steps between the passage and the claim.</dd>
+  <dt>Independence group</dt><dd>Evidence items that share one origin. Only the strongest in a group counts, so repetition is not corroboration.</dd>
+  <dt>Contribution</dt><dd>One signed entry in the append-only log. Everything above is created by contributions, and the log is the source of record; the pages are projections rebuilt from it.</dd>
+  <dt>Principal</dt><dd>The person or organisation responsible for a contribution. An assistant acts as an agent under a delegation from its principal, and its work is the principal's.</dd>
+  <dt>Assistant</dt><dd>An AI agent connected to Galedra (Claude, ChatGPT, or anything speaking MCP or HTTP) that records, works tasks, and reviews on a person's behalf. Anonymous when connected without an account.</dd>
+  <dt>Proposal</dt><dd>A contribution that does not count until a different principal accepts it: corrections to others' work, extracted claims.</dd>
+  <dt>Assessment</dt><dd>What a named, versioned scoring model concludes from the counted evidence at a snapshot: a state such as <em>supported</em>, <em>unresolved</em>, <em>contradicted</em>, <em>insufficient evidence</em>, or <em>not applicable</em>, and for some states a probability. Model-conditional, never "true" or "false".</dd>
+  <dt>Snapshot</dt><dd>A sequence number in the log. Every assessment is stated "at snapshot N" and can be recomputed exactly there.</dd>
+  <dt>Review checks</dt><dd>The four kinds of verification a claim can have had (opposing search, qualifier check, evidence verification, independence check), shown as a count out of four, never as a percentage.</dd>
+  <dt>Provisional</dt><dd>Not yet independently audited by a human. Every fresh result is.</dd>
+  <dt>Contested</dt><dd>Counted evidence points both ways.</dd>
+  <dt>Say instead</dt><dd>The narrower sentence the evidence does support, offered when the original does not hold as stated.</dd>
+  <dt>Topic</dt><dd>One or two subjects from a closed vocabulary a claim is filed under. A tag is a signed contribution.</dd>
+  <dt>Personal view</dt><dd>A person's own agree or disagree on a claim, with a reason. Kept outside the log, never evidence.</dd>
+  <dt>Affiliation</dt><dd>A group a person says they belong to (politics, religion or worldview, nationality, generation, education). Private; used only to show how groups' registered views split.</dd>
+  <dt>Reference</dt><dd>One time a claim was met: checked in an investigation, looked up by an assistant, viewed, or shared. A count of attention, not of truth.</dd>
+  <dt>Node</dt><dd>One running Galedra with its own address and signing key. Keys name their home node and snapshots are signed checkpoints, so that independent nodes can one day mirror and continue each other's logs.</dd>
+  <dt>Outline, section <span class="muted">(planned)</span></dt><dd>A tree of sections over one long source (a transcript, a speech) into which claims are filed, so a large check can be shared out and read as a whole.</dd>
+  <dt>Inference <span class="muted">(planned)</span></dt><dd>A recorded reasoning step: "because these claims hold and that one does not, this follows." Interpretation, never evidence.</dd>
+</dl>

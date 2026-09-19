@@ -2,6 +2,34 @@ Rails.application.routes.draw do
   root "home#index"
   get "constitution", to: "home#constitution"
   get "faq", to: "home#faq"
+  get "docs", to: "help#docs"
+  get "about", to: "help#about"
+  get "licenses", to: "help#licenses"
+  get "glossary", to: "help#glossary"
+  # Admin (Stage 24): a website role, never a ledger one.
+  namespace :admin do
+    resources :content_reviews, only: [ :index ] do
+      member do
+        post :settle
+        post :restore
+      end
+    end
+    resources :affiliation_requests, only: [ :index ] do
+      collection do
+        post :merge
+        post :add
+        post :decline
+      end
+    end
+    resources :users, only: [ :index ] do
+      member do
+        post :grant_admin
+        post :revoke_admin
+        post :grant_moderator
+        post :revoke_moderator
+      end
+    end
+  end
 
   resource :session
   resources :passwords, param: :token
@@ -17,8 +45,16 @@ Rails.application.routes.draw do
     get :card, on: :member
     post :topics, on: :member, to: "claims#tag"
     post :accept, on: :member, to: "claims#accept"
+    post :place, on: :member, to: "claims#place"
+    # A person's own view (spec 02 §3.6a): outside the log, in its own panel.
+    resource :view, only: [ :create, :destroy ], controller: "personal_assessments"
   end
+  resource :account, only: [ :show, :update ]
+  # Stage 20: outlines of long sources, as trees of sections.
+  resources :sections, only: [ :index, :show, :create ]
+  resources :affiliation_requests, only: [ :create ]
   get "feature_requests", to: "feature_requests#index", as: :feature_requests
+  resources :bug_reports, only: [ :new, :create, :index ]
   get "topics", to: "topics#index", as: :topics
   get "topics/*path", to: "topics#show", as: :topic
   post "mcp", to: "mcp#create"
@@ -54,7 +90,7 @@ Rails.application.routes.draw do
   resource :analyze, only: [ :new, :create ], controller: "analyze"
   resources :evidence, only: [ :show ]
   resources :contributions, only: [ :index, :show ]
-  resources :contributors, only: [ :show ]
+  resources :contributors, only: [ :index, :show ]
   resources :tasks, only: [ :index, :show ]
   get "weaknesses", to: "weaknesses#index"
   get "moderation", to: "moderation#index"
@@ -66,6 +102,8 @@ Rails.application.routes.draw do
       get "openapi", to: "openapi#show"
       get "topics", to: "topics#index"
       get "log", to: "log#index"
+      get "claims/:id/views", to: "claims#views"
+      resources :sections, only: [ :index, :show ]
       resources :contributions, only: [ :create, :show ] do
         get :verify, on: :member
         get :redaction_manifest, on: :member
@@ -100,6 +138,7 @@ Rails.application.routes.draw do
       post "admin/snapshots", to: "admin#create_snapshot"
       post "admin/recompute", to: "admin#recompute"
       resources :evidence, only: [ :show ]
+      get "contributors/top", to: "contributors#top"
       resources :contributors, only: [ :show ] do
         get :reputation, on: :member
       end

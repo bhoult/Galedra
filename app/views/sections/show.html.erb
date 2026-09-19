@@ -1,0 +1,28 @@
+<% content_for :title, @section.heading %>
+<% open_ids = ([ @section ] + @ancestors).map(&:id) %>
+<p class="meta"><%= link_to "Outlines", sections_path %><% @ancestors.each do |a| %> › <%= link_to a.heading, section_path(a) %><% end %> › <%= @section.heading %></p>
+<h1><%= @section.heading %></h1>
+<div class="card">
+  <p class="meta">Source: <%= link_to @section.source.title, source_path(@section.source) %><% if @section.location %> · <%= @section.location.locator_type %> <code><%= @section.location.locator.to_json %></code><% if @section.location.excerpt.present? %> · “<%= truncate(@section.location.excerpt, length: 160) %>”<% end %><% end %> · <%= link_to "created seq #{@section.created_seq}", contribution_path(@section.contribution_id) %></p>
+  <p><strong><%= Sections::Tree.counts_line(@tree[:counts]) %></strong><% if @tree[:pending].positive? %> · <%= @tree[:pending] %> proposed claims awaiting acceptance<% end %></p>
+  <p class="meta"><%= Sections::Tree::NOTE %> As of snapshot <%= @seq %><%= " under #{@model.full_name}" if @model %>.</p>
+</div>
+<% open_tasks = Task.where(section_id: Tasks::Lease.subtree_ids(@section.id), status: %w[OPEN LEASED]).to_a.select { |t| t.open_slots.positive? } %>
+<div class="card">
+  <p><strong>Open work under this section: <%= open_tasks.size %></strong><% if open_tasks.any? %> (<%= open_tasks.group_by(&:task_type).map { |k, v| "#{v.size} #{k.downcase.tr('_', ' ')}" }.join(", ") %>)<% end %>.</p>
+  <p class="meta">To help, tell your assistant: <code>work five open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are proposals until the outline's principal accepts them; then their verification tasks open.</p>
+</div>
+<div class="tree card">
+  <%= render "sections/tree", node: @tree, open_ids: open_ids, current_claim: @current_claim, seq: @seq %>
+  <% if @tree[:children].empty? && @tree[:claims].empty? %><p class="muted">No sections or claims under this one yet.</p><% end %>
+</div>
+<% if authenticated? %>
+  <details><summary>Add sections under this one</summary>
+    <%= form_with url: sections_path, method: :post do |f| %>
+      <%= f.hidden_field :source_id, value: @section.source_id %>
+      <%= f.hidden_field :parent_section_id, value: @section.id %>
+      <p><%= f.text_area :outline, rows: 5, placeholder: "One heading per line, indented two spaces per level" %></p>
+      <p><%= f.submit "Record", class: "secondary" %></p>
+    <% end %>
+  </details>
+<% end %>

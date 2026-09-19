@@ -9,13 +9,13 @@ module Tasks
 
     module_function
 
-    def next(contributor:, delegation:, types: [], domains: [], target_id: nil)
+    def next(contributor:, delegation:, types: [], domains: [], target_id: nil, section_id: nil)
       principal = contributor.agent? ? delegation&.principal : contributor
       reject("DELEGATION_REQUIRED", "$.delegation_id", "agents lease under a delegation") if contributor.agent? && delegation.nil?
       reject("LEASE_LIMIT", "$", "daily task limit reached for this delegation") if delegation && over_daily_limit?(contributor, delegation)
 
       expire_stale!
-      candidates(contributor, principal, delegation, types, domains, target_id).each do |task|
+      candidates(contributor, principal, delegation, types, domains, target_id, section_id).each do |task|
         next if task.open_slots <= 0
         # Stage 18: a principal never checks its own claim (04 §3.1, Article XI).
         next if own_target?(task, principal)
@@ -35,9 +35,10 @@ module Tasks
       (attempts = (attempts || 0) + 1) < 3 ? retry : nil
     end
 
-    def candidates(contributor, principal, delegation, types, domains, target_id = nil)
+    def candidates(contributor, principal, delegation, types, domains, target_id = nil, section_id = nil)
       scope = Task.where(status: %w[OPEN LEASED]).order(priority: :desc, created_at: :asc)
       scope = scope.where(target_id: target_id) if target_id
+      scope = scope.where(section_id: subtree_ids(section_id)) if section_id
       allowed_types = delegation ? Array(delegation.permissions["allowed_task_types"]) : Types::ALL
       allowed_domains = delegation ? Array(delegation.permissions["domains"]) : Audits::Policy.domains
       types = types.presence || allowed_types
@@ -45,6 +46,20 @@ module Tasks
       scope = scope.where(task_type: types & allowed_types, domain: domains & allowed_domains)
       taken = TaskAssignment.where(status: %w[LEASED SUBMITTED]).where("contributor_id = :c OR principal_contributor_id = :p", c: contributor.id, p: principal.id).select(:task_id)
       scope.where.not(id: taken).limit(50)
+    end
+
+    # Stage 21: a section means its whole subtree.
+    def subtree_ids(section_id)
+      section = Section.find_by(id: section_id)
+      return [] if section.nil?
+
+      ids = [ section.id ]
+      frontier = [ section.id ]
+      while frontier.any?
+        frontier = Section.where(parent_id: frontier).pluck(:id)
+        ids.concat(frontier)
+      end
+      ids
     end
 
     # The task's target stands on this principal's own say-so: recorded by it

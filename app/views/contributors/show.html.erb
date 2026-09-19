@@ -7,8 +7,10 @@
     <% if @contributor.adopted? %><span class="badge">adopted at seq <%= @contributor.metadata["adopted_seq"] %> by <%= link_to short_id(@contributor.adopted_by_key_id), contributor_path(Contributor.find_by!(key_id: @contributor.adopted_by_key_id)) %></span><% end %></p>
   <% adopted = Contributor.where("metadata->>'adopted_by' = ?", @contributor.key_id) %>
   <% if adopted.any? %><p class="meta">Also stands behind: <% adopted.each do |c| %><%= link_to short_id(c.key_id), contributor_path(c) %> (adopted at seq <%= c.metadata["adopted_seq"] %>) <% end %></p><% end %>
-  <p class="meta">key <code><%= @contributor.key_id %></code> · registered seq <%= @contributor.created_seq %></p>
+  <p class="meta">key <code><%= @contributor.key_id %></code> · registered seq <%= @contributor.created_seq %><% if @contributor.home_node_url %> · home node <%= link_to @contributor.home_node_url, @contributor.home_node_url %><% end %></p>
 </div>
+<h2>Work done</h2>
+<p><strong><%= @tally[:total] %></strong> in all: <%= @tally[:recorded] %> recorded, <%= @tally[:task_results] %> tasks answered, <%= @tally[:audits] %> audits, <%= @tally[:acceptances] %> acceptances, <%= @tally[:reviews] %> reviews. <span class="muted"><%= Contributors::Tally::NOTE %> <%= link_to "All contributors", contributors_path %>.</span></p>
 <h2>Audited reliability</h2>
 <p class="muted">Per task type and domain, from audits of this identity's work. This is not authority, not a score of the person, and not an input to claim scores.</p>
 <% if @buckets.any? %>

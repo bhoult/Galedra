@@ -4,7 +4,15 @@ module Api
   module V1
     class ContributorsController < BaseController
       def show
-        render json: { contributor: Graph::Presenter.contributor(Contributor.find(params[:id])) }
+        contributor = Contributor.find(params[:id])
+        render json: { contributor: Graph::Presenter.contributor(contributor).merge(work: Contributors::Tally.for(contributor.id)) }
+      end
+
+      # GET /api/v1/contributors/top?window=30d|365d: the hundred principals
+      # with the most work done. Volume, never reliability or a score input.
+      def top
+        rows = Contributors::Tally.top(limit: 100, since: ClaimReference.since_for(params[:window]))
+        render json: { note: Contributors::Tally::NOTE, contributors: rows.map { |c, n| { id: c.id, key_id: c.key_id, display_name: c.display_name, identity_tier: c.identity_tier, work: n } } }
       end
 
       # GET /api/v1/contributors/:id/reputation?snapshot_seq= (spec 05 §6–§7):

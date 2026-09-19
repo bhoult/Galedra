@@ -75,13 +75,16 @@ installed. Stage 0 records the exact versions it ends up using.
 | 14 | MCP, OpenAPI, and the skill | implemented | [implementation/implemented/stage-14-mcp.md](implementation/implemented/stage-14-mcp.md) |
 | 15 | Topics | implemented | [implementation/implemented/stage-15-topics.md](implementation/implemented/stage-15-topics.md) |
 | 16 | OAuth for connectors | implemented | [implementation/implemented/stage-16-oauth.md](implementation/implemented/stage-16-oauth.md) |
-| 17 | Source retrieval by a trusted job | planned | [implementation/planned/stage-17-retrieval.md](implementation/planned/stage-17-retrieval.md) |
+| 17 | Source retrieval by a trusted job | implemented | [implementation/implemented/stage-17-retrieval.md](implementation/implemented/stage-17-retrieval.md) |
 | 18 | Work open tasks from a connector | implemented | [implementation/implemented/stage-18-work-tasks.md](implementation/implemented/stage-18-work-tasks.md) |
 | 19 | Correct what is recorded, from a connector | implemented | [implementation/implemented/stage-19-corrections.md](implementation/implemented/stage-19-corrections.md) |
 | — | Stages 20–22 — Large sources: outlines (shared goal and vocabulary) | context | [implementation/planned/stages-20-22-outlines.md](implementation/planned/stages-20-22-outlines.md) |
-| 20 | Sections and placements in the log | planned | [implementation/planned/stage-20-sections.md](implementation/planned/stage-20-sections.md) |
-| 21 | Large requests from a connector | planned | [implementation/planned/stage-21-large-requests.md](implementation/planned/stage-21-large-requests.md) |
+| 20 | Sections and placements in the log | implemented | [implementation/implemented/stage-20-sections.md](implementation/implemented/stage-20-sections.md) |
+| 21 | Large requests from a connector | implemented | [implementation/implemented/stage-21-large-requests.md](implementation/implemented/stage-21-large-requests.md) |
 | 22 | Sharing and following an outline | planned | [implementation/planned/stage-22-outline-share.md](implementation/planned/stage-22-outline-share.md) |
+| 23 | Federation readiness | implemented | [implementation/implemented/stage-23-federation-ready.md](implementation/implemented/stage-23-federation-ready.md) |
+| 24 | Admins, help, and navigation | implemented | [implementation/implemented/stage-24-admin-nav.md](implementation/implemented/stage-24-admin-nav.md) |
+| 25 | Inferences: recorded reasoning steps | planned | [implementation/planned/stage-25-inferences.md](implementation/planned/stage-25-inferences.md) |
 
 Work done between stages, each with its own dated entry:
 
@@ -90,6 +93,9 @@ Work done between stages, each with its own dated entry:
 - [After Stage 14 — The paste flow](implementation/implemented/after-stage-14-the-paste-flow.md) (2026-09-18)
 - [After Stage 14 — The write link](implementation/implemented/after-stage-14-the-write-link.md) (2026-09-18)
 - [After Stage 14 — Adoption](implementation/implemented/after-stage-14-adoption.md) (2026-09-18)
+- [Claim references — how often a claim is met](implementation/implemented/claim-references.md) (2026-09-19)
+- [Personal views, affiliations, and content review](implementation/implemented/personal-views.md) (2026-09-19)
+- [Work done per contributor, and the contributors list](implementation/implemented/contributors-tally.md) (2026-09-19)
 
 ## Decision Log
 

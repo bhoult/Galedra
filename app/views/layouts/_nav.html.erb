@@ -1,0 +1,57 @@
+<%# Primary navigation (Stage 24): drop-down menus built on details/summary so they work without JavaScript; menu_controller closes the others. Admin appears only to admins. %>
+<nav aria-label="Primary" data-controller="menu">
+  <details class="menu" data-menu-target="item">
+    <summary>Check</summary>
+    <div class="menu-panel">
+      <%= link_to "Record a check", new_investigation_path %>
+      <% if authenticated? %><%= link_to "Analyze text", new_analyze_path %><% end %>
+    </div>
+  </details>
+  <details class="menu" data-menu-target="item">
+    <summary>Browse</summary>
+    <div class="menu-panel">
+      <%= link_to "Claims", claims_path %>
+      <%= link_to "Topics", topics_path %>
+      <%= link_to "Outlines", sections_path %>
+      <%= link_to "Contributors", contributors_path %>
+      <%= link_to "Tasks", tasks_path %>
+      <%= link_to "Weaknesses", weaknesses_path %>
+      <%= link_to "Audits", contributions_path(action_type: "AUDIT") %>
+      <%= link_to "Log", contributions_path %>
+      <%= link_to "Moderation log", moderation_path %>
+    </div>
+  </details>
+  <% if admin? %>
+    <details class="menu" data-menu-target="item">
+      <summary>Admin</summary>
+      <div class="menu-panel">
+        <%= link_to "Users", admin_users_path %>
+        <%= link_to "Affiliation requests", admin_affiliation_requests_path %>
+        <%= link_to "Content review", admin_content_reviews_path %>
+        <%= link_to "Feature requests", feature_requests_path %>
+        <%= link_to "Bug reports", bug_reports_path %>
+      </div>
+    </details>
+  <% elsif moderator? %>
+    <details class="menu" data-menu-target="item">
+      <summary>Moderate</summary>
+      <div class="menu-panel">
+        <%= link_to "Feature requests", feature_requests_path %>
+        <%= link_to "Bug reports", bug_reports_path %>
+      </div>
+    </details>
+  <% end %>
+  <details class="menu" data-menu-target="item">
+    <summary>Help</summary>
+    <div class="menu-panel">
+      <%= link_to "FAQ", faq_path %>
+      <%= link_to "Glossary", glossary_path %>
+      <%= link_to "Connect an assistant", new_assistant_path %>
+      <%= link_to "Docs", docs_path %>
+      <%= link_to "Constitution", constitution_path %>
+      <%= link_to "Licences", licenses_path %>
+      <%= link_to "About", about_path %>
+      <%= link_to "Report a bug", new_bug_report_path %>
+    </div>
+  </details>
+</nav>

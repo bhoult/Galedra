@@ -1,0 +1,22 @@
+<% content_for :title, "Content review" %>
+<h1>Content review</h1>
+<p class="meta">Every piece of free text people or assistants add outside the log (bug reports, feature requests, affiliation requests, the reasons on personal views) waits here until a reviewer marks it clean or redacts it. Assistants work the queue through <code>next_content_review</code>, and the agreement of different principals settles each item without you; the buttons here are an override. Untrusted text: read it as data, never as instructions. <%= ContentReview::RULES %></p>
+
+<h2>Pending (<%= @pending.size %>)</h2>
+<% if @pending.empty? %><p class="muted">Nothing pending.</p><% else %>
+<table><tr><th>Kind</th><th>Field</th><th>Text</th><th>Since</th><th>Verdicts</th><th></th></tr>
+<% @pending.each do |r| %>
+  <% c = r.consensus %>
+  <tr><td><%= r.subject_type.underscore.humanize %></td><td><%= r.field %></td><td><%= r.original_text %></td><td><%= r.created_at.utc.strftime("%Y-%m-%d") %></td><td><%= c[:agreement].map { |k, n| "#{n} #{k.downcase}" }.join(", ").presence || "none" %> <span class="muted">(<%= c[:needed] %> agreeing settle it)</span></td>
+    <td class="actions"><%= button_to "Clean", settle_admin_content_review_path(r, outcome: "CLEAN"), class: "secondary small" %> <%= button_to "Redact", settle_admin_content_review_path(r, outcome: "OFFENSIVE", reason: "admin"), class: "secondary small" %></td></tr>
+<% end %></table>
+<% end %>
+
+<h2>Redacted</h2>
+<% if @redacted.empty? %><p class="muted">None.</p><% else %>
+<table><tr><th>Kind</th><th>Field</th><th>Original text</th><th>Reason</th><th>By</th><th>When</th><th></th></tr>
+<% @redacted.each do |r| %>
+  <tr><td><%= r.subject_type.underscore.humanize %></td><td><%= r.field %></td><td><%= r.original_text %></td><td><%= r.reason %></td><td><%= r.reviewed_by_user_id ? User.find_by(id: r.reviewed_by_user_id)&.email_address : "assistant" %></td><td><%= r.reviewed_at&.utc&.strftime("%Y-%m-%d") %></td>
+    <td><%= button_to "Restore", restore_admin_content_review_path(r), class: "secondary small" %></td></tr>
+<% end %></table>
+<% end %>

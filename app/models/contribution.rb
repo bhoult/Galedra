@@ -50,7 +50,8 @@ class Contribution < ApplicationRecord
   def principal_contributor_id = principal_contributor&.id
 
   PROJECTION_MODELS = %w[Source SourceLocation Claim ClaimEdge IndependenceGroup IndependenceGroupAssignment
-                         EvidenceItem EvidenceClaimLink ClaimMerge ClaimEvaluabilitySetting ClaimTopic].freeze
+                         EvidenceItem EvidenceClaimLink ClaimMerge ClaimEvaluabilitySetting ClaimTopic SourceRetrieval
+                         Section ClaimPlacement].freeze
 
   # Every projection row this contribution created.
   def projection_rows

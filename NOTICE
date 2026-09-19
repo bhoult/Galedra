@@ -1,0 +1,18 @@
+Galedra
+Copyright (c) 2026 Brandon Hoult and contributors
+
+Licensing (adopted 2026-09-19, following docs/LICENSE-POLICY.md; full texts in LICENSES/):
+
+  Reference node software (app/, lib/, config/, db/, bin/, spec/, and every
+  source file not marked otherwise)          AGPL-3.0-or-later   (LICENSE)
+  Protocol, schemas, OpenAPI, test vectors
+  (schemas/, app/services/api/openapi.rb,
+  examples/agent/)                           Apache-2.0
+  Project-authored prose and documentation
+  (docs/, README.md, IMPLEMENTATION.md,
+  implementation/, skills/)                  CC-BY-4.0
+  The public database as a whole             ODbL-1.0
+  Project-authored factual records           CC0-1.0 where legally possible
+  Imported third-party material              remains under its source's terms
+
+SPDX-License-Identifier: AGPL-3.0-or-later

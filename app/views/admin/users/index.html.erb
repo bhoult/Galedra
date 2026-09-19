@@ -1,0 +1,27 @@
+<% content_for :title, "Users" %>
+<h1>Users</h1>
+<p class="meta">Admin is a website role: it manages accounts and menus and has no power over the log. Moderator is a ledger role read from this flag (quarantine, takedown, invalidation, audits) and every moderator key is published in <%= link_to "machine-readable metadata", api_v1_meta_path %>. <%= pluralize(@admin_count, "admin") %>; the last one cannot be revoked.</p>
+<table>
+  <tr><th>Email</th><th>Signed up</th><th>Key</th><th>Admin</th><th>Moderator</th><th></th></tr>
+  <% @users.each do |u| %>
+    <tr>
+      <td><%= u.email_address %><% if u == Current.user %> <span class="badge">you</span><% end %></td>
+      <td><%= u.created_at.utc.strftime("%Y-%m-%d") %></td>
+      <td><% if (c = u.contributor) %><%= link_to short_id(c.key_id), contributor_path(c) %><% else %><span class="muted">none</span><% end %></td>
+      <td><% if u.admin? %>yes<% if u.admin_granted_by %> <span class="muted">(by <%= u.admin_granted_by.email_address %>)</span><% elsif u.admin_granted_at %> <span class="muted">(first account)</span><% end %><% else %>no<% end %></td>
+      <td><%= u.moderator? ? "yes" : "no" %></td>
+      <td class="actions">
+        <% if u.admin? %>
+          <%= button_to "Revoke admin", revoke_admin_admin_user_path(u), class: "secondary small", disabled: @admin_count <= 1 %>
+        <% else %>
+          <%= button_to "Grant admin", grant_admin_admin_user_path(u), class: "secondary small" %>
+        <% end %>
+        <% if u.moderator? %>
+          <%= button_to "Remove moderator", revoke_moderator_admin_user_path(u), class: "secondary small" %>
+        <% else %>
+          <%= button_to "Appoint moderator", grant_moderator_admin_user_path(u), class: "secondary small" %>
+        <% end %>
+      </td>
+    </tr>
+  <% end %>
+</table>

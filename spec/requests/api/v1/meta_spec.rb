@@ -23,4 +23,16 @@ RSpec.describe "GET /api/v1/meta", type: :request do
     expect(response.parsed_body["system_key_id"]).to eq(Crypto::SystemKey.key_id)
     expect(response.parsed_body["system_public_key"]).to eq(Crypto::SystemKey.public_key)
   end
+
+  it "publishes the node identity, protocol and schema versions, and the software build (Stage 23)" do
+    get "/api/v1/meta"
+
+    node = response.parsed_body["node"]
+    expect(node["key_id"]).to eq(Crypto::SystemKey.key_id)
+    expect(node["protocol"]).to eq(Ledger::PROTOCOL)
+    expect(node["schema_version"]).to eq(Ledger::Node::SCHEMA_VERSION)
+    expect(node["visibilities"]).to eq([ "PUBLIC" ])
+    expect(node["software"]["repository"]).to eq(Governance::Software::REPOSITORY)
+    expect(node["software"]["revision"]).to be_present
+  end
 end

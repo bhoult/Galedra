@@ -161,8 +161,13 @@ address, forward TCP 80 and 443 on the router to this machine, set `TLS_DOMAIN`,
 `LEDGER_ALLOWED_HOSTS`, and `RAILS_MASTER_KEY` in `.env`, and run:
 
 ```bash
-docker compose -f compose.production.yaml up -d --build
+GALEDRA_REVISION=$(git describe --tags --always) docker compose -f compose.production.yaml up -d --build
 ```
+
+`GALEDRA_REVISION` stamps the build, shown on `/about`. Set `LEDGER_NODE_URL` to the
+public address so keys, checkpoints, and `/api/v1/meta` name this node. The first
+account to sign up is the admin, and can make other accounts admins or moderators
+under **Admin → Users**.
 
 Or skip the router entirely with a Cloudflare tunnel. For a quick test with no account,
 `cloudflared tunnel --url http://localhost:3000` prints a temporary `trycloudflare.com`
@@ -265,4 +270,8 @@ identifiable private individuals are out of scope.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+The reference software is AGPL-3.0-or-later ([LICENSE](LICENSE)); the protocol, schemas,
+and OpenAPI description are Apache-2.0; the docs are CC BY 4.0; the public database as a
+whole is ODbL-1.0 and project-authored factual records are CC0-1.0. Full texts are in
+[LICENSES/](LICENSES/) and the reasoning in [docs/LICENSE-POLICY.md](docs/LICENSE-POLICY.md);
+`/licenses` on a running node shows all of them.

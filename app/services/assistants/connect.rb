@@ -10,10 +10,13 @@ module Assistants
     # Owner decision: delegations to connected assistants do not expire on their own.
     VALIDITY = 100.years
     DEFAULT_DAILY_CAP = 200
+    # Stage 21: an assistant with a person behind it may record a large source over a day.
+    NAMED_DAILY_CAP = 1_000
 
     module_function
 
-    def call(user: nil, name:, provider:, model: nil, daily_cap: DEFAULT_DAILY_CAP)
+    def call(user: nil, name:, provider:, model: nil, daily_cap: nil)
+      daily_cap ||= user ? NAMED_DAILY_CAP : DEFAULT_DAILY_CAP
       name = name.to_s.strip
       raise ArgumentError, "assistant name is required" if name.empty?
       raise ArgumentError, "unknown provider" unless AssistantToken::PROVIDERS.include?(provider.to_s)

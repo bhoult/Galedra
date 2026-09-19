@@ -30,5 +30,11 @@ module Llm
     def extract_claims(text)
       Claims::Extract.call(text)
     end
+
+    # Maps a requested affiliation to an existing one: {slug:, confidence:}
+    # with confidence EXACT, ALIAS, SIMILAR, or NONE (Affiliations::Resolve).
+    def resolve_affiliation(text)
+      Affiliations::Resolve.call(text)
+    end
   end
 end
