@@ -23,6 +23,9 @@ The design goal everything else serves:
 > gather, normalize, verify, challenge, and summarize, but they are never the
 > final opaque authority.
 
+The project home page is **[galedra.org](https://galedra.org)**. Every documentation page
+linked below is served by the software itself, so the same paths work on any node you run.
+
 ---
 
 ## The problem
@@ -133,11 +136,36 @@ the weights are right, and does not claim to.
 
 ## Status
 
-**P0 implemented (`v0.1.0`).** The proof of concept in this repository meets the
-specification's P0 Definition of Done: a Rails 8 monolith on PostgreSQL 16, Solid
-Queue, Hotwire, Ed25519 signatures over RFC 8785 canonical JSON, and Docker Compose
-for local development. LLM features are optional and stubbed by default. One app,
-one database. `IMPLEMENTATION.md` records every stage, decision, and deviation.
+**P0 complete and tagged `v0.1.0`.** A Rails 8 monolith on PostgreSQL 16 with Solid Queue
+and Solid Cache inside the Puma process, Hotwire, Ed25519 signatures over RFC 8785
+canonical JSON, and Docker Compose with exactly two services. One app, one database, no
+external service required.
+
+Stages 12 through 25 are built and tagged on top of it:
+
+| Stage | What it added |
+|-------|---------------|
+| 12–13 | Connected assistants with daily caps, and `record_investigation`: one call records sources, excerpts, claims, evidence, and links, or refuses the lot |
+| 14 | The MCP server, the assistant skill, and the OpenAPI description |
+| 15–16 | The topic vocabulary, and OAuth so hosted assistants can connect on their own |
+| 17 | Source retrieval by a trusted job, so a link becomes a stored, hashed source |
+| 18–19 | Working open tasks from a connector, and filing corrections through one |
+| 20–22 | Outlines: a long source becomes sections, claims are placed in them, and an outline can be shared and followed as it fills |
+| 23 | Federation readiness: node identity, signed checkpoints, and schema and licence fields on everything that leaves the node. The protocol is shaped for it; no federation is implemented |
+| 24 | Admins, moderators, the Help menu, and the navigation |
+| 25 | Inferences: a recorded reasoning step with its premises, the weakest one marked, and never itself scored |
+
+Around them, and deliberately outside the log so none of it can reach a score: personal
+agree and disagree views with self-declared affiliations, claim reference counts, a
+contributor leaderboard, bug reports and feature requests, and content review settled by
+agents rather than by a paid moderator.
+
+**Stage 26 is planned, not built.** Capacity: seeding, profiling, and the pages that scan
+the whole graph. The measured baselines are in
+[`implementation/planned/stage-26-capacity.md`](implementation/planned/stage-26-capacity.md).
+
+[`IMPLEMENTATION.md`](IMPLEMENTATION.md) indexes every stage; each one's plan and decision
+log is its own file under [`implementation/`](implementation/).
 
 Run the demo:
 
@@ -189,6 +217,28 @@ take `https://<your domain>/mcp/connect` and complete OAuth against Galedra itse
 
 ---
 
+## Documentation
+
+The running node is its own documentation. Replace the host to read any of this on your
+own instance.
+
+| Page | What is there |
+|------|---------------|
+| [galedra.org/docs](https://galedra.org/docs) | This README, the API reference, and pointers to the spec and the skill |
+| [galedra.org/docs#api](https://galedra.org/docs#api) | Every endpoint under `/api/v1`, generated from the OpenAPI description so it cannot fall behind the code |
+| [galedra.org/api/v1/openapi.json](https://galedra.org/api/v1/openapi.json) | That description itself, for GPT Actions and plain HTTP clients |
+| [galedra.org/faq](https://galedra.org/faq) | What a number means, and what Galedra will not do |
+| [galedra.org/glossary](https://galedra.org/glossary) | The kinds of work, and the words for what each produces |
+| [galedra.org/constitution](https://galedra.org/constitution) | The twenty-five articles, as the running node holds them, with their hash |
+| [galedra.org/licenses](https://galedra.org/licenses) | Every licence in the stack, in full, and the policy behind it |
+| [galedra.org/about](https://galedra.org/about) | Which build is running, which node this is, and the head of the log |
+| [galedra.org/contact](https://galedra.org/contact) | How to reach the maintainer, and the routes that beat writing |
+| [galedra.org/assistants/new](https://galedra.org/assistants/new) | Connect ChatGPT, Claude, or any MCP client |
+| [galedra.org/weaknesses](https://galedra.org/weaknesses) | Where the ledger is most likely wrong, by its own reckoning |
+| [galedra.org/tasks](https://galedra.org/tasks) | Open work waiting for an assistant |
+
+---
+
 ## The specification
 
 Everything lives in
@@ -224,8 +274,8 @@ numbered files, never both, and never edit it by hand. `reference/reference_scor
 is an independent Python implementation of the scoring algorithm that reproduces
 the golden values of both demos; it is a cross-check, not code to port.
 `examples/watchers/` is an internal stress test over a textual source.
-`CONSTITUTION-AMENDMENTS.md` is the append-only amendment log, including four
-proposals awaiting a decision.
+`CONSTITUTION-AMENDMENTS.md` is the append-only amendment log; P-1 through P-6 are
+proposed and awaiting a decision.
 
 ---
 
@@ -278,6 +328,26 @@ identifiable private individuals are out of scope.
 > It succeeds when someone asks "why should I believe this?" and gets an answer
 > that can be examined all the way down to the evidence. It succeeds even more
 > when the answer is "at present, you should not be certain."
+
+---
+
+## Contributing
+
+Pull requests are welcome, and an issue first is welcome but not required. The suite has to
+pass. The project takes a sign-off rather than a contributor agreement, so commit with
+`git commit -s` and carry a `Signed-off-by` line certifying you have the right to submit the
+work; the reasoning is in [docs/LICENSE-POLICY.md](docs/LICENSE-POLICY.md). `CLAUDE.md`
+holds the conventions and the invariants any change has to leave standing, and
+`IMPLEMENTATION.md` says how a change becomes a stage. Answer the ten questions above
+before adding a feature.
+
+Every route under `/api/v1` is described in `Api::Openapi`, and the suite fails on any route
+the document omits, so an endpoint and its documentation land in the same commit.
+
+The other way to help costs no code: connect the assistant you already use and tell it to
+work open tasks. It reads sources, checks quoted passages, looks for what would count
+against a claim, and signs what it finds. Galedra is paid for and hosted by one person;
+[galedra.org/contact](https://galedra.org/contact) says what else helps.
 
 ---
 
