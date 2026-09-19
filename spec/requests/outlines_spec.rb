@@ -147,7 +147,8 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     get "/sections/#{leaf.id}"
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Second part").and include("Third part").and include("First part")
-    expect(response.body).to include(%(<summary class="current">))
+    # Marked whether it is a branch or a section with nothing under it yet.
+    expect(response.body).to match(%r{<(summary|p) class="(leaf )?current"})
     # The outline is a sidebar headed by its root, so there is always a way back
     # to the top from anywhere in it.
     expect(response.body).to include('<aside class="outline tree">').and include(">Root</a>")
@@ -179,5 +180,33 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     expect(response.body).not_to include(%(&quot;start&quot;:&quot;00:00:00&quot;))
     # The outline sits beside the content, as it does on a claim page.
     expect(response.body).to include('class="with-outline"').and include('<aside class="outline tree">')
+  end
+
+  it "offers to expand only a section that has something in it" do
+    pair, = register_key
+    source = create_source(pair, title: "A source")
+    result = append(action_type: "CREATE_SECTION", key_pair: pair,
+                    payload: { "source_id" => source.id, "sections" => [ { "heading" => "Root", "sections" => [
+                      { "heading" => "Has a child", "sections" => [ { "heading" => "The child" } ] },
+                      { "heading" => "Has nothing yet" } ] } ] })
+    root = Section.find(Ledger::Ids.derive(result.contribution.id, "section", 0))
+
+    get "/sections/#{root.id}"
+    body = response.body
+    tree = body[body.index('<aside class="outline tree">')..body.index("</aside>")]
+
+    # A branch opens; a section with nothing under it is a plain line, because a
+    # disclosure triangle that opens onto nothing is worse than none.
+    expect(tree).to match(%r{<details[^>]*>\s*<summary[^>]*>.*?Has a child}m)
+    expect(tree).to include(%(<p class="leaf ">))
+    empty = tree[tree.index("Has nothing yet") - 400, 400]
+    expect(empty).to include("leaf")
+
+    # A leaf gains one once it holds a claim.
+    leaf = root.children.order(:position).last
+    create_claim(pair, "A claim placed in the empty section.", section_id: leaf.id)
+    get "/sections/#{root.id}"
+    tree = response.body[response.body.index('<aside class="outline tree">')..response.body.index("</aside>")]
+    expect(tree).to match(%r{<details[^>]*>\s*<summary[^>]*>.*?Has nothing yet}m)
   end
 end

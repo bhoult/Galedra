@@ -4,16 +4,25 @@
 <% current_section = local_assigns.fetch(:current_section, nil) %>
 <ul data-controller="tree">
   <% node[:children].each do |child| %>
+    <% count = tag.span(child[:counts]["claims"].to_s + (child[:pending].positive? ? "+#{child[:pending]}" : ""),
+                        class: "counts",
+                        title: pluralize(child[:counts]["claims"], "claim") + (child[:pending].positive? ? ", #{child[:pending]} proposed" : "")) %>
+    <% heading = link_to child[:section].heading, section_path(child[:section]) %>
+    <% classes = "#{'current' if child[:section].id == current_section}" %>
     <li>
-      <details <%= "open" if open_ids.include?(child[:section].id) %>>
-        <summary class="<%= "current" if child[:section].id == current_section %>">
-          <span class="counts" title="<%= pluralize(child[:counts]["claims"], "claim") %><%= ", #{child[:pending]} proposed" if child[:pending].positive? %>"><%= child[:counts]["claims"] %><%= "+#{child[:pending]}" if child[:pending].positive? %></span>
-          <%= link_to child[:section].heading, section_path(child[:section]) %>
-        </summary>
-        <div class="reveal">
-          <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq %>
-        </div>
-      </details>
+      <% if child[:children].any? || child[:claims].any? %>
+        <details <%= "open" if open_ids.include?(child[:section].id) %>>
+          <summary class="<%= classes %>"><%= count %><%= heading %></summary>
+          <div class="reveal">
+            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq %>
+          </div>
+        </details>
+      <% else %>
+        <%# Nothing under it yet, so no disclosure triangle: an affordance that
+            opens onto nothing is worse than none. It gains one when its
+            extraction task is worked and its claims arrive. %>
+        <p class="leaf <%= classes %>"><%= count %><%= heading %></p>
+      <% end %>
     </li>
   <% end %>
   <% node[:claims].each do |claim| %>
