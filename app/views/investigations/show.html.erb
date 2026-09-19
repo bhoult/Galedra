@@ -15,7 +15,7 @@
   <p class="eyebrow">Checked, not settled</p>
   <% top = Cards::Badge.for_key(@summary[:badge]) %>
   <div class="card answer badged">
-    <figure class="badge-validity" style="color: <%= top[:color] %>"><%= Cards::Badge.svg(top[:key], size: 56).html_safe %><figcaption class="badge-label"><%= top[:label] %></figcaption></figure>
+    <figure class="badge-validity" style="color: <%= top[:color] %>"><%= Cards::Badge.svg(top[:key], size: 56) %><figcaption class="badge-label"><%= top[:label] %></figcaption></figure>
     <p class="claim-text">“<%= @investigation.statement.presence || @claims.first&.canonical_text %>”</p>
     <% if @summary[:detail].present? %><p><strong><%= @summary[:headline] %></strong> <%= @summary[:detail] %>.</p><% end %>
     <% if @summary[:stated] %><p class="meta"><%= @summary[:stated] %>. <%= @claims.size > 1 ? @verdict[:note] : "The number is model-conditional, not a share of truth." %></p><% end %>
@@ -27,7 +27,7 @@
     <% card = @cards[claim.id] %>
     <% badge = Cards::Badge.for(@results[claim.id].assessment_state, @results[claim.id].probability) %>
     <div class="card answer badged">
-      <figure class="badge-validity" style="color: <%= badge[:color] %>"><%= Cards::Badge.svg(badge[:key], size: 56).html_safe %><figcaption class="badge-label"><%= badge[:label] %></figcaption></figure>
+      <figure class="badge-validity" style="color: <%= badge[:color] %>"><%= Cards::Badge.svg(badge[:key], size: 56) %><figcaption class="badge-label"><%= badge[:label] %></figcaption></figure>
       <p class="claim-text">“<%= claim.canonical_text %>”</p>
       <% if card[:plain][:say_instead] %><p class="say-instead"><strong>Say instead:</strong> <%= card[:plain][:say_instead] %></p><% end %>
       <p class="meta"><%= card[:headline] %><% if card[:stated] %> · <%= card[:stated] %><% end %> · review checks <%= card[:review_checks] %> · provisional until audited. The number is model-conditional, not a share of truth.</p>

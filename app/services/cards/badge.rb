@@ -45,10 +45,12 @@ module Cards
       LEVELS.fetch(key.to_sym).merge(key: key.to_sym)
     end
 
-    # Inline SVG: a coloured disc with the glyph, 28px, for the page and the PNG alike.
+    # Inline SVG: a coloured disc with the glyph. Every part comes from the
+    # fixed tables above (the key is looked up, never interpolated), so the
+    # markup is safe by construction and is marked so here.
     def svg(key, size: 28)
-      badge = LEVELS.fetch(key)
-      %(<svg class="badge-mark" width="#{size}" height="#{size}" viewBox="0 0 28 28" role="img" aria-label="#{badge[:label]}"><circle cx="14" cy="14" r="13" fill="#{badge[:color]}"/>#{GLYPHS.fetch(badge[:glyph])}</svg>)
+      badge = LEVELS.fetch(key.to_sym)
+      %(<svg class="badge-mark" width="#{size.to_i}" height="#{size.to_i}" viewBox="0 0 28 28" role="img" aria-label="#{badge[:label]}"><circle cx="14" cy="14" r="13" fill="#{badge[:color]}"/>#{GLYPHS.fetch(badge[:glyph])}</svg>).html_safe # rubocop:disable Rails/OutputSafety
     end
 
     STROKE = 'fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"'
