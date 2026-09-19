@@ -174,6 +174,9 @@ The topic vocabulary is `config/topics.yml`; tags are `TAG_CLAIM` contributions,
 The signed-out home page and `/constitution` render `CONSTITUTION.md` through `Governance::Constitution`;
 after adding a gem, run `docker compose exec app bundle install` and `docker compose restart app`.
 `bin/demo` refuses a log that already holds contributions unless `--reset` is given (development only).
+The suite pins RFC 8032 test vector 1 as the system key so its signatures are reproducible, whatever `.env`
+carries; seq 0 of `galedra_test` registers it, so rebuild that database (`db:drop db:create db:schema:load`)
+if the pinned key ever changes.
 
 ## Git
 

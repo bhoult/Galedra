@@ -1,12 +1,16 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
-# The test system key is RFC 8032 test vector 1 (public, non-secret).
+# The test system key is RFC 8032 test vector 1 (public, non-secret). It is set,
+# not defaulted: Docker Compose passes .env into the container, so a deployment's
+# own key would otherwise sign the suite's contributions and the vector test
+# would fail. Changing it means rebuilding the test database, whose seq 0
+# registers whichever key was in force.
 require "base64"
-ENV["LEDGER_SYSTEM_PRIVATE_KEY"] ||= Base64.urlsafe_encode64(
+ENV["LEDGER_SYSTEM_PRIVATE_KEY"] = Base64.urlsafe_encode64(
   [ "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60" ].pack("H*"), padding: false
 )
-ENV["LEDGER_SYSTEM_PUBLIC_KEY"] ||= Base64.urlsafe_encode64(
+ENV["LEDGER_SYSTEM_PUBLIC_KEY"] = Base64.urlsafe_encode64(
   [ "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a" ].pack("H*"), padding: false
 )
 require_relative '../config/environment'
@@ -53,7 +57,12 @@ RSpec.configure do |config|
 
   # seq 0 must exist before anything can be appended. Transactional tests never
   # roll it back because it is committed before the suite starts.
-  config.before(:suite) { Ledger::Genesis.ensure! }
+  config.before(:suite) do
+    Ledger::Genesis.ensure!
+  rescue Ledger::GenesisMismatch => e
+    abort "#{e.message}\n\nseq 0 of the test database was written under another key. Rebuild it:\n" \
+          "  docker compose exec -e RAILS_ENV=test app bin/rails db:drop db:create db:schema:load\n"
+  end
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
