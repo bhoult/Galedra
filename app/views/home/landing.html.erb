@@ -4,13 +4,13 @@
 
 <section class="hero">
   <%= image_tag "logo.svg", alt: "", class: "hero-mark", width: 220, height: 220 %>
-  <p class="eyebrow">An epistemic ledger for people and AI</p>
+  <p class="eyebrow">Against the tide of misinformation · an epistemic ledger for people and AI</p>
   <h1>A heap of witness.</h1>
-  <p class="lede">Galedra is an open, cumulative, machine-readable record of what was asserted, what evidence bears on it, where that evidence came from, and what has happened to it since. Humans and AI agents both contribute, and both are held to the same account.</p>
-  <p class="lede strong">It is not a source of truth. It is a source of traceable reasons for believing or doubting a claim.</p>
+  <p class="lede">A false claim crosses the world in the time it takes to read it. Checking it takes an hour, and the check is gone by morning. Galedra keeps the check: an open, signed, cumulative record of what was asserted, what evidence bears on it, where that evidence came from, and what has happened to it since. Check something once, and everyone who meets it next gets the reasons.</p>
+  <p class="lede strong">It is not a source of truth. It is a source of traceable reasons for believing or doubting a claim, and a link to post instead of a rumour.</p>
   <p class="actions">
-    <%= link_to "Create an account", new_user_path, class: "button" %>
-    <%= link_to "Sign in", new_session_path, class: "button secondary" %>
+    <%= link_to "Check it before you share it", new_assistant_path, class: "button" %>
+    <%= link_to "Create an account", new_user_path, class: "button secondary" %>
     <%= link_to "Browse the public log without an account", contributions_path, class: "quiet" %>
   </p>
   <p class="meta">
@@ -18,6 +18,26 @@
     log head <%= @head ? seq_link(@head.seq) : "empty" %> ·
     two scoring models, released in the log
   </p>
+</section>
+
+<section class="tide" id="misinformation">
+  <h2>Why a ledger, against misinformation</h2>
+  <div class="grid two">
+    <div class="card">
+      <h3>The problem is not that lies exist. It is that checking does not accumulate.</h3>
+      <p>A claim is copied a million times; each person who doubts it starts from nothing, and whatever they find is lost in a thread. Fact-checkers publish verdicts that the next rumour ignores, and AI assistants re-do the same research every time they are asked, then forget. Speed is on the side of the false claim, because the true work is never kept.</p>
+    </div>
+    <div class="card">
+      <h3>Galedra keeps the work, and hands you a link.</h3>
+      <p>Tell the assistant you already use: <em>"check this in Galedra before I post it."</em> It searches the record first; if the claim has been met before, the reasons are already there. If not, it reads real sources, records the quoted passages and what they bear on, and every later reader inherits that. You post the link instead of the repost. The claim page shows what it says, what the evidence says, who checked what, and how often the claim has come round again.</p>
+    </div>
+  </div>
+  <ul class="tide-points">
+    <li><strong>Once, for everyone.</strong> A check is a signed, public record, not a private chat. The most-met claims and the most-repeated ones that the evidence contradicts are visible on the <%= link_to "claims list", claims_path(sort: "references") %>.</li>
+    <li><strong>Reasons, not verdicts.</strong> Galedra never says "false" or "debunked". It shows the evidence for and against, how independent it is, and what is still unchecked, so a reader can see for themselves. That is what makes the record hard to dismiss and hard to capture.</li>
+    <li><strong>Whole speeches, whole episodes.</strong> A transcript or a speech is recorded as an <%= link_to "outline", sections_path %> of sections and worked claim by claim by many volunteers' assistants. A speaker is never scored; every claim is.</li>
+    <li><strong>The same rules for everyone.</strong> No party, church, nation, or company gets a different procedure (Article XVIII). People say who they are and whether they agree, and Galedra can show how different affiliations split on a claim, never which side is right.</li>
+  </ul>
 </section>
 
 <section class="example" id="example">
@@ -72,10 +92,16 @@
   <p class="muted">In the order they are meant to earn their keep. The same log, scoring, and constitution serve all of them.</p>
   <div class="grid two">
     <article class="card usecase">
+      <h3>Check it before you share it</h3>
+      <p>Someone is about to repost a claim from social media. Their assistant checks it in Galedra: finds it already recorded, or reads the sources and records it, and hands back a plain headline, what to say instead, and a link. The rumour meets a record instead of another repost, and the next person who meets the same claim inherits the check.</p>
+      <p class="example-line"><strong>Example.</strong> "The city cut its police budget by 40%." The budget documents show a 4% cut and a reallocation. The claim reads contradicted; the narrower claim the documents support is offered as what to say instead; the check page is the link to post.</p>
+      <p class="tier">Built. Connect an assistant, or paste a check by hand.</p>
+    </article>
+    <article class="card usecase">
       <h3>Verify the citations and statistics in an AI draft</h3>
       <p>An assistant wrote a brief with numbers and references. Before it goes out, paste it in. Each claim gets its own answer, each citation is checked against a source or marked unverified, and every check is signed and reusable next time.</p>
       <p class="example-line"><strong>Example.</strong> The memo above. The four-source statistic collapses to one lineage, the journal citation turns out not to exist, and the recommendation is flagged as a value judgment rather than scored.</p>
-      <p class="tier">Built. This is the public demo.</p>
+      <p class="tier">Built. This is the public demo below.</p>
     </article>
     <article class="card usecase">
       <h3>A private evidence ledger for a team investigation</h3>

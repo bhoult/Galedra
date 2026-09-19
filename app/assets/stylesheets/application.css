@@ -167,6 +167,10 @@ body.landing section { margin: 2.4rem 0; padding: 1rem 1.4rem; background: rgba(
 body.landing .hero { padding: 2rem 1.4rem 1.2rem; }
 body.landing .cta, body.landing .statement { background: rgba(255, 253, 249, 0.9); padding-block: 2rem; }
 body.landing h2 { font-size: 1.7rem; border: 0; padding: 0; margin-bottom: 0.8rem; }
+.tide { margin-top: 1.6rem; }
+.tide h3 { font-size: 1.05rem; margin-top: 0.2rem; }
+.tide-points { margin: 1rem 0 0; padding-left: 1.2rem; }
+.tide-points li { margin: 0.4rem 0; }
 .hero { position: relative; }
 .hero > * { max-width: 52rem; }
 .hero .hero-mark { position: absolute; top: 2rem; right: 2.4rem; width: clamp(9rem, 18vw, 14rem); height: auto; opacity: 0.92; }

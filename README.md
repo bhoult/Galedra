@@ -36,6 +36,13 @@ Existing systems organize documents, citations, entities, embeddings, or model
 weights. They generally do not organize the **atomic reasons for believing a
 claim** in a persistent, machine-actionable, adversarial graph.
 
+The same failure runs through misinformation. A false claim crosses the world in the
+time it takes to read it; checking it takes an hour, and the check is lost in a thread
+by morning. Fact-checkers publish verdicts the next rumour ignores, and every doubter
+starts from nothing. Speed sits with the false claim because the true work is never kept.
+Galedra keeps it: check a claim once, through the assistant you already use, and post the
+link instead of the repost; everyone who meets the claim next gets the reasons.
+
 The narrow bet: *AI research is expensive to repeat and hard to audit; a durable,
 signed, reusable evidence record makes that work cumulative.* The first version
 has to be worth using for one person or team even if nobody else ever
