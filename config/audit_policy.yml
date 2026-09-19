@@ -4,6 +4,11 @@
 shared:
   policy_version: "audit-policy-v0.1"
   base_rate: "0.10"
+  # How many independent answers a claim's verification tasks ask for (owner
+  # request, 2026-09-19). The first answer counts at once, so one assistant can
+  # carry its own work to something postable; the rest are what raise
+  # confidence, and the task stays open until they arrive or nobody comes.
+  independent_checks: 3
   new_identity_n: 10
   new_identity_factor: "5"
   low_reliability_mean: "0.8"

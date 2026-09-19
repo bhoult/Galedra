@@ -5,10 +5,17 @@ module Investigations
   # as structure first. One call records the source by link, an anchor
   # location per leaf, the whole tree as one CREATE_SECTION, and one
   # CLAIM_EXTRACTION task per leaf, so other volunteers' assistants can take
-  # the work in pieces. The transcript is never stored: an anchor is at most
-  # ANCHOR_MAX quoted characters, enough to find the place in the source.
+  # the work in pieces.
+  #
+  # A leaf carries two locations over the same span (Stage 30). The anchor is at
+  # most ANCHOR_MAX characters quoted exactly. The reading is the leaf's whole
+  # text as the assistant read it, cleaned into paragraphs, typed TRANSCRIPTION:
+  # readable, but not a quotation, and nothing checks it against the source.
+  # They are separate rows because the moment cleaned text is hashed as a
+  # quotation, edited speech carries a real speaker's name.
   module Outline
     ANCHOR_MAX = 300
+    READING_MAX = 60_000
     LOCATOR_TYPES = %w[TIME_RANGE CHAR_RANGE PAGE LINE_RANGE SECTION].freeze
     NEXT = "Tell the person the outline is recorded with %<sections>d sections and %<tasks>d open extraction tasks at %<url>s, and ask whether they want you to start on the research yourself now. If yes, work leaf by leaf: read the leaf in the source, record its claims and evidence with record_investigation giving each claim its section id, say which leaf is done, and stop when the person says so or your daily cap nears. Anyone else can help by telling their assistant \"work the open tasks in Galedra on %<url>s\"; what they extract is recorded straight away and opens its own verification work."
 

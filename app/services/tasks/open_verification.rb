@@ -3,7 +3,9 @@
 module Tasks
   # Opens the verification tasks every counted claim gets (opposing search,
   # qualifier check, and evidence verification against a passage), once per
-  # claim and type. Investigations::Record calls it on recording; Stage 21
+  # claim and type, each asking for Audits::Policy.independent_checks answers
+  # from different principals: the first makes a claim checked, the rest make
+  # it well checked. Investigations::Record calls it on recording; Stage 21
   # also calls it when an extraction result is accepted, so claims a volunteer
   # extracted and a different principal accepted are checked like any other.
   module OpenVerification
@@ -17,13 +19,15 @@ module Tasks
         %w[OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK].each do |type|
           next if Task.where(task_type: type, target_type: "CLAIM", target_id: claim.id).exists?
 
-          Create.call(task_type: type, target: claim, domain: domain, created_by: created_by, priority_factor: priority_factor, section_id: section_id)
+          Create.call(task_type: type, target: claim, domain: domain, created_by: created_by, priority_factor: priority_factor,
+                      section_id: section_id, required_assignments: Audits::Policy.independent_checks)
           opened += 1
         end
         location = location_for.call(claim)
         next if location.nil? || Task.where(task_type: "EVIDENCE_VERIFICATION", target_type: "CLAIM", target_id: claim.id).exists?
 
-        Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, domain: domain, location: location, created_by: created_by, priority_factor: priority_factor, section_id: section_id)
+        Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, domain: domain, location: location, created_by: created_by,
+                    priority_factor: priority_factor, section_id: section_id, required_assignments: Audits::Policy.independent_checks)
         opened += 1
       end
       opened

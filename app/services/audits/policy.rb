@@ -14,6 +14,9 @@ module Audits
     def domains = (config.fetch("domains") + Topics.domains).uniq
     def default_domain = config.fetch("default_domain")
     def manual_task_type = config.fetch("manual_task_type")
+    # How many independent answers a verification task asks for. One is enough
+    # for a claim to be checked at all; more is what makes it well checked.
+    def independent_checks = config.fetch("independent_checks", 3)
 
     def required_confirmations(downstream_count)
       band = config.fetch("high_impact").find { |b| b["max_downstream"].nil? || downstream_count <= b["max_downstream"] }
