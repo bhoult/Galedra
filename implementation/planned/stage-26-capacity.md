@@ -2,13 +2,11 @@
 
 **Status:** in progress · tag will be `stage-26-capacity`
 
-Built so far: `bench:seed`, `bench:report`, the first pass at `/weaknesses`, and the
-profiling harness (`bench:cpu`, `bench:memory`, `bench:rss`, `bench:boot`).
-Still to do: the score-cache N+1 the profile found, `claim_scores` retention, the tally
-index, `pg_stat_statements`, the load test, pagination on `/weaknesses`, reading the second
-model's states from `claim_scores` rather than recomputing them, writing the numbers into
-`docs/HOSTING.md` §3, and the decision below about what snapshot the report answers for.
-One acceptance test of five is met: profiling is absent from the production bundle.
+Built: `bench:seed`, `bench:report`, the profiling harness (`bench:cpu`, `bench:memory`,
+`bench:rss`, `bench:boot`), batched scoring, `scores:prune`, the contributor-tally index,
+`pg_stat_statements` with `db:top_queries`, a bounded and paged `/weaknesses`, the load
+test under `script/`, and `docs/HOSTING.md` §3. Outstanding: the owner decisions below,
+the acceptance run at 100,000 claims, and the load test against a real droplet.
 
 ## Plan
 
@@ -273,3 +271,48 @@ of pagination, because it is the largest single cost and the cheapest to remove.
 Not addressed: `GET /api/v1/claims?limit=50` is still ~6 ms a claim in
 `Graph::Presenter.claim`. Bounded by `limit`, so it degrades with page size rather than
 corpus size.
+
+
+## What was built (2026-09-19)
+
+**Batched scoring.** `Scoring::Score.call_many` takes a set of claims at one seq under one
+model, asks the cache once, and writes what it computed in chunked inserts. The report and
+its model comparison both use it. The profile said this was 70% of the report's wall time,
+almost all of it misses, because the cache is keyed on the exact seq and the head moves
+with every append. Nothing about the computation changed, which is the part that needed
+proving: the spec asserts the trace and its hash are byte-identical to scoring one claim at
+a time (Invariant 4).
+
+**Retention.** `bin/rails scores:prune`, with `PruneClaimScoresJob` behind it, keeps the
+head seq, every pinned snapshot and anything scored within `KEEP_DAYS`, and deletes the
+rest in batches. `DRY_RUN=1` counts without deleting. Nothing epistemic is lost: a score is
+a pure function of the log and a versioned model, so a pruned row returns byte-identical.
+That property is the only reason a cache may be discarded at all, and the spec deletes the
+head's rows and rescoring to prove it.
+
+**The tally index.** `Contributors::Tally` joined `contributions` to `agent_delegations`
+through `envelope->>'delegation_id'`, which nothing indexed, so crediting an agent's work
+to its principal scanned the log. An expression index, not a column: the delegation id
+lives inside the signed envelope, and denormalising it would add a column to the one table
+this project is most careful about. Measured cost to writes: none detectable, 92/s batched
+before and after.
+
+**A bounded report.** `/weaknesses` is cached whole per snapshot and model, and paged on
+read, so paging costs no second scan; the cache key no longer carries the page size, which
+used to buy a separate whole-graph scan per size anyone asked for. Each kind is capped at
+`MAX_ENTRIES` with its true `total` beside it, so a cap is visible rather than a silent
+truncation. The page and the API both take an offset, and the API describes them.
+
+**Query attribution.** `pg_stat_statements` is preloaded in both compose files and
+`bin/rails db:top_queries` reads it. A Ruby profile can name the call site; only this can
+name the statement.
+
+**The load test.** `script/loadtest.js` with `script/loadtest.sh`, which runs it through the
+official k6 image so nothing has to be installed. The mix is what a public node sees:
+mostly claim-page reads, a few whole-graph scans, a trickle of writes. The stage's
+acceptance targets are k6 thresholds, so they fail a run rather than sit in a document
+nobody reruns. It refuses a URL that looks like the live node unless told twice, because
+the write scenario appends real contributions.
+
+**The hosting document.** §3 replaces "jobs are light" with what was measured, in the order
+a reader would act on it.
