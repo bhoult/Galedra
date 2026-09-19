@@ -1,4 +1,5 @@
-# The normative display rules (spec 06 §4), in one place and unit-tested.
+# View-side wording for the display rules of spec 06 §4. The rules more than
+# one surface needs live in Cards::DisplayRules, which this delegates to.
 module DisplayHelper
   NO_NUMBER_STATES = %w[INSUFFICIENT_EVIDENCE NOT_APPLICABLE QUARANTINED].freeze
 
@@ -17,12 +18,6 @@ module DisplayHelper
   # Rule 5: review coverage is always a count of checks, never a percentage or low/medium/high.
   def review_checks_text(checklist)
     "Review checks: #{Cards::DisplayRules.checks_count(checklist)}"
-  end
-
-  # Rules 4, 6: the labels beside the state, the same ones the answer card
-  # shows. Both blocks appear on the claim page, so they read from one place.
-  def assessment_labels(assessment)
-    Cards::DisplayRules.for_assessment(assessment)
   end
 
   # Rule 7: raw and independent counts together.

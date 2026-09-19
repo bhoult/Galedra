@@ -73,7 +73,6 @@
         <% else %>
           <p><strong>No probability.</strong> <%= @assessment[:assessment_state] == "NOT_APPLICABLE" ? not_applicable_text(@assessment[:not_applicable_reason]) : "No counted evidence bears on this claim at this snapshot." %></p>
         <% end %>
-        <p class="labels"><% assessment_labels(@assessment).each do |l| %><span><%= l %></span><% end %></p>
         <p class="meta">Model <%= @assessment[:model] %> (<%= @model == Scoring::Registry.default_model ? "the default model, not the answer" : "an alternative model" %>) · snapshot <%= @assessment[:snapshot_seq] %> · trace <code><%= @assessment[:trace_hash] %></code></p>
       </div>
     <% else %>

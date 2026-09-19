@@ -14,12 +14,6 @@ RSpec.describe DisplayHelper, type: :helper do
     expect(helper.review_checks_text(checklist)).not_to match(/%|high|medium|low/i)
   end
 
-  it "labels provisional, contested, and model-dependent assessments (rules 4, 6)" do
-    expect(helper.assessment_labels(provisional: true, contested: true, model_dependent: true))
-      .to eq([ "Not yet independently audited.", "Evidence points both ways.", "This assessment depends heavily on modeling choices." ])
-    expect(helper.assessment_labels(provisional: false, contested: false, model_dependent: false)).to eq([])
-  end
-
   it "uses neutral state wording and plain-words reasons (rules 10, 12)" do
     expect(helper.state_label("LEANS_CONTRADICTED")).to eq("Leans contradicted")
     expect(helper.state_label("SUPPORTED")).not_to match(/true|confirmed|debunked/i)

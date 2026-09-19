@@ -21,7 +21,7 @@ module Api
             Errors: { type: "object", properties: { errors: { type: "array", items: { type: "object", properties: { code: { type: "string" }, path: { type: "string" }, detail: { type: "string" } } } } } },
             InvestigationBundle: Mcp::Server::TOOLS.find { |t| t[:name] == "record_investigation" }[:inputSchema],
             # One description of Cards::ClaimCard's return value, shared with the connector.
-            Card: Mcp::Server::CARD_SCHEMA.merge(description: "The answer card. No probability here; see /claims/{id}/score.")
+            Card: Mcp::Server::CARD_SCHEMA.deep_dup.merge(description: "The answer card. No probability here; see /claims/{id}/score.")
           }
         },
         paths: {

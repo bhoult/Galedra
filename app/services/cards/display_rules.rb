@@ -14,13 +14,10 @@ module Cards
 
     module_function
 
-    def checks_done(checklist) = checklist.to_h.count { |_, v| v["ok"] }
+    def checks_done(checklist) = checklist.count { |_, v| v["ok"] }
 
     # Rule 5, in the form every surface shows: "2 of 4".
-    def checks_count(checklist)
-      checks = checklist.to_h
-      "#{checks_done(checks)} of #{checks.size}"
-    end
+    def checks_count(checklist) = "#{checks_done(checklist)} of #{checklist.size}"
 
     # Rule 2. Nil when the state carries no number, so a caller can render the
     # "no probability" branch without repeating the condition.
@@ -48,12 +45,6 @@ module Cards
     def for_result(result, anonymous: false)
       labels(state: result.assessment_state, provisional: result.provisional, contested: result.contested,
              model_dependent: result.model_dependent, review_checklist: result.review_checklist, anonymous: anonymous)
-    end
-
-    # From the presenter's assessment hash (Graph::Presenter.assessment).
-    def for_assessment(assessment)
-      labels(state: assessment[:assessment_state], provisional: assessment[:provisional], contested: assessment[:contested],
-             model_dependent: assessment[:model_dependent], review_checklist: assessment[:review_checklist] || {})
     end
   end
 end
