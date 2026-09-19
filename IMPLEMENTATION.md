@@ -1051,6 +1051,108 @@ a principal someone can hold to account).
 
 ---
 
+## Stage 19 — Correct what is recorded, from a connector
+
+**Tag:** `stage-19-corrections` · **Spec:** 02 §1.1a (acceptance by a different
+principal), 02 §5 (`SUPERSEDE_CLAIM`), 02 §3.3 (`MERGE_CLAIMS`), 02 §3.6
+(`SUPERSEDE_LINK`), 04 §3 and §7 (tasks), 05 §9 (audits), Article XI, Invariant 3
+(append-only: corrections are new contributions)
+
+Goal: an assistant that finds something wrong can fix it when it is its own person's
+work, propose the fix when it is someone else's, and hand a doubt to a different
+principal as a blind task; and the person whose claim was corrected can accept the
+proposal through their own assistant or on the claim page. A revised claim is marked
+as such and points forward; the old entry stays in the log. Nothing is deleted, and
+invalidation stays with human audits.
+
+Why this shape: every primitive already exists in the log. `SUPERSEDE_CLAIM` replaces
+a claim with a corrected one, `MERGE_CLAIMS` folds a duplicate into another,
+`SUPERSEDE_LINK` revises an evidence link, `ACCEPT` by a different principal turns a
+proposal into counted structure, and a task is the blind hand-off. None of them is
+reachable from a connector, and the website has no way to accept a proposal, so today
+a correction proposed by anyone but the claim's own principal waits forever.
+
+Deliverables:
+
+- Six connector tools, also usable through `/mcp/:token`:
+  - `revise_claim`: `claim_id`, corrected `text`, `type` (defaults to the current
+    type), `reason`, optional `topics`. Appends `SUPERSEDE_CLAIM`. On the caller's own
+    principal's claim it is accepted at once: the old claim reads `SUPERSEDED` from
+    that seq and points to the new one, and with `carry_links` (default true) every
+    counted link on the old claim is re-issued by the assistant onto the new one, with
+    the same direction, strength, and steps and a note naming the link it carries. On
+    someone else's claim it is a proposal (`PENDING`) and the reply says whose
+    acceptance it waits for.
+  - `merge_claims`: `from_claim_id`, `into_claim_id`, `reason`. Appends
+    `MERGE_CLAIMS`; accepted at once when both claims are the caller's principal's,
+    otherwise a proposal.
+  - `revise_link`: `link_id` (from `get_claim`'s evidence), `direction`, `strength`,
+    `steps`, `reason`. Appends `SUPERSEDE_LINK`; own link accepted at once, another's
+    a proposal.
+  - `open_task`: `claim_id`, `type` (`OPPOSING_EVIDENCE_SEARCH`, `QUALIFIER_CHECK`,
+    `SOURCE_INDEPENDENCE_CHECK`, or `EVIDENCE_VERIFICATION` with `location_id`).
+    Opens a task for a different principal to work blind; an open or leased task of
+    the same type on the same target is returned instead of duplicated. Named
+    assistants only. The requester's principal can never lease a task it opened.
+  - `list_proposals`: pending corrections (`SUPERSEDE_CLAIM`, `MERGE_CLAIMS`,
+    `SUPERSEDE_LINK`, `TASK_RESULT`) on one claim, or on every claim of the caller's
+    principal when no claim is given: what each would change, who proposed it, and
+    whether the caller may accept it.
+  - `accept_proposal`: `contribution_id`, `carry_links` (default true). Appends
+    `ACCEPT` under the assistant's delegation. Connected-assistant delegations list
+    `ACCEPT` under `permissions.allowed_actions` from this stage on; an older
+    connection is told to reconnect. When the accepted proposal is a
+    `SUPERSEDE_CLAIM`, the acceptor's assistant carries the old claim's counted links
+    onto the new one, since the acceptor is the one affirming the corrected text.
+- Acceptance scope at the connector, stricter than the applier's "any different
+  principal": the target's own principal; any named principal when the target's
+  principal is anonymous; or a moderator. The applier's no-self-certification check
+  still runs underneath.
+- Website: the claim page shows a banner on a revised claim ("Revised at seq N by …:
+  new text, reason", linking forward) and on the revision ("Revises …"), and on a
+  merged claim. A "Proposed corrections" section lists pending proposals with an
+  Accept button for a signed-in person under the same acceptance rule, through
+  `Ui::Write`. `get_claim` and `fetch` carry `status`, `revises`, `superseded_by`,
+  `merged_into`, and the count of pending proposals, so an assistant reports a
+  superseded claim as superseded and gives the current one.
+- Skill and instructions: "Correcting what is recorded": own work is fixed at once,
+  others' work is proposed and the person told it awaits acceptance, a doubt about
+  a passage or an origin becomes a task, and "review corrections proposed on my
+  claims" means `list_proposals` then `accept_proposal` for each the person agrees
+  with, leaving the rest pending. Never claim something was fixed when it is a
+  proposal.
+- Unchanged: audits, invalidation, quarantine, and takedown stay human; an assistant
+  cannot retract anything, including its own earlier result, except by revising it.
+
+Acceptance:
+
+1. `revise_claim` on the caller's own claim: the new claim is accepted, the old one
+   reads `SUPERSEDED` at that seq and its page links forward, the counted links are
+   carried with a note, the card moves to the new claim, and `get_claim` on the old id
+   names the new one.
+2. `revise_claim` on another principal's claim is `PENDING`; `list_proposals` from
+   that principal's assistant shows it; `accept_proposal` there accepts it, supersedes
+   the old claim, and carries the links; the proposer's own assistant is refused with
+   `NOT_AUTHORIZED`; an unrelated named principal is refused when the target's
+   principal is named and allowed when it is anonymous.
+3. A `merge_claims` proposal accepted by the claims' principal marks the source claim
+   `MERGED`; `revise_link` on the caller's own link is accepted and counted, on
+   another's it is pending and the old link still counts.
+4. `open_task` creates the task, returns the existing one on a repeat, refuses
+   `EVIDENCE_VERIFICATION` without a location and anonymous callers, and the
+   requester's assistant cannot lease it while a different principal's can.
+5. A signed-in person accepts a proposal on their own claim from the claim page; the
+   proposer's principal sees no Accept button and is refused if it posts anyway;
+   demo goldens, `ledger:replay`, and `ledger:verify` are unchanged.
+
+Owner decisions to record: the acceptance scope (the applier allows any different
+principal; the connector and the page allow the target's principal, anyone named when
+the target is anonymous, and moderators); whether declining a proposal should be
+recorded (today leaving it pending is the decline; there is no `REJECT`); whether
+proposals should expire.
+
+---
+
 ## Decision Log
 
 Append-only. One dated entry per stage, added when the stage is executed. Each entry

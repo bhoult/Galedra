@@ -11,6 +11,7 @@ class McpController < ActionController::API
     return unauthorized if presented_invalid_credential?
 
     message = JSON.parse(request.raw_post.presence || "")
+    Rails.logger.info("mcp #{message['method'] if message.is_a?(Hash)} #{message.dig('params', 'name') if message.is_a?(Hash)} ua=#{request.user_agent.to_s[0, 40].inspect} token=#{current_assistant_token ? (current_assistant_token.anonymous? ? 'anonymous' : 'named') : 'none'}")
     status, body = Mcp::Server.new(token: current_assistant_token, base_url: request.base_url, read_only: read_only_assistant?).handle(message)
     response.set_header("MCP-Protocol-Version", Mcp::Server::PROTOCOL_VERSION)
     body.nil? ? head(status) : render(json: body, status: status)
