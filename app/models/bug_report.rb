@@ -5,8 +5,8 @@
 # the same report within a month are counted, not duplicated.
 class BugReport < ApplicationRecord
   include Triageable
+  include FilingCap
   MAX_CHARS = 2_000
-  DAILY_CAP = 10
   WINDOW = 30.days
 
   belongs_to :assistant_token, optional: true
@@ -27,9 +27,7 @@ class BugReport < ApplicationRecord
   # Returns [report, created]. token or user says who reported; both nil is a visitor.
   def self.record!(happened:, token: nil, user: nil, expected: nil, steps: nil, url: nil, context_tool: nil, last_error: nil,
                    suspected_cause: nil, ruled_out: nil, confidence: nil)
-    if token && where(assistant_token: token).where("created_at >= ?", Time.current.beginning_of_day).count >= DAILY_CAP
-      raise Ledger::Rejected.new([ { code: "RATE_LIMITED", path: "$", detail: "at most #{DAILY_CAP} bug reports a day for one assistant" } ])
-    end
+    refuse_if_over_cap!(token, "bug reports")
 
     digest = digest_for(happened)
     if (existing = where(digest: digest).where("created_at >= ?", WINDOW.ago).order(:created_at).first)

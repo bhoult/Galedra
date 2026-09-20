@@ -4,13 +4,13 @@
 # public. Repeats of the same need within a month are counted, not duplicated.
 class FeatureRequest < ApplicationRecord
   include Triageable
+  include FilingCap
   # 2,000 to match BugReport, and `expected` gets the same room as the rest.
   # It was 200, which is where an assistant says what it actually wants, and
   # every request filed in the 2026-09-20 run was cut off mid-sentence there —
   # nine of nine — with nothing said about it
   # (docs/experiments/2026-09-20-second-connector-run.md).
   MAX_CHARS = 2_000
-  DAILY_CAP = 10
   WINDOW = 30.days
 
   belongs_to :assistant_token
@@ -35,7 +35,7 @@ class FeatureRequest < ApplicationRecord
   # long, so a filer is told rather than discovering later that the end of its
   # proposal is missing.
   def self.record!(token:, asked:, needed:, expected: nil, context_tool: nil, last_error: nil)
-    raise Ledger::Rejected.new([ { code: "RATE_LIMITED", path: "$", detail: "at most #{DAILY_CAP} feature requests a day for one assistant" } ]) if where(assistant_token: token).where("created_at >= ?", Time.current.beginning_of_day).count >= DAILY_CAP
+    refuse_if_over_cap!(token, "feature requests")
 
     digest = digest_for(needed)
     if (existing = where(digest: digest).where("created_at >= ?", WINDOW.ago).order(:created_at).first)

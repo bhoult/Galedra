@@ -45,10 +45,14 @@ RSpec.describe "Feature requests from assistants (after Stage 19)", type: :reque
     expect(FeatureRequest.count).to eq(1)
     expect(FeatureRequest.first).to have_attributes(count: 2, anonymous: false, expected: "search_claims source_id", context_tool: "get_claim")
 
-    9.times { |i| call_tool("request_feature", { asked: "x", needed: "need #{i}" }) }
+    # A named token is answerable through its delegation, so it gets room to
+    # work; ten was a working day's findings and shut a real assistant out
+    # (docs/experiments/2026-09-20-second-connector-run.md).
+    (FilingCap::NAMED_DAILY_CAP - 1).times { |i| call_tool("request_feature", { asked: "x", needed: "need #{i}" }) }
     data, err = call_tool("request_feature", { asked: "x", needed: "one too many" })
     expect(err).to be(true)
     expect(data["errors"].first["code"]).to eq("RATE_LIMITED")
+    expect(data["errors"].first["detail"]).to include("of #{FilingCap::NAMED_DAILY_CAP}", "resets at", "respond_to_report")
     expect(data["hint"]).to include("request_feature")
 
     # Awareness: the tool is listed, every guidance block says so, and every refusal hints at it.

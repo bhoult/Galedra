@@ -154,10 +154,16 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(BugReport.first).to have_attributes(count: 2, anonymous: false, context_tool: "get_claim", steps: "get_claim on any claim")
     expect(BugReport.first.reporter).to eq("Claude")
 
-    9.times { |i| call_tool("report_bug", { happened: "bug #{i}" }) }
+    # A named token is answerable through its delegation, so it gets room to work:
+    # ten was a working day's findings, not abuse, and it shut a real assistant
+    # out mid-investigation (docs/experiments/2026-09-20-second-connector-run.md).
+    (FilingCap::NAMED_DAILY_CAP - 1).times { |i| call_tool("report_bug", { happened: "bug #{i}" }) }
     data, err = call_tool("report_bug", { happened: "one too many" })
     expect(err).to be(true)
     expect(data["errors"].first["code"]).to eq("RATE_LIMITED")
+    # A refusal you can act on: what you spent, the limit, when it resets, and
+    # the channel that is never capped.
+    expect(data["errors"].first["detail"]).to include("of #{FilingCap::NAMED_DAILY_CAP}", "resets at", "respond_to_report")
 
     data, = call_tool("search_claims", { query: "anything" })
     expect(data.dig("guidance", "text")).to include("report_bug")
