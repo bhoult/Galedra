@@ -215,6 +215,51 @@ A thread ends in one of two ways, and they are not the same thing:
   revives it** (owner decision). It is dormant rather than concluded, so nothing has been
   agreed, no outcome is recorded, and no task is opened or cancelled.
 
+### Dissent never blocks, and dissent that asked for work gets the work
+
+Three principals settle it and the argument ends there: no minority veto, no tie-breaking, no
+further voting. But a settlement is not a verdict on whether the dissenters were right, and
+their concern does not evaporate because they were outnumbered.
+
+**A thread that settles `NO_FURTHER_WORK` while anyone voted `INVESTIGATE` opens one task,
+carrying the dissenting turns as its context** (owner decision, 2026-09-20). The tasks the
+majority judged not worth doing are cancelled as decided; the specific concern the minority
+named gets its own check. Not a re-run of the argument — a check, answered once, by whoever
+leases it.
+
+The asymmetry is the reason this works, and it is a real asymmetry rather than a compromise:
+
+- A wrong `INVESTIGATE` costs one task. Someone looks, finds nothing, answers `NONE_FOUND`,
+  and the record is better for carrying the documented null.
+- A wrong `NO_FURTHER_WORK` costs something this system cannot detect afterwards. Nobody
+  looks again, and the claim reads as checked when it was not. That is the failure Galedra
+  exists to prevent, and it leaves no trace to find later.
+
+So dissent is cheap to honour in one direction and expensive to ignore in the other, and the
+rule follows the cost rather than splitting the difference.
+
+It is also the project's own position applied to its own governance: **a disagreement is
+settled by evidence, not by who spoke last.** A dissenter who says this needs looking at gets
+it looked at, and the answer arrives as a source or as a documented null rather than as
+another turn.
+
+And it is self-limiting. One task per settlement, answered once. Nobody can dissent their way
+into an unbounded queue.
+
+The reverse case needs nothing. A thread that settles `INVESTIGATE` over principals who
+wanted it dropped opens work anyway, and that work coming back empty **is** the review of
+their concern.
+
+Two things go with it:
+
+- **The split is shown.** `settled 3–2`, not `settled`. Three agreeing when two disagreed is
+  a different fact from three agreeing unopposed, and a reader weighing a settlement should
+  see which they are looking at.
+- **The digest spans settled threads, not only open ones.** Otherwise the escape hatch
+  becomes the endless argument: the same complaint reopens forever as a new thread citing the
+  old. A genuinely new concern opens a thread; the same one collapses onto the settled thread
+  with a count, where a reader sees it was raised again and already answered.
+
 The distinction is the point and is stated here because the two are easy to run together:
 **settling is a conclusion, retiring is silence.** A retired thread that revives picks up
 where it was, with its existing turns and votes intact. A settled thread that someone wants
@@ -234,6 +279,8 @@ the report register and needing the same guards, reused rather than reinvented:
 - **A digest and a window**, exactly as `BugReport.record!` has: the same complaint about the
   same determination collapses onto the existing thread with a count, rather than opening a
   second. Two assistants noticing the same thing is corroboration and belongs in one place.
+  The digest matches **settled** threads too, not only open ones, which is what stops
+  re-filing becoming the endless argument the settlement rule exists to end.
 - **One open thread per determination per subject.** Without this, 288 claims can carry 288
   threads in a single run and the index nobody opens is worse than no index.
 - Anonymous assistants may open a thread and take turns, and cannot vote, matching every
@@ -389,29 +436,33 @@ somebody.
    it is. One turn table, no `seq` column, no snapshot, nothing versioned.
 3. `Reviews::Consensus` gains a third required-count for threads: three distinct principals
    naming the same outcome, never three tokens. Ties wait.
-4. Thread states are `OPEN`, `SETTLED` and `RETIRED`, with the outcome recorded on a settled
-   one. `FilingCap` and a digest window cover thread creation, and one open thread per
+4. Thread states are `OPEN`, `SETTLED` and `RETIRED`, with the outcome and the split
+   recorded on a settled one. `FilingCap` and a digest window cover thread creation, the
+   digest matching settled threads as well as open ones, and one open thread per
    determination per subject.
-4. `open_thread`, `list_threads`, `get_thread`, `respond_to_thread`, `next_thread` on MCP,
+5. A `NO_FURTHER_WORK` settlement over dissent opens one task carrying the dissenting turns
+   as context — the same `Tasks::Create` path everything else uses, not a second way to make
+   a task.
+6. `open_thread`, `list_threads`, `get_thread`, `respond_to_thread`, `next_thread` on MCP,
    mirroring the report tools an assistant already knows. `list_threads` returns `open` and
    `open_for_you`.
-5. The claim page shows threads: open count, how many principals have agreed of the three,
+7. The claim page shows threads: open count, how many principals have agreed of the three,
    the settling outcome where there is one, and each turn with the contribution it cites.
    The source page shows them beside the passage; the task page shows them on the task.
-6. `/threads`, one index of every thread on the node, under Browse: newest first, filtered by
+8. `/threads`, one index of every thread on the node, under Browse: newest first, filtered by
    state, saying what each hangs on and whose turn it is, with `open` and `open_for_you`.
-7. A reply form on a thread for a signed-in person, whose turn counts as their principal and
+9. A reply form on a thread for a signed-in person, whose turn counts as their principal and
    is queued for content review like any other free text.
-8. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
+10. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
    agreement — the escape a single-principal node needs.
-9. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
+11. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
    settling does; `TOPICS` gains `:threads`; `ASK` gains a line; `Guidance::VERSION` bumps.
    `skills/galedra.md` gains nothing and `spec/lib/skills_spec.rb` keeps passing.
-10. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
+12. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
    that determination and what a turn in it can do — at the point of contact, not only in a
    guidance block read some calls ago.
-11. Content review covers thread turns, from people and assistants alike.
-12. The three findings above, filed as threads on `16fb6733` and its two links, as the
+13. Content review covers thread turns, from people and assistants alike.
+14. The three findings above, filed as threads on `16fb6733` and its two links, as the
    acceptance fixture.
 
 ## Acceptance
@@ -434,28 +485,34 @@ somebody.
    second turn from it does not count twice toward the three.
 7. Settling as `INVESTIGATE` opens tasks on that determination and creates no claim, edge,
    evidence item or link. Settling as `NO_FURTHER_WORK` cancels only the open, unleased tasks
-   on that determination, leaves leased and submitted ones alone, and creates nothing.
-   Neither writes anything the scorer reads.
-8. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
+   on that determination, and leaves leased and submitted ones alone. Neither writes anything
+   the scorer reads.
+8. A `NO_FURTHER_WORK` settlement carrying at least one `INVESTIGATE` vote opens exactly one
+   task, whose packet carries the dissenting turns as context. Unopposed, it opens none. The
+   spec's case is the 3–2 sequence: two closes, two opens, one close.
+9. A settled thread shows its split — `3–2` where there was dissent, `3–0` where there was
+   not — and re-filing the same complaint collapses onto a settled thread with a count rather
+   than opening a second.
+10. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
    trace at a given seq are byte-identical before and after a thread settles, under either
    outcome. This is the acceptance the stage exists to satisfy.
-9. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
+11. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
    threads and one without: nothing versioned, nothing replayed.
-10. The share card and share line for a claim with an open thread are byte-identical to the
+12. The share card and share line for a claim with an open thread are byte-identical to the
    same claim without.
-11. Thread activity produces no `ReputationEvent`.
-12. A thread turn is queued for content review on creation, whether a person or an assistant
+13. Thread activity produces no `ReputationEvent`.
+14. A thread turn is queued for content review on creation, whether a person or an assistant
    wrote it.
-13. A person's turn and that person's assistant's turn count as **one** principal toward the
+15. A person's turn and that person's assistant's turn count as **one** principal toward the
    three. The spec's case is a person agreeing and then their own assistant agreeing, which
    must leave the thread one principal short.
-14. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
+16. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
    object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
    reply form.
-15. The same complaint filed twice on one determination collapses onto one thread with a
+17. The same complaint filed twice on one determination collapses onto one thread with a
    count rather than opening a second, and `FilingCap` refuses an assistant over its daily
    allowance with a message naming what to do next.
-16. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
+18. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
    task on it, so an assistant meets the thread where it is working rather than only in
    guidance. `spec/lib/skills_spec.rb` passes unchanged: none of this reached the skill.
 
