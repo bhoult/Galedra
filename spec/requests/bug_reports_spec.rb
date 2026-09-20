@@ -21,13 +21,13 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
   it "reads back what this assistant filed, with the maintainer's answer" do
     call_tool("report_bug", { happened: "add_evidence returned a malformed result", expected: "a readable error", context_tool: "add_evidence" })
     call_tool("request_feature", { asked: "work the open tasks", needed: "a way to split a mixed claim", expected: "a fork operation" })
-    BugReport.last.update!(status: "DONE", resolution: "Fixed: the refusal was schema-invalid, not the record.")
+    BugReport.last.update!(status: "ANSWERED", resolution: "Fixed: the refusal was schema-invalid, not the record.")
 
     data, err = call_tool("list_reports", {})
     expect(err).to be(false), data.inspect
     expect(data["total"]).to eq(2)
     bug = data["reports"].find { |r| r["kind"] == "bug" }
-    expect(bug).to include("status" => "DONE", "resolution" => "Fixed: the refusal was schema-invalid, not the record.")
+    expect(bug).to include("status" => "ANSWERED", "resolution" => "Fixed: the refusal was schema-invalid, not the record.")
     expect(bug["summary"]).to include("malformed result")
     expect(data["reports"].map { |r| r["kind"] }).to include("feature")
 
@@ -38,6 +38,51 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     other = Assistants::Connect.call(user: User.create!(email_address: "other@example.com", password: password), name: "Other", provider: "anthropic").last
     mine, = call_tool("list_reports", {}, other)
     expect(mine["total"]).to eq(0)
+  end
+
+  # A report is a conversation and is closed when both sides say so, not when one
+  # side says so (owner request, 2026-09-20).
+  it "runs a report back and forth until both sides agree it is closed, and shows every turn" do
+    call_tool("report_bug", { happened: "add_evidence returned a malformed result", expected: "a readable error", context_tool: "add_evidence" })
+    report = BugReport.last
+
+    # A maintainer answers. That is a turn, and it hands the report back.
+    report.answer!(body: "Not reproducible here.", user: user)
+    expect(report.reload.status).to eq("ANSWERED")
+
+    data, err = call_tool("list_reports", {})
+    expect(err).to be(false), data.inspect
+    expect(data["awaiting_you"]).to eq(1)
+    expect(data["reports"].first).to include("awaiting_you" => true, "status" => "ANSWERED")
+
+    thread, = call_tool("get_report", { "report_id" => report.id })
+    expect(thread["messages"].map { |m| m["from"] }).to eq([ "maintainer" ])
+
+    # The reporter disagrees: reopened, with the reason kept.
+    back, = call_tool("respond_to_report", { "report_id" => report.id, "body" => "It reproduces on every modern client; the frame has no resultType.", "satisfied" => false })
+    expect(back["status"]).to eq("OPEN")
+    expect(report.reload.status).to eq("OPEN")
+
+    # Second round, and this time the reporter agrees.
+    report.answer!(body: "Found it: tool_error skipped decorate. Fixed.", user: user)
+    done, = call_tool("respond_to_report", { "report_id" => report.id, "body" => "Confirmed against the live node.", "satisfied" => true })
+    expect(done["status"]).to eq("CLOSED")
+
+    thread, = call_tool("get_report", { "report_id" => report.id })
+    expect(thread["messages"].map { |m| m["from"] }).to eq(%w[maintainer assistant maintainer assistant])
+    expect(thread["messages"].map { |m| m["satisfied"] }).to eq([ nil, false, nil, true ])
+    expect(thread["awaiting_you"]).to be(false)
+
+    # And every turn is on the page.
+    user.update!(moderator: true)
+    post session_path, params: { email_address: user.email_address, password: password }
+    get "/bug_reports/#{report.id}"
+    expect(response.body).to include("Exchange", "Confirmed against the live node.", "not satisfied", "Closed by agreement")
+
+    # Someone else's report is not this assistant's to read or answer.
+    other = Assistants::Connect.call(user: User.create!(email_address: "other@example.com", password: password), name: "Other", provider: "anthropic").last
+    _, err = call_tool("get_report", { "report_id" => report.id }, other)
+    expect(err).to be(true)
   end
 
   it "records a report from an assistant, counts repeats, caps the day, and is named in the guidance" do
@@ -90,18 +135,18 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("visitor").and include("share image is blank")
 
-    patch "/bug_reports/#{visitor_report.id}", params: { status: "DONE", resolution: "Fixed in the share card renderer." }
-    expect(visitor_report.reload).to have_attributes(status: "DONE", resolution: "Fixed in the share card renderer.")
+    patch "/bug_reports/#{visitor_report.id}", params: { status: "ANSWERED", resolution: "Fixed in the share card renderer." }
+    expect(visitor_report.reload).to have_attributes(status: "ANSWERED", resolution: "Fixed in the share card renderer.")
     get "/bug_reports/#{visitor_report.id}"
     expect(response.body).to include("Fixed in the share card renderer.")
 
     # Reopening with an empty box keeps the reason already given.
     patch "/bug_reports/#{visitor_report.id}", params: { status: "OPEN", resolution: "" }
     expect(visitor_report.reload).to have_attributes(status: "OPEN", resolution: "Fixed in the share card renderer.")
-    patch "/bug_reports/#{visitor_report.id}", params: { status: "DONE" }
+    patch "/bug_reports/#{visitor_report.id}", params: { status: "ANSWERED" }
     get "/bug_reports", params: { status: "OPEN" }
     expect(response.body).not_to include("share image is blank")
-    get "/bug_reports", params: { status: "DONE" }
+    get "/bug_reports", params: { status: "ANSWERED" }
     expect(response.body).to include("share image is blank")
 
     get "/"

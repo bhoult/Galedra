@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -548,6 +548,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_150000) do
     t.index ["target_type", "target_id"], name: "index_quarantines_on_target_type_and_target_id"
   end
 
+  create_table "report_messages", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "assistant_token_id"
+    t.string "author_kind", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.uuid "report_id", null: false
+    t.string "report_type", null: false
+    t.boolean "satisfied"
+    t.uuid "user_id"
+    t.index ["report_type", "report_id", "created_at"], name: "idx_on_report_type_report_id_created_at_19f2c6bd15"
+  end
+
   create_table "reputation_events", id: :uuid, default: nil, force: :cascade do |t|
     t.decimal "alpha_delta", precision: 6, scale: 2, null: false
     t.uuid "audit_id", null: false
@@ -875,8 +887,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_150000) do
     t.datetime "updated_at", null: false
     t.index ["contributor_id", "created_at"], name: "index_task_assignments_on_contributor_id_and_created_at"
     t.index ["status", "lease_expires_at"], name: "index_task_assignments_on_status_and_lease_expires_at"
-    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
-    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
+    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
+    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
     t.index ["task_id", "self_performed"], name: "index_task_assignments_on_task_id_and_self_performed"
   end
 

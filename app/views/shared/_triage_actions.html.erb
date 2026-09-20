@@ -9,8 +9,11 @@
   <p class="triage-actions">
     <% Triageable::STATUSES.each do |target| %>
       <% next if target == row.status %>
-      <%= f.submit(target == "OPEN" ? "Reopen" : target.capitalize, name: "status", value: target,
-                   class: target == "DONE" ? "primary small" : "secondary small") %>
+      <%# "Answer" rather than "Done": a maintainer's reply hands the report back
+          to whoever filed it, and only their verdict reaches Closed. %>
+      <%= f.submit({ "OPEN" => "Reopen", "ANSWERED" => "Answer", "CLOSED" => "Close", "IGNORED" => "Ignore" }.fetch(target, target.capitalize),
+                   name: "status", value: target,
+                   class: target == "ANSWERED" ? "primary small" : "secondary small") %>
     <% end %>
     <%= f.submit "Save reason", name: "status", value: row.status, class: "secondary small" %>
   </p>

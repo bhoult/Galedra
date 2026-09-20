@@ -32,3 +32,5 @@
     <% if @row.last_error.present? %><p><strong>Last error</strong> <code><%= @row.last_error %></code></p><% end %>
   </div>
 <% end %>
+
+<%= render "shared/report_thread", row: @row %>

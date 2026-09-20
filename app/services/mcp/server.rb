@@ -135,8 +135,17 @@ module Mcp
         outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" }, new_link_id: { type: "string" } } } },
       { name: "list_reports", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "What you have filed with report_bug and request_feature, newest first, with each one's status and the maintainer's resolution when there is one. Read this before filing: a report you already made may be answered, and a diagnosis you gave may have been corrected.",
-        inputSchema: { type: "object", properties: { status: { type: "string", enum: %w[OPEN DONE IGNORED] }, limit: { type: "integer", default: 20 } } },
-        outputSchema: { type: "object", properties: { reports: { type: "array", items: { type: "object", properties: { id: { type: "string" }, kind: { type: "string" }, status: { type: "string" }, filed_at: { type: "string" }, summary: { type: "string" }, resolution: { type: [ "string", "null" ] } } } }, total: { type: "integer" } } } },
+        inputSchema: { type: "object", properties: { status: { type: "string", enum: Triageable::STATUSES }, limit: { type: "integer", default: 20 } } },
+        outputSchema: { type: "object", properties: { reports: { type: "array", items: { type: "object", properties: { id: { type: "string" }, kind: { type: "string" }, status: { type: "string" }, filed_at: { type: "string" }, summary: { type: "string" }, resolution: { type: [ "string", "null" ] }, awaiting_you: { type: "boolean" } } } }, total: { type: "integer" }, awaiting_you: { type: "integer" } } } },
+      { name: "get_report", annotations: { readOnlyHint: true, openWorldHint: false },
+        description: "One report you filed, with the whole exchange on it in order: what you wrote, what a maintainer answered, and what you said back. Read this before reporting the same thing again.",
+        inputSchema: { type: "object", properties: { report_id: { type: "string" } }, required: %w[report_id] },
+        outputSchema: { type: "object", properties: { id: { type: "string" }, kind: { type: "string" }, status: { type: "string" }, awaiting_you: { type: "boolean" },
+                                                      messages: { type: "array", items: { type: "object", properties: { at: { type: "string" }, from: { type: "string" }, body: { type: "string" }, satisfied: { type: [ "boolean", "null" ] } } } } } } },
+      { name: "respond_to_report", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        description: "Answer a maintainer on a report you filed, and say whether the resolution actually settles it. satisfied: true closes it by agreement; satisfied: false reopens it with your reasons attached. You may do this as many times as it takes — a report is closed when both sides say so, not when one side says so.",
+        inputSchema: { type: "object", properties: { report_id: { type: "string" }, body: { type: "string" }, satisfied: { type: "boolean" } }, required: %w[report_id body satisfied] },
+        outputSchema: { type: "object", properties: { id: { type: "string" }, status: { type: "string" }, note: { type: "string" } } } },
       { name: "open_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Hand a doubt to a different principal as a blind task: OPPOSING_EVIDENCE_SEARCH, QUALIFIER_CHECK, SOURCE_INDEPENDENCE_CHECK (sources that share an origin), or EVIDENCE_VERIFICATION with the location_id of the passage (from get_claim's evidence) when a quoted passage looks wrong. An open task of the same kind is returned rather than duplicated. You cannot work a task you opened.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" }, type: { type: "string", enum: Corrections::TASK_TYPES }, location_id: { type: "string" } }, required: %w[claim_id type] },
@@ -281,7 +290,7 @@ module Mcp
     GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check,
                      "create_outline" => :outline, "get_outline" => :outline,
                      "record_inference" => :inference,
-                     "list_tasks" => :work, "list_claims" => :work, "list_reports" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
+                     "list_tasks" => :work, "list_claims" => :work, "list_reports" => :work, "get_report" => :work, "respond_to_report" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
     # The rules ride on every result because that is the only channel nothing
@@ -563,11 +572,46 @@ module Mcp
         scope = scope.where(status: wanted.to_s) if wanted
         scope.order(created_at: :desc).limit(limit).map do |r|
           { id: r.id, kind: kind, status: r.status, filed_at: r.created_at.utc.iso8601,
-            summary: (kind == "bug" ? r.happened : r.needed).to_s[0, 200], resolution: r.resolution }
+            summary: (kind == "bug" ? r.happened : r.needed).to_s[0, 200], resolution: r.resolution,
+            awaiting_you: r.awaiting_reporter? }
         end
       end.sort_by { |r| r[:filed_at] }.reverse
-      { reports: rows.first(limit), total: rows.size,
-        note: "A resolution is the maintainer's answer. Nothing here is deleted; a correction is a new report, so say in it which one it corrects." }
+      { reports: rows.first(limit), total: rows.size, awaiting_you: rows.count { |r| r[:awaiting_you] },
+        note: "ANSWERED means a maintainer replied and it is your turn: read it with get_report and answer with respond_to_report, " \
+              "saying whether it actually settles the thing. CLOSED means you both agreed. Nothing here is deleted." }
+    end
+
+    def tool_get_report(args)
+      require_token!
+      row = find_report(args["report_id"])
+      { id: row.id, kind: row.is_a?(BugReport) ? "bug" : "feature", status: row.status,
+        awaiting_you: row.awaiting_reporter?,
+        filed: (row.is_a?(BugReport) ? row.happened : row.needed).to_s,
+        messages: row.messages.oldest_first.map do |m|
+          { at: m.created_at.utc.iso8601, from: m.author_kind, body: m.body, satisfied: m.satisfied }.compact
+        end }
+    end
+
+    def tool_respond_to_report(args)
+      require_token!
+      row = find_report(args["report_id"])
+      body = args["body"].to_s.strip
+      raise ArgumentError, "body is required" if body.empty?
+      raise ArgumentError, "satisfied must be true or false" unless [ true, false ].include?(args["satisfied"])
+
+      row.respond!(body: body, satisfied: args["satisfied"], token: @token)
+      { id: row.id, status: row.status,
+        note: row.status == "CLOSED" ? "Closed by agreement. Reopen it with another response if it turns out not to be settled." :
+                                       "Reopened with your reasons attached; a maintainer sees it as open work again." }
+    end
+
+    # A report this assistant filed. Someone else's is not theirs to read.
+    def find_report(id)
+      row = BugReport.find_by(id: id.to_s, assistant_token_id: @token.id) ||
+            FeatureRequest.find_by(id: id.to_s, assistant_token_id: @token.id)
+      raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.report_id", detail: "no report you filed with that id" } ]) if row.nil?
+
+      row
     end
 
     def tool_report_bug(args)

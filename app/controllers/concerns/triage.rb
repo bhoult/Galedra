@@ -41,12 +41,23 @@ module Triage
 
     # The resolution is kept when the box is left empty on a later change, so
     # reopening and re-closing does not silently erase the reason given before.
+    # What is new is that an answer is also a turn in the exchange: the reporter
+    # reads it, says whether it settles the thing, and only their verdict reaches
+    # CLOSED (owner request, 2026-09-20).
     resolution = params[:resolution].to_s.strip
-    row.update!(status: status, resolution: resolution.presence || row.resolution)
-    redirect_back fallback_location: triage_index_path, notice: "Marked #{status.downcase}."
+    row.answer!(body: resolution, user: Current.user, status: status)
+    redirect_back fallback_location: triage_index_path, notice: notice_for(status)
   end
 
   private
+
+  def notice_for(status)
+    case status
+    when "ANSWERED" then "Answered. The reporter sees it as their turn and can say whether it settles the thing."
+    when "CLOSED" then "Closed. Normally the reporter closes it by agreeing; closing it here says so on their behalf."
+    else "Marked #{status.downcase}."
+    end
+  end
 
   def require_triage_access
     redirect_to root_path, alert: "Moderators and admins only." unless moderator? || admin?

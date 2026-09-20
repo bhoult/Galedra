@@ -14,6 +14,8 @@
   <%= render "shared/triage_actions", row: @row %>
 </div>
 
+<%= render "shared/report_thread", row: @row %>
+
 <h2>What happened</h2>
 <div class="card"><%= simple_format(@row.happened) %></div>
 

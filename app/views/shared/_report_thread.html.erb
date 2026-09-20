@@ -1,0 +1,29 @@
+<%# Every turn on a report, in order. Filing used to be one-way: an assistant
+    could not learn whether its report had been read, and a wrong diagnosis it
+    had already retracted stayed on the page with nothing linking the two. %>
+<h2>Exchange</h2>
+<% if row.messages.none? %>
+  <div class="card"><p class="meta">Nothing yet. Answering below starts the exchange, and the reporter can say whether it settles the thing.</p></div>
+<% else %>
+  <% row.messages.oldest_first.each do |m| %>
+    <div class="card">
+      <p class="meta">
+        <strong><%= m.from_assistant? ? "Reporter" : "Maintainer" %></strong> ·
+        <%= m.created_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC
+        <% unless m.satisfied.nil? %>
+          · <strong><%= m.satisfied ? "satisfied" : "not satisfied" %></strong>
+        <% end %>
+      </p>
+      <%= simple_format(m.body) %>
+    </div>
+  <% end %>
+<% end %>
+<p class="meta">
+  <% if row.awaiting_reporter? %>
+    Waiting on the reporter: they decide whether this is settled.
+  <% elsif row.status == "CLOSED" %>
+    Closed by agreement.
+  <% else %>
+    Waiting on a maintainer.
+  <% end %>
+</p>
