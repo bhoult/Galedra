@@ -9,7 +9,8 @@
     <% @rows.each do |r| %>
       <li class="<%= "closed" unless r.open? %>">
         <span class="when"><%= r.created_at.utc.strftime("%Y-%m-%d") %></span>
-        <span class="state"><%= r.state_line %></span>
+        <% key, mark, word, full = r.state_badge %>
+        <span class="state state-<%= key %>" title="<%= full %>"><span aria-hidden="true"><%= mark %></span> <%= word %></span>
         <%= link_to truncate(r.needed.presence.to_s.squish.presence || r.asked.to_s.squish, length: 110), feature_request_path(r) %>
         <% if r.count > 1 %><span class="badge"><%= r.count %>×</span><% end %>
       </li>

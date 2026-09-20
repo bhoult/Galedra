@@ -38,18 +38,30 @@ module Triageable
   # nobody to ask — and a list that shows both as "closed" hides which.
   def agreed? = messages.any? { |m| m.from_assistant? && m.satisfied }
 
-  # Whose turn it is, in words. A status word does not say: "answered" read the
-  # same for a report waiting on its filer and for one already settled, and the
-  # list gave no way to tell them apart (owner request, 2026-09-20).
-  def state_line
+  # Whose turn it is. A status word does not say: "answered" read the same for a
+  # report waiting on its filer and for one already settled. Said in three
+  # widths, because the list column is a few characters wide and the full
+  # sentence wrapped to four lines in it (owner request, 2026-09-20):
+  # a key for styling, a mark and one word for the row, the sentence for the
+  # tooltip and the report's own page.
+  def state_badge
     case status
-    when "OPEN" then messages.any? ? "reopened · waiting on a maintainer" : "waiting on a maintainer"
-    when "ANSWERED" then "answered · waiting on the reporter"
-    when "CLOSED" then agreed? ? "closed · both agreed" : "closed · no reply from the reporter"
-    when "IGNORED" then "set aside"
-    else status.downcase
+    when "OPEN"
+      messages.any? ? [ "needs-you", "●", "you", "Reopened by the reporter. Waiting on a maintainer." ]
+                    : [ "needs-you", "●", "you", "Filed. Waiting on a maintainer." ]
+    when "ANSWERED"
+      [ "with-reporter", "○", "them", "Answered. Waiting on the reporter to say whether it settles it." ]
+    when "CLOSED"
+      agreed? ? [ "agreed", "✓", "agreed", "Closed: the reporter said it was settled." ]
+              : [ "lapsed", "✓", "lapsed", "Closed with no reply from the reporter. It reopens if they disagree later." ]
+    when "IGNORED"
+      [ "aside", "–", "aside", "Set aside." ]
+    else
+      [ "other", "·", status.downcase, status.downcase ]
     end
   end
+
+  def state_line = state_badge.last
 
   # When silence will settle this, so the reporter can be told rather than
   # finding out afterwards.

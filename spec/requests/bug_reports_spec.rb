@@ -77,11 +77,12 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     user.update!(moderator: true)
     post session_path, params: { email_address: user.email_address, password: password }
     get "/bug_reports/#{report.id}"
-    expect(response.body).to include("Exchange", "Confirmed against the live node.", "not satisfied", "closed · both agreed")
+    expect(response.body).to include("Exchange", "Confirmed against the live node.", "not satisfied", "the reporter said it was settled")
 
-    # And the list says whose turn it is, not just a status word.
+    # The list says whose turn it is in a few characters, with the sentence as
+    # the tooltip: the full phrase wrapped to four lines in a 4.5rem column.
     get "/bug_reports", params: { status: "CLOSED" }
-    expect(response.body).to include("closed · both agreed")
+    expect(response.body).to include("state-agreed", "agreed</span>", "the reporter said it was settled")
 
     # Someone else's report is not this assistant's to read or answer.
     other = Assistants::Connect.call(user: User.create!(email_address: "other@example.com", password: password), name: "Other", provider: "anthropic").last
@@ -112,7 +113,8 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     # Closed without a reply is not the same as closed by agreement, and the
     # list has to show which (owner request, 2026-09-20).
     expect(report.reload.agreed?).to be(false)
-    expect(report.state_line).to eq("closed · no reply from the reporter")
+    expect(report.state_badge.first(3)).to eq([ "lapsed", "✓", "lapsed" ])
+    expect(report.state_line).to include("no reply from the reporter")
 
     # Running it again changes nothing.
     expect { BugReport.settle_unanswered!(now: 1.day.from_now) }.not_to change { report.reload.messages.count }

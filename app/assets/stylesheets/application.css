@@ -322,7 +322,12 @@ body.document .statement > * { max-width: none; margin-inline: 0; }
 }
 .triage-list li.closed { opacity: 0.55; }
 .triage-list .when { flex: 0 0 5.5rem; font-variant-numeric: tabular-nums; color: var(--muted, #666); font-size: 0.85rem; }
-.triage-list .state { flex: 0 0 4.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #666); }
+.triage-list .state { flex: 0 0 5.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #666); white-space: nowrap; }
+/* Whose turn it is, at a glance: filled for ours, hollow for theirs, ticked
+   when closed. The word carries the meaning; the mark is only for scanning. */
+.triage-list .state-needs-you { color: var(--accent-ink, #8a3324); }
+.triage-list .state-with-reporter { color: var(--muted, #666); }
+.triage-list .state-agreed, .triage-list .state-lapsed { color: var(--muted, #666); }
 .triage-list a { flex: 1 1 auto; }
 .triage-filter strong { color: inherit; }
 .triage-actions { display: inline-flex; gap: 0.4rem; }
