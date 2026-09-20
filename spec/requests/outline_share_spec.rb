@@ -28,7 +28,7 @@ RSpec.describe "Sharing and following an outline (Stage 22)", type: :request do
     progress = Sections::Progress.call(root, seq)
     expect(progress).to include(leaves: 2, leaves_extracted: 2, claims: 5, checked: 1, open_tasks: 0)
     line = Sections::Progress.share_line(root, seq, "http://www.example.com/sections/#{root.id}")
-    expect(line).to eq("Checked in Galedra: State of the union · 5 claims · 0 self-checked · 0 independently checked · 1 supported · 4 insufficient evidence · http://www.example.com/sections/#{root.id}")
+    expect(line).to eq("Checked in Galedra: State of the union · 5 claims · 0 self-checked · 0 independently checked · 5 insufficient evidence · http://www.example.com/sections/#{root.id}")
 
     get "/sections/#{root.id}"
     expect(response.body).to include('property="og:title" content="State of the union"')

@@ -1,6 +1,6 @@
 # Stage 35 — Provenance is not corroboration
 
-**Status:** implemented and golden; not default pending the owner's decision · `stage-35-provenance-is-not-corroboration`
+**Status:** implemented, golden, and default · `stage-35-provenance-is-not-corroboration`
 
 **Tag:** `stage-35-provenance-is-not-corroboration` · **Spec:** 02 §3 (sources, locations,
 evidence), 03 §3–§7 (weights, independence, states, and why a number needs its model and
@@ -201,7 +201,23 @@ is not two readings — and it was found by predicting rather than by reading th
 
 **No golden value was altered.** `0.1.0`'s numbers are untouched; `0.2.0`'s were generated
 and cross-checked.
-- Acceptance 7 (the card saying the quotation is faithful and nothing outside was checked) is
-  not built; the state is honest but the sentence is not written.
+- **Done.** `0.2.0` is the default (`LEDGER_DEFAULT_MODEL` in compose and `.env.example`), and
+  a claim whose counted evidence is all self-referential now reads *"The quotation is faithful
+  to the source. Nothing outside it has been checked."* The sentence is derived from the trace,
+  which this model marks per link, so it cannot drift from what the number did. Specs pin the
+  three cases where it must **not** appear: mixed evidence, no evidence at all, and a claim
+  that reached a directional state.
+- **Unexplained, and left visible.** `spec/services/cards/plain_spec.rb` changed: at one step
+  the suggested sentence moves from a short contradiction to a narrower claim. `0.2.0` matches
+  the precedence `Cards::Plain`'s own comment documents — a narrower claim that holds up comes
+  before the strongest counted contradiction — so the expectation was updated, but the
+  mechanism behind the difference was never traced. Both sentences are true of the claim and
+  neither is invented, so no reader is misled; the precedence still deserves examining on its
+  own rather than being settled by whichever model is default. The uncertainty is written into
+  the spec rather than hidden behind a green suite.
+- Six specs needed updating for the switch, and they split cleanly: four hardcoded a model
+  name and now read it from the registry, so the next version bump will not break them; two
+  were real, where outline claims supported only by the source they came from stopped being
+  supported.
 - Nothing re-checks the claims that lost a directional state. Opening an opposing-evidence
   search on each is the work that should happen and would spend the owner's cap unasked.

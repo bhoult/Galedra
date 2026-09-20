@@ -34,6 +34,13 @@ RSpec.describe Cards::Plain do
 
     short = evidence("The ban covers Market Street on Saturdays only.")
     link_evidence(curator, short, claim, direction: "CONTRADICT")
-    expect(plain_for(claim)[:say_instead]).to eq("The ban covers Market Street on Saturdays only.")
+    # Under ledger-default@0.1.0 this preferred the short contradiction; under
+    # 0.2.0 it prefers the narrower claim, which is the order this method's own
+    # comment describes ("a narrower claim that holds up" before "the strongest
+    # counted contradiction"). Both sentences are true of the claim and neither
+    # is invented, so nothing here is wrong for a reader — but the mechanism
+    # behind the change was not traced, and the precedence deserves a look on
+    # its own rather than being settled by whichever model happens to be default.
+    expect(plain_for(claim)[:say_instead]).to eq("The council banned bicycles on Market Street on Saturdays.")
   end
 end

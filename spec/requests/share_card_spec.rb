@@ -25,7 +25,7 @@ RSpec.describe "Share card (Stage 14)", type: :request do
       expect(response.body).to include('name="twitter:card" content="summary_large_image"')
       # The number appears only in its stated form, with model and snapshot, never as a percentage or in the headline (06 §4).
       expect(response.body[%r{<p class="meta">.*?</p>}m]).not_to match(/\d+%/)
-      expect(response.body.scan(/\b0\.\d{4}\b/).size).to eq(response.body.scan(/\b0\.\d{4} under ledger-default@0\.1\.0 at snapshot \d+/).size)
+      expect(response.body.scan(/\b0\.\d{4}\b/).size).to eq(response.body.scan(/\b0\.\d{4} under #{Regexp.escape(Scoring::Registry.default_model.full_name)} at snapshot \d+/).size)
       expect(response.body).not_to match(/og:title" content="[^"]*0\.\d{4}/)
 
       get "/claims/#{claim.id}/card.png"

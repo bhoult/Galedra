@@ -25,7 +25,7 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
     expect(share["url"]).to match(%r{http://www.example.com/investigations/[0-9a-f-]{36}})
     verdict = share["verdict"]
     expect(verdict).to include("headline" => "Parts of this go against the evidence.", "sentence" => "1 of 2 checkable claims goes against the evidence; 1 holds up so far")
-    expect(verdict["stated"]).to match(/\A0\.\d{4} under ledger-default@0\.1\.0 at snapshot \d+ for all claims together\z/)
+    expect(verdict["stated"]).to match(/\A0\.\d{4} under #{Regexp.escape(Scoring::Registry.default_model.full_name)} at snapshot \d+ for all claims together\z/)
     expect(data["share_line"]).to eq("Checked in Galedra: Parts of this go against the evidence. (1 of 2 checkable claims goes against the evidence; 1 holds up so far) #{verdict['stated']}. #{share['url']}")
     expect(share["note"]).to include("End your reply")
 
@@ -49,7 +49,7 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
     ban = data["claims"].find { |c| c["handle"] == "ban" }
     data, = call_tool("get_claim", { claim_id: ban["id"] })
     expect(data["share_line"]).to eq("Checked in Galedra: #{data.dig('card', 'plain', 'headline')} #{data.dig('card', 'stated')}. #{ban['url']}/card")
-    expect(data.dig("card", "stated")).to match(/\A0\.\d{4} under ledger-default@0\.1\.0 at snapshot \d+\z/)
+    expect(data.dig("card", "stated")).to match(/\A0\.\d{4} under #{Regexp.escape(Scoring::Registry.default_model.full_name)} at snapshot \d+\z/)
     data, = call_tool("search_claims", { query: "Brackenridge bicycles" })
     expect(data["claims"].first["share_line"]).to start_with("Checked in Galedra: ")
     data, = call_tool("fetch", { id: ban["id"] })

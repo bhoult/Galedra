@@ -97,7 +97,7 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     data, err = call_tool("record_investigation", bundle, requester)
     expect(err).to be(false), data.inspect
     expect(data["recorded"]).to be(true)
-    expect(data["share_line"]).to start_with("Checked in Galedra: Moonshots episode 123 · 3 claims · 0 self-checked · 0 independently checked · 1 supported")
+    expect(data["share_line"]).to start_with("Checked in Galedra: Moonshots episode 123 · 3 claims · 0 self-checked · 0 independently checked · 3 insufficient evidence")
     expect(data["share_line"]).to include("/sections/#{root_id}")
     expect(Task.where(task_type: "CLAIM_EXTRACTION", section_id: other_leaf_id).first).to have_attributes(status: "CANCELLED", cancelled_reason: "RECORDED_BY_REQUESTER")
     claim = Claim.find_by(canonical_text: "Anthropic published a constitution for its models.")

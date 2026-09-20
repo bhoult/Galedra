@@ -52,4 +52,40 @@ RSpec.describe "Provenance is not corroboration (Stage 35)" do
     expect(score(distinct, "0.2.0")).to eq([ "SUPPORTED", "0.9734", "HIGH", 2 ]),
       "a qualifier and a supporting line from one report are not each other repeated"
   end
+  # Acceptance 7: the card says what was actually established. "Insufficient
+  # evidence" alone hides that someone did check, and that what they checked
+  # cannot settle the claim — and the next step differs, because this one wants
+  # an outside source rather than a first reading.
+  describe "the card for a claim supported only by its own source" do
+    Result = Struct.new(:assessment_state, :trace, keyword_init: true) unless defined?(Result)
+
+    # A real claim, because the card looks for a narrower one to suggest and
+    # walks its edges to do so. It has none, so nothing is suggested.
+    let(:bare_claim) do
+      pair, = register_key
+      create_claim(pair, "A claim with nothing else attached.")
+    end
+
+    def card_for(state, provenances)
+      result = Result.new(assessment_state: state,
+                          trace: { "links" => provenances.map { |p| { "provenance" => p } } })
+      Cards::Plain.call(bare_claim, Contribution.maximum(:seq), Scoring::Registry.default_model, result)
+    end
+
+    it "says the quotation is faithful and nothing outside was checked" do
+      expect(card_for("INSUFFICIENT_EVIDENCE", %w[SELF SELF])[:headline]).to eq(Cards::Plain::PROVENANCE_ONLY)
+    end
+
+    it "does not say it when any evidence came from elsewhere" do
+      expect(card_for("INSUFFICIENT_EVIDENCE", %w[SELF INDEPENDENT])[:headline]).not_to eq(Cards::Plain::PROVENANCE_ONLY)
+    end
+
+    it "does not say it for a claim with no evidence at all" do
+      expect(card_for("INSUFFICIENT_EVIDENCE", [])[:headline]).not_to eq(Cards::Plain::PROVENANCE_ONLY)
+    end
+
+    it "does not say it for a claim that reached a directional state" do
+      expect(card_for("SUPPORTED", %w[SELF])[:headline]).not_to eq(Cards::Plain::PROVENANCE_ONLY)
+    end
+  end
 end

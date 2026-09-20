@@ -26,13 +26,35 @@ module Cards
 
     module_function
 
+    # Stage 35. A claim whose only evidence comes from the source it was taken
+    # out of is not unevidenced in the ordinary way: someone has checked it, and
+    # what they established is that the quotation is faithful. Saying only
+    # "insufficient evidence" hides both halves — that the work was done, and
+    # that it cannot settle the claim. A reader deserves the distinction, since
+    # the obvious next step differs: this one wants an outside source, not a
+    # first reading.
+    PROVENANCE_ONLY = "The quotation is faithful to the source. Nothing outside it has been checked."
+
     def call(claim, seq, model, result)
       headline = if result.assessment_state == "NOT_APPLICABLE"
         REASONS.fetch(result.not_applicable_reason, HEADLINES["NOT_APPLICABLE"])
+      elsif provenance_only?(result)
+        PROVENANCE_ONLY
       else
         HEADLINES.fetch(result.assessment_state, Headline.for(result.assessment_state))
       end
       { headline: headline, say_instead: say_instead(claim, seq, model, result) }
+    end
+
+    # Every counted link drawn from an origin the claim came out of. Read from
+    # the trace, which a model that weighs provenance marks per link, so this is
+    # derived from the score rather than recomputed beside it and cannot drift
+    # from what the number actually did.
+    def provenance_only?(result)
+      return false unless result.assessment_state == "INSUFFICIENT_EVIDENCE"
+
+      links = result.trace.is_a?(Hash) ? result.trace["links"] : nil
+      links.is_a?(Array) && links.any? && links.all? { |entry| entry["provenance"] == "SELF" }
     end
 
     # A sentence to say instead is offered only when the claim as stated does
