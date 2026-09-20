@@ -172,3 +172,40 @@ Both halves came from one database-scoped query whose scope I did not state to m
 file's own standing lesson is that a filter narrow enough to look tidy discards what you
 needed; a query scoped to one database out of three is that same mistake wearing different
 clothes, and it cost the entry its cause.
+
+
+## The batch rhythm, sampled at two minutes · 2026-09-20 18:14 UTC
+
+The hourly buckets above come from `contributions.received_at` and cannot show commit
+granularity. A watcher sampling row counts every two minutes can, and the shape it gives
+explains why a long seed looks stalled when it is not.
+
+Over 56 minutes at 85% corpus (82,882 → 84,855 claims, 845,660 → 865,878 contributions):
+
+| | |
+|---|---|
+| Claims | 2,110 / hour |
+| Appends | 21,617 / hour |
+| **Commits observed** | **2** |
+| **Appends per commit** | **10,064 and 10,154** |
+| Implied batch duration | ~28 minutes |
+
+`BATCH=500` is 500 *investigations*, and an investigation averages ~2 claims and ~10
+contributions, so one transaction carries about 10,000 appends. At this corpus that is
+nearly half an hour in which **both counters do not move at all**, because nothing has
+committed yet.
+
+**This is the number that should set a stall threshold.** A watcher that pages after 30
+minutes of frozen counters would have fired twice in this window on a perfectly healthy run.
+The one used here waits 90 minutes on *both* counters and keys its terminal signal off the
+container exiting instead, which is unambiguous. The related trap is already recorded above:
+a count taken inside one of these windows reads as a collapse, and `now() - xact_start` is
+what tells the two apart.
+
+**The decay continues.** 24,159 appends in the 16:00 hour, ~21,600/hour here. Remaining work
+at this rate is about 7 hours, and the rate is still falling.
+
+**None of the day's fixes are in this run.** The seed container started before them and has
+not been restarted, so it is still executing the pre-fix code, `Reputation::Calculate`
+included. That is why the curve above is a before with no after: measuring the fix needs a
+fresh seed, which is another ~21 hours.
