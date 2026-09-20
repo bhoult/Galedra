@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_lib_tasks_ledger_rake", "label": "ledger.rake", "file_type": "code", "source_file": "lib/tasks/ledger.rake", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1}}], "edges": [], "raw_calls": []}

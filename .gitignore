@@ -27,3 +27,7 @@ coverage/
 !/tmp/storage/.keep
 # Written at image build; see Dockerfile.
 /REVISION
+
+# Graphify output: generated, regenerable, and large (16MB including a per-file
+# AST cache that churns on every run). Rebuild with /graphify rather than commit.
+graphify-out/

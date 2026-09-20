@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_lib_tasks_admin_rake", "label": "admin.rake", "file_type": "code", "source_file": "lib/tasks/admin.rake", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1}}], "edges": [], "raw_calls": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_spec_requests_api_v1_contributions_spec_rb", "label": "contributions_spec.rb", "file_type": "code", "source_file": "spec/requests/api/v1/contributions_spec.rb", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1, "ruby_lookup_unsafe": true}}], "edges": [], "raw_calls": []}
