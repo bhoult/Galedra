@@ -51,3 +51,4 @@ them. See `implementation/planned/stage-26-capacity.md` for the plan this serves
 | Date | Entry | The one thing it found |
 |---|---|---|
 | 2026-09-19 | [The weaknesses page at 3,000 claims](2026-09-19-weaknesses-at-3000-claims.md) | The score cache was queried once per claim per model. Carries a same-day correction, and a follow-up measuring what the cold path costs |
+| 2026-09-20 | [The write path slows as the corpus grows](2026-09-20-seed-write-path-decay.md) | Appends decayed 4.6x from 0 to 83k claims, monotonically. Mechanism still open: two hypotheses tested and both rejected |

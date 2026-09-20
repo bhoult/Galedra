@@ -63,7 +63,19 @@ against its own work.
 - **Sample on a call's completion, not its notification.** The log line fires when
   a request *starts*, and writes here commit in large atomic chunks; a count taken
   mid-write is a snapshot of an uncommitted transaction. Reading one as a stall
-  happened twice, once loudly.
+  happened twice, once loudly — and on 2026-09-20 an hourly append count during
+  `bench:seed` read as a 10× collapse for the same reason. **The one query that
+  settles it:** `select now() - xact_start from pg_stat_activity where datname=...`.
+  If a transaction is open, the low bucket is the transaction, not the system.
+- **"Idle in transaction" is not idle, and a long-running process is not a stall.**
+  The same seed showed a backend `idle in transaction` and a 20-hour process, which
+  together read as hung. Two `/proc/<pid>/stat` samples showed `utime` advancing, and
+  a batch of that size legitimately takes ~25 minutes at the current rate. Check that
+  the counter moves before concluding anything; it costs two commands.
+- **Attribute load before blaming the obvious process.** Load average 18 during that
+  seed was mostly an unrelated `ollama` llama-server at ~1000% CPU. `ps -eo pcpu
+  --sort=-pcpu | head` is the whole check, and it also told us the contention was
+  minutes old and so could not explain a 21-hour trend.
 - **A filter narrow enough to look tidy is narrow enough to discard what you
   needed.** The first monitor matched failures and slow *MCP* calls, so the worst
   performance problem on the node was invisible for a whole run while everything
@@ -97,7 +109,8 @@ Installed (`uv tool install graphifyy`, CLI `graphify`, skill at
 **Worth it for one thing:** documents naming symbols that do not exist. It found a
 stage marked implemented naming `Audits::ApplyResult`, a class that has never
 existed in code — the same documentation-drift class that caused four separate
-bugs, in a place nobody was looking.
+bugs, in a place nobody was looking. (That one was **fixed 2026-09-20**; the sweep
+it came from is in "Open work" below, with two of its four findings still open.)
 
 **Not worth it for:** structure you already have in `CLAUDE.md`, and anything about
 whether a *description* matches behaviour — a tool description is a string
@@ -210,22 +223,44 @@ not.
 
 ## Open work, with the analysis that is not in the code
 
-**Four stage plans name classes that do not exist.** Triaged; do not treat as four identical
-fixes:
+**Four stage plans named classes that do not exist.** Triaged; **two fixed 2026-09-20, two
+still open.** Do not treat them as four identical fixes:
 
 | Name | Stage | Verdict |
 |---|---|---|
-| `Audits::ApplyResult` | 07 | **Fix.** It is `Ledger::Appliers::Audit.apply_effect` — confirmed to be the 05 §9 effects table, not a dispatcher. |
-| `Ledger::Apply::PROJECTION_MODELS` | 20 | **Fix, narrowly.** The constant is `Contribution::PROJECTION_MODELS`. The doc's substantive claim is true — sections and placements really are covered by digests and replay — so correct the namespace and nothing else. |
+| `Audits::ApplyResult` | 07 | **FIXED 2026-09-20.** Now `Ledger::Appliers::Audit.apply_effect`, whose `case` on `audit.result` is the 05 §9 effects table the line already described (`MINOR_ERROR` falls through, leaving the target counted). Decision Log entry in the stage file. |
+| `Ledger::Apply::PROJECTION_MODELS` | 20 | **FIXED 2026-09-20.** Now `Contribution::PROJECTION_MODELS`. Namespace only: `Ledger::Apply` does exist, it simply does not define the constant, and the substantive claim was true, so nothing else changed. |
 | `Contributions::ValidateTaskResult` | 08 | **Investigate first.** The work is split across `Contributions::ValidateEnvelope` and `Ledger::Appliers::TaskResult`. Map 04 §6's nine steps across both before writing anything; naming one of them substitutes a new inaccuracy for the old. |
 | `Ledger::Digest` | 03 | **Leave alone.** Not drift. The line already names `TableDigest` and records `Digest` as the rejected name with the reason. "Fixing" it would delete a working Decision Log entry. |
 
+**The sweep that found these was not kept.** It was an ad-hoc script; nothing in the repo
+re-runs it, so repeating it means rewriting it with all four filters above. Note also that
+the two corrections now carry their own rejected names in prose ("named `Audits::ApplyResult`,
+a class that has never existed"), which is filter 3's category: a rewritten sweep must skip
+them or it will report the fixes as fresh drift.
+
 **Also open:** `bench:cpu` against a still corpus (18s requests, two distinct faults, and
-`/weaknesses` at 13.5s — the largest untouched problem); re-checking the claims that lost a
-directional state under `0.2.0`; the task queue putting unresolvable claims in most
-top-priority slots; the `Cards::Plain` precedence that changed for reasons never traced; and
+`/weaknesses` at 13.5s — the largest untouched problem; **blocked as of 2026-09-20**, see
+below); re-checking the claims that lost a directional state under `0.2.0`; the task
+queue putting unresolvable claims in most top-priority slots; the `Cards::Plain` precedence that changed for reasons never traced; and
 the copyright decision on transcript readings, which gates both the Stage 33 export default
 and anything public.
+
+**The write path slows as the corpus grows, cause unknown.** Appends decayed 4.6× from
+107k/hour on an empty log to ~23k/hour at 83k claims, monotonically, during the 2026-09-20
+seed — recorded with the numbers in
+[`docs/profiler/2026-09-20-seed-write-path-decay.md`](profiler/2026-09-20-seed-write-path-decay.md).
+Two hypotheses were tested and **both rejected** (a missing `excerpt_hash` index; per-append
+full scans of `source_locations`), so the entry names no cause on purpose. The blocker on
+pinning it down is that `pg_stat_statements` is not installed on `galedra-db-1`; installing
+it needs `shared_preload_libraries` and a restart, so it waits for a window with no seed
+running. Do it *before* the next long seed, not during one.
+
+**What blocks `bench:cpu` right now.** That seed was allowed to run to completion rather
+than be stopped at 83%, because `RESET=1` means a restart costs another ~21 hours. Until it
+finishes, and until the host's `ollama` llama-server is stopped for the run, a profile
+measures contention. Two things to hold still, not one — the second is easy to forget
+because it is not part of this project.
 
 ## Standing unknowns
 
