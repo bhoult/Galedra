@@ -27,13 +27,18 @@ class BugReport < ApplicationRecord
     digest = digest_for(happened)
     if (existing = where(digest: digest).where("created_at >= ?", WINDOW.ago).order(:created_at).first)
       existing.update!(count: existing.count + 1)
-      return [ existing, false ]
+      return [ existing, false, [] ]
     end
+    # Clipping happens; being clipped in silence is the defect. `clipped` names
+    # the fields that were too long so the filer is told at the time
+    # (docs/experiments/2026-09-20-second-connector-run.md).
+    clipped = { "happened" => happened, "expected" => expected, "steps" => steps }
+              .select { |_, v| v.to_s.strip.length > MAX_CHARS }.keys
     clip = ->(s, n) { s.presence && s.to_s.strip[0, n] }
     [ create!(id: SecureRandom.uuid_v7, assistant_token: token, user: user, happened: happened.to_s.strip[0, MAX_CHARS],
               expected: clip.call(expected, MAX_CHARS), steps: clip.call(steps, MAX_CHARS), url: clip.call(url, 500),
               context_tool: clip.call(context_tool, 500), last_error: clip.call(last_error, 500),
-              anonymous: token ? token.anonymous? : user.nil?, digest: digest).tap { |r| ContentReview.enqueue!(r) }, true ]
+              anonymous: token ? token.anonymous? : user.nil?, digest: digest).tap { |r| ContentReview.enqueue!(r) }, true, clipped ]
   end
 
   def reporter

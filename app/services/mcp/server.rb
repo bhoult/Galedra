@@ -520,9 +520,10 @@ module Mcp
       raise ArgumentError, "asked and needed are required" if args["asked"].to_s.strip.empty? || args["needed"].to_s.strip.empty?
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
 
-      request, created = FeatureRequest.record!(token: @token, asked: args["asked"], needed: args["needed"], expected: args["expected"], context_tool: args["context_tool"], last_error: args["last_error"])
-      { recorded: true, request_id: request.id, repeat: !created,
-        note: created ? "Recorded for the maintainers. Now tell the person plainly what you could not do; do not improvise around it." : "The same need was already on file; counted again. Tell the person plainly what you could not do." }
+      request, created, clipped = FeatureRequest.record!(token: @token, asked: args["asked"], needed: args["needed"], expected: args["expected"], context_tool: args["context_tool"], last_error: args["last_error"])
+      { recorded: true, request_id: request.id, repeat: !created, clipped: clipped.presence,
+        note: clipped.presence ? "Recorded, but #{clipped.join(' and ')} ran past #{FeatureRequest::MAX_CHARS} characters and the rest was cut. File the missing part as a response on this request rather than a new one." :
+              created ? "Recorded for the maintainers. Now tell the person plainly what you could not do; do not improvise around it." : "The same need was already on file; counted again. Tell the person plainly what you could not do." }
     end
 
     def tool_next_content_review(_args)
@@ -625,10 +626,11 @@ module Mcp
       raise ArgumentError, "happened is required" if args["happened"].to_s.strip.empty?
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
 
-      report, created = BugReport.record!(token: @token, happened: args["happened"], expected: args["expected"], steps: args["steps"], url: args["url"],
+      report, created, clipped = BugReport.record!(token: @token, happened: args["happened"], expected: args["expected"], steps: args["steps"], url: args["url"],
                                           context_tool: args["context_tool"], last_error: args["last_error"])
-      { recorded: true, report_id: report.id, repeat: !created,
-        note: created ? "Recorded for the maintainers. Tell the person what went wrong and that it has been reported." : "The same report was already on file; counted again. Tell the person what went wrong and that it has been reported." }
+      { recorded: true, report_id: report.id, repeat: !created, clipped: clipped.presence,
+        note: clipped.presence ? "Recorded, but #{clipped.join(' and ')} ran past #{BugReport::MAX_CHARS} characters and the rest was cut. File the missing part as a response on this report rather than a new one." :
+              created ? "Recorded for the maintainers. Tell the person what went wrong and that it has been reported." : "The same report was already on file; counted again. Tell the person what went wrong and that it has been reported." }
     end
 
     # One structured line per tool call: shapes and outcomes, never claim text or excerpts.

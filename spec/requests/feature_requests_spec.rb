@@ -19,6 +19,22 @@ RSpec.describe "Feature requests from assistants (after Stage 19)", type: :reque
     [ body.dig("result", "structuredContent"), body.dig("result", "isError"), body ]
   end
 
+  # Every request filed in the 2026-09-20 run was cut off mid-sentence in
+  # `expected` — nine of nine, at a 200-character cap — and nothing said so, so
+  # the maintainer read truncated proposals and the filer never knew
+  # (docs/experiments/2026-09-20-second-connector-run.md).
+  it "says when a request was too long to store whole" do
+    long = "x" * (FeatureRequest::MAX_CHARS + 50)
+    data, err = call_tool("request_feature", { asked: "work the tasks", needed: "a way to split a mixed claim", expected: long })
+    expect(err).to be(false), data.inspect
+    expect(data["clipped"]).to eq([ "expected" ])
+    expect(data["note"]).to include("ran past", "cut")
+    expect(FeatureRequest.last.expected.length).to eq(FeatureRequest::MAX_CHARS)
+
+    within, = call_tool("request_feature", { asked: "work the tasks", needed: "something else entirely", expected: "short enough" })
+    expect(within["clipped"]).to be_nil, "nothing to say when nothing was cut"
+  end
+
   it "records what an assistant could not do, counts repeats, caps the day, and tells the assistant it can" do
     data, err = call_tool("request_feature", { asked: "Find every claim that cites the same source", needed: "A way to list claims by source", expected: "search_claims source_id", context_tool: "get_claim" })
     expect(err).to be(false), data.inspect
