@@ -12,5 +12,15 @@
 <details><summary>Signed packet</summary><pre><%= JSON.pretty_generate(@task.packet) %></pre></details>
 <% if @task.closed? %>
   <h2>Results</h2>
-  <ul><% @task.submitted_assignments.each do |a| %><li><%= link_to "result by #{short_id(a.contributor.key_id)}", contribution_path(a.result_contribution_id) %></li><% end %></ul>
+  <%# The search's coverage shows here rather than on the claim, because results
+      stay blind until every slot is in and a null's coverage is as much of a
+      result as a finding is. %>
+  <ul><% @task.submitted_assignments.each do |a| %>
+    <li><%= link_to "result by #{short_id(a.contributor.key_id)}", contribution_path(a.result_contribution_id) %>
+      <% if (note = Contribution.find_by(id: a.result_contribution_id)&.payload.to_h["searched"]).present? %>
+        <p class="meta"><strong>What the search covered</strong> — untrusted text, and no part of any score.</p>
+        <blockquote><%= simple_format(note) %></blockquote>
+      <% end %>
+    </li>
+  <% end %></ul>
 <% else %><p class="muted">Results are revealed once every slot is submitted or leases expire (blind independent verification).</p><% end %>

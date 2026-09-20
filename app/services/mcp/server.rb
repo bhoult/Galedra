@@ -105,6 +105,7 @@ module Mcp
       { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim, and excerpt: \"packet\" for the task's own passage where it has one (EVIDENCE_VERIFICATION does; QUALIFIER_CHECK and OPPOSING_EVIDENCE_SEARCH do not, so cite a source_location_id from the claim's counted evidence instead). An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
         inputSchema: { type: "object", properties: { task_id: { type: "string" }, outcome: { type: "string" },
+                                                     searched: { type: "string", description: "What the search covered: the terms tried, where you looked, and why you concluded what you did. Say it here whenever the finding is an absence — NONE_FOUND, NONE_MATERIAL, CANNOT_DETERMINE — because a null is worth exactly what its coverage is worth, and a reader cannot see coverage you only described in chat. Signed with the result, shown on the task, never read by scoring." },
                                                      answer: { type: "object", properties: {
                                                        sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
                                                        excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, text: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" } }, required: %w[handle source text] } },
@@ -801,7 +802,7 @@ module Mcp
     def tool_submit_task(args)
       require_delegation!
       task = find_task(args)
-      result = Tasks::Answer.submit(@token, task, outcome: args["outcome"], answer: args["answer"])
+      result, clipped = Tasks::Answer.submit(@token, task, outcome: args["outcome"], answer: args["answer"], searched: args["searched"])
       accepted = result.acceptance.present?
       # Whether this was the assistant's own work, said on the result rather than
       # only in a tool description read once at connection. Thirteen self-checks
@@ -810,6 +811,7 @@ module Mcp
       # (docs/experiments/2026-09-20-second-connector-run.md, finding 8).
       self_performed = TaskAssignment.where(result_contribution_id: result.contribution.id, self_performed: true).exists?
       note = accepted ? "Counted now, and open to audit." : "Recorded as a proposal; it counts once a different principal accepts it."
+      note += " Your description of the search was longer than #{Tasks::Answer::SEARCH_NOTE_MAX} characters and was clipped to that." if clipped
       note += " Recorded as self-performed, so it does not raise this claim's review coverage: that needs a different principal." if self_performed
       out = { task_id: task.id, contribution_id: result.contribution.id, accepted: accepted, status: accepted ? "ACCEPTED" : result.contribution.current_status,
               items: result.contribution.payload["ops"].size, task_url: "#{@base_url}/tasks/#{task.id}",

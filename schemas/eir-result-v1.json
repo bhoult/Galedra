@@ -4,41 +4,119 @@
   "title": "eir-result-v1",
   "description": "A client-signed task result (Epistemic Ledger spec 04 section 4). The signature covers the RFC 8785 canonical envelope minus the signature field. No floats anywhere.",
   "type": "object",
-  "required": ["protocol", "action_type", "task_id", "task_packet_hash", "contributor_key_id", "client_created_at", "software", "payload", "payload_hash", "signature"],
+  "required": [
+    "protocol",
+    "action_type",
+    "task_id",
+    "task_packet_hash",
+    "contributor_key_id",
+    "client_created_at",
+    "software",
+    "payload",
+    "payload_hash",
+    "signature"
+  ],
   "additionalProperties": false,
   "properties": {
-    "protocol": { "const": "eir-result-v1" },
-    "action_type": { "const": "TASK_RESULT" },
-    "task_id": { "type": "string", "format": "uuid" },
-    "task_packet_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "contributor_key_id": { "type": "string", "pattern": "^ed25519:[0-9a-f]{64}$" },
-    "delegation_id": { "type": ["string", "null"], "format": "uuid" },
-    "client_created_at": { "type": "string", "format": "date-time" },
+    "protocol": {
+      "const": "eir-result-v1"
+    },
+    "action_type": {
+      "const": "TASK_RESULT"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_packet_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "contributor_key_id": {
+      "type": "string",
+      "pattern": "^ed25519:[0-9a-f]{64}$"
+    },
+    "delegation_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "client_created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "software": {
       "type": "object",
-      "required": ["agent_name", "version", "model_provider", "model_id", "prompt_version"],
+      "required": [
+        "agent_name",
+        "version",
+        "model_provider",
+        "model_id",
+        "prompt_version"
+      ],
       "properties": {
-        "agent_name": { "type": "string" }, "version": { "type": "string" }, "model_provider": { "type": "string" },
-        "model_id": { "type": "string" }, "prompt_version": { "type": "string" }
+        "agent_name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "model_provider": {
+          "type": "string"
+        },
+        "model_id": {
+          "type": "string"
+        },
+        "prompt_version": {
+          "type": "string"
+        }
       }
     },
     "payload": {
       "type": "object",
-      "required": ["outcome", "ops"],
+      "required": [
+        "outcome",
+        "ops"
+      ],
       "additionalProperties": false,
       "properties": {
-        "outcome": { "type": "string" },
+        "outcome": {
+          "type": "string"
+        },
         "ops": {
-          "type": "array", "maxItems": 20,
+          "type": "array",
+          "maxItems": 20,
           "items": {
             "type": "object",
-            "required": ["op"],
-            "properties": { "op": { "type": "string" }, "ref": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" } }
+            "required": [
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              }
+            }
           }
+        },
+        "searched": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "What the search covered when the finding is an absence: the terms tried, where the worker looked, and why it concluded absence. Untrusted text, signed with the result, never an input to scoring."
         }
       }
     },
-    "payload_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "signature": { "type": "string" }
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": "string"
+    }
   }
 }

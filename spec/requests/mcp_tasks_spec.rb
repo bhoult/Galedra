@@ -131,6 +131,48 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["moves"]).not_to include("raises how well reviewed")
   end
 
+  # A null search left no trace: both submissions returned items: 0, and the
+  # terms, the sources and the reasoning were discarded at the boundary. The
+  # guidance said to say what you searched and the packet said to answer with an
+  # empty answer, and there was no field that could hold the first (01a0c0d5).
+  it "records what a null search covered, and says so where the result is read" do
+    claim, = curated_claim("Remote work raised measured output in the trial.")
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+    leased, = call_tool("next_task", { "claim_id" => claim.id, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    expect(leased["answer_with"]).to include("searched"), "the packet has to name the field it asks you to fill"
+
+    covered = "Searched \"fiduciary wedge\" against Ismail and Shelton by name, the concept phrasing, and the OpenExO material. Only unrelated legal commentary came back."
+    data, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_FOUND", answer: {}, searched: covered })
+    expect(err).to be(false), data.inspect
+    expect(data["items"]).to eq(0), "a null still records no ops; the coverage is what was missing"
+
+    payload = Contribution.find(data["contribution_id"]).payload
+    expect(payload["searched"]).to eq(covered)
+    expect(payload["outcome"]).to eq("NONE_FOUND")
+
+    # Covered by the payload hash the signature is taken over, so the null is
+    # auditable rather than asserted: changing a word invalidates the record.
+    contribution = Contribution.find(data["contribution_id"])
+    expect(Crypto::Hashing.json(payload)).to eq(contribution.payload_hash)
+    expect(Crypto::Hashing.json(payload.merge("searched" => "#{covered}."))).not_to eq(contribution.payload_hash)
+
+    # Blind until every slot is in, so the coverage appears with the result and
+    # not before it.
+    get "/tasks/#{leased['task_id']}"
+    expect(response.body).not_to include("fiduciary wedge") if Task.find(leased["task_id"]).open_slots.positive?
+  end
+
+  it "clips an over-long description of a search rather than refusing the result" do
+    claim, = curated_claim("Remote work raised measured output in the trial.")
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+    leased, = call_tool("next_task", { "claim_id" => claim.id, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    data, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_FOUND", answer: {},
+                                           searched: "x" * (Tasks::Answer::SEARCH_NOTE_MAX + 500) })
+    expect(err).to be(false), data.inspect
+    expect(Contribution.find(data["contribution_id"]).payload["searched"].length).to eq(Tasks::Answer::SEARCH_NOTE_MAX)
+    expect(data["note"]).to include("clipped"), "a caller told its prose was too long by an exception has lost the prose"
+  end
+
   # The task type is named for the usual case, but BuildContext picks the
   # direction per claim: a claim nothing yet supports is sent looking FOR
   # evidence. `moves` said "against" either way, so a worker was told the

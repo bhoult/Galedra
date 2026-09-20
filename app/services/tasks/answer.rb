@@ -14,7 +14,7 @@ module Tasks
       "EVIDENCE_VERIFICATION" =>
         "Read only the passage in context.untrusted_excerpt. Decide whether it directly bears on the claim. If it does, answer with evidence: [{handle, excerpt: \"packet\", statement}] and links: [{evidence, claim: \"target\", direction, strength, steps}]. Outcome CONFIRMED (the passage directly supports the claim), PARTIAL, NOT_SUPPORTED, or CANNOT_DETERMINE. Add no sources here.",
       "OPPOSING_EVIDENCE_SEARCH" =>
-        "Search for evidence in context.search_direction; sources already counted are listed so you look elsewhere. Read what you find yourself. Answer FOUND with sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], evidence: [{handle, excerpt, statement}], links: [{evidence, claim: \"target\", direction, strength, steps}]. Answer NONE_FOUND with an empty answer when a real search found nothing; that is a result, not a failure.",
+        "Search for evidence in context.search_direction; sources already counted are listed so you look elsewhere. Read what you find yourself. Answer FOUND with sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], evidence: [{handle, excerpt, statement}], links: [{evidence, claim: \"target\", direction, strength, steps}]. Answer NONE_FOUND with an empty answer when a real search found nothing, and put what you covered in searched: the terms, where you looked, and why you concluded absence. That is a result, not a failure, and the coverage is what makes it one.",
       "SOURCE_INDEPENDENCE_CHECK" =>
         "Decide which of context.counted_evidence share one upstream origin (same press release, dataset, primary text, author). Answer GROUPED with groups: [{handle, type, description, members: [evidence_item_id, ...]}] using the ids from the packet; INDEPENDENT with an empty answer when none share an origin; CANNOT_DETERMINE when you cannot tell.",
       "QUALIFIER_CHECK" =>
@@ -112,9 +112,22 @@ module Tasks
     end
 
     # Appends the TASK_RESULT for a leased task under the assistant's key.
-    def submit(token, task, outcome:, answer:)
+    # A null search's coverage. Guidance told a worker to say what it searched
+    # and the packet told it to answer with an empty answer; there was no field
+    # that could hold the answer to the first, so both null searches in a run
+    # left items: 0 and no record of the terms, the sources or the reasoning
+    # (01a0c0d5). A positive finding carries its own source and is checkable; a
+    # null is only as good as its coverage, and carried none.
+    #
+    # Clipped rather than refused, the way a report turn is: a caller told its
+    # prose was too long by an exception has lost the prose.
+    SEARCH_NOTE_MAX = 2_000
+
+    def submit(token, task, outcome:, answer:, searched: nil)
       ops = ops_for(task, answer)
-      Assistants::Write.result(token, task, outcome: outcome.to_s, ops: ops)
+      note = searched.to_s.strip.presence
+      result = Assistants::Write.result(token, task, outcome: outcome.to_s, ops: ops, searched: note&.slice(0, SEARCH_NOTE_MAX))
+      [ result, note.to_s.length > SEARCH_NOTE_MAX ]
     end
 
     def ops_for(task, answer)

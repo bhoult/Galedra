@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.9"
+  VERSION = "2026-09-20.10"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -98,6 +98,9 @@ module Guidance
 
   WORK = "Working open tasks: when the person says \"work the open tasks in Galedra\", call next_task, read the sources " \
          "yourself, and answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result). " \
+         "When the finding is an absence, put what you covered in submit_task's searched field — the terms, where you looked, " \
+         "why you concluded absence. A positive finding carries its own source and anyone can check it; a null is worth exactly " \
+         "what its coverage is worth, and coverage described only in chat is lost the moment the conversation ends. " \
          "Keep going. Stop only when the person gave you a number and you have reached it, when they tell you to stop, when " \
          "next_task has nothing left, or when your cap is near. Absent a limit, work until one of those is true rather than " \
          "until the run feels long enough: there is no arbitrary number at which stopping becomes right, and a person who " \

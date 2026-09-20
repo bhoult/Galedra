@@ -23,8 +23,11 @@ module Contributions
     end
 
     # An eir-result-v1 envelope (spec 04 §4) for a leased task.
-    def self.build_result(task:, key_pair:, outcome:, ops:, delegation_id: nil, software: nil, client_created_at: Time.now.utc)
-      payload = { "outcome" => outcome, "ops" => ops }.as_json
+    def self.build_result(task:, key_pair:, outcome:, ops:, searched: nil, delegation_id: nil, software: nil, client_created_at: Time.now.utc)
+      # What the search covered, for a result whose finding is an absence. Signed
+      # with the rest of the payload, so a null is auditable rather than merely
+      # asserted; inert like every other note, and never read by scoring.
+      payload = { "outcome" => outcome, "ops" => ops, "searched" => searched.presence }.compact.as_json
       unsigned = {
         "protocol" => Tasks::Packet::RESULT_PROTOCOL,
         "action_type" => "TASK_RESULT",

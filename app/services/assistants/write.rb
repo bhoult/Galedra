@@ -22,12 +22,12 @@ module Assistants
     end
 
     # A TASK_RESULT (eir-result-v1) for a task leased to the assistant's agent key (Stage 18).
-    def result(token, task, outcome:, ops:)
+    def result(token, task, outcome:, ops:, searched: nil)
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "this assistant token is revoked or expired" } ]) unless token.usable?
       raise CapReached, "this assistant has reached its hourly limit of #{token.hourly_cap} writes; it resumes as the last hour rolls past" if token.over_hourly_cap?
 
       envelope = Contributions::Envelope.build_result(task: task, key_pair: Crypto::Custody.signer_for_contributor(token.agent), outcome: outcome, ops: ops,
-                                                      delegation_id: token.delegation_id, software: token.software)
+                                                      searched: searched, delegation_id: token.delegation_id, software: token.software)
       result = Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
       token.update_column(:last_used_at, Time.current)
       result

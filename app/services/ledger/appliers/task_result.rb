@@ -42,6 +42,13 @@ module Ledger
 
         spec = Tasks::Types.spec(task.task_type)
         enum!(p, "outcome", spec[:outcomes])
+        # What the search covered, when the finding is an absence. Inert text
+        # like every other note: it is signed, shown and auditable, and nothing
+        # in scoring reads it (Invariant 11).
+        if p.key?("searched")
+          reject("SCHEMA_INVALID", path("searched"), "expected a string") unless p["searched"].is_a?(String)
+          reject("SCHEMA_INVALID", path("searched"), "at most #{Tasks::Answer::SEARCH_NOTE_MAX} characters") if p["searched"].length > Tasks::Answer::SEARCH_NOTE_MAX
+        end
         ops = p["ops"]
         reject("SCHEMA_INVALID", path("ops"), "expected an array") unless ops.is_a?(Array)
         limit = [ spec[:max_ops], Tasks::Types::MAX_OPS ].min
