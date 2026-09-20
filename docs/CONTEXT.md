@@ -246,16 +246,23 @@ queue putting unresolvable claims in most top-priority slots; the `Cards::Plain`
 the copyright decision on transcript readings, which gates both the Stage 33 export default
 and anything public.
 
-**The write path slows as the corpus grows: an N+1 in `Reputation::Calculate`.** Appends
-decayed 4.6× from 107k/hour on an empty log to ~23k/hour at 83k claims, monotonically, during
-the 2026-09-20 seed — numbers and cause in
+**The write path slowed as the corpus grew: an N+1 in `Reputation::Calculate`. FIXED
+2026-09-20 (`6d2077d`).** Appends decayed 4.6× from 107k/hour on an empty log to ~23k/hour at
+83k claims, monotonically, during the 2026-09-20 seed — numbers, cause and fix in
 [`docs/profiler/2026-09-20-seed-write-path-decay.md`](profiler/2026-09-20-seed-write-path-decay.md).
-`Reputation::Calculate.summarize` ends with `events.map { |e| e.audit.result }.tally` on a
-relation with no `includes(:audit)`, so every reputation event fetches its audit on its own:
-**366 million single-row lookups** against a 6,920-row table in one seed. It runs per
-audit-eligibility check over an event set that grows with the log, which is the O(n²). Not
-fixed: reputation is audit-derived and replayable at any seq (Invariant 8), so it wants a
-stage and its goldens, not a quick `includes`.
+`Reputation::Calculate.summarize` ended with `events.map { |e| e.audit.result }.tally` on a
+relation with no preload, so every reputation event fetched its audit on its own: **366
+million single-row lookups** against a 6,920-row table in one seed.
+
+**The useful part was asking who wants the answer.** The first instinct was to preload and
+move on, which would have made 366 million cheap lookups into 434,000 bulk ones — a real
+gain, and still work nobody needed. `Audits::Eligibility` and `Audits::Sample` run on every
+append and read only `n` and `mean`; the tally is for the contributor page. Making it opt-in
+takes the append path to **zero** audit queries. When an N+1 is on a hot path, check whether
+the value is used there before optimising how it is fetched.
+
+**The decay curve is a before with no after.** The running seed started under the old code,
+so re-measuring needs a fresh run. Do not quote the 4.6× as current.
 
 **Use `bin/rails db:top_queries`.** `pg_stat_statements` has been preloaded since Stage 26,
 and a Ruby profile names a call site while only this names the statement. The counters are

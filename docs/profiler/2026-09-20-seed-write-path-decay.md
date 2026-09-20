@@ -55,9 +55,9 @@ Cumulative scan counters at the time of reading (`pg_stat_user_tables`):
   finding. A live node appends one contribution per transaction, so if this is corpus-size
   dependent rather than batch-dependent, it is a capacity fact and not a seeding
   inconvenience. Nothing in `implementation/planned/stage-26-capacity.md` predicts it.
-- **The mechanism is established: an N+1 in `Reputation::Calculate`. Status: OPEN (found
-  2026-09-20, not yet fixed).** See the correction at the end of this entry for the
-  measurement. The two hypotheses below were tested first and **both failed**, and are kept
+- **The mechanism is established: an N+1 in `Reputation::Calculate`. Status: FIXED
+  2026-09-20 (`6d2077d`).** See the correction at the end of this entry for the measurement,
+  and the fix note below it. The two hypotheses below were tested first and **both failed**, and are kept
   because a rejected cause is worth as much as the accepted one:
   - *A missing index on `source_locations.excerpt_hash`* (the table has indexes on
     `contribution_id`, `source_id`, `created_seq`, `invalidated_seq`, but not
@@ -85,10 +85,14 @@ Cumulative scan counters at the time of reading (`pg_stat_user_tables`):
 
 ## What changed as a result
 
-Nothing yet, by decision: the seed was allowed to run to completion rather than being
-stopped at 83%, since restarting costs another ~21 hours under `RESET=1`. `bench:cpu`
-against a still corpus — the task this entry interrupted — waits for it, and for the host
-to be quiesced.
+The N+1 was fixed (`6d2077d`); see the fix note at the end of this entry. The decay curve
+above was measured *before* that change and is kept as the before, since there is no after
+yet: the running seed started under the old code, so a comparable number needs a fresh run.
+
+The seed itself was allowed to run to completion rather than being stopped at 83%, since
+restarting costs another ~21 hours under `RESET=1`. `bench:cpu` against a still corpus — the
+task this entry interrupted — waits for it, and for the host to be quiesced. That run is
+also Stage 26 acceptance criteria 1-2, not a side errand.
 
 ## What was wrong in the watching
 
@@ -148,10 +152,19 @@ lengthens. That is the O(n²) shape the hourly curve shows, and it is a *write*-
 which is a different animal from the read-path N+1s in
 `2026-09-19-weaknesses-at-3000-claims.md`.
 
-Not fixed here. The obvious repair is preloading the association, but `summarize` feeds
-reputation, and reputation is audit-derived and replayable at any seq (Invariant 8), so the
-change wants its own stage and its goldens checked rather than a quick `includes` at the end
-of a session.
+**Fixed same day, in `6d2077d`.** The repair turned out to be smaller than the caution above
+suggested, because the hot path does not want the tally at all: `Audits::Eligibility` and
+`Audits::Sample` call `Calculate.call` on every append and read only `n` and `mean`. So the
+tally is now opt-in and off by default there — the audits table is not touched on the append
+path rather than touched more cheaply — while `buckets`, which the contributor page and API
+display, preloads the association and pays one query instead of one per event. Neither
+change can move a value, which is what let it happen without a new model version.
+
+A spec counts the statements: 0 on the hot path, 1 on the display path, values unchanged. It
+was checked against the old code and fails there with 3 where it expects 0, so it tests what
+it claims to. What is still unfixed is the event rows themselves, ~843 per call: summing the
+deltas in SQL would cut that too, but they are `BigDecimal` values feeding audit sampling, so
+that one really does want goldens and a stage.
 
 **What was wrong in the watching, second pass.** The first version of this entry said the
 mechanism could not be established and named the tool that would establish it as missing.
