@@ -293,7 +293,7 @@ Written, tested and committed hours earlier; the specs passed because they exerc
 were thinking about confirms the case you were thinking about.** The live run found it in
 one submission.
 
-### 10. The queue spends its effort on claims evidence cannot settle — **OPEN**
+### 10. The queue spends its effort on claims evidence cannot settle — **FIXED 2026-09-20**
 
 Every one of the first 17 self-checks landed on a `NOT_APPLICABLE` claim — a forecast, a
 value judgement, a prophecy. Measured against the queue:
@@ -319,6 +319,19 @@ already scored `NOT_APPLICABLE`, or do not open `QUALIFIER_CHECK` and
 `OPPOSING_EVIDENCE_SEARCH` on them at all. The second is tempting and probably wrong,
 because the type is a judgement that can be revised, and closing the route to revising it
 makes the mistake permanent.
+
+**Fixed 2026-09-20, taking the first.** `Tasks::Create::NOT_APPLICABLE_FACTOR` is `0.1`,
+applied after the heuristic and not inside it. Three things that mattered in the doing:
+
+- **The spec's formula is untouched.** 03 §14 says "use 1.0 when probability is null", and
+  that is right — `INSUFFICIENT_EVIDENCE` carries no probability either and its maximum
+  uncertainty is deserved, because evidence can settle it. The trap was reading the null as
+  the signal. The damping is a board factor, which the board already had for anonymous
+  principals (Stage 13), so no spec change and no `REVIEW-NOTES` entry were needed.
+- **The route stays open.** The task is still created, still `OPEN`, still leasable. It is
+  last instead of first, which is what the finding asked for.
+- The spec pins both states explicitly, so a future change that makes null probability the
+  discriminator again fails loudly rather than quietly re-creating this.
 
 **Verified once the pass reached checkable claims.** The first seventeen self-checks all
 landed on `NOT_APPLICABLE` claims, which carry no `review_coverage` to move, so they proved

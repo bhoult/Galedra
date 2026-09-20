@@ -7,6 +7,23 @@ module Tasks
 
     # priority_factor (Stage 13): work from anonymous principals is checked sooner.
     # Priority is a board heuristic, never a score input.
+
+    # A claim already scored NOT_APPLICABLE carries no probability, so the 03 §14
+    # heuristic gives it maximum uncertainty and floats it to the top of the board.
+    # INSUFFICIENT_EVIDENCE gets the same treatment for the same reason and deserves
+    # it: evidence can settle it. This cannot — a directional state needs evidence in
+    # that direction and NOT_APPLICABLE carries no probability at all (Invariant 5),
+    # so a qualifier check or opposing-evidence search on one has its outcome fixed
+    # before it starts. Measured on one outline: 19% of the corpus, 19% of open tasks,
+    # and 38 of the top 40 by priority
+    # (docs/experiments/2026-09-19-live-connector-outline.md, finding 10).
+    #
+    # Damped rather than closed, and outside the heuristic rather than inside it. The
+    # spec's formula is untouched: this is a board factor, which the board already has.
+    # The route stays open because the type is a judgement that can be revised, and a
+    # check is how someone finds it was mistyped; it should simply be last rather than
+    # first.
+    NOT_APPLICABLE_FACTOR = "0.1"
     def call(task_type:, target:, domain: Audits::Policy.default_domain, required_assignments: 1, location: nil, snapshot_seq: nil, created_by: nil, priority_factor: "1", section_id: nil, blind_requested: false)
       seq = snapshot_seq || Contribution.maximum(:seq) || 0
       spec = Types.spec(task_type)
@@ -31,10 +48,17 @@ module Tasks
       if target.is_a?(Claim)
         result = model && Scoring::Score.call(target, seq, model)
         downstream = ClaimEdge.counted_at(seq).where(from_claim_id: target.id).count
-        Priority.call(probability: result&.probability, downstream_count: downstream, review_coverage: result&.review_coverage || "0.00", task_type: task_type, config: config)
+        base = Priority.call(probability: result&.probability, downstream_count: downstream, review_coverage: result&.review_coverage || "0.00", task_type: task_type, config: config)
+        damped(base, result)
       else
         Priority.call(probability: nil, downstream_count: 0, review_coverage: "0.00", task_type: task_type, config: config)
       end
+    end
+
+    def damped(priority, result)
+      return priority unless result&.assessment_state == "NOT_APPLICABLE"
+
+      Scoring::Decimal.fixed(BigDecimal(priority) * BigDecimal(NOT_APPLICABLE_FACTOR), 4)
     end
   end
 end
