@@ -28,6 +28,7 @@ module ApplicationHelper
   #
   # Memoised per request because the header renders on every page.
   def open_report_counts
-    @open_report_counts ||= { bugs: BugReport.where(status: "OPEN").count, features: FeatureRequest.where(status: "OPEN").count }
+    @open_report_counts ||= { bugs: BugReport.where(status: "OPEN").count, features: FeatureRequest.where(status: "OPEN").count,
+                              held_bugs: BugReport.held.count, held_features: FeatureRequest.held.count }
   end
 end

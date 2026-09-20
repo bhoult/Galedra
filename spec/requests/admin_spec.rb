@@ -40,6 +40,15 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     expect(response.body).to include("2 bug reports waiting on a maintainer")
     expect(response.body).to include("1 feature request waiting on a maintainer"), "answered is the filer's turn, not ours"
     expect(response.body).to include(bug_reports_path(status: "OPEN"))
+    expect(response.body).not_to include("held open"), "nothing is held, so the mark is absent rather than zero"
+
+    # Held rides beside its own type, and is not added to the number you clear.
+    BugReport.record!(happened: "A quoted passage reads as not found", expected: "it confirmed").first
+             .answer!(body: "Agreed; it needs a stage.", user: admin, settles: false)
+    get "/"
+    expect(response.body).to include("2 bug reports waiting on a maintainer"), "held is not open"
+    expect(response.body).to include("1 bug report answered and held open")
+    expect(response.body).to include(bug_reports_path(status: "HELD"))
 
     delete "/session"
     other = sign_up("second@example.com")
