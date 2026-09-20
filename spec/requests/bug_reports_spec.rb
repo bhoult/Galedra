@@ -85,6 +85,35 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(err).to be(true)
   end
 
+  # A reporter may never come back, and a report cannot wait on someone who has
+  # gone (owner request, 2026-09-20).
+  it "closes an answer nobody comes back on, says when, and reopens if they disagree later" do
+    call_tool("report_bug", { happened: "The share card renders blank", expected: "an image" })
+    report = BugReport.last
+    report.answer!(body: "Fixed in the renderer.", user: user)
+
+    data, = call_tool("list_reports", {})
+    row = data["reports"].first
+    expect(row["settles_at"]).to be_present, "silence should not be a trap: say when it closes"
+    expect(Time.parse(row["settles_at"])).to be_within(60).of(report.last_answer_at + Triageable::UNANSWERED_AFTER)
+
+    # Too early.
+    BugReport.settle_unanswered!(now: report.last_answer_at + Triageable::UNANSWERED_AFTER - 1.minute)
+    expect(report.reload.status).to eq("ANSWERED")
+
+    # Due, and the reason is a turn rather than a silent flip.
+    BugReport.settle_unanswered!(now: report.last_answer_at + Triageable::UNANSWERED_AFTER + 1.minute)
+    expect(report.reload.status).to eq("CLOSED")
+    expect(report.messages.oldest_first.last.body).to include("no response after")
+
+    # Running it again changes nothing.
+    expect { BugReport.settle_unanswered!(now: 1.day.from_now) }.not_to change { report.reload.messages.count }
+
+    # And the reporter can still disagree, which reopens it.
+    back, = call_tool("respond_to_report", { "report_id" => report.id, "body" => "Still blank on the check page.", "satisfied" => false })
+    expect(back["status"]).to eq("OPEN")
+  end
+
   it "records a report from an assistant, counts repeats, caps the day, and is named in the guidance" do
     data, err = call_tool("report_bug", { happened: "get_claim returned a card with no headline", expected: "a headline", steps: "get_claim on any claim", context_tool: "get_claim", last_error: "none" })
     expect(err).to be(false), data.inspect

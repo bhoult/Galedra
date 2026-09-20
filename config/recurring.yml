@@ -13,6 +13,11 @@ production:
   settle_lone_verdicts:
     class: SettleLoneVerdictsJob
     schedule: every hour at minute 30
+  # An answered report waits on its reporter, and a reporter may never come
+  # back. Half-hourly so the 3-hour window is honoured to within a half hour.
+  settle_answered_reports:
+    class: SettleAnsweredReportsJob
+    schedule: every half hour
   # Stage 26 built the retention and scheduled it nowhere, so it only ever ran
   # when someone typed `bin/rails scores:prune`. The cache is keyed on the exact
   # seq and the head moves with every append, so an active writer leaves a fresh
@@ -30,6 +35,11 @@ development:
   settle_lone_verdicts:
     class: SettleLoneVerdictsJob
     schedule: every hour at minute 30
+  # An answered report waits on its reporter, and a reporter may never come
+  # back. Half-hourly so the 3-hour window is honoured to within a half hour.
+  settle_answered_reports:
+    class: SettleAnsweredReportsJob
+    schedule: every half hour
   prune_claim_scores:
     class: PruneClaimScoresJob
     schedule: every day at 3:20am

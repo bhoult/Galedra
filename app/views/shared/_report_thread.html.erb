@@ -21,6 +21,9 @@
 <p class="meta">
   <% if row.awaiting_reporter? %>
     Waiting on the reporter: they decide whether this is settled.
+    <% if row.settles_at %>
+      Nothing said by <%= row.settles_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC and it closes on its own; they can still disagree afterwards and it reopens.
+    <% end %>
   <% elsif row.status == "CLOSED" %>
     Closed by agreement.
   <% else %>

@@ -141,6 +141,7 @@ module Mcp
         description: "One report you filed, with the whole exchange on it in order: what you wrote, what a maintainer answered, and what you said back. Read this before reporting the same thing again.",
         inputSchema: { type: "object", properties: { report_id: { type: "string" } }, required: %w[report_id] },
         outputSchema: { type: "object", properties: { id: { type: "string" }, kind: { type: "string" }, status: { type: "string" }, awaiting_you: { type: "boolean" },
+                                                      settles_at: { type: [ "string", "null" ], description: "When silence closes this. You can still disagree afterwards and it reopens." },
                                                       messages: { type: "array", items: { type: "object", properties: { at: { type: "string" }, from: { type: "string" }, body: { type: "string" }, satisfied: { type: [ "boolean", "null" ] } } } } } } },
       { name: "respond_to_report", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Answer a maintainer on a report you filed, and say whether the resolution actually settles it. satisfied: true closes it by agreement; satisfied: false reopens it with your reasons attached. You may do this as many times as it takes — a report is closed when both sides say so, not when one side says so.",
@@ -573,19 +574,21 @@ module Mcp
         scope.order(created_at: :desc).limit(limit).map do |r|
           { id: r.id, kind: kind, status: r.status, filed_at: r.created_at.utc.iso8601,
             summary: (kind == "bug" ? r.happened : r.needed).to_s[0, 200], resolution: r.resolution,
-            awaiting_you: r.awaiting_reporter? }
+            awaiting_you: r.awaiting_reporter?, settles_at: r.settles_at&.utc&.iso8601 }
         end
       end.sort_by { |r| r[:filed_at] }.reverse
       { reports: rows.first(limit), total: rows.size, awaiting_you: rows.count { |r| r[:awaiting_you] },
         note: "ANSWERED means a maintainer replied and it is your turn: read it with get_report and answer with respond_to_report, " \
-              "saying whether it actually settles the thing. CLOSED means you both agreed. Nothing here is deleted." }
+              "saying whether it actually settles the thing. An answer nobody comes back on closes itself after " \
+              "#{Triageable::UNANSWERED_AFTER.inspect} — settles_at says when — and you can still disagree afterwards, which " \
+              "reopens it. CLOSED means it is settled, by your agreement or by that silence. Nothing here is deleted." }
     end
 
     def tool_get_report(args)
       require_token!
       row = find_report(args["report_id"])
       { id: row.id, kind: row.is_a?(BugReport) ? "bug" : "feature", status: row.status,
-        awaiting_you: row.awaiting_reporter?,
+        awaiting_you: row.awaiting_reporter?, settles_at: row.settles_at&.utc&.iso8601,
         filed: (row.is_a?(BugReport) ? row.happened : row.needed).to_s,
         messages: row.messages.oldest_first.map do |m|
           { at: m.created_at.utc.iso8601, from: m.author_kind, body: m.body, satisfied: m.satisfied }.compact

@@ -13,6 +13,13 @@ module Triageable
   # 2026-09-20).
   STATUSES = %w[OPEN ANSWERED CLOSED IGNORED].freeze
 
+  # A reporter may simply never come back, and a report cannot wait on someone
+  # who has gone (owner request, 2026-09-20). An answer that has stood this long
+  # without a word against it is taken as settled. Nothing is lost by it: the
+  # reporter can still disagree afterwards and the report reopens, so this
+  # closes the waiting rather than the question.
+  UNANSWERED_AFTER = 3.hours
+
   included do
     validates :status, inclusion: { in: STATUSES }
     has_many :messages, class_name: "ReportMessage", as: :report, dependent: :destroy, inverse_of: :report
@@ -25,6 +32,35 @@ module Triageable
 
   # Waiting on the reporter rather than on us.
   def awaiting_reporter? = status == "ANSWERED"
+
+  # When silence will settle this, so the reporter can be told rather than
+  # finding out afterwards.
+  def settles_at
+    return nil unless awaiting_reporter?
+
+    (last_answer_at || updated_at) + UNANSWERED_AFTER
+  end
+
+  def last_answer_at = messages.where(author_kind: "maintainer").maximum(:created_at)
+
+  class_methods do
+    # Closes answers nobody has come back on. Idempotent, and it records the
+    # reason as a turn so the page shows why it closed rather than appearing to
+    # close itself.
+    def settle_unanswered!(now: Time.current)
+      where(status: "ANSWERED").find_each do |row|
+        due = row.settles_at
+        next if due.nil? || due > now
+
+        row.transaction do
+          row.messages.create!(author_kind: "maintainer", body: "Closed with no response after #{UNANSWERED_AFTER.inspect}. " \
+                                                                "Say so with respond_to_report if this is not settled and it reopens.",
+                               created_at: now)
+          row.update!(status: "CLOSED")
+        end
+      end
+    end
+  end
 
   # A maintainer's turn. `resolution` keeps the latest answer so the existing
   # pages and the MCP read-back go on working unchanged; the message is the
