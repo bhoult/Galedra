@@ -457,18 +457,24 @@ somebody.
    The source page shows them beside the passage; the task page shows them on the task.
 8. `/threads`, one index of every thread on the node, under Browse: newest first, filtered by
    state, saying what each hangs on and whose turn it is, with `open` and `open_for_you`.
-9. A reply form on a thread for a signed-in person, whose turn counts as their principal and
+   Threads join the admin nav badge beside open bug reports and feature requests, with their
+   own icon, counting the ones that can still be moved along.
+9. `/api/v1` thread endpoints — the index, one thread, and taking a turn — added to
+   `Api::Openapi` in the same commit as the routes, since
+   `spec/requests/api/v1/openapi_spec.rb` fails on any route the document omits and on any
+   path it describes that is not routed.
+10. A reply form on a thread for a signed-in person, whose turn counts as their principal and
    is queued for content review like any other free text.
-10. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
+11. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
    agreement — the escape a single-principal node needs.
-11. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
+12. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
    settling does; `TOPICS` gains `:threads`; `ASK` gains a line; `Guidance::VERSION` bumps.
    `skills/galedra.md` gains nothing and `spec/lib/skills_spec.rb` keeps passing.
-12. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
+13. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
    that determination and what a turn in it can do — at the point of contact, not only in a
    guidance block read some calls ago.
-13. Content review covers thread turns, from people and assistants alike.
-14. The three findings above, filed as threads on `16fb6733` and its two links, as the
+14. Content review covers thread turns, from people and assistants alike.
+15. The three findings above, filed as threads on `16fb6733` and its two links, as the
    acceptance fixture.
 
 ## Acceptance
@@ -518,7 +524,8 @@ somebody.
    must leave the thread one principal short.
 17. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
    object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
-   reply form.
+   reply form. The nav badge counts threads for an admin, and `openapi_spec` passes with the
+   new routes described.
 18. The same complaint filed twice on one determination collapses onto one thread with a
    count rather than opening a second, and `FilingCap` refuses an assistant over its daily
    allowance with a message naming what to do next.
