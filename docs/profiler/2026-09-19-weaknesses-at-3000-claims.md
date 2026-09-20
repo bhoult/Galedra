@@ -219,10 +219,43 @@ counts statements, and was checked against the unbatched code, where it fails wi
 quarantine queries where it expects at most 1. Full suite 392 green; the reference scorer
 prints ALL PASS.
 
-## Finding 5, quantified · **OPEN**
+## Finding 5, quantified · **PARTLY FIXED 2026-09-20**
 
 `Graph::Presenter.claim` issues **37 queries per claim**. Quarantine, reference totals,
 evaluability, section placements, inferences, topics, supersession, merges and two evidence
 counts are each asked separately, so a fifty-claim page is on the order of 1,850 statements.
 It is bounded by page size rather than by corpus size, which is why it has waited. It is the
 same shape of problem and wants the same fix.
+
+
+## Finding 5, what is actually left · **OPEN**
+
+The six separate counts in `Graph::Presenter.claim` — four directions, the total, and the
+pending count, all against the same relation — are now one grouped count plus the pending
+one. Measured on a fixture claim with four links: **43 statements before, 39 after.** A spec
+holds the 39 as a ratchet and prints the breakdown when it is exceeded.
+
+**Do not read this as fixed.** 39 is still far too many for something a page renders fifty
+of. The measured breakdown, which is new here and was the point of taking it:
+
+| Source | Statements |
+|---|---|
+| `ClaimEdge Load` | 6 |
+| `EvidenceClaimLink Load` | 5 |
+| `SourceRetrieval Load` | 4 |
+| `EvidenceItem Load` | 3 |
+| `Inference Load` | 2 |
+| `ClaimMerge Load` | 2 |
+| `Claim Load` | 2 |
+| `EvidenceClaimLink Count` | 2 |
+| `ClaimScore Load` | 2 |
+
+Two of these are per-link N+1s with a named home. `SourceRetrieval Load` is 4 on a claim with
+exactly 4 links: `Cards::ClaimCard` asks `SourceRetrieval.latest_for(location.source_id, seq)`
+once per counted link. `ClaimEdge Load` is 6 on a claim that has **no edges at all**, so
+something is asking repeatedly for nothing — most likely the card's downstream counting.
+
+Each wants its own change and its own before-and-after, the way the scoring pass got one.
+What this entry now has that it did not is the list, measured rather than guessed, so the
+next session starts from where the statements actually go instead of from "the presenter is
+slow".

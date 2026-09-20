@@ -27,17 +27,28 @@ module Graph
         topics: Topics.for_claim(claim, seq),
         supersedes_claim_id: claim.supersedes_claim_id, superseded_by_id: claim.superseded_by_at(seq)&.id,
         merged_into_id: claim.merge_at(seq)&.into_claim_id,
-        evidence_counts: {
-          support: counted.where(direction: "SUPPORT").count, contradict: counted.where(direction: "CONTRADICT").count,
-          qualify: counted.where(direction: "QUALIFY").count, neutral: counted.where(direction: "NEUTRAL").count,
-          counted: counted.count, pending: links.pending_at(seq).count
-        },
+        evidence_counts: evidence_counts(links, counted, seq),
         edges: {
           outgoing: claim.outgoing_edges.counted_at(seq).map { |e| edge(e) },
           incoming: claim.incoming_edges.counted_at(seq).map { |e| edge(e) }
         },
         assessment: model && assessment(Scoring::Score.call(claim, seq, model), seq, model),
         card: model && Cards::ClaimCard.call(claim, seq, model)
+      }
+    end
+
+    # One grouped count where there were six: four directions, the total, and
+    # the pending count were five statements against the same relation plus one
+    # more, per claim, on a page that renders fifty
+    # (docs/profiler/2026-09-19-weaknesses-at-3000-claims.md, finding 5). The
+    # total is summed from the grouping rather than asked for again, which holds
+    # whatever directions exist because the grouping covers all of them.
+    def evidence_counts(links, counted, seq)
+      by_direction = counted.group(:direction).count
+      {
+        support: by_direction.fetch("SUPPORT", 0), contradict: by_direction.fetch("CONTRADICT", 0),
+        qualify: by_direction.fetch("QUALIFY", 0), neutral: by_direction.fetch("NEUTRAL", 0),
+        counted: by_direction.values.sum, pending: links.pending_at(seq).count
       }
     end
 
