@@ -175,6 +175,13 @@ This happened, was recorded in the experiment log *along with the note that an
 assertion on the search would catch it*, and then happened again hours later
 because the assertion was never added. Writing a lesson down is not acting on it.
 
+**`git add -A` without reading every `??` line.** 16MB of generated graphify output went
+into a commit because the status output said `?? graphify-out/` directly above the `add -A`
+in the same command, and only the two expected files were read. Stage explicitly, or read
+the untracked list first. Generated output directories are the specific hazard, and this
+happened an hour after writing "a filter narrow enough to look tidy is narrow enough to
+discard what you needed" into this file.
+
 **Over-correcting on a word.** Told the tool was "graphiphy", not "graphify", the
 install was declared wrong before checking whether the new name resolved. It did
 not. The retraction was as hasty as the thing it retracted.
@@ -200,6 +207,25 @@ prediction disagree, find which side is wrong. Predicting expected values before
 running them caught a real subtlety: collapsing a duplicate lowers stability as
 well as probability, because two groups meet the minimum for HIGH and one does
 not.
+
+## Open work, with the analysis that is not in the code
+
+**Four stage plans name classes that do not exist.** Triaged; do not treat as four identical
+fixes:
+
+| Name | Stage | Verdict |
+|---|---|---|
+| `Audits::ApplyResult` | 07 | **Fix.** It is `Ledger::Appliers::Audit.apply_effect` — confirmed to be the 05 §9 effects table, not a dispatcher. |
+| `Ledger::Apply::PROJECTION_MODELS` | 20 | **Fix, narrowly.** The constant is `Contribution::PROJECTION_MODELS`. The doc's substantive claim is true — sections and placements really are covered by digests and replay — so correct the namespace and nothing else. |
+| `Contributions::ValidateTaskResult` | 08 | **Investigate first.** The work is split across `Contributions::ValidateEnvelope` and `Ledger::Appliers::TaskResult`. Map 04 §6's nine steps across both before writing anything; naming one of them substitutes a new inaccuracy for the old. |
+| `Ledger::Digest` | 03 | **Leave alone.** Not drift. The line already names `TableDigest` and records `Digest` as the rejected name with the reason. "Fixing" it would delete a working Decision Log entry. |
+
+**Also open:** `bench:cpu` against a still corpus (18s requests, two distinct faults, and
+`/weaknesses` at 13.5s — the largest untouched problem); re-checking the claims that lost a
+directional state under `0.2.0`; the task queue putting unresolvable claims in most
+top-priority slots; the `Cards::Plain` precedence that changed for reasons never traced; and
+the copyright decision on transcript readings, which gates both the Stage 33 export default
+and anything public.
 
 ## Standing unknowns
 
