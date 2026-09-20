@@ -157,7 +157,7 @@ The method note in finding 6 was right about the page cache and wrong to stop th
 score cache is a table, not `Rails.cache`, so running an operation more than once warms it
 even with the page cache disabled. A cold measurement has to clear both.
 
-## Follow-up: what the cold path actually costs · **PARTLY FIXED**
+## Follow-up: what the cold path actually costs · **FIXED 2026-09-20**
 
 Statements rather than samples, on the development corpus of 27 claims. Small, but the
 ratio per claim is what matters and it does not improve with size.
@@ -197,6 +197,27 @@ way the score cache now is: one query for compromise windows, one for audits by 
 for quarantines, one for independence assignments. That is a refactor of the path the whole
 project's correctness rests on, guarded only by the golden tests. It is recorded here as
 the next piece of work rather than attempted at the end of a session.
+
+**Done 2026-09-20, three of the four.** `Scoring::Pass` bulk-loads quarantines, audits by
+target and key-compromise windows for a whole set, in the same block-scoped thread-local
+shape as `Audits::Status.memoized` and for the same reason: the answers are a function of
+the log up to a seq, and the log does not move while a pass runs. Outside a pass every
+lookup falls back to the query it replaces, so the single-claim path is unchanged.
+
+**The fourth was left alone on purpose.** An evidence item's independence group reads
+`order(accepted_seq: :desc).first`, and two assignments accepted at one seq would be a tie
+that SQL breaks arbitrarily — so grouping one sorted query could pick a different row and
+move a trace. Audits cannot tie (one audit per contribution, one contribution per seq, so
+`created_seq` is unique) and neither can revocations, ordered by `seq`. That distinction is
+the whole reason three were safe and one was not, and it is why this was not "batch the four
+lookups".
+
+**What guards it.** A spec builds a graph where all three fire — an audited link, a
+quarantined source, several claims — scores it one at a time and again batched, and compares
+`trace` and `trace_hash` byte for byte, because Invariant 4 is the property at risk. It also
+counts statements, and was checked against the unbatched code, where it fails with 5
+quarantine queries where it expects at most 1. Full suite 392 green; the reference scorer
+prints ALL PASS.
 
 ## Finding 5, quantified · **OPEN**
 

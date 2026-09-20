@@ -42,9 +42,34 @@ module Audits
       memo(:confirmed, contribution_id, seq) { compute_confirmed?(contribution_id, seq) }
     end
 
+    # Every live audit on a target at this seq, newest first. Inside a scoring
+    # pass these were loaded for the whole claim set in one query
+    # (Scoring::Pass); outside one this is the query it replaces, unchanged.
+    # created_seq is unique per audit — one audit per contribution, one
+    # contribution per seq — so there are no ties for the grouping to break
+    # differently from the per-target query.
+    def target_audits(contribution_id, seq)
+      Scoring::Pass.audits_for(contribution_id, seq) ||
+        memo(:target_audits, contribution_id, seq) do
+          Audit.active_at(seq).where(target_contribution_id: contribution_id)
+               .includes(:auditor, :contribution).order(created_seq: :desc).to_a
+        end
+    end
+
+    # REVOKE_KEY contributions for a signer's key at or before this seq, oldest
+    # first. The compromised_since test is applied in Ruby on both paths rather
+    # than in SQL on one of them, so the predicate has a single home.
+    def revocations_for(contribution, seq)
+      Scoring::Pass.revocations_for(contribution.signer_key_id, seq) ||
+        memo(:revocations, contribution.signer_key_id, seq) do
+          Contribution.where(action_type: "REVOKE_KEY").where("seq <= ?", seq)
+                      .where("payload->>'key_id' = ?", contribution.signer_key_id).order(:seq).to_a
+        end
+    end
+
     def compute_confirmed?(contribution_id, seq)
-      # :contribution as well: the principal is read off it for every audit.
-      audits = Audit.active_at(seq).where(target_contribution_id: contribution_id, result: "CONFIRMED").includes(:auditor, :contribution)
+      # The principal is read off each audit's contribution.
+      audits = target_audits(contribution_id, seq).select { |a| a.result == "CONFIRMED" }
       return false if audits.empty?
 
       principals = audits.map { |a| a.contribution.principal_contributor_id || a.auditor_contributor_id }.uniq
@@ -78,14 +103,17 @@ module Audits
       challenge_seq = challenge_seq_for(contribution, seq)
       return false if challenge_seq.nil?
 
-      !Audit.active_at(seq).where(target_contribution_id: contribution.id, result: "CONFIRMED").where("created_seq > ?", challenge_seq).exists?
+      target_audits(contribution.id, seq).none? { |a| a.result == "CONFIRMED" && a.created_seq > challenge_seq }
     end
 
     def challenge_seq_for(contribution, seq)
-      revocation = Contribution.where(action_type: "REVOKE_KEY").where("seq <= ?", seq)
-                               .where("payload->>'key_id' = ?", contribution.signer_key_id)
-                               .where("(payload->>'compromised_since')::bigint <= ?", contribution.seq).order(:seq).first
-      unresolved = Audit.active_at(seq).where(target_contribution_id: contribution.id).order(created_seq: :desc).first
+      revocation = revocations_for(contribution, seq).find do |c|
+        since = c.payload["compromised_since"]
+        # A missing compromised_since fails the SQL cast comparison; nil.to_i
+        # would silently pass it, so the absence is tested rather than coerced.
+        since.present? && since.to_i <= contribution.seq
+      end
+      unresolved = target_audits(contribution.id, seq).first
       candidates = []
       candidates << revocation.seq if revocation && revocation.seq > contribution.seq
       candidates << unresolved.created_seq if unresolved&.result == "UNRESOLVED"
@@ -93,7 +121,7 @@ module Audits
     end
 
     def latest_audit(contribution_id, seq)
-      Audit.active_at(seq).where(target_contribution_id: contribution_id).order(created_seq: :desc).first
+      target_audits(contribution_id, seq).first
     end
   end
 end

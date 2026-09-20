@@ -40,7 +40,9 @@ module Scoring
       # not move while the set is being scored; the same contributions recur
       # across links and across models, so ask once.
       computed = Audits::Status.memoized do
-        misses.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, seq), model) ] }
+        Pass.over(misses, seq) do
+          misses.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, seq), model) ] }
+        end
       end
       store_all(computed, seq, model)
 

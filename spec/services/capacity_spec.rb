@@ -31,6 +31,61 @@ RSpec.describe "Capacity: batched scoring, score-cache retention, and a bounded 
     [ pair, claims ]
   end
 
+  # Scoring::Pass batches the per-link lookups across a whole set: quarantines,
+  # audits by target, and key-compromise windows. The property that matters is
+  # that it changes how often a question is asked and never the answer, so this
+  # builds a graph where all three actually fire — an audited link, a quarantined
+  # source, and several claims — and compares traces byte for byte.
+  it "batches the per-link lookups across a set without moving a trace" do
+    author, = register_key
+    reviewer = register_reviewer.first
+    moderator = register_moderator.first
+    source = create_source(author, content: "Survey: 62% of 400 respondents reported higher productivity.")
+    location = create_location(author, source)
+    claims = Array.new(4) { |i| create_claim(author, "Claim #{i}: 62% of respondents reported higher productivity.", type: "QUANTITATIVE") }
+    claims.each_with_index do |c, i|
+      evidence = create_evidence(author, location, statement: "The passage bears on claim #{i}.")
+      link = link_evidence(author, evidence, c, direction: i.even? ? "SUPPORT" : "CONTRADICT")
+      audit(reviewer, link) if i < 2
+    end
+    quarantined = create_source(author, title: "Withheld", content: "Another passage entirely.")
+    quarantined_claim = create_claim(author, "A claim resting on a withheld source.", type: "QUANTITATIVE")
+    link_evidence(author, create_evidence(author, create_location(author, quarantined), statement: "It says so."), quarantined_claim)
+    quarantine(moderator, quarantined)
+    all = claims + [ quarantined_claim ]
+
+    seq = Contribution.maximum(:seq)
+    model = Scoring::Registry.default_model
+    one_at_a_time = all.to_h { |c| [ c.id, Scoring::Score.call(c, seq, model) ] }
+    ClaimScore.delete_all
+
+    counts = Hash.new(0)
+    counter = lambda do |*, payload|
+      sql = payload[:sql].to_s
+      counts[:audits] += 1 if sql.include?('"audits"')
+      counts[:quarantines] += 1 if sql.include?('"quarantines"')
+      counts[:revocations] += 1 if sql.include?("REVOKE_KEY")
+    end
+    batched = ActiveSupport::Notifications.subscribed(counter, "sql.active_record") do
+      Scoring::Score.call_many(all, seq, model)
+    end
+
+    # Invariant 4 is the point: the number, the state and the trace cannot move
+    # because of where the answer came from.
+    all.each do |c|
+      expect(batched[c.id].trace).to eq(one_at_a_time[c.id].trace), "trace moved for #{c.id}"
+      expect(batched[c.id].trace_hash).to eq(one_at_a_time[c.id].trace_hash)
+      expect(batched[c.id].assessment_state).to eq(one_at_a_time[c.id].assessment_state)
+      expect(batched[c.id].probability).to eq(one_at_a_time[c.id].probability)
+    end
+
+    # Bounded by the pass rather than by the number of links: one load each, not
+    # one per link per kind.
+    expect(counts[:quarantines]).to be <= 1
+    expect(counts[:revocations]).to be <= 1
+    expect(counts[:audits]).to be <= 2, "one grouped load for the set, not one per link"
+  end
+
   it "scores a set in one cache query and returns byte-identical traces to scoring one at a time (#1)" do
     _pair, claims = graph(6)
     seq = Contribution.maximum(:seq)

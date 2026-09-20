@@ -29,6 +29,16 @@ module Scoring
             .filter_map { |source| Sources::Origin.key_for(source) }.to_set
     end
 
+    # In a scoring pass the live quarantines for the whole set were loaded once
+    # (Scoring::Pass); outside one this is the same existence check as before.
+    # Membership of a set, so there is no ordering for batching to change.
+    def quarantined?(source_id, seq)
+      quarantined = Pass.quarantined_sources(seq)
+      return quarantined.include?(source_id) if quarantined
+
+      Governance::Quarantines.quarantined_at?("SOURCE", source_id, seq)
+    end
+
     def links_for(claim, seq, own_origins = Set.new)
       # :contribution too, because the audit checks below ask every link for it
       # and loading them one at a time was the single largest source of queries
@@ -39,7 +49,7 @@ module Scoring
         item = link.evidence_item
         location = item.source_location
         next unless item.active_at?(seq) && location.active_at?(seq) && location.source.active_at?(seq)
-        next if Governance::Quarantines.quarantined_at?("SOURCE", location.source_id, seq)
+        next if quarantined?(location.source_id, seq)
         next if Audits::Status.challenged?(link.contribution, seq)
 
         origin = Sources::Origin.key_for(location.source)
