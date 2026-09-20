@@ -36,10 +36,19 @@ RSpec.describe Graph::Presenter do
       support: 1, contradict: 1, qualify: 1, neutral: 1, counted: 4, pending: 0
     )
 
-    # Measured on this fixture: 43 before the grouped count, 39 after. The bound
-    # is a ratchet, not a target — it is still too many, and what is left is
-    # named in the profiler entry rather than guessed at here.
-    seen = statements { described_class.claim(claim, seq, model: model) }
-    expect(seen.size).to be <= 39, "#{seen.size} statements: #{seen.tally.sort_by { |_, v| -v }.first(8).inspect}"
+    # Measured on this fixture, fresh instance both times: 40 before, 35 after.
+    # The bound is a ratchet, not a target: it is still too many, and what is
+    # left is named in the profiler entry rather than guessed at here. The four
+    # remaining ClaimEdge loads are two from this memo and two from Cards::Plain,
+    # whose filtered queries carry no explicit order and whose precedence is a
+    # standing open question, so they were left alone deliberately.
+    #
+    # A FRESH instance, because Claim memoises its counted edges per object, so
+    # rendering the same object twice measures a warm memo rather than a request.
+    # The first version of this spec did exactly that and reported a saving twice
+    # the real one.
+    fresh = Claim.find(claim.id)
+    seen = statements { described_class.claim(fresh, seq, model: model) }
+    expect(seen.size).to be <= 35, "#{seen.size} statements: #{seen.tally.sort_by { |_, v| -v }.first(8).inspect}"
   end
 end

@@ -255,7 +255,30 @@ exactly 4 links: `Cards::ClaimCard` asks `SourceRetrieval.latest_for(location.so
 once per counted link. `ClaimEdge Load` is 6 on a claim that has **no edges at all**, so
 something is asking repeatedly for nothing — most likely the card's downstream counting.
 
-Each wants its own change and its own before-and-after, the way the scoring pass got one.
-What this entry now has that it did not is the list, measured rather than guessed, so the
-next session starts from where the statements actually go instead of from "the presenter is
-slow".
+### Both fixed, 2026-09-20 · **40 → 35 statements**
+
+The guess about the edges was wrong, and capturing the SQL rather than the counter names
+said so. Nothing was counting downstream: the six were **three pairs of the same two
+queries**. `Graph::Presenter`'s `edges` block and `Cards::ClaimCard#related` issued
+byte-identical ones, and `Cards::Plain#narrower_supported` issued a filtered pair of its own.
+
+- `Claim#counted_outgoing_edges(seq)` / `#counted_incoming_edges(seq)` memoise per object and
+  per seq, preloading the far side. The presenter and the card share a `Claim` instance
+  within one render, so the identical pair is asked once: **6 → 4**.
+- `Cards::Plain` was **left alone on purpose**. Its queries carry an extra
+  `relationship_type` filter and no explicit order, and its precedence is a standing open
+  question in `docs/CONTEXT.md`; folding it into the shared set could change which candidate
+  wins a tie. Its two are the remaining four minus the memo's two.
+- `retrieval_labels` now asks once per distinct source instead of once per link. The four
+  links in the fixture all quote one source: **4 → 1**.
+
+**The measurement was wrong first, in a way worth recording.** The spec rendered the claim
+twice and measured the second, so the new per-object memo was already warm and the saving
+looked twice as large as it is. Measuring a freshly loaded `Claim` gives the honest figure:
+40 before, 35 after, on the same fixture. A memo that makes a second render free makes a
+benchmark lie about the first.
+
+Each of the rest still wants its own change and its own before-and-after, the way the scoring
+pass got one. What this entry has that it did not is the list, measured rather than guessed,
+so the next session starts from where the statements actually go instead of from "the
+presenter is slow".

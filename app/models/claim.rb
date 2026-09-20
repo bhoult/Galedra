@@ -20,6 +20,20 @@ class Claim < ApplicationRecord
   has_many :evidence_claim_links, dependent: nil
   has_many :outgoing_edges, class_name: "ClaimEdge", foreign_key: :from_claim_id, inverse_of: :from_claim, dependent: nil
   has_many :incoming_edges, class_name: "ClaimEdge", foreign_key: :to_claim_id, inverse_of: :to_claim, dependent: nil
+
+  # The same counted edges are asked for more than once while one claim renders:
+  # the presenter's edges block and the card's related list issue byte-identical
+  # queries (docs/profiler/2026-09-19-weaknesses-at-3000-claims.md, finding 5).
+  # Memoised per object and per seq — a Claim instance belongs to one request,
+  # and the answer is a function of the log up to a seq, so it cannot go stale
+  # inside that. The far side is preloaded because every caller reads it.
+  def counted_outgoing_edges(seq)
+    (@counted_outgoing_edges ||= {})[seq] ||= outgoing_edges.counted_at(seq).includes(:to_claim).to_a
+  end
+
+  def counted_incoming_edges(seq)
+    (@counted_incoming_edges ||= {})[seq] ||= incoming_edges.counted_at(seq).includes(:from_claim).to_a
+  end
   has_many :merges_from, class_name: "ClaimMerge", foreign_key: :from_claim_id, inverse_of: :from_claim, dependent: nil
   has_many :merges_into, class_name: "ClaimMerge", foreign_key: :into_claim_id, inverse_of: :into_claim, dependent: nil
   has_many :evaluability_settings, class_name: "ClaimEvaluabilitySetting", dependent: nil

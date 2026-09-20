@@ -29,8 +29,8 @@ module Graph
         merged_into_id: claim.merge_at(seq)&.into_claim_id,
         evidence_counts: evidence_counts(links, counted, seq),
         edges: {
-          outgoing: claim.outgoing_edges.counted_at(seq).map { |e| edge(e) },
-          incoming: claim.incoming_edges.counted_at(seq).map { |e| edge(e) }
+          outgoing: claim.counted_outgoing_edges(seq).map { |e| edge(e) },
+          incoming: claim.counted_incoming_edges(seq).map { |e| edge(e) }
         },
         assessment: model && assessment(Scoring::Score.call(claim, seq, model), seq, model),
         card: model && Cards::ClaimCard.call(claim, seq, model)
