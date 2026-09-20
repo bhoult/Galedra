@@ -141,11 +141,51 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
 
     # Lease one, and it should stop being suggested to the caller holding it,
     # the way Tasks::Lease.candidates already refuses to hand it over twice.
+    before, = call_tool("list_tasks", { "limit" => 20 })
     leased, err = call_tool("next_task", {})
     expect(err).to be(false)
     data, = call_tool("list_tasks", { "limit" => 20 })
     expect(data["next"].map { |t| t["task_id"] }).not_to include(leased["task_id"])
-    expect(data["open"]).to be_positive, "the totals stay objective: they describe the outline, not the caller"
+
+    # Two numbers that answer two different questions. The queue's total does
+    # not move, because nobody has answered anything yet; the caller's does,
+    # because there is one fewer task left for it to take.
+    expect(data["open_for_you"]).to eq(before["open_for_you"] - 1)
+  end
+
+  # The 742 that stayed 742. A task wanting three independent answers keeps its
+  # slot after the first, so the queue total is right not to move — and a caller
+  # who has just answered a hundred of them reads that as having achieved
+  # nothing. The two questions need two numbers.
+  it "shows a caller's own remaining work falling while the queue total holds" do
+    claim, = curated_claim
+    3.times do |i|
+      Tasks::Create.call(task_type: "QUALIFIER_CHECK", required_assignments: Audits::Policy.independent_checks,
+                         target: create_claim(curator, "Spare claim #{i} about productivity.", type: "CAUSAL"))
+    end
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+    before, = call_tool("list_tasks", {})
+
+    leased, err = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
+    expect(err).to be(false)
+    _, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_MATERIAL", answer: {} })
+    expect(err).to be(false)
+
+    data, = call_tool("list_tasks", {})
+    expect(data["open"]).to eq(before["open"]), "two more answers are still wanted, so the queue is unchanged"
+    expect(data["open_for_you"]).to eq(before["open_for_you"] - 1), "but there is one fewer left for this caller"
+    expect(data["answers_wanted"]).to eq(before["answers_wanted"] - 1)
+    expect(data["answers_wanted_for_you"]).to eq(before["answers_wanted_for_you"] - 3), "all three of that task's answers are now beyond this caller"
+  end
+
+  # An anonymous caller has taken nothing, so the two numbers agree — and that
+  # is the honest answer rather than a missing field.
+  it "gives a caller with nothing of its own the same number twice" do
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: curated_claim.first)
+    data, err = call_tool("list_tasks", {}, nil)
+    expect(err).to be(false)
+    expect(data["open_for_you"]).to eq(data["open"])
+    expect(data["answers_wanted_for_you"]).to eq(data["answers_wanted"])
   end
 
   # A curator's claim with one direct support: a claim someone else recorded.

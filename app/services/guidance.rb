@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.8"
+  VERSION = "2026-09-20.9"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -104,6 +104,9 @@ module Guidance
          "asked for the open tasks meant the open tasks. " \
          "Report as you go, about every ten tasks: how many you have done, what the last few found, and what is left. " \
          "Someone watching a long run cannot tell steady work from a stall, and silence reads as the second. " \
+         "What is left means open_for_you, not open: most tasks want three independent answers from three principals, so " \
+         "the queue total barely moves however hard you work, and quoting it tells the person their afternoon achieved " \
+         "nothing. open_for_you and answers_wanted_for_you count only what you may still take. " \
          "If the kind of task you are on stops being useful — the checks keep coming back CANNOT_DETERMINE, or the passage " \
          "can only ever establish that a quotation is faithful — say so and switch to a kind that can move something. " \
          "list_claims(section_id, state:, checkable:) is the worklist: it returns id, text, type and state only, so a whole " \

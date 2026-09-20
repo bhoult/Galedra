@@ -84,7 +84,7 @@ module Mcp
       { name: "list_tasks", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, section_id: { type: "string", description: "Only work under this outline or section" }, limit: { type: "integer", default: 5 } } },
-        outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" },
+        outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks in the queue, whoever answers them. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted, by anyone" }, open_for_you: { type: "integer", description: "Of those, the ones you may still take: never one you or your principal has already leased or answered. This is the number that falls as you work, and the one to quote to the person" }, answers_wanted_for_you: { type: "integer", description: "Answers still wanted on the tasks you may take" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" },
                                                       content_reviews_pending: { type: "integer", description: "Awaiting review from anyone." },
                                                       content_reviews_for_you: { type: "integer", description: "Of those, the ones you may take: never your own principal's words, never one you have already voted on." },
                                                       how: { type: "string" } } } },
@@ -693,10 +693,10 @@ module Mcp
       # principal has leased or submitted; this listing did not, so a returning
       # assistant was shown its own finished work at the top of the queue
       # (docs/experiments/2026-09-20-second-connector-run.md, finding 8). The
-      # `open` and `answers_wanted` totals stay objective: they describe the
-      # outline, not the caller.
+      # same set answers "how much of this is mine to do?" below.
       mine = taken_task_ids
-      top = open.reject { |t| mine.include?(t.id) }.first(args.fetch("limit", 5).to_i.clamp(1, 20)).map do |t|
+      yours = open.reject { |t| mine.include?(t.id) }
+      top = yours.first(args.fetch("limit", 5).to_i.clamp(1, 20)).map do |t|
         { task_id: t.id, task_type: t.task_type, domain: t.domain, priority: t.priority.to_s("F"),
           target: t.packet["target"].slice("claim_id", "claim_text", "claim_type", "source_id", "title"), url: "#{@base_url}/tasks/#{t.id}" }
       end
@@ -705,13 +705,18 @@ module Mcp
       # move. An assistant submitted 32 results, saw "open" unchanged, and filed
       # it as a bug — correctly, in the sense that the number it was given could
       # not show the work it had done. This one falls by one per submission.
+      # Both the queue's numbers and this caller's, because the totals alone are
+      # read as work available to you. An assistant opened a 742-task outline,
+      # worked over a hundred, came back and was told 740 — true of the outline,
+      # and not an answer to the question it asked. Reported three times in one
+      # day in three different shapes (01a0c085 and the pair below), which is
+      # what makes it one fault and not three.
       { open: open.size, answers_wanted: open.sum { |t| slots.fetch(t.id, 0) },
+        open_for_you: yours.size, answers_wanted_for_you: yours.sum { |t| slots.fetch(t.id, 0) },
         by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
-        # Both numbers, because one of them alone misleads: the total said sixty
-        # were waiting while next_content_review said none awaited, and both were
-        # right — all sixty were that assistant's own words, which it may not
-        # review (01a0c085). `open` and `answers_wanted` keep the same split:
-        # the totals describe the queue, the "_for_you" figures describe you.
+        # The same split as above: the total said sixty were waiting while
+        # next_content_review said none awaited, and both were right — all sixty
+        # were that assistant's own words, which it may not review (01a0c085).
         content_reviews_pending: ContentReview.pending.count,
         content_reviews_for_you: ContentReview.available_for(@token).count,
         affiliation_reviews_pending: AffiliationRequest.pending.distinct.count(:normalized),
