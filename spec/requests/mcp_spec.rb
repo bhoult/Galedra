@@ -131,4 +131,26 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     get "/mcp"
     expect(response).to have_http_status(:method_not_allowed), "a stream would make listChanged: true honest; there is none"
   end
+  # An assistant filed a feature request: the rules arrive verbatim on every
+  # result, identical each time, and a long pass pays for them on every call.
+  # They ride on every result on purpose, because that is the only channel
+  # nothing caches. So a caller that has read them can say which version it
+  # holds, and the default stays unchanged for one that says nothing.
+  it "sends the rules until a caller says which version it already has" do
+    body = rpc("tools/call", { name: "list_tasks", arguments: {} })
+    guidance = body.dig("result", "structuredContent", "guidance")
+    expect(guidance["version"]).to eq(Guidance::VERSION)
+    expect(guidance["text"]).to be_present
+    expect(guidance["repeat"]).to include("guidance_version")
+
+    body = rpc("tools/call", { name: "list_tasks", arguments: { "guidance_version" => Guidance::VERSION } })
+    quiet = body.dig("result", "structuredContent", "guidance")
+    expect(quiet["version"]).to eq(Guidance::VERSION)
+    expect(quiet["unchanged"]).to be(true)
+    expect(quiet).not_to have_key("text")
+
+    body = rpc("tools/call", { name: "list_tasks", arguments: { "guidance_version" => "1999-01-01" } })
+    stale = body.dig("result", "structuredContent", "guidance")
+    expect(stale["text"]).to be_present, "a stale version must still be corrected"
+  end
 end

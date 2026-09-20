@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-19.1"
+  VERSION = "2026-09-20.1"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -116,9 +116,21 @@ module Guidance
              "a checkable fact. Every write you make is signed, attributed to you as an agent acting for the user or to an " \
              "anonymous key, and left permanently open to audit in the public log."
 
-  ASK = "If these tools cannot do what the person asked, or a refusal seems wrong, call request_feature with what you " \
-        "needed, then tell the person plainly what you could not do. If something went wrong (a broken page, a result that " \
-        "contradicts itself, an error that makes no sense), call report_bug with what happened."
+  # Framed around being blocked, this missed everything noticed while
+  # succeeding. An assistant paid roughly 400 redundant words on every one of a
+  # hundred-odd calls, said nothing, and filed only when the owner asked it to.
+  # Waste and friction are worth reporting precisely because nobody else can see
+  # them: the person sees a task completed, and only the assistant knows what it
+  # cost.
+  ASK = "Report what is wrong here without being asked. Do not wait to be blocked, and do not wait for the person to " \
+        "suggest it: file at the moment you notice, then carry on with the work. " \
+        "Call request_feature when these tools cannot do what the person asked, when a refusal seems wrong, and equally " \
+        "when you got the job done but the way through was wasteful, repetitive, confusing, or forced you to guess — " \
+        "say what you needed and what it cost. Call report_bug when something went wrong: a broken page, a result that " \
+        "contradicts itself, an error that makes no sense, a number that cannot be right. " \
+        "Filing one is never a complaint and never an interruption; it is the only way this record improves, because you " \
+        "are the only one who can see what working here is actually like. Tell the person plainly what you found, and " \
+        "that you have filed it."
 
   # What each topic is made of. Composed at call time rather than frozen into a
   # constant, because :work pulls in the task rules from Tasks::Answer.

@@ -254,9 +254,29 @@ module Mcp
                      "list_tasks" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
-    def guidance(name)
+    # The rules ride on every result because that is the only channel nothing
+    # caches, which is what lets a corrected rule reach a connected assistant
+    # without anyone reinstalling. The cost is real: an assistant working a long
+    # pass paid the same few hundred words on every one of a hundred-odd calls
+    # and filed a feature request about it.
+    #
+    # So a caller that has already read them can say so. Echo guidance_version
+    # with any call and only the version comes back; send nothing, or a stale
+    # version, and the full text arrives as before. The default is unchanged,
+    # which matters: a client that knows nothing about this still cannot miss a
+    # correction. The block says how to quiet it, so it is discoverable from the
+    # first result rather than needing a field on every tool's schema.
+    def guidance(name, args = {})
       topic = GUIDANCE_FOR[name]
-      topic && { version: Guidance::VERSION, topic: topic, text: Guidance.for(topic) }
+      return nil unless topic
+
+      seen = args.is_a?(Hash) ? args["guidance_version"].to_s : ""
+      return { version: Guidance::VERSION, topic: topic, unchanged: true } if seen == Guidance::VERSION
+
+      { version: Guidance::VERSION, topic: topic, text: Guidance.for(topic),
+        repeat: "These rules arrive with every result so a correction reaches you without reinstalling anything. " \
+                "Once you have read them, send guidance_version: \"#{Guidance::VERSION}\" with any call and only the " \
+                "version comes back. Send the full text's version again whenever it changes." }
     end
 
     def call_tool(params)
@@ -285,7 +305,8 @@ module Mcp
         raise
       end
       log_call(name, args, started, outcome: outcome_of(name, data))
-      data = data.merge(guidance: guidance(name)) if data.is_a?(Hash) && guidance(name)
+      note = guidance(name, args)
+      data = data.merge(guidance: note) if data.is_a?(Hash) && note
       { content: [ { type: "text", text: JSON.pretty_generate(data) } ], structuredContent: data, isError: false }
     end
 
