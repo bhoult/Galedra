@@ -97,6 +97,50 @@ RSpec.describe "Audits and reputation (07 Phase 4)", type: :request do
     expect(response.parsed_body["note"]).to match(/not authority/)
   end
 
+  # The tally at the end of Reputation::Calculate.summarize fetched each event's
+  # audit on its own. Eligibility and sampling call this on every append and read
+  # only n and mean, so a 100k-claim seed spent 366 million single-row lookups on
+  # a 6,920-row table (docs/profiler/2026-09-20-seed-write-path-decay.md).
+  it "reads reputation without one audit query per event, and tallies in one (#1)" do
+    # Distinct payloads on purpose: scored_graph builds byte-identical ones, and
+    # the log's idempotency absorbs the repeats into a single link and audit.
+    3.times do |i|
+      source = create_source(curator, type: "DATASET", content: "Survey #{i}: 62% of 400 respondents reported higher productivity.")
+      evidence = create_evidence(curator, create_location(curator, source), observation: "DATASET_RESULT")
+      claim = create_claim(curator, "Claim #{i}: 62% of respondents reported higher productivity.", type: "QUANTITATIVE")
+      audit(reviewer, link_evidence(curator, evidence, claim, strength: "DIRECT"))
+    end
+    curator_id = Contributor.find_by!(key_id: curator.key_id).id
+    seq = Contribution.maximum(:seq)
+    expect(ReputationEvent.where(contributor_id: curator_id).count).to eq(3)
+
+    audits_touched = lambda do |&block|
+      n = 0
+      counter = ->(*, payload) { n += 1 if payload[:sql].to_s.include?('"audits"') }
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { block.call }
+      n
+    end
+
+    # The hot path does not want the tally, so it must not read the table at all.
+    rep = nil
+    touched = audits_touched.call { rep = Reputation::Calculate.call(contributor_id: curator_id, task_type: "MANUAL", domain: "general", snapshot_seq: seq) }
+    expect(touched).to eq(0)
+    expect(rep).to include(alpha: "4.00", beta: "1.00", mean: "0.8000", n: "3.00")
+    expect(rep).not_to have_key(:counts)
+
+    # The display path does want it, and pays one preloaded query, not three.
+    buckets = nil
+    touched = audits_touched.call { buckets = Reputation::Calculate.buckets(contributor_id: curator_id, snapshot_seq: seq) }
+    expect(touched).to eq(1)
+    expect(buckets.first).to include(counts: { "CONFIRMED" => 3 }, n: "3.00")
+
+    # Asking for it explicitly is still one query, and agrees with the display path.
+    with_counts = nil
+    touched = audits_touched.call { with_counts = Reputation::Calculate.call(contributor_id: curator_id, task_type: "MANUAL", domain: "general", snapshot_seq: seq, counts: true) }
+    expect(touched).to eq(1)
+    expect(with_counts[:counts]).to eq("CONFIRMED" => 3)
+  end
+
   it "forbids auditing one's own or one's agents' work, and requires eligibility (#4)" do
     principal_pair, agent_pair, _, delegation = principal_with_agent
     source = create_source(curator)
