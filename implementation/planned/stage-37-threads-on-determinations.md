@@ -239,6 +239,61 @@ the report register and needing the same guards, reused rather than reinvented:
 - Anonymous assistants may open a thread and take turns, and cannot vote, matching every
   other write path: a turn that counts toward consensus has to belong to somebody.
 
+## What a connected assistant is told, and where it is told it
+
+A feature an assistant does not know about does not exist. This one needs more than a tool
+description, because the hard part is not the call — it is knowing **which of three things
+you are looking at**, and that judgement has to arrive before the assistant reaches for a
+tool.
+
+**The three-way rule, which is the whole of it:**
+
+- Something wrong with **Galedra** — a broken page, a refusal that makes no sense, a result
+  that contradicts itself, a tool that cannot do what was asked: `report_bug` or
+  `request_feature`. The register.
+- Something wrong with **how a determination was made** — this statement's figures are not in
+  the passage it rests on; these two sources may share an origin; these two items answer
+  different questions and the card does not say so; this excerpt stops one clause short of
+  the sentence that makes it legible: **a thread on that determination.**
+- Something about **the world** — this claim is false, or true, or needs qualifying, and here
+  is a source: a contribution. `add_evidence`, `record_investigation`, `open_task`. Never a
+  thread. A thread that argues a claim is wrong, instead of recording what says so, is the
+  one way this feature fails.
+
+The middle case is the one with no home today, and the guidance has to say so in those words,
+because the observed behaviour is that it gets filed as a bug against Galedra. All three
+findings about claim `16fb6733` went into the register, and none of them was a defect in
+Galedra. **A defect in the record is not a bug in the software**, and an assistant that has
+only ever had the register will keep reaching for it.
+
+**Where each piece lives**, following the rule this project already holds:
+
+- **`Guidance`** gets a `THREADS` topic and a line in `ASK`, and `Guidance::VERSION` bumps.
+  This is the durable home: it is served on every MCP result and reaches a live session on
+  its next call, which is how the `searched` rule reached an assistant mid-run today rather
+  than waiting for a reinstall. `TOPICS` gains `:threads`.
+- **Tool descriptions** repeat the essentials for `open_thread`, `next_thread`,
+  `respond_to_thread` and `list_threads`, and are never the only home for any of it: they are
+  cached from the last connection, and claude.ai is reported to discard `instructions`
+  entirely.
+- **`skills/galedra.md` gets nothing.** A skill is installed once and never re-read, so a rule
+  written there is frozen until every user reinstalls. `spec/lib/skills_spec.rb` already fails
+  if an operational rule migrates back into it, and that spec must keep passing.
+- **The point of contact.** This is the addition the day's evidence demands. A result about a
+  determination says, in the result, that a thread is open on it and what taking a turn would
+  do: `get_claim`, `next_task`'s packet and `submit_task`'s reply. Tonight's fault was a
+  refusal hint that said "if this stopped you" while `Guidance` said "equally when the way
+  through was wasteful" — **the narrower text won because it was the one being read at the
+  moment of deciding**. A thread an assistant learns about only in a guidance block it read
+  four calls ago is the same mistake waiting to happen.
+
+What the guidance must actually say, beyond the three-way rule: that an unresolved thread is
+work anyone can volunteer for and `next_thread` hands one over; that a turn is prose and
+carries no authority by itself; that settling means naming `INVESTIGATE` or
+`NO_FURTHER_WORK` and that three principals have to name the same one; that a settled thread
+opens or closes work and never moves a score, so arguing well changes nothing about a claim
+and recording evidence is what does.
+
 ## One implementation, and a test that keeps it one
 
 **Everything thread-shaped runs through the same code** (owner instruction, 2026-09-20). Not
@@ -349,10 +404,14 @@ somebody.
    is queued for content review like any other free text.
 8. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
    agreement — the escape a single-principal node needs.
-9. `Guidance` gains the rule: a thread is for how the record was made; a disagreement about
-   the world is a contribution. `Guidance::VERSION` bumps.
-10. Content review covers thread turns, from people and assistants alike.
-11. The three findings above, filed as threads on `16fb6733` and its two links, as the
+9. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
+   settling does; `TOPICS` gains `:threads`; `ASK` gains a line; `Guidance::VERSION` bumps.
+   `skills/galedra.md` gains nothing and `spec/lib/skills_spec.rb` keeps passing.
+10. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
+   that determination and what a turn in it can do — at the point of contact, not only in a
+   guidance block read some calls ago.
+11. Content review covers thread turns, from people and assistants alike.
+12. The three findings above, filed as threads on `16fb6733` and its two links, as the
    acceptance fixture.
 
 ## Acceptance
@@ -396,6 +455,9 @@ somebody.
 15. The same complaint filed twice on one determination collapses onto one thread with a
    count rather than opening a second, and `FilingCap` refuses an assistant over its daily
    allowance with a message naming what to do next.
+16. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
+   task on it, so an assistant meets the thread where it is working rather than only in
+   guidance. `spec/lib/skills_spec.rb` passes unchanged: none of this reached the skill.
 
 ## The Constitutional Test
 
