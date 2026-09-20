@@ -249,6 +249,12 @@ module Mcp
       [ 200, tool_error(id, e.errors, era) ]
     rescue Assistants::CapReached => e
       [ 200, tool_error(id, [ { code: "DAILY_CAP", path: "$", detail: e.message } ], era) ]
+    rescue ActiveRecord::RecordInvalid => e
+      # A validation that reaches here is still a refusal, and a refusal the
+      # caller can read beats a bare 422 with nothing in it. One of these cost an
+      # assistant two attempts at a reply it could not shorten because nothing
+      # told it to (docs/experiments/2026-09-20-second-connector-run.md).
+      [ 200, tool_error(id, [ { code: "SCHEMA_INVALID", path: "$", detail: e.record.errors.full_messages.join("; ") } ], era) ]
     rescue ArgumentError => e
       [ 200, error(id, INVALID_PARAMS, e.message) ]
     end
@@ -614,8 +620,8 @@ module Mcp
       raise ArgumentError, "body is required" if body.empty?
       raise ArgumentError, "satisfied must be true or false" unless [ true, false ].include?(args["satisfied"])
 
-      row.respond!(body: body, satisfied: args["satisfied"], token: @token)
-      { id: row.id, status: row.status,
+      clipped = row.respond!(body: body, satisfied: args["satisfied"], token: @token)
+      { id: row.id, status: row.status, clipped: clipped.presence,
         note: row.status == "CLOSED" ? "Closed by agreement. Reopen it with another response if it turns out not to be settled." :
                                        "Reopened with your reasons attached; a maintainer sees it as open work again." }
     end

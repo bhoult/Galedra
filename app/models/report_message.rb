@@ -3,7 +3,11 @@
 # One turn in the exchange on a bug report or feature request. Outside the log,
 # untrusted text, and never an input to anything epistemic.
 class ReportMessage < ApplicationRecord
-  MAX_CHARS = 2_000
+  # A turn is prose, not a form field: a reply that reasons through a diagnosis
+  # runs longer than a bug report's `happened`. 2,000 rejected a 2,900-character
+  # answer twice, as a bare 422 with nothing the filer could read
+  # (docs/experiments/2026-09-20-second-connector-run.md).
+  MAX_CHARS = 5_000
   AUTHOR_KINDS = %w[assistant maintainer].freeze
 
   belongs_to :report, polymorphic: true

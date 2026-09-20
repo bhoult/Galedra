@@ -104,11 +104,18 @@ module Triageable
 
   # The reporter's turn. Satisfied closes it by agreement; unsatisfied reopens
   # it, with the reason attached rather than lost.
+  # Returns whether the body had to be clipped, so the caller is told rather than
+  # finding out later. Clipped, never refused: a turn that was too long used to
+  # raise, and the filer got a bare 422 with nothing to read and no way to know
+  # a shorter reply would land.
   def respond!(body:, satisfied:, token: nil, user: nil)
+    text = body.to_s.strip
+    clipped = text.length > ReportMessage::MAX_CHARS
     transaction do
       messages.create!(author_kind: "assistant", assistant_token: token, user: user,
-                       body: body, satisfied: satisfied, created_at: Time.current)
+                       body: text[0, ReportMessage::MAX_CHARS], satisfied: satisfied, created_at: Time.current)
       update!(status: satisfied ? "CLOSED" : "OPEN")
     end
+    clipped
   end
 end
