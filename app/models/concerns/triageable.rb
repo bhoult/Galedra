@@ -50,7 +50,11 @@ module Triageable
       messages.any? ? [ "needs-you", "●", "you", "Reopened by the reporter. Waiting on a maintainer." ]
                     : [ "needs-you", "●", "you", "Filed. Waiting on a maintainer." ]
     when "ANSWERED"
-      [ "with-reporter", "○", "them", "Answered. Waiting on the reporter to say whether it settles it." ]
+      if held?
+        [ "held", "◐", "held", "Answered, and held open on purpose until the work it needs is done. It will not close itself." ]
+      else
+        [ "with-reporter", "○", "them", "Answered. Waiting on the reporter to say whether it settles it." ]
+      end
     when "CLOSED"
       agreed? ? [ "agreed", "✓", "agreed", "Closed: the reporter said it was settled." ]
               : [ "lapsed", "✓", "lapsed", "Closed with no reply from the reporter. It reopens if they disagree later." ]
@@ -67,11 +71,17 @@ module Triageable
   # finding out afterwards.
   def settles_at
     return nil unless awaiting_reporter?
+    return nil if held?
 
     (last_answer_at || updated_at) + UNANSWERED_AFTER
   end
 
   def last_answer_at = messages.where(author_kind: "maintainer").maximum(:created_at)
+
+  # Answered, and deliberately not settling: the last maintainer turn said so.
+  def held? = last_answer&.settles == false
+
+  def last_answer = messages.where(author_kind: "maintainer").order(:created_at).last
 
   class_methods do
     # Closes answers nobody has come back on. Idempotent, and it records the
@@ -95,9 +105,12 @@ module Triageable
   # A maintainer's turn. `resolution` keeps the latest answer so the existing
   # pages and the MCP read-back go on working unchanged; the message is the
   # record of who said what, when.
-  def answer!(body:, user: nil, status: "ANSWERED")
+  # `settles: false` is an answer that is not a resolution: work has been agreed
+  # and not done yet. It still hands the report back, and it does not start the
+  # timeout, because the timeout's licence is "if you think it is settled".
+  def answer!(body:, user: nil, status: "ANSWERED", settles: true)
     transaction do
-      messages.create!(author_kind: "maintainer", user: user, body: body, created_at: Time.current) if body.present?
+      messages.create!(author_kind: "maintainer", user: user, body: body, settles: settles, created_at: Time.current) if body.present?
       update!(status: status, resolution: body.presence || resolution)
     end
   end

@@ -235,7 +235,11 @@ but unverified, which is worse than not starting it.
 `bug_reports` and `feature_requests` are where a connected assistant tells you what
 working here is actually like, and `report_messages` makes each one a conversation:
 `ANSWERED` hands it back to the filer, `CLOSED` means both sides agreed, and an answer
-nobody comes back on settles itself after `Triageable::UNANSWERED_AFTER`.
+nobody comes back on settles itself after `Triageable::UNANSWERED_AFTER`. **Answer with
+`settles: false` when you are agreeing to work you have not done** — a stage, a fix waiting
+on a decision. That holds the report open however long the silence, because the timeout's
+licence was "if the reporter does not respond and *you think it is settled*", and without
+it an answer promising a stage closes itself three hours later on a fix nobody wrote.
 
 **Reading one puts you under an obligation to answer it.** Not immediately, and not for
 every line — but a report you have read and left silent is worse than one nobody opened,

@@ -124,6 +124,34 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(back["status"]).to eq("OPEN")
   end
 
+  # The timeout's licence was "if the reporter does not respond for three hours
+  # and you think it is settled". `answer!` could only say the first half, so an
+  # answer that agreed to work not yet done would close itself on a fix nobody
+  # had written.
+  it "does not let an answer that settles nothing close itself" do
+    call_tool("report_bug", { happened: "A quoted passage reads as not found", expected: "the quotation confirmed" })
+    report = BugReport.last
+    report.answer!(body: "You are right; it needs a new verdict. Stage 36 is planned and this stays open until it ships.", user: user, settles: false)
+
+    expect(report.reload).to be_held
+    expect(report.settles_at).to be_nil
+    expect(report.state_badge.first(3)).to eq([ "held", "◐", "held" ])
+    expect(report.state_line).to include("will not close itself")
+
+    BugReport.settle_unanswered!(now: 1.week.from_now)
+    expect(report.reload.status).to eq("ANSWERED"), "held open means held open, however long the silence"
+
+    data, = call_tool("get_report", { "report_id" => report.id })
+    expect(data).to include("held" => true, "settles_at" => nil)
+    row = call_tool("list_reports", {}).first["reports"].find { |r| r["id"] == report.id }
+    expect(row["held"]).to be(true)
+
+    # The next answer settles by default, and the clock starts then.
+    report.answer!(body: "Shipped.", user: user)
+    expect(report.reload).not_to be_held
+    expect(report.settles_at).to be_present
+  end
+
   # The filing path invited a causal story and asked nothing that would falsify
   # it, and an assistant following it filed three confident fictions in one
   # session (01a0c05d-db76).
