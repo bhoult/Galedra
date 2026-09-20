@@ -280,8 +280,15 @@ because it is not part of this project.
 
 ## Standing unknowns
 
-- An intermittent suite failure, ~1 in 6 runs, seen on five different specs,
+- An intermittent suite failure, ~1 in 6 runs, seen on six different specs,
   always passing in isolation and never seed-reproducible. Unattributed.
+  **Sighting 2026-09-20:** `spec/services/cards/answers_spec.rb:8`, "renders the
+  public demo's compact answers at S5 (08 §9)", failing in a full run at seed
+  53305-ish and passing alone and on re-run at seed 50777. The name survived this
+  time; **the assertion diff did not**, because the run was piped through a grep
+  matching only the count line — the third time that exact filter has thrown away
+  the diagnostic. **Run the suite as `rspec 2>&1 | tee <file>` and grep the file**,
+  so a failure leaves something to read.
 - Six extra tasks in the first replay, unexplained; only totals were captured
   beforehand. **Take a `TableDigest` before a replay, not only after.**
 - `ledger:replay` needs an idle node: it truncates projections and rebuilds. It

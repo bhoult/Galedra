@@ -152,6 +152,13 @@ source, saying what plays and how long, never what it says. Pairs with the `lice
 on this source, currently `nil`, and with the owner's open copyright decision — this run
 recorded ~142,000 characters of a third-party transcript.
 
+**The rule is written (2026-09-20); the decision is not.** `Guidance::OUTLINE` now sanctions
+the bracketed note as the single exception to "change nothing else", so an assistant that does
+what this one did is following the rules rather than reasoning past them. What stays **OPEN**
+is the owner's: whether a third-party transcript may be held here at all, what the `license`
+field should say, and what Stage 33's export default should be. Writing the narrow rule does
+not decide any of that, and was not meant to.
+
 ### 6. `Sections::Tree` counted only what it rendered — **FIXED**
 
 **Found by the assistant, not by me.** Working the outline it called `report_bug`
@@ -462,11 +469,21 @@ downstream with *expected a UUID* — sending the caller hunting for a malformed
 never sent. It now says plainly that this task type has no passage and what to cite instead,
 and the tool description no longer promises what only one task type can deliver.
 
-### Not filed, still worth fixing
+### Not filed, still worth fixing — **FIXED 2026-09-20**
 
 `OPPOSING_EVIDENCE_SEARCH` caps at **12 ops in total** — sources plus excerpts plus evidence
 plus links — not 12 of each, so a four-source answer is refused. The cap is real and sensible;
-it is simply nowhere an assistant reads before hitting it. **OPEN.**
+it is simply nowhere an assistant reads before hitting it.
+
+**Fixed, and it was wider than the cap.** The packet has always carried `constraints` with
+both `allowed_ops` and `max_ops`, and `Tasks::Answer.present` returned neither: it sent the
+same number back as `max_items`, a name nothing else in the codebase uses and which the
+`next_task` output schema did not declare, while `allowed_ops` was not sent at all — so
+`OP_NOT_ALLOWED` was as unlearnable as `TOO_MANY_OPS`. `next_task` now returns `constraints`
+under the names the rejections use, the schema declares it, and `Guidance::WORK` says to read
+it before starting rather than after being refused. The guidance names no number, so editing
+`Tasks::Types` cannot make the words wrong — which is the drift this project keeps
+committing.
 
 ### What worked
 
