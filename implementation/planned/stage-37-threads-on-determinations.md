@@ -449,41 +449,46 @@ somebody.
 5. A `NO_FURTHER_WORK` settlement over dissent opens one task carrying the dissenting turns
    as context — the same `Tasks::Create` path everything else uses, not a second way to make
    a task.
-6. `open_thread`, `list_threads`, `get_thread`, `respond_to_thread`, `next_thread` on MCP,
+6. A thread whose subject stops being current — a merged claim, a superseded link, an
+   invalidated evidence item — stays and says so, naming where the subject went the way
+   `Ledger::Appliers.not_current_reason` does, and leaves `next_thread` and the open counts.
+   It is history, not work, and is never cancelled the way a task is.
+7. `open_thread`, `list_threads`, `get_thread`, `respond_to_thread`, `next_thread` on MCP,
    mirroring the report tools an assistant already knows. `list_threads` returns `open` and
    `open_for_you`.
-7. The claim page shows threads: open count, how many principals have agreed of the three,
+8. The claim page shows threads: open count, how many principals have agreed of the three,
    the settling outcome where there is one, and each turn with the contribution it cites.
    The source page shows them beside the passage; the task page shows them on the task.
-8. `/threads`, one index of every thread on the node, under Browse: newest first, filtered by
+9. `/threads`, one index of every thread on the node, under Browse: newest first, filtered by
    state, saying what each hangs on and whose turn it is, with `open` and `open_for_you`.
    Threads join the admin nav badge beside open bug reports and feature requests, with their
    own icon, counting the ones that can still be moved along.
-9. `/api/v1` thread endpoints — the index, one thread, and taking a turn — added to
+10. `/api/v1` thread endpoints — the index, one thread, and taking a turn — added to
    `Api::Openapi` in the same commit as the routes, since
    `spec/requests/api/v1/openapi_spec.rb` fails on any route the document omits and on any
    path it describes that is not routed.
-10. A reply form on a thread for a signed-in person, whose turn counts as their principal and
+11. A reply form on a thread for a signed-in person, whose turn counts as their principal and
    is queued for content review like any other free text.
-11. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
+12. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
    agreement — the escape a single-principal node needs.
-12. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
+13. `Guidance` gains a `THREADS` topic carrying the three-way rule, volunteering, and what
    settling does; `TOPICS` gains `:threads`; `ASK` gains a line; `Guidance::VERSION` bumps.
    `skills/galedra.md` gains nothing and `spec/lib/skills_spec.rb` keeps passing.
-13. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
+14. `get_claim`, `next_task`'s packet and `submit_task`'s reply say when a thread is open on
    that determination and what a turn in it can do — at the point of contact, not only in a
    guidance block read some calls ago.
-14. Content review covers thread turns, from people and assistants alike.
-15. The three findings above, filed as threads on `16fb6733` and its two links, as the
+15. Content review covers thread turns, from people and assistants alike.
+16. The three findings above, filed as threads on `16fb6733` and its two links, as the
    acceptance fixture.
 
 ## Acceptance
 
 1. The register's existing specs pass with no edit after the extraction.
-2. `respond!`, `answer!`, `state_badge`, `settles_at` and `held?` are owned by `Threadable`
-   on every model that answers to them, asserted through `instance_method(...).owner`. One
-   turn table, one reply partial, and no view renders a turn outside it. A second
-   implementation of any of this fails the suite.
+2. `respond!`, `answer!` and `state_badge` are owned by `Threadable` on every model that
+   answers to them, asserted through `instance_method(...).owner`, and `held?` and
+   `settles_at` are answered by the settlement object rather than by the concern. One turn
+   table, one reply partial, and no view renders a turn outside it. A second implementation
+   of any of this fails the suite.
 3. Two principals agreeing does not settle a thread; a third naming the **same outcome**
    does. Three **tokens** of one principal do not, and the spec uses three tokens of one
    principal as its negative case, because that is the shape a node like this one actually
@@ -502,41 +507,44 @@ somebody.
 8. A `NO_FURTHER_WORK` settlement carrying at least one `INVESTIGATE` vote opens exactly one
    task, whose packet carries the dissenting turns as context. Unopposed, it opens none. The
    spec's case is the 3–2 sequence: two closes, two opens, one close.
-9. A `NO_FURTHER_WORK` cancellation is durable: after it, the path that opens verification
+9. A thread on a claim that is then merged stays readable, names the successor, and is absent
+   from `next_thread` and the open counts. Nothing about it is cancelled or deleted.
+10. A `NO_FURTHER_WORK` cancellation is durable: after it, the path that opens verification
    tasks does not re-open one on that determination. This pins an incidental property of
    `Tasks::OpenVerification` — its existence check ignores status — on which every thread
    settlement silently depends.
-10. A settled thread shows its split — `3–2` where there was dissent, `3–0` where there was
+11. A settled thread shows its split — `3–2` where there was dissent, `3–0` where there was
    not — and re-filing the same complaint collapses onto a settled thread with a count rather
    than opening a second.
-11. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
+12. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
    trace at a given seq are byte-identical before and after a thread settles, under either
    outcome. This is the acceptance the stage exists to satisfy.
-12. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
+13. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
    threads and one without: nothing versioned, nothing replayed.
-13. The share card and share line for a claim with an open thread are byte-identical to the
+14. The share card and share line for a claim with an open thread are byte-identical to the
    same claim without.
-14. Thread activity produces no `ReputationEvent`.
-15. A thread turn is queued for content review on creation, whether a person or an assistant
+15. Thread activity produces no `ReputationEvent`.
+16. A thread turn is queued for content review on creation, whether a person or an assistant
    wrote it.
-16. A person's turn and that person's assistant's turn count as **one** principal toward the
+17. A person's turn and that person's assistant's turn count as **one** principal toward the
    three. The spec's case is a person agreeing and then their own assistant agreeing, which
    must leave the thread one principal short.
-17. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
+18. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
    object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
    reply form. The nav badge counts threads for an admin, and `openapi_spec` passes with the
    new routes described.
-18. The same complaint filed twice on one determination collapses onto one thread with a
+19. The same complaint filed twice on one determination collapses onto one thread with a
    count rather than opening a second, and `FilingCap` refuses an assistant over its daily
    allowance with a message naming what to do next.
-19. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
+20. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
    task on it, so an assistant meets the thread where it is working rather than only in
    guidance. `spec/lib/skills_spec.rb` passes unchanged: none of this reached the skill.
 
-## What this does not yet answer
+## The edges, and where each one is settled
 
-Written down rather than discovered during the build. Some of these want a decision and some
-only want doing; each says which.
+These are the questions that would otherwise be met halfway through the build. None is open
+now; each says where its answer lives, so a reader can check the answer rather than rediscover
+the question.
 
 - **Moderation, in one line each, and neither is a decision point.** A thread follows its
   subject's visibility: quarantine a claim and its threads go with it, because commentary on
@@ -545,26 +553,26 @@ only want doing; each says which.
   its vote, because the vote only ever routed work and nothing epistemic rests on it. Both
   matter once the node has strangers on it; today it does not, and neither is worth building
   ahead of that (owner, 2026-09-20).
-- **The determination changing underneath the thread. Needs doing.** Claims merge, links are
-  superseded, evidence is invalidated. `Tasks::Lease` cancels a task whose target stopped
-  being current; a thread is history rather than work, so it should stay and say what
-  happened — *this hangs on a claim since merged into …* — and stop being offered by
-  `next_thread`. The rule is clear; it is simply not written into the deliverables yet.
-- **`NO_FURTHER_WORK` stays cancelled only by accident. Needs pinning.**
+- **The determination changing underneath the thread.** Written into the deliverables: a
+  thread whose subject stops being current stays, says what happened, and leaves the work
+  list.
+- **`NO_FURTHER_WORK` stays cancelled only by accident, so the accident is pinned.**
   `Tasks::OpenVerification` skips a claim that already has a task of that type by asking
   `Task.where(task_type:, target_type:, target_id:).exists?` — with no status filter, so a
   CANCELLED task blocks re-creation. That is what makes the cancellation durable, and it is an
-  incidental property of another service. Narrowing that check to `OPEN`/`LEASED` would look
-  like a tidy-up and would silently make every thread settlement temporary. It needs an
-  acceptance of its own.
-- **Threads do not travel, and should say so. Needs doing.** They are node-local and carry no
-  version, so they are outside federation (Stage 23) and outside export and import (Stage 28)
-  by construction. Both of those stages should state it rather than leave the next reader to
-  infer it from the absence of a `seq`.
-- **`held` belongs to the register alone.** The shared concern carries a method one consumer
-  uses: a thread settles by consensus and never waits on one party, so there is nothing to
-  hold. That is acceptable — it is the seam doing its job — but it is the first place the
-  shared concern will be tempted to grow a second branch, and it should be watched.
+  incidental property of another service: narrowing the check to `OPEN`/`LEASED` would look
+  like a tidy-up and would silently make every thread settlement temporary. Acceptance 10
+  fails if anyone does.
+- **Threads do not travel.** Said where a reader of those stages would look, rather than left
+  to be inferred from a missing `seq`: Stage 23 carries an addendum on what does not
+  federate, and Stage 28 states it under the line that stage must not cross.
+- **`held` belongs to the register alone, and the seam owns it.** A thread settles by
+  consensus and never waits on one party, so there is nothing to hold. Rather than leave a
+  method in the shared concern that one consumer uses, `held?` and `settles_at` move behind
+  the settlement object with the rest of it: `Settlements::Opener` answers them, and
+  `Settlements::Consensus` answers that a thread is never held and has no settling time. The
+  concern then has no register-shaped methods left in it, which is the property that keeps a
+  second branch from appearing there later.
 - **Not open any more (owner, 2026-09-20):** threads join the nav badge alongside open bug
   reports and feature requests, appear in the other displays where they belong, and `/api/v1`
   gets thread endpoints, described in `Api::Openapi` in the same commit as the routes.

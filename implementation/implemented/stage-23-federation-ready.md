@@ -97,3 +97,14 @@ Acceptance:
   descriptive fields. Answers: 1 yes (no scoring change); 2 n/a; 3 no; 4 no; 5 yes
   (nothing hidden; home node and visibility are shown); 6 yes; 7 yes (replay
   unchanged); 8 yes; 9 yes; 10 yes. No blocker.
+
+## Addendum (2026-09-20) — what does not federate
+
+Threads on determinations (Stage 37) are node-local by construction: no `seq`, not in the
+log, not in the replay digest, and their turns are unsigned opinion about how a determination
+was made on one node. They are outside federation the way `graph_snapshots` is — not a
+projection, not a thing another node could verify — and a mirror that wanted them would be
+importing argument as though it were record. Recorded here so the readiness checklist above
+is not read as covering them by silence. What federates is what a thread produced: the
+contributions somebody recorded afterwards, signed and carrying their own reasons.
+

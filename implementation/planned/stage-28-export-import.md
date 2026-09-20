@@ -45,6 +45,14 @@ Getting this wrong is the most dangerous thing in the stage, because the failure
 and permanent: a graph full of claims that appear to be signed by people who never saw
 them. Acceptance test 5 exists to catch it.
 
+**Threads do not travel.** A determination thread (Stage 37) is node-local, carries no `seq`
+and is not in the log at all, so it is outside export and import by construction rather than
+by omission — said here so a later reader does not take its absence from a bundle for a bug.
+Its turns are unsigned opinion about how a determination was made on one node, and exporting
+them would either forge attribution or import argument as though it were record. What does
+travel is what a thread produced: the contributions somebody recorded afterwards, which are
+signed and carry their own reasons.
+
 ## The file
 
 `eir-export-v1`, a JSON object, with its schema at `schemas/eir-export-v1.json` and served
