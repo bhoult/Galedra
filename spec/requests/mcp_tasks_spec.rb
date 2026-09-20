@@ -173,6 +173,24 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["note"]).to include("clipped"), "a caller told its prose was too long by an exception has lost the prose"
   end
 
+  # Asked about one claim after answering it, and told a general truth about the
+  # queue. The specific fact — you answered this, a principal answers once, so
+  # nothing can be added to that answer now — is what the caller needed, and it
+  # is what a maintainer wrongly told an assistant it could work around.
+  it "says why a claim you have already answered has nothing left for you" do
+    recorded, = call_tool("record_investigation", { "claims" => [ { "handle" => "c", "text" => "My own claim about remote work.", "type" => "OBSERVATIONAL" } ] })
+    own = recorded["claims"].first["id"]
+    leased, = call_tool("next_task", { "claim_id" => own, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_FOUND", answer: {}, searched: "Looked everywhere obvious." })
+
+    again, err = call_tool("next_task", { "claim_id" => own, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    expect(err).to be(false)
+    expect(again["available"]).to be(false)
+    expect(again["reason"]).to include("already answered every open task on this claim")
+    expect(again["reason"]).to include("Nothing can be added to a result by leasing its task again")
+    expect(again["reason"]).not_to include("daily lease limit"), "the caller asked about one claim, not the queue"
+  end
+
   # The task type is named for the usual case, but BuildContext picks the
   # direction per claim: a claim nothing yet supports is sent looking FOR
   # evidence. `moves` said "against" either way, so a worker was told the

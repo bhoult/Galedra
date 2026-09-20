@@ -934,10 +934,18 @@ module Mcp
       scope = Task.where(status: %w[OPEN LEASED], task_type: (types.presence || allowed_types) & allowed_types, domain: (domains.presence || allowed_domains) & allowed_domains)
       scope = scope.where(target_id: target_id) if target_id
       open = scope.to_a.select { |t| t.open_slots.positive? }
+      # Most specific first. Asking about one claim and being told a general
+      # truth about the queue is the fault this whole field exists to avoid, and
+      # the own-work branch used to fire on claims Stage 34 expressly allows a
+      # principal to check, telling it to wait for someone else.
       if open.empty?
         "no open tasks in the types (#{(types.presence || allowed_types).join(', ')}) and domains this assistant may work; nothing to do right now"
-      elsif open.all? { |t| Tasks::Lease.own_target?(t, @token.principal) }
-        "the only open tasks are on claims your own principal recorded; a different person's assistant must check those"
+      elsif open.all? { |t| Tasks::Lease.answered_by?(t, @token.principal) }
+        "you have already answered #{target_id ? 'every open task on this claim' : 'every open task in scope'}, and a principal answers each one once. " \
+        "Nothing can be added to a result by leasing its task again; what those need now is a different principal's assistant"
+      elsif open.all? { |t| Tasks::Lease.own_target?(t, @token.principal) && !Tasks::Lease::SELF_CHECKABLE.include?(t.task_type) }
+        "the only open tasks are ones nobody may work on their own principal's claims — an audit, an independence check, an inference review, " \
+        "or a blind check your principal asked for; a different person's assistant must do those"
       else
         "every open task is already leased or submitted by this principal, or the daily lease limit is reached"
       end

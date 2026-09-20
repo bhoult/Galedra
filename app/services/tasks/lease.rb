@@ -116,6 +116,16 @@ module Tasks
     # (directly or through an agent) and not accepted by a different principal.
     # A proposal that another principal accepted (the demo's extracted claims)
     # is that principal's responsibility too, so its author may still work it.
+    # This principal has already submitted a result on this task. A principal
+    # answers each task once, so this is also the reason nothing more can be
+    # added to that answer by leasing it again.
+    def answered_by?(task, principal)
+      return false if principal.nil?
+
+      TaskAssignment.where(task_id: task.id, status: "SUBMITTED")
+                    .where("contributor_id = :p OR principal_contributor_id = :p", p: principal.id).exists?
+    end
+
     def own_target?(task, principal)
       return false if principal.nil?
 
