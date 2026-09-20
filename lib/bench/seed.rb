@@ -129,11 +129,24 @@ module Bench
       SAMPLE / (clock - t)
     end
 
+    # A \r frame redraws one line on a terminal and is invisible to everything
+    # else: a 100k seed left 79 bytes in `docker logs` after 21 hours, and how
+    # far it had got had to be reconstructed from row counts
+    # (docs/profiler/2026-09-20-seed-write-path-decay.md). Off a terminal, each
+    # batch gets its own newline-terminated line with the time on it, because the
+    # reader is a log and the question it answers is "when".
     def report(made, before, started)
       appended = Contribution.count - before
-      @out.printf("\r  %d/%d claims · %d contributions · %.0f/s", made, @claims, appended, appended / (clock - started))
+      rate = appended / (clock - started)
+      if tty?
+        @out.printf("\r  %d/%d claims · %d contributions · %.0f/s", made, @claims, appended, rate)
+        @out.puts if made >= @claims
+      else
+        @out.printf("%s  %d/%d claims · %d contributions · %.0f/s\n", Time.now.utc.iso8601, made, @claims, appended, rate)
+      end
       @out.flush
-      @out.puts if made >= @claims
     end
+
+    def tty? = @out.respond_to?(:tty?) && @out.tty?
   end
 end

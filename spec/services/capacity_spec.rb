@@ -5,6 +5,20 @@ RSpec.describe "Capacity: batched scoring, score-cache retention, and a bounded 
   include GraphHelpers
   before { release_models }
 
+  # A \r frame is invisible off a terminal: a 100k seed left 79 bytes in
+  # `docker logs` after 21 hours (docs/profiler/2026-09-20-seed-write-path-decay.md).
+  it "reports seed progress in whole lines when nothing is a terminal" do
+    out = StringIO.new
+    seed = Bench::Seed.new(claims: 10, out: out)
+    seed.send(:report, 4, 0, seed.send(:clock) - 2)
+    seed.send(:report, 8, 0, seed.send(:clock) - 4)
+
+    lines = out.string.lines
+    expect(lines.size).to eq(2), "each batch gets its own line, not a redraw of one"
+    expect(out.string).not_to include("\r"), "a carriage return reaches no log"
+    expect(lines.last).to match(/\A\d{4}-\d{2}-\d{2}T[\d:]+Z\s+8\/10 claims/), "with the time, because the reader is a log"
+  end
+
   def graph(count)
     pair, = register_key
     source = create_source(pair)
