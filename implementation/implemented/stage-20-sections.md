@@ -52,7 +52,7 @@ Deliverables:
   position, heading, location_id, created_seq, invalidated_seq, accepted_seq,
   redacted_by_seq`) and `claim_placements` (`id, contribution_id, claim_id, section_id,
   position, created_seq, invalidated_seq, accepted_seq`), both in
-  `Ledger::Apply::PROJECTION_MODELS` so digests, `ledger:replay`, and `ledger:verify`
+  `Contribution::PROJECTION_MODELS` so digests, `ledger:replay`, and `ledger:verify`
   cover them; `Ledger::Ids.derive(contribution_id, "section", index)` for the nodes of
   one contribution, in preorder. `Ledger::ActionTypes::EPISTEMIC` gains both types;
   `Contributions::Schemas` and `schemas/eir-contribution-v1.json` gain their payloads.
@@ -147,3 +147,10 @@ reversible).
 - Constitutional Test: adds display structure only. 1 yes; 2 n/a; 3 no; 4 no; 5 yes; 6 yes;
   7 yes (replay byte-identical); 8 yes; 9 yes; 10 yes. No blocker.
 
+- Correction (2026-09-20): the deliverable above placed `PROJECTION_MODELS` under
+  `Ledger::Apply`. That module exists but does not define the constant, which is why the
+  name resolved to nothing; it is `Contribution::PROJECTION_MODELS`
+  (`app/models/contribution.rb`), and `Ledger::TableDigest::MODELS` is built from it. The
+  substantive claim was true — `sections` and `claim_placements` really are covered by
+  digests, `ledger:replay`, and `ledger:verify` — so only the namespace changed. The
+  Decision Log below already named the constant correctly, unqualified.

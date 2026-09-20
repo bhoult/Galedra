@@ -13,7 +13,7 @@ scoring input.
 Deliverables:
 
 - Tables: `audits`, `audit_schedules`, `reputation_events` per 02 §3.4.
-- `AUDIT` control action and `Audits::ApplyResult`: effects table from 05 §9
+- `AUDIT` control action and `Ledger::Appliers::Audit.apply_effect`: effects table from 05 §9
   (`CONFIRMED` clears `provisional`; `SUBSTANTIVE_ERROR` / `FABRICATION` append a system
   `INVALIDATE`; `UNRESOLVED` marks `CHALLENGED` and schedules a second audit;
   `MINOR_ERROR` leaves the target counted). `RE_AUDIT` invalidates the first audit's
@@ -102,3 +102,9 @@ Acceptance (07 Phase 4):
   path; 8 yes, restoration creates new rows rather than rewriting; 9 n/a; 10 yes.
 - Acceptance: 07 Phase 4 #1–#6 have specs in `spec/services/audits/audits_spec.rb`;
   `bundle exec rspec`, RuboCop, and Brakeman pass.
+- Correction (2026-09-20): the deliverable above named `Audits::ApplyResult`, a class that
+  has never existed. The 05 §9 effects table is `Ledger::Appliers::Audit.apply_effect`,
+  whose `case` on `audit.result` carries exactly the branches the line already described,
+  with `MINOR_ERROR` falling through so the target stays counted. The name was corrected in
+  place; no claim about behaviour changed. Found by the doc-drift sweep, not by a spec —
+  nothing tests that a plan names a constant that exists.
