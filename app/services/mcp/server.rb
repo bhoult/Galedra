@@ -81,7 +81,7 @@ module Mcp
       { name: "list_tasks", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, section_id: { type: "string", description: "Only work under this outline or section" }, limit: { type: "integer", default: 5 } } },
-        outputSchema: { type: "object", properties: { open: { type: "integer" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
+        outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
       { name: "next_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Lease the next open task for this assistant, highest priority first. You may work the routine checks on your own principal's claims — that is how a person finishes their own investigation without waiting for a volunteer — and they are recorded as self-performed and never raise the claim's review coverage, which is the figure meaning someone else has looked. Not handed to you: an audit, a source independence check, an inference review, or a blind check your own principal asked for with open_task. Returns the task in plain form with answer_with saying exactly what to send to submit_task, and the lease expiry. Do the reading yourself. Optional filters: types, domains, claim_id. Needs a connected (non-anonymous) assistant.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" }, section_id: { type: "string", description: "Only work under this outline or section (from an outline URL the person gave)" } } },
@@ -520,7 +520,13 @@ module Mcp
         { task_id: t.id, task_type: t.task_type, domain: t.domain, priority: t.priority.to_s("F"),
           target: t.packet["target"].slice("claim_id", "claim_text", "claim_type", "source_id", "title"), url: "#{@base_url}/tasks/#{t.id}" }
       end
-      { open: open.size, by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
+      # answers_wanted, not just open: most checks ask for three independent
+      # answers, so a task stays open after the first and the task count does not
+      # move. An assistant submitted 32 results, saw "open" unchanged, and filed
+      # it as a bug — correctly, in the sense that the number it was given could
+      # not show the work it had done. This one falls by one per submission.
+      { open: open.size, answers_wanted: open.sum(&:open_slots),
+        by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
         content_reviews_pending: ContentReview.pending.count, affiliation_reviews_pending: AffiliationRequest.pending.distinct.count(:normalized),
         by_outline: open.filter_map { |t| t.section_id && Section.find_by(id: t.section_id)&.root_id }.tally.map { |root_id, n| { root_id: root_id, heading: Section.find(root_id).heading, open: n, url: "#{@base_url}/sections/#{root_id}" } }.sort_by { |o| -o[:open] }.first(3),
         how: "Say \"work N open tasks in Galedra\": the assistant then calls next_task and submit_task N times. Leasing needs a connected, non-anonymous assistant." }

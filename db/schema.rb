@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -108,6 +108,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
     t.text "expected"
     t.text "happened", null: false
     t.string "last_error"
+    t.text "resolution"
     t.string "status", default: "OPEN", null: false
     t.text "steps"
     t.datetime "updated_at", null: false
@@ -379,6 +380,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
     t.string "expected"
     t.string "last_error"
     t.text "needed", null: false
+    t.text "resolution"
     t.string "status", default: "OPEN", null: false
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_feature_requests_on_created_at"

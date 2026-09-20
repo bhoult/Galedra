@@ -39,7 +39,10 @@ module Triage
       return redirect_back fallback_location: triage_index_path, alert: "Unknown status."
     end
 
-    row.update!(status: status)
+    # The resolution is kept when the box is left empty on a later change, so
+    # reopening and re-closing does not silently erase the reason given before.
+    resolution = params[:resolution].to_s.strip
+    row.update!(status: status, resolution: resolution.presence || row.resolution)
     redirect_back fallback_location: triage_index_path, notice: "Marked #{status.downcase}."
   end
 

@@ -77,8 +77,10 @@ RSpec.describe "Feature requests from assistants (after Stage 19)", type: :reque
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Claude").and include("something the moderators should read")
 
-    patch "/feature_requests/#{request.id}", params: { status: "IGNORED" }
-    expect(request.reload.status).to eq("IGNORED")
+    patch "/feature_requests/#{request.id}", params: { status: "IGNORED", resolution: "Out of scope for v0.1." }
+    expect(request.reload).to have_attributes(status: "IGNORED", resolution: "Out of scope for v0.1.")
+    get "/feature_requests/#{request.id}"
+    expect(response.body).to include("Out of scope for v0.1.")
     get "/feature_requests", params: { status: "OPEN" }
     expect(response.body).not_to include("something the moderators should read")
     get "/feature_requests", params: { status: "IGNORED" }

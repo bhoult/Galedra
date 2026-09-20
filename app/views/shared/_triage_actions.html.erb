@@ -1,9 +1,17 @@
-<%# Done / Ignore / Reopen for one row. Outside the log: this records what a
-    maintainer did about a report, never anything about whether it was right. %>
-<span class="triage-actions">
-  <% Triageable::STATUSES.reject { |s| s == row.status }.each do |target| %>
-    <%= button_to({ controller: controller_name, action: :update, id: row.id, status: target },
-                  method: :patch, class: "secondary small",
-                  form: { style: "display:inline" }) do %><%= target == "OPEN" ? "Reopen" : target.capitalize %><% end %>
-  <% end %>
-</span>
+<%# Status and reason together: the box is filled in at the moment the decision
+    is made, because a closed list with no reasons tells the next reader nothing
+    about whether a thing was fixed, was working as intended, or was set aside.
+    Leaving it empty keeps whatever reason was given before. %>
+<%= form_with url: url_for(controller: controller_name, action: :update, id: row.id), method: :patch, class: "triage-form" do |f| %>
+  <%= f.label :resolution, "Why", class: "meta" %>
+  <%= f.text_area :resolution, value: row.resolution, rows: 3,
+                  placeholder: "What was done, or why this needs nothing. Shown on this page from now on." %>
+  <p class="triage-actions">
+    <% Triageable::STATUSES.each do |target| %>
+      <% next if target == row.status %>
+      <%= f.submit(target == "OPEN" ? "Reopen" : target.capitalize, name: "status", value: target,
+                   class: target == "DONE" ? "primary small" : "secondary small") %>
+    <% end %>
+    <%= f.submit "Save reason", name: "status", value: row.status, class: "secondary small" %>
+  </p>
+<% end %>

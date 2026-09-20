@@ -334,3 +334,9 @@ button.small, .button.small { padding: 0.2rem 0.6rem; font-size: 0.85rem; }
   .triage-list .when, .triage-list .state { flex: 0 0 auto; }
   .triage-list a { flex: 1 1 100%; }
 }
+
+/* Triage: the reason a report was closed, and the form that records it. */
+.triage-form textarea { width: 100%; max-width: 46rem; display: block; margin: 0.3rem 0 0.5rem; }
+.triage-form label { display: block; }
+.resolution { border-left: 3px solid var(--rule, #e5e5e5); padding-left: 0.7rem; margin: 0.6rem 0; }
+.resolution p { margin: 0.2rem 0; }

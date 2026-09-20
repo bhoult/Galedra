@@ -65,8 +65,15 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("visitor").and include("share image is blank")
 
+    patch "/bug_reports/#{visitor_report.id}", params: { status: "DONE", resolution: "Fixed in the share card renderer." }
+    expect(visitor_report.reload).to have_attributes(status: "DONE", resolution: "Fixed in the share card renderer.")
+    get "/bug_reports/#{visitor_report.id}"
+    expect(response.body).to include("Fixed in the share card renderer.")
+
+    # Reopening with an empty box keeps the reason already given.
+    patch "/bug_reports/#{visitor_report.id}", params: { status: "OPEN", resolution: "" }
+    expect(visitor_report.reload).to have_attributes(status: "OPEN", resolution: "Fixed in the share card renderer.")
     patch "/bug_reports/#{visitor_report.id}", params: { status: "DONE" }
-    expect(visitor_report.reload.status).to eq("DONE")
     get "/bug_reports", params: { status: "OPEN" }
     expect(response.body).not_to include("share image is blank")
     get "/bug_reports", params: { status: "DONE" }
