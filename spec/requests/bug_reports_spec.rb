@@ -77,7 +77,11 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     user.update!(moderator: true)
     post session_path, params: { email_address: user.email_address, password: password }
     get "/bug_reports/#{report.id}"
-    expect(response.body).to include("Exchange", "Confirmed against the live node.", "not satisfied", "Closed by agreement")
+    expect(response.body).to include("Exchange", "Confirmed against the live node.", "not satisfied", "closed · both agreed")
+
+    # And the list says whose turn it is, not just a status word.
+    get "/bug_reports", params: { status: "CLOSED" }
+    expect(response.body).to include("closed · both agreed")
 
     # Someone else's report is not this assistant's to read or answer.
     other = Assistants::Connect.call(user: User.create!(email_address: "other@example.com", password: password), name: "Other", provider: "anthropic").last
@@ -105,6 +109,10 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     BugReport.settle_unanswered!(now: report.last_answer_at + Triageable::UNANSWERED_AFTER + 1.minute)
     expect(report.reload.status).to eq("CLOSED")
     expect(report.messages.oldest_first.last.body).to include("no response after")
+    # Closed without a reply is not the same as closed by agreement, and the
+    # list has to show which (owner request, 2026-09-20).
+    expect(report.reload.agreed?).to be(false)
+    expect(report.state_line).to eq("closed · no reply from the reporter")
 
     # Running it again changes nothing.
     expect { BugReport.settle_unanswered!(now: 1.day.from_now) }.not_to change { report.reload.messages.count }

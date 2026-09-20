@@ -33,6 +33,24 @@ module Triageable
   # Waiting on the reporter rather than on us.
   def awaiting_reporter? = status == "ANSWERED"
 
+  # The reporter said the answer settled it. Closing can also happen without
+  # them — by timeout, or by a maintainer closing on behalf of a filer who has
+  # nobody to ask — and a list that shows both as "closed" hides which.
+  def agreed? = messages.any? { |m| m.from_assistant? && m.satisfied }
+
+  # Whose turn it is, in words. A status word does not say: "answered" read the
+  # same for a report waiting on its filer and for one already settled, and the
+  # list gave no way to tell them apart (owner request, 2026-09-20).
+  def state_line
+    case status
+    when "OPEN" then messages.any? ? "reopened · waiting on a maintainer" : "waiting on a maintainer"
+    when "ANSWERED" then "answered · waiting on the reporter"
+    when "CLOSED" then agreed? ? "closed · both agreed" : "closed · no reply from the reporter"
+    when "IGNORED" then "set aside"
+    else status.downcase
+    end
+  end
+
   # When silence will settle this, so the reporter can be told rather than
   # finding out afterwards.
   def settles_at

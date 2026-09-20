@@ -19,14 +19,10 @@
   <% end %>
 <% end %>
 <p class="meta">
-  <% if row.awaiting_reporter? %>
-    Waiting on the reporter: they decide whether this is settled.
-    <% if row.settles_at %>
-      Nothing said by <%= row.settles_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC and it closes on its own; they can still disagree afterwards and it reopens.
-    <% end %>
-  <% elsif row.status == "CLOSED" %>
-    Closed by agreement.
-  <% else %>
-    Waiting on a maintainer.
+  <strong><%= row.state_line %></strong>
+  <% if row.awaiting_reporter? && row.settles_at %>
+    · nothing said by <%= row.settles_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC and it closes on its own; they can still disagree afterwards and it reopens.
+  <% elsif row.status == "CLOSED" && !row.agreed? %>
+    · the reporter never answered, so this settled on its own. It reopens if they disagree later.
   <% end %>
 </p>

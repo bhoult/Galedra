@@ -296,7 +296,7 @@ one where they are independent and the strongest contradiction does.
 
 ## Standing unknowns
 
-- An intermittent suite failure, ~1 in 6 runs, seen on six different specs,
+- An intermittent suite failure, ~1 in 6 runs, seen on seven different specs,
   always passing in isolation and never seed-reproducible. Unattributed.
   **Sighting 2026-09-20:** `spec/services/cards/answers_spec.rb:8`, "renders the
   public demo's compact answers at S5 (08 §9)", failing in a full run at seed
@@ -305,6 +305,10 @@ one where they are independent and the strongest contradiction does.
   matching only the count line — the third time that exact filter has thrown away
   the diagnostic. **Run the suite as `rspec 2>&1 | tee <file>` and grep the file**,
   so a failure leaves something to read.
+  **Sighting 2026-09-20 (2nd):** `spec/services/scoring/end_to_end_spec.rb:57`, failing in a
+  full run and passing both alone and on re-run. Seven distinct specs now, across
+  cards, scoring and requests, which argues for shared state or ordering rather
+  than anything in one file.
 - Six extra tasks in the first replay, unexplained; only totals were captured
   beforehand. **Take a `TableDigest` before a replay, not only after.**
 - `ledger:replay` needs an idle node: it truncates projections and rebuilds. It

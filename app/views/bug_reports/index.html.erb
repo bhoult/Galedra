@@ -9,7 +9,7 @@
     <% @rows.each do |r| %>
       <li class="<%= "closed" unless r.open? %>">
         <span class="when"><%= r.created_at.utc.strftime("%Y-%m-%d") %></span>
-        <span class="state"><%= r.status.downcase %></span>
+        <span class="state"><%= r.state_line %></span>
         <%= link_to truncate(r.happened.to_s.squish, length: 110), bug_report_path(r) %>
         <% if r.count > 1 %><span class="badge"><%= r.count %>×</span><% end %>
       </li>

@@ -24,7 +24,9 @@ module Triage
     @page = params[:page].to_i.clamp(1, 500)
     @total = scope.count
     @counts = triage_model.group(:status).count
-    @rows = scope.offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
+    # The turns come with the rows: the list says whose turn each one is, and
+    # asking per row would be a query each.
+    @rows = scope.includes(:messages).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
     @per_page = PER_PAGE
   end
 
