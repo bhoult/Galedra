@@ -230,6 +230,33 @@ context account for nearly all of it, and one `/code-review` at `max` or `ultra`
 than a long stretch of ordinary editing. A review that dies halfway leaves findings applied
 but unverified, which is worse than not starting it.
 
+## If you read a report, answer it
+
+`bug_reports` and `feature_requests` are where a connected assistant tells you what
+working here is actually like, and `report_messages` makes each one a conversation:
+`ANSWERED` hands it back to the filer, `CLOSED` means both sides agreed, and an answer
+nobody comes back on settles itself after `Triageable::UNANSWERED_AFTER`.
+
+**Reading one puts you under an obligation to answer it.** Not immediately, and not for
+every line — but a report you have read and left silent is worse than one nobody opened,
+because the filer is waiting on a turn that is never coming and cannot tell the difference.
+An assistant filed fourteen in a day, could not read a single answer, and kept filing the
+same ground; that is what silence costs on the other side.
+
+Answering is a turn, so say what you did, or why it needs nothing, or that you have only
+ruled something out — `bin/rails runner` with `answer!`, or the reply box on the report's
+page, both record it. Three habits are worth keeping, all learned by getting them wrong on
+2026-09-20:
+
+- **Read the whole report, not a truncation.** A 110-character preview cost a wrong summary
+  twice in one evening, and `FeatureRequest` silently clipped `expected` at 200 characters,
+  so nine proposals were acted on with their endings missing.
+- **Say when you were wrong.** Two reports were resolved with a cause I had diagnosed from
+  the server side; the filer had independently reached the same one. Both of us had also
+  been confidently wrong earlier, and the records say so.
+- **Fixing the code is not answering the report.** They are separate acts, and the second is
+  the one the filer can see.
+
 ## A local model on the host, free but usually busy
 
 The owner runs `ollama` as a host snap service, reachable at `127.0.0.1:11434` **from the
