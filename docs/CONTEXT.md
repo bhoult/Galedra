@@ -204,6 +204,15 @@ at once and its output was relayed as fact. Verify a script's output against two
 known cases — one that should appear and one that should not — before believing
 any of it.
 
+**Two of our own texts disagreeing, with the narrow one at the point of contact.**
+`Guidance::ASK` asks for a report "equally when you got the job done but the way through was
+wasteful"; the hint on every refusal said "if this stopped you doing what the person asked".
+An assistant hit a refusal naming a field it had supplied, worked around it in thirty
+seconds, and never filed it — an hour after closing a report about that exact class. It was
+not stopped, so the sentence it actually read did not ask. When a rule lives in two places,
+the one the caller reads at the moment of decision is the one that governs; check that it is
+not the narrower.
+
 **Fixing the path you were shown instead of the class of fault — twice in one day.**
 Refusals reaching a modern client as schema-invalid were fixed for the tools named in the
 report; four hours later `respond_to_report` raised `RecordInvalid` past a length limit and

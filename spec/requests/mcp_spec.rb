@@ -24,6 +24,20 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     end
   end
 
+  # Guidance asks for a report "equally when you got the job done but the way
+  # through was wasteful"; the hint on the refusal itself said "if this stopped
+  # you", and the hint is the text a caller reads at the moment it would decide.
+  # An assistant worked around a refusal that named a field it had supplied and
+  # never filed it, an hour after closing a report about that class (01a0c0d5).
+  it "asks for a report on a refusal that cost a step, not only one that stopped the work" do
+    body = rpc("tools/call", { name: "get_claim", arguments: { "claim_id" => "not-a-uuid" } })
+    hint = body.dig("result", "structuredContent", "hint")
+    expect(body.dig("result", "isError")).to be(true)
+    expect(hint).to include("worked around"), "waste noticed while succeeding is the case that never gets filed"
+    expect(hint).not_to match(/\AIf this stopped you/), "the narrow wording contradicted Guidance"
+    expect(Guidance::ASK).to include("wasteful"), "and the two have to agree"
+  end
+
   it "initializes, lists the tools, records a bundle, and reads the card back under one token (#1)" do
     init = rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "spec", version: "0" } })
     expect(init.dig("result", "protocolVersion")).to eq("2025-06-18")

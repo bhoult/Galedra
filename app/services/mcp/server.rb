@@ -1010,7 +1010,15 @@ module Mcp
     # spent two bug reports concluding the record was corrupt
     # (docs/experiments/2026-09-20-second-connector-run.md, finding 1).
     def tool_error(id, errors, era = Era.legacy)
-      hint = "If this stopped you doing what the person asked, call request_feature with what you needed."
+      # Narrower than Guidance, which asks for a report "equally when you got the
+      # job done but the way through was wasteful". An assistant read a refusal
+      # that named a field it had supplied, loaded the schema, worked around it
+      # in thirty seconds and never filed it — within an hour of closing a
+      # report about that exact class. It was not stopped, so the sentence at
+      # the moment of contact did not ask. Two of our own texts disagreeing, and
+      # the one the caller actually reads was the narrow one.
+      hint = "Call request_feature with what you needed if this stopped you — or if it cost you a step you then worked around. " \
+             "Recovering from a bad refusal and moving on is how it survives to cost the next assistant the same step."
       result = { content: [ { type: "text", text: (errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" } + [ hint ]).join("\n") } ],
                  structuredContent: { errors: errors, hint: hint }, isError: true }
       { jsonrpc: "2.0", id: id, result: decorate(result, era) }
