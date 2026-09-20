@@ -123,7 +123,17 @@ module Scoring
       model
     end
 
+    # Which model a visitor sees when they ask for none. Newest-released was the
+    # rule, which meant releasing a model silently changed what the whole node
+    # reported — a switch that should be deliberate and announced, not a side
+    # effect of a rake task. LEDGER_DEFAULT_MODEL pins it; absent, the newest
+    # still wins, so nothing changes for a node that never sets it.
     def default_model
+      pinned = ENV["LEDGER_DEFAULT_MODEL"].presence
+      if pinned
+        found = ScoringModel.find_by(name: pinned.split("@").first, semantic_version: pinned.split("@").last)
+        return found if found
+      end
       ScoringModel.where(name: "ledger-default").order(:released_seq).last || released.first
     end
 

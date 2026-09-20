@@ -18,7 +18,7 @@ RSpec.describe "Claim pages (07 Phase 6 #3)", type: :system do
     expect(page).not_to have_text("0.5247")
     click_link "Show calculation"
     within("#calculation") do
-      expect(page).to have_text("0.5247 under ledger-default@0.1.0 at snapshot #{graph.checkpoints['S5']}")
+      expect(page).to have_text("0.5247 under #{Scoring::Registry.default_model.full_name} at snapshot #{graph.checkpoints['S5']}")
       expect(page).to have_text("Review checks: 3 of 4")
     end
     expect(page).to have_css("pre#trace", text: '"probability": "0.5247"')
@@ -55,7 +55,7 @@ RSpec.describe "Claim pages (07 Phase 6 #3)", type: :system do
     expect(page).to have_css(".headline", text: "Unresolved")
     click_link "Show calculation"
     expect(page).to have_text("the default model, not the answer")
-    expect(page).to have_css("pre#trace", text: '"model": "ledger-default@0.1.0"')
+    expect(page).to have_css("pre#trace", text: %("model": "#{Scoring::Registry.default_model.full_name}"))
 
     select "ledger-strict@0.1.0", from: "model"
     click_button "View"

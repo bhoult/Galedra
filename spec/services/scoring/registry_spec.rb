@@ -40,10 +40,10 @@ RSpec.describe Scoring::Registry do
 
   it "releases both models through the log, signed by the system key, and rejects unauthorized or stale releases" do
     models = release_models
-    expect(models.map(&:full_name)).to contain_exactly("ledger-default@0.1.0", "ledger-strict@0.1.0")
+    expect(models.map(&:full_name)).to include("ledger-default@0.1.0", "ledger-strict@0.1.0")
     expect(models.map(&:code_hash).uniq).to eq([ described_class.code_hash ])
     expect(models.first.config_hash).to eq(Crypto::Hashing.json(models.first.config))
-    expect(described_class.find("ledger-default").full_name).to eq("ledger-default@0.1.0")
+    expect(described_class.find("ledger-default").full_name).to eq(ScoringModel.where(name: "ledger-default").order(:released_seq).last.full_name)
     expect(described_class.default_model.name).to eq("ledger-default")
 
     human, = register_key

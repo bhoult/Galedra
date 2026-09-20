@@ -527,6 +527,68 @@ and the live 894 was stale from the same out-of-band deletion — but that is a 
 is recorded as one rather than tidied away. A `Ledger::TableDigest` snapshot taken *before* a
 replay, not just after, would have answered it outright; that is the cheap habit to adopt.
 
+## Phase five: the assistant finds the worst fault so far
+
+A new session, minutes after the instruction was widened to ask for reports without being
+asked. Its first notable call:
+
+```
+mcp_call tool=report_bug outcome=ok args=context_tool,expected,guidance_version,happened,steps,url
+```
+
+Two changes verified in one line. It filed **unprompted**, which the previous session did
+only when told to; and it sent `guidance_version`, so it had read the guidance block, learned
+from the block itself how to stop receiving it, and did. The self-describing approach works,
+and no tool schema had to change to teach it.
+
+### 20. Verifying a transcript was corroborating the claim — **OPEN, and the most serious
+finding here**
+
+Its report, in its own framing: an `EVIDENCE_VERIFICATION` task pairs a claim with the very
+transcript sentence the claim was extracted from. Confirming the speaker said it establishes
+**provenance**, not corroboration — but the scorer counts it as support.
+
+Verified, and worse than reported:
+
+| | |
+|---|---|
+| The example claim | a bare unsourced assertion by a podcast guest |
+| Its state | **SUPPORTED, probability 0.8281** |
+| Its review coverage | **0.00** |
+| Its two supporting links | both `TRANSCRIPTION`, both from the same episode |
+| Directionally supported claims in the outline | 29 |
+| **Of those, supported only by the episode itself** | **24** |
+
+So 83% of everything this outline calls supported rests on the episode agreeing with itself,
+and a reader is shown *"Checks out so far"* where nothing outside the podcast was consulted.
+That is precisely the impression the project exists to prevent, and it is produced by the
+machinery working as built.
+
+**A second fault found while confirming the first:** the same episode is recorded as two
+`Source` rows with an identical `canonical_uri`, and across the node **3 URIs account for 7
+source rows**. (An earlier figure of "4 URIs, 15 rows" was mine and wrong: the query
+grouped by `canonical_uri` including nulls, and 8 sources have no URI at all, so they
+collapsed into one bogus group. The origin derivation gives those per-row identity, which is
+right — a source with no URI cannot be matched to another.). Independence is grouped by evidence origin, so two rows for one URL can make
+same-origin evidence look independent — which is the double-counting Invariant 6 forbids and
+the standing rule *"repetition is not corroboration"* states in words.
+
+**Why this is not a quick fix.** Scoring is versioned: Invariant 4 says the same seq and model
+give a byte-identical trace, so changing how support is weighed requires a new model version,
+new goldens and a reference-scorer pass. The candidate shapes, none chosen here:
+
+- treat evidence whose source shares an origin with the claim's own extraction as provenance,
+  not support — it would establish the quotation is faithful and move no probability;
+- keep it as support but cap it, so self-referential evidence alone cannot reach a
+  directional state;
+- fix the duplicate sources first, since independence grouping cannot work while one URL is
+  several origins, and see how much of the 24 survives.
+
+**The finding belongs to the assistant.** Watching produced the performance numbers and the
+livelock; none of my monitoring would have found this, because I was reading counts and
+states and never asking whether a state was *deserved*. It asked, on a claim it had itself
+just moved to "Supported", and reported it against its own work.
+
 ## What was wrong in the watching
 
 Three misreads, all mine, recorded because an observer who gets it wrong is part of what

@@ -62,7 +62,7 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     expect(data["url"]).to end_with("/claims/#{ban['id']}")
 
     data, = call_tool("explain", { claim_id: ban["id"], calculation: true })
-    expect(data.dig("calculation", "stated_as")).to include("under ledger-default@0.1.0 at snapshot")
+    expect(data.dig("calculation", "stated_as")).to include("under #{Scoring::Registry.default_model.full_name} at snapshot")
     expect(data.dig("why", "strongest_contradiction", "statement")).to include("Motion 14")
 
     data, = call_tool("share_card", { claim_id: ban["id"] })

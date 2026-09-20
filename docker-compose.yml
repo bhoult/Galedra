@@ -34,6 +34,9 @@ services:
       DB_HOST: db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      # Which model a visitor sees when they ask for none. Pinned, so releasing
+      # a newer one does not silently change what the node reports (Stage 35).
+      LEDGER_DEFAULT_MODEL: ledger-default@0.1.0
       SOLID_QUEUE_IN_PUMA: "true"
     env_file:
       - path: .env

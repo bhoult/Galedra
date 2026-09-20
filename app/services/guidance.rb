@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.1"
+  VERSION = "2026-09-20.2"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -90,9 +90,19 @@ module Guidance
               "changes no assessment, and saying so is part of reporting it."
 
   WORK = "Working open tasks: when the person says \"work the open tasks in Galedra\", call next_task, read the sources " \
-         "yourself, answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result), and repeat until " \
-         "next_task says nothing is available, the person stops you, or your daily cap nears. Do not stop at an arbitrary " \
-         "number. Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to " \
+         "yourself, and answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result). " \
+         "Keep going. Stop only when the person gave you a number and you have reached it, when they tell you to stop, when " \
+         "next_task has nothing left, or when your cap is near. Absent a limit, work until one of those is true rather than " \
+         "until the run feels long enough: there is no arbitrary number at which stopping becomes right, and a person who " \
+         "asked for the open tasks meant the open tasks. " \
+         "Report as you go, about every ten tasks: how many you have done, what the last few found, and what is left. " \
+         "Someone watching a long run cannot tell steady work from a stall, and silence reads as the second. " \
+         "If the kind of task you are on stops being useful — the checks keep coming back CANNOT_DETERMINE, or the passage " \
+         "can only ever establish that a quotation is faithful — say so and switch to a kind that can move something. " \
+         "Filter next_task by types or domains, or search for what would count against a claim and record it with " \
+         "add_evidence, which is not a task and is never blocked. Doing the useful work is the instruction; the task queue " \
+         "is only where most of it happens to be. " \
+         "Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to " \
          "have something to submit. Reviews are also open work, settled by the agreement of different principals rather than " \
          "by an admin: when next_task has nothing, call next_content_review (free text checked for offensive content) and " \
          "next_affiliation_review (affiliations people asked to add), and answer by the rules each gives."

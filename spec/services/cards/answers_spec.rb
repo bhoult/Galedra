@@ -121,7 +121,7 @@ RSpec.describe "Answer cards, why, summaries, and weaknesses (07 Phase 6 #1, #2;
     get "/api/v1/weaknesses", params: { snapshot_seq: graph.checkpoints["S1"] }
     lists = response.parsed_body["lists"]
     expect(lists["models_disagree"].map { |e| e["claim_id"] }).to eq([ graph.claims["C6"].id ])
-    expect(lists["models_disagree"].first["detail"]["states"]).to eq("ledger-default@0.1.0" => "UNRESOLVED", "ledger-strict@0.1.0" => "NOT_APPLICABLE")
+    expect(lists["models_disagree"].first["detail"]["states"]).to include("ledger-default@0.1.0" => "UNRESOLVED", "ledger-strict@0.1.0" => "NOT_APPLICABLE")
     expect(lists["independence_unreviewed"].map { |e| e["claim_id"] }).to include(graph.claims["C2"].id)
     expect(lists["low_coverage_scored"].map { |e| e["claim_id"] }).to include(graph.claims["C2"].id)
     expect(lists["models_disagree"].first["what_would_most_change_this"]).to include("direction")

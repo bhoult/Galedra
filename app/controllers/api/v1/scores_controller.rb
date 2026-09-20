@@ -27,7 +27,12 @@ module Api
         return render json: stub if @quarantine
 
         names = params[:models].to_s.split(",").map(&:strip).reject(&:empty?)
-        names = Scoring::Registry.released.map(&:full_name) if names.empty?
+        # With no models named, compare the pair a reader means: the default and
+        # its strict counterpart at the same version. This used to default to
+        # every released model and then insist on exactly two, which worked only
+        # while exactly two existed — releasing a third turned the bare endpoint
+        # into a 422.
+        names = default_pair if names.empty?
         raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.models", detail: "expected models=a,b" } ]) unless names.size == 2
 
         a, b = names.map { |n| Scoring::Registry.find(n) }
@@ -35,6 +40,15 @@ module Api
         rb = Scoring::Score.call(@claim, @seq, b)
         render json: { claim_id: @claim.id, snapshot_seq: @seq, assessment_state: { a.full_name => ra.assessment_state, b.full_name => rb.assessment_state } }
                         .merge(Scoring::Compare.call(ra, rb, config_a: a.config, config_b: b.config))
+      end
+
+      # The default model, and the strict model of the same version when there is
+      # one, so the comparison stays meaningful as versions accumulate.
+      def default_pair
+        default = Scoring::Registry.default_model
+        strict = ScoringModel.find_by(name: "ledger-strict", semantic_version: default.semantic_version) ||
+                 ScoringModel.where(name: "ledger-strict").order(:released_seq).last
+        [ default.full_name, strict&.full_name ].compact
       end
 
       def why

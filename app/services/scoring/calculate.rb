@@ -128,9 +128,15 @@ module Scoring
         interpretation = [ BigDecimal(0), BigDecimal(1) - penalty * link.fetch("interpretive_steps", 0) ].max
         authenticity = Decimal.d(@config.fetch("authenticity_factor").fetch(assessment.fetch("authenticity", "UNVERIFIED")))
         extraction = Decimal.d(@config.fetch("extraction_factor").fetch(assessment.fetch("extraction", "UNVERIFIED")))
-        magnitude = Decimal.round(relevance * observation * interpretation * authenticity * extraction, @places[:weights])
+        # Stage 35. Evidence drawn from an origin the claim was extracted from
+        # shows the quotation is faithful; it says nothing about whether the
+        # speaker was right. Both this and the origin grouping below are read
+        # from the config, so a model that declares neither scores exactly as it
+        # always did and every trace it produced stays reproducible.
+        provenance = provenance_factor(link)
+        magnitude = Decimal.round(relevance * observation * interpretation * authenticity * extraction * provenance, @places[:weights])
         sign = @config.fetch("direction_sign").fetch(link.fetch("direction"))
-        group = evidence["independence_group_id"].presence || "solo:#{link.fetch('evidence_id')}"
+        group = evidence["independence_group_id"].presence || fallback_group(link, evidence)
         { link: link, magnitude: magnitude, sign: sign, group: group }
       end
     end
@@ -158,6 +164,27 @@ module Scoring
       [ link.dig("evidence", "created_seq") || 0, link["evidence_id"].to_s, link["created_seq"] || 0, link["id"].to_s ]
     end
 
+    def provenance_factor(link)
+      factors = @config["provenance_factor"]
+      return BigDecimal(1) if factors.nil?
+
+      Decimal.d(factors.fetch(link["self_referential"] ? "SELF" : "INDEPENDENT"))
+    end
+
+    # Ungrouped evidence is its own group. Under "origin" it is keyed by where it
+    # came from *and which passage it is*, so the same passage recorded twice —
+    # which happens whenever one URL is entered as two sources, and nothing
+    # deduplicates by address — counts once. Two different passages of one
+    # document stay distinct: a qualifier and a supporting line from the same
+    # report are not each other repeated, and collapsing them would throw away
+    # the qualifier, which is information rather than duplication.
+    def fallback_group(link, evidence)
+      return "solo:#{link.fetch('evidence_id')}" unless @config["independence_fallback"] == "origin"
+      return "solo:#{link.fetch('evidence_id')}" if evidence["origin"].blank?
+
+      "origin:#{evidence['origin']}/#{evidence['passage']}"
+    end
+
     def link_trace(w, effective:, reason:, kept: nil)
       link = w[:link]
       evidence = link.fetch("evidence")
@@ -169,6 +196,7 @@ module Scoring
         "extraction" => evidence.fetch("assessment", {}).fetch("extraction", "UNVERIFIED"),
         "source_type" => evidence["source_type"], "audit_confirmed" => link["audit_confirmed"] != false,
         "magnitude" => Decimal.fixed(w[:magnitude], @places[:weights]),
+        **(@config["provenance_factor"] ? { "provenance" => link["self_referential"] ? "SELF" : "INDEPENDENT" } : {}),
         "effective_weight" => effective.nil? ? nil : Decimal.fixed(effective, @places[:weights])
       }
       entry["reason"] = reason if reason

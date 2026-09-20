@@ -16,14 +16,14 @@ RSpec.describe "Score endpoints (spec 06 §2)", type: :request do
 
     get "/api/v1/claims/#{causal.id}/score"
     body = response.parsed_body
-    expect(body).to include("snapshot_seq" => seq, "model" => "ledger-default@0.1.0")
+    expect(body).to include("snapshot_seq" => seq, "model" => Scoring::Registry.default_model.full_name)
     expect(body["assessment"]).to include("assessment_state" => "UNRESOLVED", "probability" => "0.3792", "model_dependent" => true, "stability" => "LOW", "provisional" => true)
 
     get "/api/v1/claims/#{causal.id}/score", params: { model: "ledger-strict@0.1.0" }
     expect(response.parsed_body["assessment"]).to include("assessment_state" => "NOT_APPLICABLE", "probability" => nil, "not_applicable_reason" => "NOT_SCORED_BY_MODEL")
 
     get "/api/v1/claims/#{causal.id}/trace"
-    expect(response.parsed_body["trace"]).to include("model" => "ledger-default@0.1.0", "snapshot_seq" => seq, "probability" => "0.3792")
+    expect(response.parsed_body["trace"]).to include("model" => Scoring::Registry.default_model.full_name, "snapshot_seq" => seq, "probability" => "0.3792")
     expect(response.parsed_body["canonical_trace"]).to start_with("{")
 
     get "/api/v1/claims/#{causal.id}/compare", params: { models: "ledger-default@0.1.0,ledger-strict@0.1.0" }
@@ -34,7 +34,7 @@ RSpec.describe "Score endpoints (spec 06 §2)", type: :request do
     expect(response.parsed_body["assessment"]).to include("assessment_state" => "NOT_APPLICABLE", "probability" => nil, "not_applicable_reason" => "NORMATIVE_OR_VALUE")
 
     get "/api/v1/claims/#{causal.id}"
-    expect(response.parsed_body["claim"]["assessment"]).to include("assessment_state" => "UNRESOLVED", "snapshot_seq" => seq, "model" => "ledger-default@0.1.0")
+    expect(response.parsed_body["claim"]["assessment"]).to include("assessment_state" => "UNRESOLVED", "snapshot_seq" => seq, "model" => Scoring::Registry.default_model.full_name)
     get "/api/v1/claims", params: { state: "NOT_APPLICABLE" }
     expect(response.parsed_body["claims"].map { |c| c["id"] }).to eq([ normative.id ])
     get "/api/v1/claims", params: { state: "NOT_APPLICABLE", model: "ledger-strict@0.1.0" }
@@ -45,11 +45,11 @@ RSpec.describe "Score endpoints (spec 06 §2)", type: :request do
     expect(response.parsed_body["errors"].first["code"]).to eq("MODEL_UNKNOWN")
 
     get "/api/v1/scoring-models"
-    expect(response.parsed_body["default"]).to eq("ledger-default@0.1.0")
-    expect(response.parsed_body["models"].map { |m| m["name"] }).to contain_exactly("ledger-default@0.1.0", "ledger-strict@0.1.0")
+    expect(response.parsed_body["default"]).to eq(Scoring::Registry.default_model.full_name)
+    expect(response.parsed_body["models"].map { |m| m["name"] }).to match_array(Scoring::Registry.released.map(&:full_name))
     get "/api/v1/meta"
-    expect(response.parsed_body).to include("default_model" => "ledger-default@0.1.0")
-    expect(response.parsed_body["scoring_models"].size).to eq(2)
+    expect(response.parsed_body).to include("default_model" => Scoring::Registry.default_model.full_name)
+    expect(response.parsed_body["scoring_models"]).to match_array(Scoring::Registry.released.map(&:full_name))
 
     get "/api/v1/snapshots/#{seq}"
     expect(response.parsed_body).to include("seq" => seq, "entry_hash" => Contribution.find_by!(seq: seq).entry_hash, "pinned" => false)

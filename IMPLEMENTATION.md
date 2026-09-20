@@ -94,6 +94,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 32 | Speaking modern MCP as well as legacy | implemented | [implementation/implemented/stage-32-modern-mcp.md](implementation/implemented/stage-32-modern-mcp.md) |
 | 33 | Take an outline away as a file you can read | planned | [implementation/planned/stage-33-static-export.md](implementation/planned/stage-33-static-export.md) |
 | 34 | A person can finish their own investigation | implemented | [implementation/implemented/stage-34-first-pass-self-check.md](implementation/implemented/stage-34-first-pass-self-check.md) |
+| 35 | Provenance is not corroboration | implemented, not yet default | [implementation/implemented/stage-35-provenance-is-not-corroboration.md](implementation/implemented/stage-35-provenance-is-not-corroboration.md) |
 
 Work done between stages, each with its own dated entry:
 
