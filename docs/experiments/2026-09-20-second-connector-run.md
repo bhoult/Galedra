@@ -72,7 +72,7 @@ never helped with and actively misdirected.
 
 ## What it found
 
-### 1. Every refusal to a modern client is schema-invalid · **OPEN** · *the one to fix first*
+### 1. Every refusal to a modern client is schema-invalid · **FIXED 2026-09-20** (`6ea6a04`)
 
 Reported by the assistant, which saw what the server cannot:
 
@@ -111,7 +111,7 @@ ledger.
 **Fix:** route `tool_error` through `decorate`; add a spec asserting `resultType` on an
 `isError` result.
 
-### 2. The queue hands out work whose outcome is fixed, with no lever to refuse it · **OPEN**
+### 2. The queue hands out work whose outcome is fixed, with no lever to refuse it · **FIXED 2026-09-20** (`6ea6a04`)
 
 Of the first eight tasks leased, six targeted `NOT_APPLICABLE` claims, and the last six ran
 consecutively. `next_task` filters on `types` and `domains` — task type and domain. Neither
@@ -136,7 +136,7 @@ the descriptive half hangs off a claim that can never move. The original finding
 candidate was to suppress such tasks, which it called "tempting and probably wrong". This
 sidesteps that: don't suppress the work, fix the claim that should never have been one claim.
 
-### 3. The outline hands out merged claims · **OPEN**
+### 3. The outline hands out merged claims · **FIXED 2026-09-20** (`6ea6a04`)
 
 ```ruby
 # Current (windowed) claims can receive links and edges.
@@ -154,7 +154,7 @@ been merged. That fix closed the queue path; the outline path was never touched.
 instance this session of a fix that closed one route while the same fault stayed open on
 another** — the `open`/`answers_wanted` reporting is the same shape.
 
-### 4. `list_tasks` costs 3,714 queries · **OPEN**
+### 4. `list_tasks` costs 3,714 queries · **FIXED 2026-09-20** (`6ea6a04`)
 
 2,606 ms, 3,714 queries (693 cached) to return five tasks and some counts.
 `Task#open_slots` is `required_assignments - active_assignments.count - submitted_assignments.count`
@@ -175,7 +175,7 @@ before that day's batching work. 15.3 is ~36% fewer, on a real corpus under a re
 independent confirmation of `Scoring::Pass`, which the spec-level test could only show
 didn't move traces.
 
-### 6. Score-cache retention is built but never runs · **OPEN**
+### 6. Score-cache retention is built but never runs · **FIXED 2026-09-20** (`6ea6a04`)
 
 `PruneClaimScoresJob` exists at `app/jobs/prune_claim_scores_job.rb` and is referenced
 **nowhere else**. `config/recurring.yml` schedules `settle_lone_verdicts` and
@@ -208,7 +208,7 @@ looks like a shell instead of asserting the quote was not found.
 Outstanding: one outbound GET to qz.com would settle it. Not done — the owner was asked
 first and the run was still live.
 
-### 8. Smaller, all **OPEN**
+### 8. Smaller · **ALL FIXED 2026-09-20** (`6ea6a04`, `c366e16`)
 
 - **`list_tasks` is not personalised.** It filters on `open_slots.positive?` and never
   applies the `taken` exclusion `Tasks::Lease.candidates` uses, so a returning assistant is
@@ -278,3 +278,53 @@ The previous run's lesson was that monitoring never asks whether a state is *des
 one adds a second: **monitoring sees what the server sent, never what the client received.**
 Both gaps are closed by the same thing — an assistant doing real work and saying what
 happened to it.
+
+
+## What was fixed, 2026-09-20
+
+All but two, in `6ea6a04` and `c366e16`. 397 examples green, reference scorer ALL PASS.
+
+- **Refusals carry `resultType`.** `tool_error` takes the era and goes through `decorate`; a
+  spec asserts `resultType`, `_meta` and the error text on an `isError` result, and it fails
+  against the old code on exactly that assertion.
+- **`CLAIM_NOT_CURRENT` names the target**, and the refusal log carries id-shaped argument
+  values. The first version of that filter matched `*_id` and missed `fetch`'s bare `id` —
+  caught by live traffic ten minutes after shipping, fixed in `c366e16`.
+- **`next_task` gains `settleable`**, and `Guidance::WORK` (2026-09-20.4) says when to use it.
+- **`bin/rails tasks:reprioritise`** backfills the damping to tasks already on the board,
+  scoped to targets no model scores. **The scoping is the substance:** a full recompute also
+  re-stamps every other task under today's default model, which moved 181 priorities by two
+  thirds purely because the default went 0.1.0 → 0.2.0. That is a decision, not a side effect
+  of a rake task. Applied here: this outline's top forty went from **39 of 40** unsettleable
+  to **0 of 40**, and a second run changes nothing.
+- **`list_tasks`** answers open slots for the whole set in one query, and its `next`
+  suggestions leave out what this caller already holds. Deliberately *not* memoised on the
+  instance — `Tasks::Lease` reads `open_slots`, creates an assignment, then reads it again,
+  and a memo made the second read stale. The suite caught that, which is why the batching
+  lives in a class method.
+- **`get_outline` marks merged claims** with `merged_into` rather than listing them as
+  ordinary open work.
+- **`submit_task` reports `self_performed` and `review_coverage`**, so "did that help?" is
+  answerable from the reply.
+- **`PruneClaimScoresJob` is scheduled** in `config/recurring.yml`.
+
+### Still open
+
+- **Finding 5, `get_outline`'s cold recompute.** The score cache is keyed on the exact seq
+  and the head moves with every append, so a writing assistant invalidates its own reads.
+  Fixing it means changing what the cache is keyed on, which is a design decision about when
+  a score may be reused, not a query to batch. It wants a stage.
+- **Finding 7, the quote verifier.** Needs one outbound fetch to confirm the body is a shell,
+  which was not taken while the run was live.
+
+### Filed during the fixing, not yet addressed
+
+The assistant filed five more feature requests at 19:00. One is the same class this project
+keeps hitting and is worth stating here: **`Guidance` promises something the API cannot
+express.** `Tasks::Types` says "a documented null search is information" and `Guidance::WORK`
+sends off-queue work to `add_evidence`, which requires `%w[claim_id source excerpt statement
+direction]`. A null result — "I looked and found nothing" — has a home inside a task
+(`NONE_FOUND`) and no home outside one. The other four: no way to enumerate checkable claims
+still at `INSUFFICIENT_EVIDENCE` (which is what drove the expensive `get_outline` calls),
+`add_evidence` taking exactly one excerpt per call, and two points of unclarity about what
+happens to sources added metadata-only.
