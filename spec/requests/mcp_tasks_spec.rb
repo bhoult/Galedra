@@ -100,16 +100,16 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["note"]).to include("different principal")
   end
 
-  it "never hands an assistant a task on its own principal's claim, and list_tasks needs no token (#3)" do
+  # Stage 34. This used to assert that a principal was never handed any task on
+  # its own claim, which is broader than 04 §3.1 asks and left a person who
+  # outlined a source alone unable to finish checking it. The routine checks that
+  # open alongside a recording are now leasable by their author and recorded as
+  # self-performed; an explicitly requested blind check is not.
+  it "hands an assistant its own claim's routine checks, marked self-performed, and list_tasks needs no token (#3)" do
     bundle = { "claims" => [ { "handle" => "c", "text" => "My own claim about the weather.", "type" => "OBSERVATIONAL" } ] }
     data, = call_tool("record_investigation", bundle)
     own = data["claims"].first["id"]
     expect(Task.where(target_id: own, status: "OPEN").count).to eq(2)
-
-    data, err = call_tool("next_task", { claim_id: own })
-    expect(err).to be(false)
-    expect(data["available"]).to be(false)
-    expect(data["reason"]).to include("own principal")
 
     data, err = call_tool("list_tasks", {}, nil)
     expect(err).to be(false)
@@ -117,6 +117,36 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["by_type"]).to include("OPPOSING_EVIDENCE_SEARCH" => 1, "QUALIFIER_CHECK" => 1)
     expect(data["next"].first["target"]["claim_id"]).to eq(own)
     expect(data["how"]).to include("work N open tasks")
+
+    data, err = call_tool("next_task", { claim_id: own })
+    expect(err).to be(false)
+    expect(data["available"]).to be(true), "a person must be able to finish their own investigation"
+    assignment = TaskAssignment.find_by!(task_id: data["task_id"])
+    expect(assignment.self_performed).to be(true), "and it must be recorded as their own work"
+    expect(Tasks::Lease::SELF_CHECKABLE).to include(Task.find(data["task_id"]).task_type)
+  end
+
+  it "still refuses a blind check its own principal asked for, and the types reserved for another reader (#3)" do
+    bundle = { "claims" => [ { "handle" => "c", "text" => "Another claim of my own.", "type" => "OBSERVATIONAL" } ] }
+    data, = call_tool("record_investigation", bundle)
+    own = data["claims"].first["id"]
+    Task.where(target_id: own).delete_all
+
+    # Asked for deliberately, so the asker does not answer it (Stage 19).
+    out, err = call_tool("open_task", { claim_id: own, type: "QUALIFIER_CHECK" })
+    expect(err).to be(false)
+    expect(Task.find(out["task_id"]).blind_requested).to be(true)
+    data, err = call_tool("next_task", { claim_id: own })
+    expect(err).to be(false)
+    expect(data["available"]).to be(false)
+
+    # Independence grouping is a structural judgement about one's own reasoning.
+    Task.where(target_id: own).delete_all
+    Tasks::Create.call(task_type: "SOURCE_INDEPENDENCE_CHECK", target: Claim.find(own))
+    expect(Tasks::Lease::SELF_CHECKABLE).not_to include("SOURCE_INDEPENDENCE_CHECK")
+    data, err = call_tool("next_task", { claim_id: own })
+    expect(err).to be(false)
+    expect(data["available"]).to be(false)
   end
 
   it "refuses an expired lease, a wrong outcome, and a disallowed item, and releases a lease (#4)" do
@@ -171,5 +201,37 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     before = Ledger::TableDigest.projections
     Ledger::Replay.call
     expect(Ledger::TableDigest.projections).to eq(before)
+  end
+
+  # Stage 34, and the safety property the whole stage rests on: a person may
+  # finish checking their own investigation, and doing so must not move the
+  # number that means somebody else has looked.
+  it "records a self-check without raising review coverage (#3)" do
+    bundle = { "claims" => [ { "handle" => "c", "text" => "My own claim about rainfall.", "type" => "OBSERVATIONAL" } ] }
+    data, = call_tool("record_investigation", bundle)
+    claim = Claim.find(data["claims"].first["id"])
+    before = Scoring::Score.call(claim, Contribution.maximum(:seq), model).review_coverage
+
+    leased, err = call_tool("next_task", { claim_id: claim.id })
+    expect(err).to be(false)
+    expect(leased["available"]).to be(true)
+    task = Task.find(leased["task_id"])
+    expect(Tasks::Lease::SELF_CHECKABLE).to include(task.task_type)
+
+    outcome = task.task_type == "OPPOSING_EVIDENCE_SEARCH" ? "NONE_FOUND" : "NONE_MATERIAL"
+    _, err = call_tool("submit_task", { task_id: task.id, outcome: outcome, answer: {} })
+    expect(err).to be(false)
+
+    assignment = TaskAssignment.find_by!(task_id: task.id)
+    expect(assignment.self_performed).to be(true)
+    expect(assignment.result_contribution_id).to be_present
+
+    seq = Contribution.maximum(:seq)
+    expect(Scoring::Score.call(claim, seq, model).review_coverage).to eq(before),
+      "a check by the claim's own author must not raise review coverage"
+    expect(Tasks::Checks.for(claim.id, seq)).to be_empty,
+      "and must never reach the scorer's task_checks at all"
+    expect(Tasks::Checks.self_for(claim.id, seq).values.sum).to eq(1),
+      "but it is recorded, and reportable"
   end
 end

@@ -8,8 +8,26 @@ module Tasks
 
     module_function
 
+    # Stage 34: self-performed checks are excluded here, before the scorer sees
+    # anything. They are recorded and shown, but they never reach task_checks and
+    # so can never raise review_coverage — the figure that means someone other
+    # than the author has looked. Filtering here rather than flagging inside the
+    # scorer keeps the trace shape unchanged, so no new model version is needed
+    # for a feature that must not move the number anyway (Invariants 4 and 7).
     def for(claim_id, seq)
-      accepted_results(claim_id, seq).map { |task, result| { "check" => CHECK_FOR.fetch(task.task_type), "by" => task.id, "result_contribution_id" => result.id } }
+      pairs = accepted_results(claim_id, seq).reject { |_, result| self_performed?(result) }
+      pairs.map { |task, result| { "check" => CHECK_FOR.fetch(task.task_type), "by" => task.id, "result_contribution_id" => result.id } }
+    end
+
+    # What the author checked themselves, for display: {check => count}.
+    def self_for(claim_id, seq)
+      accepted_results(claim_id, seq).select { |_, result| self_performed?(result) }
+                                     .group_by { |task, _| CHECK_FOR.fetch(task.task_type) }
+                                     .transform_values(&:size)
+    end
+
+    def self_performed?(result)
+      TaskAssignment.where(result_contribution_id: result.id, self_performed: true).exists?
     end
 
     def opposing_search_done?(contribution_id, seq)

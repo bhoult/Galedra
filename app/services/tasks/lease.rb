@@ -7,6 +7,17 @@ module Tasks
   module Lease
     Rejected = Ledger::Rejected
 
+    # Stage 34: checks a principal may perform on its own claim, recorded as
+    # self-performed and kept out of the scorer entirely.
+    #
+    # 04 §3.1 forbids exactly two things — auditing your own contribution, and
+    # accepting your own proposed claim — and neither is a task type. The guard
+    # below used to cover every type, which meant a person who outlined a source
+    # alone could never finish checking it and had to wait for a stranger.
+    # Independence grouping and inference review stay closed: both are structural
+    # judgements about one's own reasoning, where a second reader is the point.
+    SELF_CHECKABLE = %w[EVIDENCE_VERIFICATION OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK].freeze
+
     module_function
 
     def next(contributor:, delegation:, types: [], domains: [], target_id: nil, section_id: nil)
@@ -17,14 +28,20 @@ module Tasks
       expire_stale!
       candidates(contributor, principal, delegation, types, domains, target_id, section_id).each do |task|
         next if task.open_slots <= 0
-        # Stage 18: a principal never checks its own claim (04 §3.1, Article XI).
-        next if own_target?(task, principal)
-        # Stage 19: whoever asked for a blind check does not perform it.
-        next if requested_by?(task, contributor, principal)
+        own = own_target?(task, principal)
+        # Stage 34: own work is checkable for the types above, and recorded as
+        # self-performed so nothing downstream can mistake it for independent.
+        next if own && !SELF_CHECKABLE.include?(task.task_type)
+        # Stage 19: whoever asked for a blind check does not perform it. Only a
+        # check someone deliberately requested; the verification tasks that open
+        # alongside a recording are not a request to be honoured against its own
+        # author (Stage 34).
+        next if task.blind_requested? && requested_by?(task, contributor, principal)
 
         assignment = TaskAssignment.create!(
           task: task, contributor: contributor, principal: principal, delegation_id: delegation&.id,
-          lease_expires_at: Time.current + Types.lease_length(task.task_type), status: "LEASED"
+          lease_expires_at: Time.current + Types.lease_length(task.task_type), status: "LEASED",
+          self_performed: own
         )
         Status.refresh!(task)
         return assignment

@@ -76,6 +76,10 @@ class ClaimsController < ApplicationController
     @result = @model && Scoring::Score.call(@claim, @seq, @model)
     @card = @model && Cards::ClaimCard.call(@claim, @seq, @model, @result)
     @assessment = @model && Graph::Presenter.assessment(@result, @seq, @model)
+    # Stage 34: checks the claim's own author performed. Kept out of the
+    # checklist above, which is what independent review means, and shown
+    # separately so the page says which it has rather than implying the other.
+    @self_checks = Tasks::Checks.self_for(@claim.id, @seq)
     @why = @model && Cards::Why.call(@claim, @seq, @model)
     @evidence = Graph::Presenter.claim_evidence(@claim, @seq)
     @summary = @model && Summaries::Generate.call(@claim, @seq, @model, type: "STANDARD")

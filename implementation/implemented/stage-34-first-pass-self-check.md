@@ -1,6 +1,6 @@
 # Stage 34 — A person can finish their own investigation
 
-**Status:** planned · tag will be `stage-34-first-pass-self-check`
+**Status:** implemented · `stage-34-first-pass-self-check`
 
 **Tag:** `stage-34-first-pass-self-check` · **Spec:** 03 §5 (review checklist and coverage),
 04 §2 (task types), 04 §3.1 (blind independent verification, and what no-self-certification
@@ -63,10 +63,17 @@ them gives what was asked for and invents nothing.
 3. **Every assignment records whether it was self-performed** — an explicit column, not
    something derived later by comparing principals, because the comparison changes as keys
    are adopted and merged, and a fact about what happened must not be recomputed.
-4. **A self-check never raises `review_coverage`.** `Checklist.evaluate` counts independent
-   checks toward coverage, and self-checks toward a separate `self_checked` figure. This is
-   the whole safety of the stage: the work is recorded and visible, and the number that
-   means *someone other than the author has looked* stays true.
+4. **A self-check never reaches the scorer at all.** `Tasks::Checks.for` excludes
+   self-performed results, so they never enter `task_checks` and cannot touch
+   `review_coverage`. This is the whole safety of the stage: the work is recorded and
+   visible, and the number that means *someone other than the author has looked* stays true.
+
+   Filtering before the scorer, rather than flagging inside it, is deliberate. A flag would
+   change the shape of the scoring trace, and Invariant 4 says a scorer change needs a new
+   model version — a new config, new goldens, a reference-scorer pass — for a feature that
+   must not move the number anyway. Excluding them keeps every existing trace byte-identical
+   (no self-checks exist yet, so the filter is a no-op on today's data) and matches
+   Invariant 7: an assessment of one's own work is not evidence.
 5. **The claim says so in words**, not only in a figure: *"Checked by the author. No
    independent review yet."* Once someone else answers, it changes to what it is. Article
    XIX: the page tells the reader the weakness rather than hiding it in a decimal.
@@ -112,3 +119,50 @@ them gives what was asked for and invents nothing.
   figure.
 - Whether an anonymous principal should get the same latitude as a named one. The argument
   for no is that self-checking is only meaningful when the self is accountable.
+
+## Decision Log
+
+**The code was stricter than the spec, so no amendment was needed.** `04 §3.1` forbids
+auditing your own contribution and accepting your own proposed claim. Neither is a task
+type. `Tasks::Lease` applied its self-authorship guard to every type, and that extra
+strictness — not the rule — is what made a solo investigation unfinishable.
+
+**Self-checks are filtered before the scorer, not flagged inside it.** A flag would change
+the scoring trace, and Invariant 4 requires a new model version for a scorer change: new
+config, new goldens, a reference-scorer pass, for a feature that must not move the number
+anyway. `Tasks::Checks.for` excludes self-performed results, so every existing trace stays
+byte-identical and `review_coverage` cannot move.
+
+**`self_performed` is recorded at lease time**, not derived later by comparing principals.
+Keys are adopted and contributors merge; a fact about what happened must not be recomputed
+from a world that has since changed.
+
+**Stage 19's guard had to be split.** "Whoever asks for a blind check does not perform it"
+was keying on `created_by`, which is set both when someone deliberately calls `open_task`
+and when verification opens routinely alongside a recording. `created_by` cannot tell them
+apart, so tasks now carry `blind_requested`, true only for the deliberate case. Without
+this, narrowing the first guard would have achieved nothing.
+
+**Independence checks and inference review stay closed.** Both are structural judgements
+about one's own reasoning, which is where a second reader is the entire point.
+
+### Found while testing
+
+The `next_task` tool description and `Guidance::OUTLINE` both still said a principal never
+gets a check on its own claim. The full suite passed against instructions that contradicted
+the code they described — the third time this project has shipped a behaviour change while
+the thing an assistant reads kept describing the old one. Recorded as finding 8 in
+`docs/experiments/2026-09-19-live-connector-outline.md`.
+
+### Outstanding
+
+- Acceptance 4 is half met: the **claim page** says who checked it, the **answer card**
+  (`Cards::ClaimCard`) does not yet.
+- Acceptance 5 and 6 have no spec: that an independent answer after a self-check raises
+  coverage with both remaining visible, and that a self-check disagreeing with an
+  independent one renders as contested. Both should hold from the existing mechanisms;
+  neither is proven.
+- Acceptance 7 is untested in practice — the 47-leaf outline has 742 open checks and no one
+  has yet driven it to zero under one principal.
+- `/weaknesses` (13.5s) and the outline page (3.5s) are slow at this corpus and working
+  these tasks will add evidence to every claim, making both worse before anything improves.

@@ -75,7 +75,7 @@ module Guidance
             "says, and ask the person whether to start the research yourself now. If yes, do the whole first pass yourself, " \
             "leaf by leaf: record_investigation with each leaf's claims and the evidence for them, giving each claim its " \
             "section id. Do not lease your own extraction tasks; recording is how you do your own work, and a principal " \
-            "never leases a check on its own claim. Claims recorded with evidence are scored at once, so the person can post " \
+            "never leases a check on its own claim. You may, however, work the routine checks that open on your own claims — evidence verification, opposing-evidence search and qualifier check — which is how one person finishes an investigation without waiting for a volunteer. They are recorded as yours and do not raise review coverage, so the page can say plainly how much of the checking was the author's own. Claims recorded with evidence are scored at once, so the person can post " \
             "the link without waiting for anyone; the verification tasks stay open for other people's assistants, each " \
             "asking for three independent answers, and every one of those raises how well checked the claim is. Never " \
             "describe a first pass as settled. Anyone can help: \"work the open tasks in Galedra on <outline URL>\" takes " \

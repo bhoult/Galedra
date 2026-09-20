@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
 
   create_table "affiliation_requests", id: :uuid, default: nil, force: :cascade do |t|
@@ -862,16 +863,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_010000) do
     t.timestamptz "lease_expires_at", null: false
     t.uuid "principal_contributor_id", null: false
     t.uuid "result_contribution_id"
+    t.boolean "self_performed", default: false, null: false
     t.string "status", default: "LEASED", null: false
     t.uuid "task_id", null: false
     t.datetime "updated_at", null: false
     t.index ["contributor_id", "created_at"], name: "index_task_assignments_on_contributor_id_and_created_at"
     t.index ["status", "lease_expires_at"], name: "index_task_assignments_on_status_and_lease_expires_at"
-    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
-    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
+    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
+    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
+    t.index ["task_id", "self_performed"], name: "index_task_assignments_on_task_id_and_self_performed"
   end
 
   create_table "tasks", id: :uuid, default: nil, force: :cascade do |t|
+    t.boolean "blind_requested", default: false, null: false
     t.string "cancelled_reason"
     t.datetime "created_at", null: false
     t.uuid "created_by_contributor_id"

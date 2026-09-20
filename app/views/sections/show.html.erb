@@ -3,7 +3,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Galedra">
   <meta property="og:title" content="<%= @section.root.heading %>">
-  <meta property="og:description" content="<%= "#{@progress[:claims]} claims recorded, #{@progress[:checked]} checked · #{Sections::Tree.states_line(@subtree[:counts])}. Checked in Galedra, an epistemic ledger; counts, never a verdict." %>">
+  <meta property="og:description" content="<%= "#{@progress[:claims]} claims · #{@progress[:self_checked]} self-checked · #{@progress[:independently_checked]} independently checked · #{Sections::Tree.states_line(@subtree[:counts])}. Checked in Galedra, an epistemic ledger; counts, never a verdict." %>">
   <meta property="og:url" content="<%= section_url(@section) %>">
 <% end %>
 <% open_ids = ([ @section ] + @ancestors).map(&:id) %>

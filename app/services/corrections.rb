@@ -69,7 +69,8 @@ module Corrections
 
     seq = Contribution.maximum(:seq)
     domain = Topics.domain_for_claim(claim, seq) || Audits::Policy.default_domain
-    task = Tasks::Create.call(task_type: type, target: claim, domain: domain, location: location, created_by: token.agent)
+    # Explicitly asked for, so the asker does not answer it (Stage 19).
+    task = Tasks::Create.call(task_type: type, target: claim, domain: domain, location: location, created_by: token.agent, blind_requested: true)
     { task: task, created: true }
   end
 

@@ -74,14 +74,35 @@ went unnoticed because the command is only run deliberately. Moved to
 Replay itself is **still unverified**: it truncates projections before rebuilding, and the
 live investigation was mid-write. Run it once the node is idle.
 
-### 2. One `record_investigation` took 11.2s and issued 21,543 queries — **OPEN**
+### 2. Pages issue thousands of queries at 255 claims — **OPEN, characterised**
 
-`Completed 200 OK in 11197ms (ActiveRecord: 2527.0ms (21543 queries, 1528 cached) | GC:
-1206.5ms)`. It succeeded, so nothing is broken, but 21.5k queries for one call at ~110
-claims is an N+1 of some size, most likely in scoring or placement fan-out. Only one sample
-survived before the log rotated, so no frequency is claimed. Belongs in `docs/profiler/`
-once there is more than one observation, per the convention that a timing without its
-corpus is not evidence.
+First seen as a single `record_investigation` at `11197ms / 21,543 queries`, with no sibling
+samples before the log rotated. Re-arming the watch with a slow-request filter
+(`Completed 2xx … in [0-9]{4,}ms`) turned one anecdote into a stable measurement, and the
+culprits are **page renders, not MCP calls**:
+
+| Path | Wall | Queries |
+|---|---|---|
+| `/weaknesses` | **13.5s** | — |
+| `/sections/<root>` (the outline) | 3.5s | ~4,633 |
+| `/claims/<id>` | 0.11s | fine |
+| `/tasks` | 0.02s | fine |
+
+Repeated samples cluster tightly — 1.8s to 5.3s, 3,071 or 4,633 queries — so this is a
+structural N+1, not a cold cache. Both slow paths are **public, unauthenticated pages**, and
+`/weaknesses` at 13.5 seconds is the worst thing here: it is the page Article XXII exists to
+serve, and it is effectively unusable on a corpus one person made in an evening.
+
+Note the outline page is still 4,633 queries **after** the `call_many` batching in finding 6,
+so that fix helped and did not solve this. Next step is a `bench:cpu` run against this
+corpus and a write-up in `docs/profiler/`, which now has more than one observation to stand
+on.
+
+**Lesson about the watching, not the code:** the first filter matched only failures and slow
+*MCP* calls. It could not see a slow page, so for most of the run the worst performance
+problem on the node was invisible while I reported that everything was clean. A filter that
+only watches the thing you are thinking about will tell you the thing you are thinking about
+is fine.
 
 ### 3. The write cap could not carry one investigation — **FIXED**
 
@@ -168,8 +189,67 @@ raise review coverage.
 Confirmed empirically once the evidence pass began: one claim moved from `UNRESOLVED` to
 `LEANS_SUPPORTED` on same-principal evidence.
 
-Nothing to fix in the code. The guidance could say this, since an assistant reading the
-rules concluded it was more blocked than it was and offered to stop.
+**Resolved by building Stage 34**, once the owner pointed out the product consequence: a
+person who pays to outline a two-hour source cannot finish checking it and must wait for a
+stranger who may never arrive. That is not a defensible place to leave someone.
+
+`Tasks::Lease` applied its self-authorship guard to *every* task type, while `04 §3.1`
+forbids exactly two things — auditing your own contribution, and accepting your own proposed
+claim — neither of which is a task type. **The implementation was stricter than the spec it
+implements**, so no amendment was needed; the code now matches the rule.
+
+What shipped: a principal may lease and answer its own `EVIDENCE_VERIFICATION`,
+`OPPOSING_EVIDENCE_SEARCH` and `QUALIFIER_CHECK`; independence grouping and inference review
+stay closed, as do audits. Each assignment records `self_performed` at lease time rather than
+deriving it later, because principals merge and a fact about what happened must not be
+recomputed. `Tasks::Checks.for` filters self-performed results **before the scorer sees
+them**, so they cannot touch `review_coverage` and the trace shape is unchanged — no new
+model version for a feature that must not move the number. The share line now reads
+`N claims · N self-checked · N independently checked`, and the claim page says in words that
+a check by the author does not raise coverage.
+
+A second guard had to be split to make this work. Stage 19's "whoever asks for a blind check
+does not perform it" was keying on `created_by`, which is set both when someone deliberately
+calls `open_task` and when verification opens routinely alongside a recording. Those are
+different things and `created_by` cannot tell them apart, so tasks now carry
+`blind_requested`, true only for the deliberate case.
+
+### 8. Shipping a behaviour change without its instructions — **FIXED, third occurrence**
+
+Stage 34 changed what `next_task` does. Two places still told assistants the opposite:
+
+- the `next_task` tool description — *"never one on a claim your own principal recorded"*
+- `Guidance::OUTLINE` — *"never leases a check on its own claim"*
+
+Caught only because the owner asked whether a fresh session would now work the tasks, which
+prompted a check of what the assistant would actually be told. Nothing in the suite failed:
+377 examples passed against instructions that contradicted the code they described.
+
+**This is the third occurrence of one pattern in this project**, and it is worth naming as a
+class rather than three incidents:
+
+1. Stage 30 added a `reading` field; the `create_outline` tool schema never gained it, so the
+   feature was unreachable through a connector.
+2. The size rule was corrected in the skill; `record_investigation`'s description carried no
+   ceiling at all, so a connector reading schemas never saw it.
+3. Stage 34 opened self-checking; `next_task` and the guidance still forbade it.
+
+Each time the code was right and the thing an assistant reads was wrong, and each time the
+tests passed, because **nothing tests that an instruction matches the behaviour it
+describes**. `spec/lib/skills_spec.rb` pins the size rule across surfaces, which is the
+shape of the answer, but it only covers the one rule that has already bitten. The general
+version — a check that every behavioural claim in a tool description is exercised by a spec
+— does not exist and is not obviously cheap to build.
+
+The mitigation that has actually worked is Stage 31: guidance riding on every tool result
+reaches a connected assistant on its next call, so a correction lands without a reinstall.
+That shortens the window; it does not close it. **Any stage that changes what an assistant
+may do should treat the tool description and the guidance as part of the change, not as
+documentation of it.**
+
+Verified afterwards by simulating the lease against the live corpus, inside a transaction
+rolled back so the node was not disturbed: `LEASED: EVIDENCE_VERIFICATION
+self_performed=true`, against 742 open checks.
 
 ## What was wrong in the watching
 
@@ -185,7 +265,8 @@ call's completion, not its start.
 **Calling a flake attributable on four data points.** It has now appeared on four different
 specs (`sections_spec`, `share_card_spec`, `investigations_spec` twice at different
 examples), always passing in isolation and never seed-reproducible. An intermittent suite
-failure appeared twice on different examples. I stashed Stage 32, got four clean runs, and said
+failure appeared twice on different examples. By the end of the session it had also hit
+`claim_pages_spec`, making five. I stashed Stage 32, got four clean runs, and said
 Stage 32 was implicated. Four clean runs against a roughly one-in-six event is nearly
 worthless evidence, and eight later clean runs *with* Stage 32 contradicted it. The flake
 remains real and unattributed.
@@ -196,6 +277,13 @@ correction. Read the column list first; it takes one call.
 
 **Reporting the data instead of the product**, which is how finding 6 went unseen through a
 whole run while an assistant hit it immediately. See that finding.
+
+**Mangling a spec file with a bad heredoc escape.** A Python replacement searched for
+`"\\nend"` — a literal backslash — found nothing, and silently truncated the last character
+of the file, turning the closing `end` into `en`. Ruby's `-c` reported *Syntax OK* because
+the result still parsed. Two further edits were needed to work out what had happened. An
+assertion on the search succeeding would have caught it at once, which is what the other
+replacements in this session had and this one did not.
 
 **A migration applied before its code.** Renaming the cap columns while the old code was
 still running broke the live investigation for about a minute until the code and a restart

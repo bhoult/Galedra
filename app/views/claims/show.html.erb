@@ -167,6 +167,12 @@
   <% if @result %>
     <h2>Review checklist</h2>
     <p><%= review_checks_text(@result.review_checklist) %></p>
+    <% if @self_checks.present? %>
+      <%# Stage 34: a first pass by one person is worth recording and worth
+          labelling. It never counts toward the checklist above. %>
+      <p class="meta"><strong><%= pluralize(@self_checks.values.sum, "check") %> by this claim's own author</strong><%= @result.review_checklist.any? { |_, v| v["ok"] } ? ", alongside the independent review above." : ". No independent review yet." %>
+      <%= @self_checks.map { |name, n| "#{n} #{name.tr('_', ' ')}" }.join(" · ") %>. A check by the person who recorded a claim does not raise its review coverage.</p>
+    <% end %>
     <table><tr><th>Check</th><th>Done</th><th>By</th></tr>
     <% @result.review_checklist.each do |name, v| %><tr><td><%= name.tr("_", " ") %></td><td><%= v["ok"] ? "yes" : "no" %></td><td><%= v["by"].map { |b| short_id(b) }.join(", ") %></td></tr><% end %></table>
 
