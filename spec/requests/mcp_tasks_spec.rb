@@ -75,6 +75,26 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(schema[:properties]).to have_key(:settleable), "a lever an assistant cannot discover is not a lever"
   end
 
+  # Two EVIDENCE_VERIFICATION tasks were worked before the ceiling became clear,
+  # and real web searches were spent on claims carrying no probability at all
+  # (docs/experiments/2026-09-20-second-connector-run.md).
+  it "says what answering a task can and cannot change, before the work" do
+    forecast = create_claim(curator, "Yang-Mills will fall next.", type: "FORECAST")
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: forecast)
+    data, err = call_tool("next_task", { "claim_id" => forecast.id })
+    expect(err).to be(false), data.inspect
+    expect(data["moves"]).to include("no probability"), "an unscoreable target should say so up front"
+    expect(data["moves"]).to include("correct the type"), "and say what is still worth doing"
+
+    claim, = curated_claim("Remote work raised measured output in the trial.")
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+    found, = call_tool("next_task", { "claim_id" => claim.id, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    expect(found["moves"]).to include("NONE_FOUND"), "a null search is a result and the packet should say so"
+
+    schema = Mcp::Server::TOOLS.find { |t| t[:name] == "next_task" }[:outputSchema]
+    expect(schema[:properties]).to have_key(:moves)
+  end
+
   it "lists tasks in a bounded number of statements, and suggests only work this caller can take" do
     claim, = curated_claim
     12.times { |i| Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: create_claim(curator, "Spare claim #{i} about productivity.", type: "CAUSAL")) }

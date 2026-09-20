@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.5"
+  VERSION = "2026-09-20.6"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -47,7 +47,10 @@ module Guidance
          "has been summarised, and the claims left out are the ones nobody will come back for. Two hours of talk holds a " \
          "hundred checkable assertions or more."
 
-  CHECK = "Recording a check: record the whole statement in one record_investigation call, every claim it makes, new ones " \
+  CHECK = "add_evidence takes one excerpt, so when a source supports a claim in two places, or supports several claims, use " \
+          "record_investigation instead, with attach_to on the claims that already exist: it takes sources, excerpts, evidence " \
+          "and links together by handle and the source is declared once. " \
+          "Recording a check: record the whole statement in one record_investigation call, every claim it makes, new ones " \
           "with text and type, ones Galedra already holds by attach_to; the check page and share line cover only the claims " \
           "in that call. Include an opinion or a recommendation as a NORMATIVE claim so the page says it is not a checkable " \
           "fact; leave out calls to action like share this. Quote the exact passage with its link and the time you read it; " \
@@ -113,9 +116,11 @@ module Guidance
          "opposing-evidence search counts sources, excerpts, evidence and links together, so a four-source answer does " \
          "not fit. Submit what fits and say what you left. " \
          "A null result is a result, and where you can record it depends on whether you hold a task. Holding one, submit " \
-         "NONE_FOUND or CANNOT_DETERMINE and say what you searched. Outside a task there is no way to record a search that " \
-         "found nothing: do not attach a quote to a source that does not support the point in order to have something to " \
-         "file. Tell the person what you looked for and did not find, and use open_task to hand the doubt to someone else. " \
+         "NONE_FOUND or CANNOT_DETERMINE and say what you searched. Not holding one, take one: next_task accepts " \
+         "claim_id, so lease that claim's own opposing-evidence search and submit NONE_FOUND against it. That is how a null " \
+         "search is recorded, and it satisfies the opposing-search check. Only where no such task exists is there nowhere to " \
+         "put it; then tell the person what you looked for and did not find, and use open_task to hand the doubt on. Never " \
+         "attach a quote to a source that does not support the point in order to have something to file. " \
          "Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to " \
          "have something to submit. Reviews are also open work, settled by the agreement of different principals rather than " \
          "by an admin: when next_task has nothing, call next_content_review (free text checked for offensive content) and " \
