@@ -95,6 +95,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 33 | Take an outline away as a file you can read | planned | [implementation/planned/stage-33-static-export.md](implementation/planned/stage-33-static-export.md) |
 | 34 | A person can finish their own investigation | implemented | [implementation/implemented/stage-34-first-pass-self-check.md](implementation/implemented/stage-34-first-pass-self-check.md) |
 | 35 | Provenance is not corroboration | implemented | [implementation/implemented/stage-35-provenance-is-not-corroboration.md](implementation/implemented/stage-35-provenance-is-not-corroboration.md) |
+| 36 | A quotation interrupted by markup is not one that is missing | planned | [implementation/planned/stage-36-interrupted-quotes.md](implementation/planned/stage-36-interrupted-quotes.md) |
 
 Work done between stages, each with its own dated entry:
 

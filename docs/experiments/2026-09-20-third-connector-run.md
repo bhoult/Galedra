@@ -69,7 +69,7 @@ qualifier checks, but nothing in the design decided that trade, it simply happen
   next reinstall. A caller holding nothing gets the same figure twice rather than a missing
   field.
 - **The quote verifier's NOT_FOUND is publisher markup, not a missing body. Status: OPEN
-  (`01a0c01e`), pending a distinct verdict.** The hypothesis on this side was that qz.com
+  (`01a0c01e`), planned as [Stage 36](../../implementation/planned/stage-36-interrupted-quotes.md).** The hypothesis on this side was that qz.com
   served a shell. The assistant fetched the page and refuted it: 331,009 bytes is a rendered
   article, and the sentence reads `Nvidia<a href="/quote/NVDA">$NVDA</a>'s equity
   investments`. Confirmed mechanically from `Sources::Retrieve.extract_text`, which does
@@ -82,8 +82,18 @@ qualifier checks, but nothing in the design decided that trade, it simply happen
   tickers, inline links, footnote markers — which looks exactly like absence on a fully
   present page. Left OPEN deliberately: its preferred fix is a verdict distinct from
   `NOT_FOUND` rather than stripping anchor text to force a match, which is right, because
-  stripping would make the verifier lie in the other direction. That is a scoring-visible
-  label and wants a stage.
+  stripping would make the verifier lie in the other direction.
+  Stage 36 is that verdict: three deterministic renderings tried in a fixed order, with
+  `INTERRUPTED` reported when the match comes from the one that elides inline elements. The
+  filer's argument is what makes it admissible — elision only removes text, so a match means
+  every character of the excerpt came from outside an inline element and no quotation can be
+  made to span words it does not contain. Its opposite-meaning example is acceptance test 2.
+  **Its scope question rested on a false premise, in its favour.** It asked whether
+  `INTERRUPTED` should count as verified *for scoring*; `SourceRetrieval` is read by the card,
+  the presenter, `Tasks::Answer` and two views, and by nothing under `scoring/` or `audits/`.
+  Galedra's own fetch has never been a scoring input in either direction, so no model version
+  and no golden moves. The real question is the narrower one it also asked — what a worker
+  should do when the packet says `INTERRUPTED` — which is a `Guidance` line, not a config.
 - **`CLAIM_NOT_CURRENT` arrived without the successor id it is supposed to carry. Status:
   OPEN, not reproduced.** `add_evidence` against `1d9b1770-efb7-8e03-a6da-661439246ce6` was
   refused with `"claim is merged"` and no `into`. The whole point of `not_current_reason`
@@ -95,6 +105,31 @@ qualifier checks, but nothing in the design decided that trade, it simply happen
   because the alternative is a plausible story. Three `NOT_FOUND` calls followed on ids that
   do not exist, which is the cost the successor id exists to prevent, though it is not shown
   that they were guesses at it.
+
+- **The fix verified itself from the other side, live.** The filer re-ran `list_tasks` after
+  `ade8048` and reported `open 730` against `open_for_you 557`, `answers_wanted 2015` against
+  `answers_wanted_for_you 1669`, and `content_reviews_pending 66` against
+  `content_reviews_for_you 0` — with `Guidance` arriving as `2026-09-20.9` on the same call,
+  so a rule written thirty minutes earlier reached a live session with no reinstall. That is
+  the Stage 31 delivery path doing exactly what it was built for, and the contrast worth
+  keeping is the four tool-schema changes in the same window that cannot arrive that way.
+  It closed `01a0c085` satisfied, and corrected my closing line in the unflattering
+  direction: it had a cheaper check available — `next_content_review` returning
+  `available false` — and reached for a coincidence instead of asking what the two numbers
+  counted.
+- **The content review queue cannot drain on a one-assistant node. Status: OPEN, by design,
+  worth stating.** All 66 pending items are authored by the single connected principal, so
+  `for_you` is 0 and will stay 0: `Reviews::Consensus` needs a different principal, and
+  `settle_lone!` needs a first verdict that nobody can cast. The escape is `/admin/content_reviews`,
+  where an admin settles them by hand — which is the page the owner opened at 21:06, and the
+  page that was spending 30 statements to render (fixed below).
+- **`/admin/content_reviews` asked per row. Status: FIXED 2026-09-20 (`ddbafad`).** Caught
+  from a log line rather than a report: 72 queries in 53ms, of which 41.8ms was view time.
+  Each pending row asked `Reviews::Consensus.status` for its own verdicts and each redacted
+  row asked for the reviewer's email address. `Consensus.status_for` batches the first and
+  the controller batches the second: **30 statements to 5 on 24 pending items**, verified by
+  running the new spec against the old code. The listing is capped at 200, so the shape was
+  200 statements away from an admin's first busy day.
 
 ## What was wrong in the watching
 
