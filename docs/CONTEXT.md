@@ -108,6 +108,32 @@ written to no artefact. `graph.json` ships cleaned and `GRAPH_REPORT.md` never
 mentions it, so the finding is not reproducible from the files. Fix by writing
 `graphify-out/diagnostics.json` with the actual edge list before cleanup.
 
+### Subagents cannot build a graph (tested 2026-09-20)
+
+A probe agent reported, and this is a negative worth keeping:
+
+- **The graphify skill is not in a subagent's available-skills list.** Subagents get a
+  fixed set; nothing from `~/.claude/skills/` reaches them.
+- **`~/.claude/CLAUDE.md` does not reach them either**, so the `/graphify` trigger is
+  invisible there.
+- **The CLI is reachable** — `explain`, `path`, `diagnose`, `merge-graphs` all work against
+  an existing `graph.json`.
+
+The CLI has **no build command**: building is what the skill tells the assistant to do. So
+the one job worth delegating — the expensive rebuild with its 16MB of output — is the one a
+subagent cannot take. Builds need a fresh main session that loaded the skill at startup.
+Subagents are useful only for querying a graph that already exists.
+
+Cheapest form of the drift sweep: `graphify explain "Some::Name"` reports every node with
+that name. When a stage plan and a class share a symbol, both appear; when the plan names
+something that was never built, only the doc node does.
+
+**On delegating at all:** that probe cost ~31k tokens to run two shell commands, and on its
+first pass it answered the two questions needing a shell command while silently skipping the
+two needing introspection. A subagent earns its place by absorbing large *output*, not by
+saving work — and when the interesting answer is a negative or an "I cannot tell", say so in
+the prompt, because the default is to report the easy half and stop.
+
 ### The doc-drift sweep, and its four false positives
 
 Extract `Foo::Bar` names from `implementation/**.md`, resolve each, report the
