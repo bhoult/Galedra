@@ -234,4 +234,46 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(Tasks::Checks.self_for(claim.id, seq).values.sum).to eq(1),
       "but it is recorded, and reportable"
   end
+
+  # Found in a live run. self_for and the share-line split both counted through
+  # Tasks::Checks::CHECK_FOR, which maps task types to checklist item names.
+  # EVIDENCE_VERIFICATION is not a checklist item — it contributes evidence links
+  # — so the most numerous check type was invisible to the figures built to
+  # report it: a self-check was recorded correctly and counted as nothing.
+  it "counts an evidence verification self-check, which is not a checklist item (#3)" do
+    claim, location, = curated_claim
+    task = Tasks::Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, location: location)
+    record = AssistantToken.find_by_token(token)
+    assignment = TaskAssignment.create!(task: task, contributor: record.agent, principal: record.principal,
+                                        lease_expires_at: 1.hour.from_now, status: "LEASED", self_performed: true)
+    _, err = call_tool("submit_task", { task_id: task.id, outcome: "CONFIRMED", answer: {} })
+    expect(err).to be(false)
+
+    seq = Contribution.maximum(:seq)
+    expect(Tasks::Checks::CHECK_FOR).not_to have_key("EVIDENCE_VERIFICATION"), "this is why it was missed"
+    expect(assignment.reload.result_contribution_id).to be_present
+    expect(Tasks::Checks.self_for(claim.id, seq)).to eq({ "EVIDENCE_VERIFICATION" => 1 })
+    expect(Tasks::Checks.for(claim.id, seq)).to be_empty, "and it still must not reach the scorer"
+  end
+  # Reported from a live run: next_task kept handing out checks on a claim that
+  # had been merged. submit_task refuses those with CLAIM_NOT_CURRENT, and
+  # releasing one put it straight back at the head of the queue — the same
+  # unworkable task arrived three times and blocked the filter behind it.
+  it "cancels a check whose claim has been merged away instead of handing it out (#3)" do
+    claim, location, = curated_claim("A claim that will be merged away.")
+    survivor, = curated_claim("The claim it merges into.")
+    task = Tasks::Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, location: location)
+    expect(task.status).to eq("OPEN")
+
+    append(action_type: "MERGE_CLAIMS", key_pair: curator,
+           payload: { "from_claim_id" => claim.id, "into_claim_id" => survivor.id, "reason" => "same proposition" })
+    seq = Contribution.maximum(:seq)
+    expect(Claim.find(claim.id).current_at?(seq)).to be(false)
+
+    data, err = call_tool("next_task", { claim_id: claim.id })
+    expect(err).to be(false)
+    expect(data["available"]).to be(false), "an unworkable task must not be leased"
+    expect(task.reload.status).to eq("CANCELLED")
+    expect(task.cancelled_reason).to eq(Tasks::Lease::TARGET_NOT_CURRENT)
+  end
 end

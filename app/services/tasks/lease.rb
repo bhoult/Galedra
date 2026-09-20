@@ -18,6 +18,13 @@ module Tasks
     # judgements about one's own reasoning, where a second reader is the point.
     SELF_CHECKABLE = %w[EVIDENCE_VERIFICATION OPPOSING_EVIDENCE_SEARCH QUALIFIER_CHECK].freeze
 
+    # A task whose claim has since been merged or superseded can never be
+    # submitted: the appliers refuse it with CLAIM_NOT_CURRENT. Releasing it
+    # returns it to the head of the queue, so it is handed out again and again
+    # and blocks every filter that reaches it. Reported by an assistant that was
+    # given the same unworkable task three times.
+    TARGET_NOT_CURRENT = "TARGET_NOT_CURRENT"
+
     module_function
 
     def next(contributor:, delegation:, types: [], domains: [], target_id: nil, section_id: nil)
@@ -28,6 +35,14 @@ module Tasks
       expire_stale!
       candidates(contributor, principal, delegation, types, domains, target_id, section_id).each do |task|
         next if task.open_slots <= 0
+        # Cancelled where it is found rather than swept in a batch: the sweep
+        # would load every open task on every lease, and this corpus already has
+        # hundreds. Reversible in the sense that matters — if the merge is later
+        # invalidated, the claim is current again and new tasks open for it.
+        if stale_target?(task)
+          task.update!(status: "CANCELLED", cancelled_reason: TARGET_NOT_CURRENT)
+          next
+        end
         own = own_target?(task, principal)
         # Stage 34: own work is checkable for the types above, and recorded as
         # self-performed so nothing downstream can mistake it for independent.
@@ -96,6 +111,15 @@ module Tasks
 
       accept = Contribution.where(action_type: "ACCEPT").where("payload->>'contribution_id' = ?", contribution.id).order(:seq).first
       accept.nil? || accept.contributor.nil? || accept.contributor.system? || [ accept.contributor_id, accept.principal_contributor_id ].compact.include?(principal.id)
+    end
+
+    # True when the task targets a claim that is no longer current at the head.
+    def stale_target?(task)
+      return false unless task.target_type == "CLAIM"
+
+      claim = Claim.find_by(id: task.target_id)
+      seq = Contribution.maximum(:seq)
+      claim.nil? || seq.nil? || !claim.current_at?(seq)
     end
 
     def requested_by?(task, contributor, principal)

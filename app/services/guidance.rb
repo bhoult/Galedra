@@ -104,7 +104,9 @@ module Guidance
             "person agrees with; leaving one pending declines it. A superseded claim is reported as superseded, with the " \
             "current claim."
 
-  STANDING = "Rules that hold everywhere: your own reasoning is never evidence, only quoted passages are, so never write a " \
+  STANDING = "Rules that hold everywhere: every timestamp is RFC 3339 in UTC, like 2026-09-20T01:49:40Z — a retrieved_at " \
+             "in any other shape is refused, and that refusal is the most common one there is. " \
+             "Your own reasoning is never evidence, only quoted passages are, so never write a " \
              "statement you cannot point to in a source. Look for what would count against a claim before recording it, and " \
              "record that too; a documented null search is information. Never record claims about identifiable private " \
              "individuals. Never say true, false, or debunked: use Galedra's headline, and never present a probability as a " \

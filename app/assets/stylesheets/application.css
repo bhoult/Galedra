@@ -311,3 +311,26 @@ body.document .statement > * { max-width: none; margin-inline: 0; }
 .tooltip[data-shown] { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .tooltip { transition: none; } }
 @media (max-width: 40rem) { .tooltip { display: none; } }
+
+/* Triage lists (bug reports, feature requests): one entry per line, so a
+   maintainer can scan a page of them without reading every word. The old
+   screens put every field in its own table column and were unreadable. */
+.triage-list { list-style: none; margin: 0.6rem 0; padding: 0; }
+.triage-list li {
+  display: flex; align-items: baseline; gap: 0.6rem;
+  padding: 0.4rem 0.2rem; border-bottom: 1px solid var(--rule, #e5e5e5);
+}
+.triage-list li.closed { opacity: 0.55; }
+.triage-list .when { flex: 0 0 5.5rem; font-variant-numeric: tabular-nums; color: var(--muted, #666); font-size: 0.85rem; }
+.triage-list .state { flex: 0 0 4.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #666); }
+.triage-list a { flex: 1 1 auto; }
+.triage-filter strong { color: inherit; }
+.triage-actions { display: inline-flex; gap: 0.4rem; }
+.triage-actions form { display: inline; }
+button.small, .button.small { padding: 0.2rem 0.6rem; font-size: 0.85rem; }
+
+@media (max-width: 40rem) {
+  .triage-list li { flex-wrap: wrap; gap: 0.3rem 0.5rem; }
+  .triage-list .when, .triage-list .state { flex: 0 0 auto; }
+  .triage-list a { flex: 1 1 100%; }
+}

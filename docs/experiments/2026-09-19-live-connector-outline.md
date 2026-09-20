@@ -251,6 +251,220 @@ Verified afterwards by simulating the lease against the live corpus, inside a tr
 rolled back so the node was not disturbed: `LEASED: EVIDENCE_VERIFICATION
 self_performed=true`, against 742 open checks.
 
+## Phase two: the self-check pass (Stage 34 in the wild)
+
+With Stage 34 built, a fresh session was told *"work the open tasks in Galedra on \<outline
+URL\>"* — the instruction Galedra prints on the outline itself. Baseline: 254 claims, 762
+open checks, 0 self-checked, 0 independently checked, seq 3685.
+
+**Stage 34 works.** The same principal that recorded the claims was handed
+`EVIDENCE_VERIFICATION` on its own claim, marked `self_performed=true`, where the previous
+session was refused. The corrected instructions reached it, so finding 8 did not recur.
+
+### 9. The self-check counter could not see the most common check — **FIXED**
+
+The first submitted self-check was recorded correctly and **counted as nothing**:
+`self_for` returned `{}` and the share line still read `0 self-checked`.
+
+`Tasks::Checks::CHECK_FOR` maps task types to *checklist item names*, and
+`EVIDENCE_VERIFICATION` is not a checklist item — it contributes evidence links rather than
+a checklist flag. Both `self_for` and the share-line split counted through that map, so the
+most numerous check type, 254 of the 762, was invisible to the figures built to report it.
+Now keyed on assignments and every task type.
+
+Written, tested and committed hours earlier; the specs passed because they exercised
+`OPPOSING_EVIDENCE_SEARCH`, which *is* in the map. **A spec that only tests the case you
+were thinking about confirms the case you were thinking about.** The live run found it in
+one submission.
+
+### 10. The queue spends its effort on claims evidence cannot settle — **OPEN**
+
+Every one of the first 17 self-checks landed on a `NOT_APPLICABLE` claim — a forecast, a
+value judgement, a prophecy. Measured against the queue:
+
+| | Share |
+|---|---|
+| `NOT_APPLICABLE` claims in the corpus | 49 of 254 (19%) |
+| Open tasks targeting them | 147 of 762 (19%) |
+| **Top 40 tasks by priority targeting them** | **38 of 40 (95%)** |
+
+The top 40 all carry identical priority (1.5), so the tie breaks on `created_at` and the
+ordering is effectively arbitrary — it just happens to surface unresolvable claims first.
+
+This is not free. Each check costs an assistant a real reading and the person real money,
+and a qualifier check on a `FORECAST` cannot change its state: `NOT_APPLICABLE` carries no
+probability by Invariant 5. Nineteen per cent of the queue is work whose outcome is fixed
+before it starts.
+
+Not worthless — a check might find a claim was mistyped, that something recorded as
+normative is empirical after all — but it should be the last of the queue, not the front of
+it. Two candidate fixes, neither taken here: weight `Tasks::Priority` down for claims
+already scored `NOT_APPLICABLE`, or do not open `QUALIFIER_CHECK` and
+`OPPOSING_EVIDENCE_SEARCH` on them at all. The second is tempting and probably wrong,
+because the type is a judgement that can be revised, and closing the route to revising it
+makes the mistake permanent.
+
+**Verified once the pass reached checkable claims.** The first seventeen self-checks all
+landed on `NOT_APPLICABLE` claims, which carry no `review_coverage` to move, so they proved
+nothing. At 59 self-checks the pass reached claims that do:
+
+```
+checkable claims carrying a self-check: 12
+any self-check leaking into the scorer:  0
+distinct coverages among them:  {"0.00" => 12}
+```
+
+This is a real test rather than a vacuous one. Coverage is satisfied checklist items over
+declared ones, so one self-answered `QUALIFIER_CHECK` reaching `task_checks` would have
+pushed those claims to 0.25 or above. Twelve claims, twelve self-checks, coverage still
+zero: **the filter holds where it could have failed.**
+
+### 11. The write path degrades under the pass — **OPEN, and it is two problems**
+
+Requests climbed through the pass and plateaued around **15.5–16s**, twice in succession at
+~7,500 queries, against the 3.5s outline page measured a few hours earlier on the same
+corpus. Nothing failed — every one returned 200 — but a 15-second write is past where a
+connector waits patiently, on a node with one user and one outline.
+
+Watching the shapes separates them into two problems that would need different fixes:
+
+| Shape | Example | Where the time goes |
+|---|---|---|
+| **Query-count N+1** | 5.4s, **8,866 queries**, views 666ms | database |
+| **View rendering** | 9.1s, 4,360 queries, **views 5,667ms** | templates |
+
+Batching queries will not touch a slow template, and caching a template will not touch an
+N+1. Recording them as one entry — "pages are slow" — would have pointed the profiling work
+in one direction and missed half of it.
+
+Counts cluster in bands (~3,100, ~4,200, ~7,500, ~8,900) rather than scattering, which
+suggests two or three call sites each scaling with a different collection, not one runaway
+loop. `bench:cpu` against a **still** corpus will separate them; log lines will not.
+
+Deliberately not chased during the run: profiling a moving corpus describes neither the
+before nor the after, and `bench:seed` truncates the log in development, which would destroy
+the very run being measured.
+
+### 12. A refusal was logged without saying what was refused — **FIXED**
+
+The first rejection of the self-check pass appeared as:
+
+```
+mcp_call tool=submit_task outcome=refused codes=SCHEMA_INVALID ms=10 …
+```
+
+A code and nothing else. `log_call` has a `detail` field; the `Ledger::Rejected` rescue
+mapped the codes and dropped the `path` and `detail` the error already carried. So the
+assistant was told exactly which field was wrong and **the operator watching the log was
+not** — a client failing repeatedly would be undiagnosable from the server side.
+
+Both are safe to record: the path is a JSON pointer and the detail a server-authored
+message, neither carrying claim text, and `log_call` truncates anyway. The next refusal,
+minutes later, read:
+
+```
+detail="$.payload.retrieved_at expected RFC 3339"
+```
+
+Which led straight to finding 13. **An observability fix that pays for itself on its first
+occurrence is the cheapest kind there is**, and this one had been missing since Stage 14.
+
+### 13. The timestamp format was not where an assistant reads it — **FIXED**
+
+Two refusals, both a malformed `retrieved_at` while creating a source during an
+opposing-evidence search. The format was stated — as a bare `"RFC 3339"` in the tool
+schema, with no example — and `Guidance` did not mention it once.
+
+That is the wrong place twice over. "RFC 3339" without an example invites a wrong guess
+(offset or `Z`? space or `T`?), and an assistant working tasks receives the `work` topic,
+which never touched formats at all. The rule now sits in `STANDING`, which every topic
+carries, with a concrete example.
+
+Same shape as findings 8 and 9: the code was right, the thing an assistant reads was
+incomplete, and nothing failed a test.
+
+### The flake, finally named
+
+The intermittent suite failure was recorded at session start as
+`spec/requests/api/v1/investigations_spec.rb:67`. Through this session it also hit
+`sections_spec`, `share_card_spec`, `claim_pages_spec` and `investigations_spec:127`, and at
+the end surfaced again at **:67** — the original. Still unattributed, still passing in
+isolation and on every re-run, never seed-reproducible.
+
+Twice I lost its name to my own filters, grepping only for the count line. **A filter narrow
+enough to look tidy is narrow enough to discard the thing you needed** — the same mistake as
+the monitor that could not see slow pages (finding 2) and the log line that dropped its
+detail (finding 12). Three instances, one habit.
+
+## Phase three: a resumed session reports three faults
+
+The assistant filed two bugs and two papercuts. All four were real; only two were bugs.
+
+### 14. A merged claim's checks were leased forever — **FIXED**
+
+`next_task` kept handing out checks on claims that had been merged away. The appliers refuse
+those with `CLAIM_NOT_CURRENT`, there is no way to submit against the survivor, and releasing
+one returns it to the head of the queue — so the same unworkable task arrived three times and
+**blocked every filter that reached it**. A livelock, worked around only by filtering to a
+different domain.
+
+Confirmed in the live data: 12 open tasks across 4 merged claims, three types each, with 5
+`RELEASED` assignments recording the loop. `Claim#current_at?` already existed and checks
+exactly this — counted, not superseded, not merged — and the lease simply never consulted it.
+
+Such a task is now cancelled where it is found, with `TARGET_NOT_CURRENT`. Cancelled rather
+than reassigned to the surviving claim, because `MERGE_CLAIMS` is reversible: if the merge is
+invalidated the claim is current again and fresh tasks open, whereas moving a task would have
+to be moved back. Cancelled *lazily*, as candidates are considered, rather than swept — the
+sweep would load every open task on every lease, and this corpus already has 839.
+
+### 15. The expired lease was not a bug; the message was — **FIXED (the message)**
+
+Reported as a lease refused using a timestamp four hours in the future. The data says
+otherwise:
+
+```
+expired assignments: 1
+  leased 02:27:13Z   expiry 06:27:13Z   held 4.0h
+LEASED assignments with a past expiry: 0
+```
+
+Exactly one expired assignment on the node, leased at **02:27:13Z** — the moment this log
+already records the previous run stopping with one lease open. It sat through the pause, aged
+out on schedule, and the resumed session submitted against it. Correct behaviour throughout.
+
+The assistant's "~02:35Z" was its own clock, stale from before the pause. **An assistant has
+no reliable sense of wall time**, so `expired at 06:27:13Z` reads as a future instant and
+becomes a bug report. The message now carries how long ago it lapsed, the server's own clock,
+and what to do about it. Same shape as finding 12: the fact existed and was not written where
+the reader was.
+
+**A wrong turn worth recording.** Seeing a container report 02:54 and a host report 13:55, I
+proposed clock skew between them. Measuring all four clocks — host, container, Rails,
+Postgres — showed them identical to the second. The two readings were eleven hours apart in
+wall time and I had read elapsed time as skew. The hypothesis was confident, cheap to test,
+and wrong; testing it cost one command and would have cost a day of chasing if left.
+
+### 16. `excerpt: "packet"` resolved to nothing — **FIXED**
+
+`submit_task`'s schema promised `excerpt: "packet"` for the task's passage. `QUALIFIER_CHECK`
+carries no passage, so `location` was nil, `"packet"` mapped to nil, and validation failed
+downstream with *expected a UUID* — sending the caller hunting for a malformed id it had
+never sent. It now says plainly that this task type has no passage and what to cite instead,
+and the tool description no longer promises what only one task type can deliver.
+
+### Not filed, still worth fixing
+
+`OPPOSING_EVIDENCE_SEARCH` caps at **12 ops in total** — sources plus excerpts plus evidence
+plus links — not 12 of each, so a four-source answer is refused. The cap is real and sensible;
+it is simply nowhere an assistant reads before hitting it. **OPEN.**
+
+### What worked
+
+The law domain answered *"the only open tasks are on claims your own principal recorded"*.
+Conflict of interest held exactly where Stage 34 left it: routine checks opened to their
+author, the rest closed.
+
 ## What was wrong in the watching
 
 Three misreads, all mine, recorded because an observer who gets it wrong is part of what
@@ -284,6 +498,12 @@ of the file, turning the closing `end` into `en`. Ruby's `-c` reported *Syntax O
 the result still parsed. Two further edits were needed to work out what had happened. An
 assertion on the search succeeding would have caught it at once, which is what the other
 replacements in this session had and this one did not.
+
+**Repeating a mistake I had already written down.** The heredoc escaping error above —
+`"\\nend"` searching for a literal backslash and truncating a spec file — happened a second
+time, hours after I recorded it here along with the note that an assertion on the search
+would have caught it. I had not added the assertion. Writing a lesson down is not the same as
+acting on it, and the file this time was the very spec proving the livelock fix.
 
 **A migration applied before its code.** Renaming the cap columns while the old code was
 still running broke the live investigation for about a minute until the code and a restart

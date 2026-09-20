@@ -3,6 +3,7 @@
 # untrusted text, shown only to moderators, never to other assistants or the
 # public. Repeats of the same need within a month are counted, not duplicated.
 class FeatureRequest < ApplicationRecord
+  include Triageable
   MAX_CHARS = 1_000
   DAILY_CAP = 10
   WINDOW = 30.days
@@ -13,6 +14,16 @@ class FeatureRequest < ApplicationRecord
   validates :expected, :context_tool, :last_error, length: { maximum: 200 }, allow_nil: true
 
   def self.digest_for(needed) = Digest::SHA256.hexdigest(needed.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip)
+
+  # The same vocabulary BugReport#reporter uses, so both maintainer screens name
+  # a filer the same way. No user case: only assistants file these.
+  def reporter
+    return "anonymous assistant" if assistant_token.nil? || assistant_token.anonymous?
+
+    assistant_token.software.to_h["agent_name"] || "named assistant"
+  rescue StandardError
+    "unknown"
+  end
 
   def self.record!(token:, asked:, needed:, expected: nil, context_tool: nil, last_error: nil)
     raise Ledger::Rejected.new([ { code: "RATE_LIMITED", path: "$", detail: "at most #{DAILY_CAP} feature requests a day for one assistant" } ]) if where(assistant_token: token).where("created_at >= ?", Time.current.beginning_of_day).count >= DAILY_CAP

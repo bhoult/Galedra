@@ -1,0 +1,9 @@
+<%# Done / Ignore / Reopen for one row. Outside the log: this records what a
+    maintainer did about a report, never anything about whether it was right. %>
+<span class="triage-actions">
+  <% Triageable::STATUSES.reject { |s| s == row.status }.each do |target| %>
+    <%= button_to({ controller: controller_name, action: :update, id: row.id, status: target },
+                  method: :patch, class: "secondary small",
+                  form: { style: "display:inline" }) do %><%= target == "OPEN" ? "Reopen" : target.capitalize %><% end %>
+  <% end %>
+</span>

@@ -55,8 +55,8 @@ Rails.application.routes.draw do
   # Stage 20: outlines of long sources, as trees of sections.
   resources :sections, only: [ :index, :show, :create ]
   resources :affiliation_requests, only: [ :create ]
-  get "feature_requests", to: "feature_requests#index", as: :feature_requests
-  resources :bug_reports, only: [ :new, :create, :index ]
+  resources :feature_requests, only: [ :index, :show, :update ]
+  resources :bug_reports, only: [ :new, :create, :index, :show, :update ]
   get "topics", to: "topics#index", as: :topics
   get "topics/*path", to: "topics#show", as: :topic
   post "mcp", to: "mcp#create"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -108,12 +108,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_030000) do
     t.text "expected"
     t.text "happened", null: false
     t.string "last_error"
+    t.string "status", default: "OPEN", null: false
     t.text "steps"
     t.datetime "updated_at", null: false
     t.string "url"
     t.bigint "user_id"
     t.index ["created_at"], name: "index_bug_reports_on_created_at"
     t.index ["digest"], name: "index_bug_reports_on_digest"
+    t.index ["status", "created_at"], name: "index_bug_reports_on_status_and_created_at"
   end
 
   create_table "claim_edges", id: :uuid, default: nil, force: :cascade do |t|
@@ -377,9 +379,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_030000) do
     t.string "expected"
     t.string "last_error"
     t.text "needed", null: false
+    t.string "status", default: "OPEN", null: false
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_feature_requests_on_created_at"
     t.index ["digest"], name: "index_feature_requests_on_digest"
+    t.index ["status", "created_at"], name: "index_feature_requests_on_status_and_created_at"
   end
 
   create_table "graph_snapshots", id: :uuid, default: nil, force: :cascade do |t|

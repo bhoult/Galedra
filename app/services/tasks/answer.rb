@@ -67,7 +67,18 @@ module Tasks
       target = task.target_type == "CLAIM" ? task.target_id : nil
       location = task.packet.dig("context", "source_location_id")
       claim_ref = ->(h) { h == "target" ? target : h }
-      excerpt_ref = ->(h) { h == "packet" ? location : h }
+      # "packet" means the passage the task handed you, and only a task that
+      # carries one has it: EVIDENCE_VERIFICATION does, QUALIFIER_CHECK does not.
+      # It used to resolve to nil there and fail downstream as "expected a UUID",
+      # which sent a caller looking for a malformed id it had never sent.
+      excerpt_ref = lambda do |h|
+        next h unless h == "packet"
+        if location.nil?
+          raise ArgumentError, "this #{task.task_type} carries no passage of its own, so excerpt: \"packet\" refers to nothing. " \
+                               "Cite a source_location_id from the claim's counted evidence, or add an excerpt of your own."
+        end
+        location
+      end
       # The packet's own passage is cited as "packet" and never appears in the
       # answer's excerpts, so its kind has to come from the location itself for
       # the transcription rule to weigh it as record_investigation would. Read

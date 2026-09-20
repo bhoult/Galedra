@@ -68,6 +68,23 @@ RSpec.describe "Feature requests from assistants (after Stage 19)", type: :reque
     user.update!(moderator: true)
     get "/feature_requests"
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("something the moderators should read").and include("Claude")
+    expect(response.body).to include("something the moderators should read")
+
+    # One line each on the list; who filed it and what they expected are on the
+    # entry's own screen (owner request, 2026-09-20).
+    request = FeatureRequest.order(:created_at).last
+    get "/feature_requests/#{request.id}"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Claude").and include("something the moderators should read")
+
+    patch "/feature_requests/#{request.id}", params: { status: "IGNORED" }
+    expect(request.reload.status).to eq("IGNORED")
+    get "/feature_requests", params: { status: "OPEN" }
+    expect(response.body).not_to include("something the moderators should read")
+    get "/feature_requests", params: { status: "IGNORED" }
+    expect(response.body).to include("something the moderators should read")
+
+    patch "/feature_requests/#{request.id}", params: { status: "NONSENSE" }
+    expect(request.reload.status).to eq("IGNORED")
   end
 end

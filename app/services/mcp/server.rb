@@ -87,7 +87,7 @@ module Mcp
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" }, section_id: { type: "string", description: "Only work under this outline or section (from an outline URL the person gave)" } } },
         outputSchema: { type: "object", properties: { available: { type: "boolean" }, reason: { type: "string" }, task_id: { type: "string" }, task_type: { type: "string" }, domain: { type: "string" }, objective: { type: "string" }, target: { type: "object" }, context: { type: "object" }, outcomes: { type: "array", items: { type: "string" } }, lease_expires_at: { type: "string" }, task_url: { type: "string" }, answer_with: { type: "string" }, rules: { type: "string" } } } },
       { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-        description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim and excerpt: \"packet\" for the task's passage. An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
+        description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim, and excerpt: \"packet\" for the task's own passage where it has one (EVIDENCE_VERIFICATION does; QUALIFIER_CHECK and OPPOSING_EVIDENCE_SEARCH do not, so cite a source_location_id from the claim's counted evidence instead). An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
         inputSchema: { type: "object", properties: { task_id: { type: "string" }, outcome: { type: "string" },
                                                      answer: { type: "object", properties: {
                                                        sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string" }, publisher: { type: "string" }, publication_date: { type: "string" } }, required: %w[handle type title url retrieved_at] } },
@@ -271,7 +271,14 @@ module Mcp
       begin
         data = send(:"tool_#{name}", args)
       rescue Ledger::Rejected => e
-        log_call(name, args, started, outcome: "refused", codes: e.errors.map { |x| x[:code] || x["code"] })
+        # The path and detail are carried on the error and were being dropped, so
+        # a refusal read as "SCHEMA_INVALID" and nothing else: the assistant was
+        # told which field was wrong and the operator watching the log was not.
+        # The path is a JSON pointer and the detail a server-authored message,
+        # so neither carries claim text; log_call truncates regardless.
+        first = e.errors.first || {}
+        log_call(name, args, started, outcome: "refused", codes: e.errors.map { |x| x[:code] || x["code"] },
+                 detail: [ first[:path] || first["path"], first[:detail] || first["detail"] ].compact.join(" "))
         raise
       rescue ArgumentError => e
         log_call(name, args, started, outcome: "bad_arguments", detail: e.message)

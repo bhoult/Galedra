@@ -2,6 +2,8 @@
 # menu; admins and moderators read them. The text is untrusted and shown
 # nowhere else. Assistants file the same thing through the report_bug tool.
 class BugReportsController < ApplicationController
+  include Triage
+
   allow_unauthenticated_access only: [ :new, :create ]
   rate_limit to: 5, within: 1.hour, by: -> { request.remote_ip }, only: :create, with: -> { redirect_to new_bug_report_path, alert: "Too many reports from this address. Try again in an hour." }
 
@@ -22,9 +24,8 @@ class BugReportsController < ApplicationController
     redirect_to root_path, notice: created ? "Thank you. The report is with the maintainers." : "Thank you. The same report was already on file and has been counted again."
   end
 
-  def index
-    return redirect_to root_path, alert: "Moderators and admins only." unless moderator? || admin?
+  private
 
-    @reports = BugReport.order(count: :desc, created_at: :desc).limit(200).includes(:user, :assistant_token)
-  end
+  def triage_model = BugReport
+  def triage_index_path = bug_reports_path
 end

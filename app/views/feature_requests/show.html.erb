@@ -1,0 +1,31 @@
+<% content_for :title, "Feature request" %>
+<p class="meta"><%= link_to "Feature requests", feature_requests_path %> › <%= @row.created_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC</p>
+<h1>What an assistant could not do</h1>
+<div class="card">
+  <p class="meta">
+    <strong><%= @row.status.downcase %></strong> ·
+    filed <%= @row.created_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC<%= " · last seen #{@row.updated_at.utc.strftime('%Y-%m-%d %H:%M')} UTC" if @row.count > 1 %> ·
+    asked <%= pluralize(@row.count, "time") %> ·
+    from <%= @row.reporter %>
+  </p>
+  <%= render "shared/triage_actions", row: @row %>
+</div>
+
+<h2>The person asked</h2>
+<div class="card"><%= simple_format(@row.asked) %></div>
+
+<h2>The assistant needed</h2>
+<div class="card"><%= simple_format(@row.needed) %></div>
+
+<% if @row.expected.present? %>
+  <h2>What it expected to happen</h2>
+  <div class="card"><%= simple_format(@row.expected) %></div>
+<% end %>
+
+<% if @row.context_tool.present? || @row.last_error.present? %>
+  <h2>Where</h2>
+  <div class="card">
+    <% if @row.context_tool.present? %><p><strong>While using</strong> <code><%= @row.context_tool %></code></p><% end %>
+    <% if @row.last_error.present? %><p><strong>Last error</strong> <code><%= @row.last_error %></code></p><% end %>
+  </div>
+<% end %>

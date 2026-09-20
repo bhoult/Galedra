@@ -4,6 +4,7 @@
 # admins and moderators, never to other assistants or the public. Repeats of
 # the same report within a month are counted, not duplicated.
 class BugReport < ApplicationRecord
+  include Triageable
   MAX_CHARS = 2_000
   DAILY_CAP = 10
   WINDOW = 30.days

@@ -56,7 +56,21 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     user.update!(moderator: true)
     get "/bug_reports"
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("share image is blank").and include("Topics page lists a topic twice").and include("me@example.com").and include("visitor")
+    expect(response.body).to include("share image is blank").and include("Topics page lists a topic twice")
+
+    # One line each on the list; the filer, the steps and the page it happened on
+    # are on the entry's own screen, which is the point of splitting them.
+    visitor_report = BugReport.order(:created_at).first
+    get "/bug_reports/#{visitor_report.id}"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("visitor").and include("share image is blank")
+
+    patch "/bug_reports/#{visitor_report.id}", params: { status: "DONE" }
+    expect(visitor_report.reload.status).to eq("DONE")
+    get "/bug_reports", params: { status: "OPEN" }
+    expect(response.body).not_to include("share image is blank")
+    get "/bug_reports", params: { status: "DONE" }
+    expect(response.body).to include("share image is blank")
 
     get "/"
     help = response.body[response.body.index("<summary>Help</summary>")..]

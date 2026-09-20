@@ -22,7 +22,16 @@ module Ledger
         assignment = TaskAssignment.latest_for(task.id, validated.contributor.id)
         reject("LEASE_MISSING", "$.task_id", "this task is not leased to the signer") if assignment.nil?
         reject("LEASE_NOT_ACTIVE", "$.task_id", "lease is #{assignment.status.downcase}") unless assignment.status == "LEASED"
-        reject("LEASE_EXPIRED", "$.task_id", "lease expired at #{assignment.lease_expires_at.utc.iso8601}") unless assignment.live?
+        # The server's own clock goes in the message. An assistant has no reliable
+        # sense of the wall time, so "expired at 06:27:13Z" alone reads as a
+        # future instant to a caller whose idea of now is hours stale — one filed
+        # that as a bug about a lease refused with a future timestamp. Saying how
+        # long ago it lapsed makes it a fact rather than a puzzle.
+        unless assignment.live?
+          ago = (Time.current - assignment.lease_expires_at).to_i
+          reject("LEASE_EXPIRED", "$.task_id",
+                 "lease expired at #{assignment.lease_expires_at.utc.iso8601}, #{ago / 60} minutes ago; the server clock is now #{Time.current.utc.iso8601}. Lease it again with next_task and resubmit.")
+        end
         reject("PACKET_HASH_MISMATCH", "$.task_packet_hash", "does not match the stored packet") unless env["task_packet_hash"] == task.packet_hash
         if validated.delegation
           perms = validated.delegation.permissions

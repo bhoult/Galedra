@@ -19,11 +19,26 @@ module Tasks
       pairs.map { |task, result| { "check" => CHECK_FOR.fetch(task.task_type), "by" => task.id, "result_contribution_id" => result.id } }
     end
 
-    # What the author checked themselves, for display: {check => count}.
+    # What the author checked themselves, for display: {task_type => count}.
+    #
+    # Keyed on assignments and every task type, not on CHECK_FOR: that map exists
+    # to name checklist items, and EVIDENCE_VERIFICATION is not one of them — it
+    # contributes evidence links rather than a checklist flag. Counting through
+    # it made the most numerous check type invisible to the figure built to
+    # report it. Found in a live run, after the display had been called done.
     def self_for(claim_id, seq)
-      accepted_results(claim_id, seq).select { |_, result| self_performed?(result) }
-                                     .group_by { |task, _| CHECK_FOR.fetch(task.task_type) }
-                                     .transform_values(&:size)
+      submitted_assignments(claim_id, seq).select(&:self_performed).group_by { |a| a.task.task_type }.transform_values(&:size)
+    end
+
+    # Assignments on this claim's tasks whose result stands at seq.
+    def submitted_assignments(claim_id, seq)
+      tasks = Task.where(target_type: "CLAIM", target_id: claim_id).pluck(:id)
+      return [] if tasks.empty?
+
+      TaskAssignment.where(task_id: tasks).where.not(result_contribution_id: nil).includes(:task).select do |a|
+        result = Contribution.find_by(id: a.result_contribution_id)
+        result && result.seq <= seq && Contributions::Standing.accepted_at?(result, seq)
+      end
     end
 
     def self_performed?(result)

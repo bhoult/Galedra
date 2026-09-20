@@ -32,7 +32,9 @@ module Sections
     # an outline holding hundreds of claims.
     def check_split(claim_ids, seq)
       blank = { self_checked: 0, independently_checked: 0 }
-      claim_for_task = Task.where(target_type: "CLAIM", target_id: claim_ids, task_type: Tasks::Checks::CHECK_FOR.keys).pluck(:id, :target_id).to_h
+      # Every task type, not only the checklist ones: EVIDENCE_VERIFICATION is
+      # the most numerous check and is not a checklist item.
+      claim_for_task = Task.where(target_type: "CLAIM", target_id: claim_ids).pluck(:id, :target_id).to_h
       return blank if claim_for_task.empty?
 
       results = Contribution.where(action_type: "TASK_RESULT", task_id: claim_for_task.keys).where("seq <= ?", seq)
