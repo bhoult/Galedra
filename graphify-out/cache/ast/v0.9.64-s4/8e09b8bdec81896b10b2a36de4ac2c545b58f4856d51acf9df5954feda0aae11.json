@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spec_services_crypto_ed25519_spec_rb", "label": "ed25519_spec.rb", "file_type": "code", "source_file": "spec/services/crypto/ed25519_spec.rb", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1}}], "edges": [], "raw_calls": []}

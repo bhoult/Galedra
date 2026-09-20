@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spec_jobs_recompute_affected_scores_job_spec_rb", "label": "recompute_affected_scores_job_spec.rb", "file_type": "code", "source_file": "spec/jobs/recompute_affected_scores_job_spec.rb", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1, "ruby_lookup_unsafe": true}}], "edges": [], "raw_calls": []}

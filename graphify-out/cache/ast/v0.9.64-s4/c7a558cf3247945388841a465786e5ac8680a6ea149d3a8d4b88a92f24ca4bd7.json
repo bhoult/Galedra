@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_db_seeds_demo_rb", "label": "demo.rb", "file_type": "code", "source_file": "db/seeds/demo.rb", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1}}], "edges": [], "raw_calls": []}

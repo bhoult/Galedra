@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_spec_services_scoring_end_to_end_spec_rb", "label": "end_to_end_spec.rb", "file_type": "code", "source_file": "spec/services/scoring/end_to_end_spec.rb", "source_location": "L1", "metadata": {"ruby_resolution_schema": 1, "ruby_lookup_unsafe": true}}], "edges": [], "raw_calls": []}

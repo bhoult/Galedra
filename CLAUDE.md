@@ -22,6 +22,9 @@ README.md                     public summary derived from the spec; keep it cons
 IMPLEMENTATION.md             index: how a stage is executed, the stage table, decision-log rules
 implementation/planned/       one file per stage not yet built (its plan)
 implementation/implemented/   one file per stage built (its plan, then its Decision Log entry)
+docs/CONTEXT.md               how this project is actually worked on: the external-agent test
+                              loop, what each record folder is for, graphify, and the mistakes
+                              that have been made more than once. Read it before a long session.
 docs/experiments/             one file per run against something real: what was tried, what the
                               database said, what it found, and what the watcher got wrong
 docs/profiler/                one file per profiling run: conditions, numbers, findings
@@ -42,6 +45,17 @@ docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   build-full-spec.sh          regenerates FULL-SPEC.md
   FULL-SPEC.md                GENERATED. Never edit by hand.
 ```
+
+**Read `docs/CONTEXT.md` first for anything non-trivial.** It carries what this file
+cannot: how defects are actually found here (connect a chat assistant over MCP, give it a
+real job, watch the server side, and read what it files through `report_bug` and
+`request_feature`), why every finding carries a status updated in place, and a list of
+mistakes made more than once — instructions drifting from the behaviour they describe,
+theorising instead of measuring, and filters narrow enough to discard the diagnostic.
+**Keep it current in the same session:** add a practice once it has caught something real,
+delete what has been superseded, and correct what turns out to be wrong. It is maintained,
+not archived — a note that has quietly stopped being true is worse than no note, because it
+is trusted.
 
 ## Reading order and precedence
 
