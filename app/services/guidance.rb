@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.6"
+  VERSION = "2026-09-20.7"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -106,6 +106,9 @@ module Guidance
          "Someone watching a long run cannot tell steady work from a stall, and silence reads as the second. " \
          "If the kind of task you are on stops being useful — the checks keep coming back CANNOT_DETERMINE, or the passage " \
          "can only ever establish that a quotation is faithful — say so and switch to a kind that can move something. " \
+         "list_claims(section_id, state:, checkable:) is the worklist: it returns id, text, type and state only, so a whole " \
+         "outline fits where get_outline would be truncated, and state: \"INSUFFICIENT_EVIDENCE\" with checkable: true is the " \
+         "set an outside source would actually move. " \
          "When the claims themselves are the problem, pass settleable to next_task: a forecast or an opinion finishes as " \
          "NOT_APPLICABLE whatever you find, so no evidence can move it, and settleable asks only for claims a model scores. " \
          "Filter next_task by types or domains, or search for what would count against a claim and record it with " \
@@ -163,7 +166,14 @@ module Guidance
         "contradicts itself, an error that makes no sense, a number that cannot be right. " \
         "Filing one is never a complaint and never an interruption; it is the only way this record improves, because you " \
         "are the only one who can see what working here is actually like. Tell the person plainly what you found, and " \
-        "that you have filed it."
+        "that you have filed it. " \
+        "A report is a conversation and it is closed when both sides say so. list_reports shows what you filed with each " \
+        "one's status and how many are waiting on you; get_report shows the whole exchange on one; respond_to_report " \
+        "answers a maintainer and says whether the resolution actually settles it — satisfied closes it, not satisfied " \
+        "reopens it with your reasons kept, as many rounds as it takes. An answer nobody comes back on closes itself after " \
+        "three hours, and you can still disagree afterwards. Read your answers before filing again: a thing you reported " \
+        "may already be explained, and a diagnosis you gave may have been corrected. If you find you were wrong, say so in " \
+        "a response rather than a new report, so the correction sits with what it corrects."
 
   # What each topic is made of. Composed at call time rather than frozen into a
   # constant, because :work pulls in the task rules from Tasks::Answer.

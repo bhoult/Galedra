@@ -149,7 +149,9 @@ RSpec.describe "Source retrieval by a trusted job (Stage 17)" do
 
     card = Cards::ClaimCard.call(claim, after_seq, model)
     expect(card[:labels]).to include("A quoted passage was not found on the page when Galedra fetched it.")
-    assignment = Struct.new(:lease_expires_at).new(1.hour.from_now)
+    # present now also reads self_performed, because what answering can change
+    # depends on whose work it is.
+    assignment = Struct.new(:lease_expires_at, :self_performed).new(1.hour.from_now, false)
     presented = Tasks::Answer.present(task, assignment, base_url: "http://x")
     expect(presented[:context]["retrieval"]).to include("found" => "NOT_FOUND")
     expect(task.packet.dig("context", "retrieval")).to be_nil

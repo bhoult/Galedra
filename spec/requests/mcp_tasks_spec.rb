@@ -95,6 +95,20 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(schema[:properties]).to have_key(:moves)
   end
 
+  # moves said a null search "raises how well reviewed the claim is". True in
+  # general, false for a lease on your own principal's claim, which is recorded
+  # as self-performed and never moves coverage. Reported by the assistant that
+  # read it and then watched coverage stay at 0.00 — the same failure this field
+  # exists to prevent (docs/experiments/2026-09-20-second-connector-run.md).
+  it "does not promise coverage on a check of your own principal's work" do
+    recorded, = call_tool("record_investigation", { "claims" => [ { "handle" => "c", "text" => "My own claim about remote work.", "type" => "OBSERVATIONAL" } ] })
+    own = recorded["claims"].first["id"]
+    data, err = call_tool("next_task", { "claim_id" => own, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    expect(err).to be(false), data.inspect
+    expect(data["moves"]).to include("self-performed"), "whose work it is changes what answering can do"
+    expect(data["moves"]).not_to include("raises how well reviewed")
+  end
+
   it "lists tasks in a bounded number of statements, and suggests only work this caller can take" do
     claim, = curated_claim
     12.times { |i| Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: create_claim(curator, "Spare claim #{i} about productivity.", type: "CAUSAL")) }

@@ -48,7 +48,7 @@ module Tasks
       end
       { task_id: task.id, task_type: task.task_type, domain: task.domain, objective: packet["objective"],
         target: packet["target"].merge("url" => target_url), context: context,
-        outcomes: spec[:outcomes], constraints: constraints(packet, spec), moves: moves(task), lease_expires_at: assignment.lease_expires_at.utc.iso8601,
+        outcomes: spec[:outcomes], constraints: constraints(packet, spec), moves: moves(task, assignment), lease_expires_at: assignment.lease_expires_at.utc.iso8601,
         task_url: "#{base_url}/tasks/#{task.id}", answer_with: ANSWER_WITH.fetch(task.task_type), rules: RULES }
     end
 
@@ -57,7 +57,14 @@ module Tasks
     # concluding the ceiling was "the quotation is faithful", then spent real web
     # searches on two claims that carry no probability at all, and asked for this
     # (docs/experiments/2026-09-20-second-connector-run.md).
-    def moves(task)
+    def moves(task, assignment = nil)
+      # Checking your own principal's work is recorded as self-performed and
+      # never raises review coverage (Stage 34). Saying a null search "raises how
+      # well reviewed the claim is" was true in general and false for the lease
+      # actually being handed over — reported by the assistant that read it and
+      # then watched coverage stay at 0.00. This field exists to stop exactly
+      # that, so it has to know whose work it is.
+      own = assignment&.self_performed
       if task.target_type == "CLAIM" && unscoreable?(task.target_id)
         return "No model scores this claim's type, so it carries no probability and no outcome here moves its headline. " \
                "What it can still do is correct the type, which is a judgement and can be revised — say so if the claim is mistyped."
@@ -68,12 +75,15 @@ module Tasks
         "Confirming this establishes that the quotation is faithful to its source. Where the passage comes from the same source the " \
         "claim was taken out of, that is provenance and not corroboration, so it will not move the headline on its own."
       when "OPPOSING_EVIDENCE_SEARCH"
-        "Finding evidence against the claim moves the headline. So does NONE_FOUND: a documented null search satisfies the " \
-        "opposing-search check and raises how well reviewed the claim is."
+        "Finding evidence against the claim moves the headline. NONE_FOUND records a documented null search" +
+          (own ? ", though it is your own principal's claim, so it is recorded as self-performed and does not raise review coverage: that needs a different principal." :
+                 " and satisfies the opposing-search check, which raises how well reviewed the claim is.")
       when "QUALIFIER_CHECK"
-        "A material qualifier recorded as QUALIFY or CONTRADICT moves the headline, and a narrower claim you record alongside it can be checked on its own."
+        "A material qualifier recorded as QUALIFY or CONTRADICT moves the headline, and a narrower claim you record alongside it can be checked on its own." +
+          (own ? " Review coverage will not move: this is your own principal's claim, so the check is recorded as self-performed." : "")
       else
-        "Answering satisfies one of this claim's review checks, which raises how well reviewed it is."
+        own ? "This is your own principal's claim, so answering is recorded as self-performed and does not raise review coverage." :
+              "Answering satisfies one of this claim's review checks, which raises how well reviewed it is."
       end
     end
 

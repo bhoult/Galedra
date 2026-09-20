@@ -222,9 +222,13 @@ module Mcp
       # them. Zero is the honest value here and pairs with listChanged: false
       # above: this server has no stream to push notifications/tools/list_changed
       # on (GET /mcp is 405), so a client that cached a tool description would
-      # never be told it had changed. Telling it not to cache is the only way a
-      # corrected description reaches an assistant without a reconnect. The rules
-      # themselves do not depend on this: they ride on every result (Stage 31).
+      # never be told it had changed. Zero is still the honest value, but do not
+      # rely on it: a real client ignored it and cached the list for the whole
+      # session, so four new tools shipped mid-session and the assistant reported
+      # that none had appeared. The same client ignores the discover TTL. So a
+      # NEW TOOL MUST BE NAMED IN `Guidance` as well, which does ride on every
+      # result (Stage 31) and is the only channel proven to reach a live session
+      # (docs/experiments/2026-09-20-second-connector-run.md).
       when "tools/list" then { tools: TOOLS, ttlMs: 0, cacheScope: "public" }
       when "tools/call" then call_tool(params)
       else
@@ -911,7 +915,32 @@ module Mcp
       id = args["claim_id"].to_s
       raise ArgumentError, "claim_id is required" if id.empty?
 
-      Claim.find_by(id: id) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.claim_id", detail: "no such claim" } ]))
+      Claim.find_by(id: id) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.claim_id", detail: "no such claim#{near_miss_hint(Claim, id)}" } ]))
+    end
+
+    # Ids here are long hex strings retyped out of large payloads, so one wrong
+    # character is a predictable failure rather than carelessness. One cost two
+    # wrong bug reports and a long detour before anyone noticed the id had never
+    # existed (docs/experiments/2026-09-20-second-connector-run.md). Naming the
+    # near miss ends it in one call.
+    def near_miss_hint(model, id)
+      near = near_miss(model, id)
+      near ? ". Did you mean #{near}?" : ""
+    end
+
+    def near_miss(model, id)
+      return nil unless id.length.between?(12, 64)
+
+      candidates = model.where("id::text LIKE ? OR id::text LIKE ?", "#{id[0, 8]}%", "%#{id[-8..]}").limit(25).pluck(:id)
+      candidates.find { |c| c.to_s != id && one_or_two_characters_off?(c.to_s, id) }
+    end
+
+    # A retyped id is the same length and differs in a character or two; that is
+    # the shape of the mistake, and anything looser starts guessing.
+    def one_or_two_characters_off?(candidate, given)
+      return false unless candidate.length == given.length
+
+      (1..2).cover?(candidate.chars.zip(given.chars).count { |a, b| a != b })
     end
 
     def url_for(claim) = "#{@base_url}/claims/#{claim.id}"
