@@ -10,7 +10,7 @@ module Assistants
 
     def call(token, action_type, payload, task_id: nil, task_packet_hash: nil)
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "this assistant token is revoked or expired" } ]) unless token.usable?
-      raise CapReached, "this assistant has reached its daily limit of #{token.daily_cap} writes; try again tomorrow" if token.over_daily_cap?
+      raise CapReached, "this assistant has reached its hourly limit of #{token.hourly_cap} writes; it resumes as the last hour rolls past" if token.over_hourly_cap?
 
       envelope = Contributions::Envelope.build(
         action_type: action_type, payload: payload, key_pair: Crypto::Custody.signer_for_contributor(token.agent),
@@ -24,7 +24,7 @@ module Assistants
     # A TASK_RESULT (eir-result-v1) for a task leased to the assistant's agent key (Stage 18).
     def result(token, task, outcome:, ops:)
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "this assistant token is revoked or expired" } ]) unless token.usable?
-      raise CapReached, "this assistant has reached its daily limit of #{token.daily_cap} writes; try again tomorrow" if token.over_daily_cap?
+      raise CapReached, "this assistant has reached its hourly limit of #{token.hourly_cap} writes; it resumes as the last hour rolls past" if token.over_hourly_cap?
 
       envelope = Contributions::Envelope.build_result(task: task, key_pair: Crypto::Custody.signer_for_contributor(token.agent), outcome: outcome, ops: ops,
                                                       delegation_id: token.delegation_id, software: token.software)

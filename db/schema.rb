@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -35,7 +35,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_220000) do
     t.bigint "created_seq", null: false
     t.uuid "delegate_contributor_id", null: false
     t.string "delegation_signature", null: false
-    t.integer "max_tasks_per_day"
+    t.integer "max_tasks_per_hour"
     t.jsonb "permissions", default: {}, null: false
     t.uuid "principal_contributor_id", null: false
     t.bigint "revoked_seq"
@@ -50,8 +50,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_220000) do
     t.string "adoption_digest"
     t.uuid "agent_contributor_id", null: false
     t.datetime "created_at", null: false
-    t.integer "daily_cap", default: 200, null: false
     t.uuid "delegation_id", null: false
+    t.integer "hourly_cap", default: 500, null: false
     t.timestamptz "last_used_at"
     t.uuid "principal_contributor_id", null: false
     t.timestamptz "revoked_at"

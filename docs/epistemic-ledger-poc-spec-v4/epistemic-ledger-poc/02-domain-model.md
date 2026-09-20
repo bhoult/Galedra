@@ -140,7 +140,7 @@ id
 principal_contributor_id
 delegate_contributor_id
 permissions           jsonb   {allowed_task_types: [...], domains: [...]}
-max_tasks_per_day     int null
+max_tasks_per_hour    int null
 valid_from, valid_until
 delegation_signature  (principal signs canonical delegation)
 created_seq

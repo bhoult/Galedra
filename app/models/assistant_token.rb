@@ -15,7 +15,7 @@ class AssistantToken < ApplicationRecord
   before_create :assign_adoption_code
 
   validates :token_digest, presence: true, uniqueness: true
-  validates :daily_cap, numericality: { only_integer: true, greater_than: 0 }
+  validates :hourly_cap, numericality: { only_integer: true, greater_than: 0 }
 
   def self.digest(token) = Digest::SHA256.hexdigest(token.to_s)
 
@@ -33,11 +33,14 @@ class AssistantToken < ApplicationRecord
     !revoked? && !delegation.revoked? && delegation.in_window? && !agent.revoked?
   end
 
-  def writes_today
-    Contribution.where(signer_key_id: agent.key_id).where.not(action_type: "REGISTER_KEY").where("received_at >= ?", Time.current.beginning_of_day).count
+  # A rolling hour rather than a calendar one: with a fixed boundary an agent
+  # can spend a full cap at 10:59 and another at 11:01, so the window that is
+  # meant to bound a runaway briefly allows twice the rate.
+  def writes_this_hour
+    Contribution.where(signer_key_id: agent.key_id).where.not(action_type: "REGISTER_KEY").where("received_at >= ?", 1.hour.ago).count
   end
 
-  def over_daily_cap? = writes_today >= daily_cap
+  def over_hourly_cap? = writes_this_hour >= hourly_cap
 
   private
 

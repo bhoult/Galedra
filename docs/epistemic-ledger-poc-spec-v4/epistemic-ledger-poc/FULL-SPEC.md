@@ -1058,7 +1058,7 @@ id
 principal_contributor_id
 delegate_contributor_id
 permissions           jsonb   {allowed_task_types: [...], domains: [...]}
-max_tasks_per_day     int null
+max_tasks_per_hour    int null
 valid_from, valid_until
 delegation_signature  (principal signs canonical delegation)
 created_seq
@@ -1868,7 +1868,7 @@ POST /api/v1/tasks/next?types=…&domains=…   -> leases one task (or 204)
 - Lease length: 2 hours default, per-type configurable.
 - One active lease per `(task, contributor)` and per `(task, principal)`.
 - Expired leases release the slot; a late submission is rejected at step 3.
-- Per-delegate daily limit from `agent_delegations.max_tasks_per_day`; per-key rate limits from Rails 8 `rate_limit`.
+- Per-delegate hourly limit from `agent_delegations.max_tasks_per_hour`, counted over a rolling hour; per-key rate limits from Rails 8 `rate_limit`. Delegations signed before this field was renamed carry `max_tasks_per_day`, and the applier reads either, so replay reproduces them unchanged.
 - Tasks are offered in descending `priority` (03 §14), filtered by delegation permissions.
 
 ---

@@ -9,14 +9,16 @@ module Assistants
   module Connect
     # Owner decision: delegations to connected assistants do not expire on their own.
     VALIDITY = 100.years
-    DEFAULT_DAILY_CAP = 200
+    DEFAULT_HOURLY_CAP = 500
     # Stage 21: an assistant with a person behind it may record a large source over a day.
-    NAMED_DAILY_CAP = 1_000
+    # A first pass over a two-hour transcript measured about 1,600 writes, so
+    # this carries two complete investigations in one window with headroom.
+    NAMED_HOURLY_CAP = 5_000
 
     module_function
 
-    def call(user: nil, name:, provider:, model: nil, daily_cap: nil)
-      daily_cap ||= user ? NAMED_DAILY_CAP : DEFAULT_DAILY_CAP
+    def call(user: nil, name:, provider:, model: nil, hourly_cap: nil)
+      hourly_cap ||= user ? NAMED_HOURLY_CAP : DEFAULT_HOURLY_CAP
       name = name.to_s.strip
       raise ArgumentError, "assistant name is required" if name.empty?
       raise ArgumentError, "unknown provider" unless AssistantToken::PROVIDERS.include?(provider.to_s)
@@ -27,11 +29,11 @@ module Assistants
         kind: Contributor::AGENT, identity_tier: principal.identity_tier,
         display_name: "#{name} for #{principal.display_name || 'an anonymous contributor'}", metadata: { "software" => software }
       )
-      delegation = delegate(principal, agent, daily_cap)
+      delegation = delegate(principal, agent, hourly_cap)
       plaintext = "gal_#{SecureRandom.urlsafe_base64(32)}"
       record = AssistantToken.create!(
         id: SecureRandom.uuid_v7, token_digest: AssistantToken.digest(plaintext), agent: agent, principal: principal,
-        delegation: delegation, user: user, software: software, daily_cap: daily_cap
+        delegation: delegation, user: user, software: software, hourly_cap: hourly_cap
       )
       [ record, plaintext ]
     end
@@ -57,11 +59,11 @@ module Assistants
       Crypto::Custody.create_server_custodied(display_name: "Anonymous", identity_tier: "ANONYMOUS")
     end
 
-    def delegate(principal, agent, daily_cap)
+    def delegate(principal, agent, hourly_cap)
       now = Time.now.utc
       payload = { "delegate_key_id" => agent.key_id,
                   "permissions" => { "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains, "direct_work" => true, "allowed_actions" => [ "ACCEPT" ] },
-                  "max_tasks_per_day" => daily_cap, "valid_from" => (now - 1.minute).iso8601, "valid_until" => (now + VALIDITY).iso8601 }
+                  "max_tasks_per_hour" => hourly_cap, "valid_from" => (now - 1.minute).iso8601, "valid_until" => (now + VALIDITY).iso8601 }
       envelope = Contributions::Envelope.build(action_type: "DELEGATE", payload: payload, key_pair: Crypto::Custody.signer_for_contributor(principal))
       result = Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
       AgentDelegation.find(Ledger::Ids.derive(result.contribution.id, "delegation"))

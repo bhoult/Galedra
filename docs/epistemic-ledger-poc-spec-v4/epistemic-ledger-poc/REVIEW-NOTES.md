@@ -177,6 +177,32 @@ a demo anyway.
 byte-identical, under both models. Only the reputation table moved, and only by which agent
 holds which bucket; every alpha, beta, mean and n is the same.
 
+## M. The per-delegate limit becomes hourly (2026-09-19)
+
+**What changed.** `agent_delegations.max_tasks_per_day` is now `max_tasks_per_hour`, counted
+over a rolling hour rather than a calendar day, in `02 §` (domain model) and `04 §5`.
+
+**Why.** A first pass over a two-hour podcast transcript was measured at about 1,600 signed
+writes: 34 per leaf across 47 leaves, plus the outline. Against the old named cap of 1,000 a
+day, an investigation stopped roughly two thirds of the way through and could not resume
+until the next calendar day. The cap exists to bound a runaway agent, not to make a
+legitimate long job impossible, and an hour is the window that does the first without the
+second. Named delegations are now 5,000 an hour, which carries two complete investigations
+of that size with headroom; anonymous ones are 500.
+
+**Rolling, not calendar.** A fixed boundary lets an agent spend a full cap at 10:59 and
+another at 11:01, so a window meant to bound a burst briefly permits twice the rate. Both
+the write cap and the task-lease limit count backwards from now.
+
+**What it forced.** The field is written into signed `DELEGATE` payloads, so the name is a
+statement in the log and leaving it saying `per_day` while it meant per hour would have put
+a false one there. Renaming it means contributions already signed carry the old key:
+`Ledger::Appliers::Delegate` reads either, and rejects a payload carrying both, so replay
+reproduces every historical row unchanged (Invariant 2). Delegations signed under the old
+name are now enforced hourly at the number they were given daily, which loosens them; that
+is a consequence of one column holding both, and the alternative — two columns, two
+meanings, forever — is worse.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-1 through P-4?

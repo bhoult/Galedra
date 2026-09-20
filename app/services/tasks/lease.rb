@@ -12,7 +12,7 @@ module Tasks
     def next(contributor:, delegation:, types: [], domains: [], target_id: nil, section_id: nil)
       principal = contributor.agent? ? delegation&.principal : contributor
       reject("DELEGATION_REQUIRED", "$.delegation_id", "agents lease under a delegation") if contributor.agent? && delegation.nil?
-      reject("LEASE_LIMIT", "$", "daily task limit reached for this delegation") if delegation && over_daily_limit?(contributor, delegation)
+      reject("LEASE_LIMIT", "$", "hourly task limit reached for this delegation") if delegation && over_hourly_limit?(contributor, delegation)
 
       expire_stale!
       candidates(contributor, principal, delegation, types, domains, target_id, section_id).each do |task|
@@ -89,11 +89,11 @@ module Tasks
       principal.present? && AgentDelegation.where(delegate_contributor_id: creator, principal_contributor_id: principal.id).exists?
     end
 
-    def over_daily_limit?(contributor, delegation)
-      limit = delegation.max_tasks_per_day
+    def over_hourly_limit?(contributor, delegation)
+      limit = delegation.max_tasks_per_hour
       return false if limit.nil?
 
-      TaskAssignment.where(contributor_id: contributor.id).where("created_at >= ?", Time.current.beginning_of_day).count >= limit
+      TaskAssignment.where(contributor_id: contributor.id).where("created_at >= ?", 1.hour.ago).count >= limit
     end
 
     def release(assignment)
@@ -112,19 +112,6 @@ module Tasks
 
     def reject(code, path, detail)
       raise Rejected.new([ { code: code, path: path, detail: detail } ])
-    end
-  end
-
-  module Status
-    def self.refresh!(task)
-      task.reload
-      status = if task.status == "CANCELLED" then "CANCELLED"
-      elsif task.submitted_assignments.count >= task.required_assignments then "COMPLETE"
-      elsif task.open_slots <= 0 then "LEASED"
-      else "OPEN"
-      end
-      task.update!(status: status) if task.status != status
-      task
     end
   end
 end

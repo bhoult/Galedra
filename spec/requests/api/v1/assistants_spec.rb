@@ -115,20 +115,20 @@ RSpec.describe "Connected assistants (Stage 12)", type: :request do
     expect(named_result.probability).to eq(anon_result.probability)
     expect(named_result.assessment_state).to eq(anon_result.assessment_state)
     expect(Cards::ClaimCard.call(twin, Contribution.maximum(:seq), model, named_result)[:labels]).to include("Not yet independently audited.")
-    expect(AssistantToken.find_by_token(plaintext).writes_today).to eq(1)
+    expect(AssistantToken.find_by_token(plaintext).writes_this_hour).to eq(1)
     expect(seq_before).to be < anon_link.seq
   end
 
-  it "enforces the daily cap and the per-token rate limit with plain messages (#5)" do
-    record, token = Assistants::Connect.call(name: "Claude", provider: "anthropic", daily_cap: 2)
+  it "enforces the hourly cap and the per-token rate limit with plain messages (#5)" do
+    record, token = Assistants::Connect.call(name: "Claude", provider: "anthropic", hourly_cap: 2)
     custodied_write(token, "CREATE_CLAIM", claim_payload("One."))
     custodied_write(token, "CREATE_CLAIM", claim_payload("Two."))
     expect(response).to have_http_status(:created)
     custodied_write(token, "CREATE_CLAIM", claim_payload("Three."))
     expect(response).to have_http_status(:too_many_requests)
     expect(response.parsed_body["errors"].first).to include("code" => "DAILY_CAP")
-    expect(response.parsed_body["errors"].first["detail"]).to include("try again tomorrow")
-    expect(record.reload.writes_today).to eq(2)
+    expect(response.parsed_body["errors"].first["detail"]).to include("hourly limit of 2 writes")
+    expect(record.reload.writes_this_hour).to eq(2)
 
     travel_to(Time.current.tomorrow.beginning_of_day + 1.hour) do
       custodied_write(token, "CREATE_CLAIM", claim_payload("Three, tomorrow."))

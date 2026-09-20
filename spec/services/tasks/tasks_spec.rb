@@ -95,11 +95,11 @@ RSpec.describe "Tasks, leases, packets, and results (07 Phase 5)", type: :reques
     _, _, claim = graph
     principal_pair, agent_a, _, delegation_a = principal_with_agent
     _, agent_b_contributor = register_key(kind: Contributor::AGENT)
-    delegation_b = delegate(principal_pair, agent_b_contributor, max_tasks_per_day: 1)
+    delegation_b = delegate(principal_pair, agent_b_contributor, max_tasks_per_hour: 1)
     agent_b = nil
     # register_key returned the pair for agent_b only via the contributor; rebuild the pair by registering explicitly
     agent_b_pair, agent_b_contributor2 = register_key(kind: Contributor::AGENT)
-    delegation_b2 = delegate(principal_pair, agent_b_contributor2, max_tasks_per_day: 1)
+    delegation_b2 = delegate(principal_pair, agent_b_contributor2, max_tasks_per_hour: 1)
     task = create_task("OPPOSING_EVIDENCE_SEARCH", claim, required_assignments: 2)
     other_task = create_task("OPPOSING_EVIDENCE_SEARCH", create_claim(curator, "Another claim."), required_assignments: 1)
 

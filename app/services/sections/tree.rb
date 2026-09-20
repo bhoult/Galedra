@@ -18,16 +18,29 @@ module Sections
       placements = ClaimPlacement.active_at(seq).where(section_id: sections.map(&:id)).order(:position, :created_seq).to_a
       claims_by_id = Claim.where(id: placements.map(&:claim_id)).index_by(&:id)
       quarantined = Governance::Quarantines.quarantined_claim_ids.to_set
-      states = {}
+      # Every claim in the subtree is scored once, in one pass. Scoring per claim
+      # inside the walk below was an N+1 that grew with the outline: a two-hour
+      # transcript reached 255 claims, and this is called on every page view.
+      all_claims = placements.filter_map { |p| claims_by_id[p.claim_id] }.select { |c| c.counted_at?(seq) && !quarantined.include?(c.id) }.uniq
+      scored = model ? Scoring::Score.call_many(all_claims, seq, model) : {}
+      states = all_claims.to_h { |c| [ c.id, model ? scored[c.id]&.assessment_state : nil ] }
+
+      # `depth` truncates what is *rendered*, never what is counted. Counting only
+      # the loaded children meant a branch reported the claims it held directly —
+      # which is none, since claims live on leaves — so an outline asked for at a
+      # shallower depth than it is deep reported zero at every level, root
+      # included. Reported by an assistant through report_bug on a 255-claim
+      # outline; see docs/experiments/2026-09-19-live-connector-outline.md.
       node = lambda do |section, level|
         mine = placements.select { |p| p.section_id == section.id }
         counted = mine.select { |p| p.accepted_at?(seq) }.filter_map { |p| claims_by_id[p.claim_id] }.select { |c| c.counted_at?(seq) && !quarantined.include?(c.id) }
         pending = mine.count { |p| !p.accepted_at?(seq) }
-        counted.each { |c| states[c.id] ||= model ? Scoring::Score.call(c, seq, model).assessment_state : nil }
-        children = depth && level >= depth ? [] : by_parent.fetch(section.id, []).map { |child| node.call(child, level + 1) }
+        subtree = by_parent.fetch(section.id, []).map { |child| node.call(child, level + 1) }
         counts = tally(counted.map { |c| states[c.id] })
-        children.each { |ch| counts = merge(counts, ch[:counts]) }
-        { section: section, children: children, claims: counted, states: counted.to_h { |c| [ c.id, states[c.id] ] }, pending: pending + children.sum { |ch| ch[:pending] }, counts: counts }
+        subtree.each { |ch| counts = merge(counts, ch[:counts]) }
+        { section: section, children: depth && level >= depth ? [] : subtree, claims: counted,
+          states: counted.to_h { |c| [ c.id, states[c.id] ] },
+          pending: pending + subtree.sum { |ch| ch[:pending] }, counts: counts }
       end
       node.call(root, 0)
     end

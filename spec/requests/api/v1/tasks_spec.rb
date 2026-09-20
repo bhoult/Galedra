@@ -84,7 +84,7 @@ RSpec.describe "Task leases over HTTP (04 §7)", type: :request do
   it "enforces the daily limit and expires stale leases" do
     principal_pair, = register_key
     agent_pair, agent = register_key(kind: Contributor::AGENT)
-    delegation = delegate(principal_pair, agent, max_tasks_per_day: 1)
+    delegation = delegate(principal_pair, agent, max_tasks_per_hour: 1)
     first = task_for("First claim.")
     task_for("Second claim.")
 

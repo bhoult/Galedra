@@ -127,4 +127,39 @@ RSpec.describe "Sections and placements in the log (Stage 20)", type: :request d
     get "/"
     expect(response.body).to include(">Outlines<")
   end
+  # An assistant working a 255-claim outline filed this through report_bug: the
+  # root and every chapter reported "0 claims", while asking for a chapter on its
+  # own reported the right number. depth truncated what was counted, not just what
+  # was rendered, and claims live on leaves — so anything asked for at a shallower
+  # depth than it is deep reported zero the whole way up.
+  it "counts the whole subtree whatever depth is rendered (#3)" do
+    pair, = register_key
+    source = create_source(pair)
+    # Three levels, because the bug only shows when a claim sits deeper than the
+    # depth asked for: episode > chapter > leaf, with the claims on the leaf.
+    outline(pair, source, [ { "heading" => "Episode", "sections" => [
+      { "heading" => "Chapter one", "sections" => [ { "heading" => "A leaf" } ] } ] } ])
+    root = Section.find_by!(heading: "Episode")
+    chapter = Section.find_by!(heading: "Chapter one")
+    leaf = Section.find_by!(heading: "A leaf")
+    expect([ root.depth, chapter.depth, leaf.depth ]).to eq([ 0, 1, 2 ])
+    create_claim(pair, "Something said in the leaf.", section_id: leaf.id)
+    create_claim(pair, "Something else said in the leaf.", section_id: leaf.id)
+    seq = Contribution.maximum(:seq)
+
+    (0..3).each do |d|
+      tree = Sections::Tree.call(root, seq, depth: d)
+      expect(tree[:counts]["claims"]).to eq(2), "root reported #{tree[:counts]['claims']} claims at depth #{d}"
+    end
+
+    shallow = Sections::Tree.call(root, seq, depth: 1)
+    expect(shallow[:children].size).to eq(1), "depth still limits what is rendered"
+    expect(shallow[:children].first[:children]).to be_empty, "the leaf is not rendered at depth 1"
+    expect(shallow[:children].first[:counts]["claims"]).to eq(2), "but the chapter still counts its leaf's claims"
+
+    deep = Sections::Tree.call(root, seq, depth: 2)
+    expect(deep[:children].first[:children].size).to eq(1), "at depth 2 the leaf is rendered"
+    expect(deep[:counts]).to eq(shallow[:counts]), "rendering deeper changes nothing about the counts"
+    expect(Sections::Tree.call(chapter, seq)[:counts]["claims"]).to eq(2)
+  end
 end

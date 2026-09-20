@@ -40,7 +40,7 @@
       <tr>
         <td><%= t.software["agent_name"] %> <span class="badge"><%= t.software["model_provider"] %></span></td>
         <td><%= link_to short_id(t.agent.key_id), contributor_path(t.agent) %></td>
-        <td><%= t.writes_today %> of <%= t.daily_cap %></td>
+        <td><%= t.writes_this_hour %> of <%= t.hourly_cap %></td>
         <td><%= t.usable? ? t.delegation.valid_until.to_date : "revoked" %></td>
         <td><% if t.usable? %><%= button_to "Disconnect", assistant_path(t), method: :delete, class: "secondary small" %><% end %></td>
       </tr>

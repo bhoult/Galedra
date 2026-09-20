@@ -23,7 +23,13 @@ module Ledger
           list = permissions[key]
           reject("SCHEMA_INVALID", "$.payload.permissions.#{key}", "expected an array of strings") unless list.is_a?(Array) && list.all?(String)
         end
-        integer_or_nil!(payload, "max_tasks_per_day")
+        # Delegations signed before the cap became hourly carry max_tasks_per_day.
+        # Both keys are accepted so replay reproduces those rows exactly; a
+        # payload may not carry both, which would leave the limit ambiguous.
+        if payload.key?("max_tasks_per_hour") && payload.key?("max_tasks_per_day")
+          reject("SCHEMA_INVALID", "$.payload.max_tasks_per_hour", "carries both max_tasks_per_hour and max_tasks_per_day; only one may be given")
+        end
+        integer_or_nil!(payload, payload.key?("max_tasks_per_day") ? "max_tasks_per_day" : "max_tasks_per_hour")
         from = time!(payload, "valid_from")
         to = time!(payload, "valid_until")
         reject("SCHEMA_INVALID", "$.payload.valid_until", "must be after valid_from") unless to > from
@@ -37,7 +43,7 @@ module Ledger
           principal_contributor_id: contribution.contributor_id,
           delegate_contributor_id: delegate.id,
           permissions: payload["permissions"],
-          max_tasks_per_day: payload["max_tasks_per_day"],
+          max_tasks_per_hour: payload["max_tasks_per_hour"] || payload["max_tasks_per_day"],
           valid_from: Time.iso8601(payload["valid_from"]),
           valid_until: Time.iso8601(payload["valid_until"]),
           delegation_signature: contribution.signature,

@@ -120,9 +120,9 @@ RSpec.describe "Large requests from a connector (Stage 21)", type: :request do
     data, err = call_tool("record_investigation", { statement: "big", claims: claims }, requester)
     expect(err).to be(true)
     expect(data.to_json).to include("create_outline")
-    expect(AssistantToken.find_by_token(requester).daily_cap).to eq(1_000)
+    expect(AssistantToken.find_by_token(requester).hourly_cap).to eq(5_000)
     anon = Assistants::Connect.call(user: nil, name: "Anon", provider: "other").first
-    expect(anon.daily_cap).to eq(200)
+    expect(anon.hourly_cap).to eq(500)
 
     bad = outline_args.merge(sections: [ { handle: "a", heading: "One" }, { handle: "b", heading: "Two" } ])
     data, err = call_tool("create_outline", bad, requester)
