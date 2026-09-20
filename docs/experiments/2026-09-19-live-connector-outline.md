@@ -116,7 +116,7 @@ The field is written into signed `DELEGATE` payloads, so it was renamed in the l
 vocabulary too; `Ledger::Appliers::Delegate` reads either key so replay reproduces
 historical rows, and rejects a payload carrying both.
 
-### 4. `server/discover` is re-probed every turn — **OPEN**
+### 4. `server/discover` is re-probed every turn — **FIXED 2026-09-20**
 
 Stage 32 set `ttlMs: 0` on the discover result for consistency with `tools/list`. The two
 are not alike: tool descriptions change when edited, but supported versions, capabilities
@@ -127,6 +127,15 @@ boundary. Harmless at 4ms, but needless. An hour's TTL on discover, keeping zero
 Two things Stage 31 and 32 did get confirmed against a real client: `server/discover`
 answered 200, and `tools/list` was re-fetched mid-session rather than cached, which is
 exactly what `ttlMs: 0` is for.
+
+**Fixed 2026-09-20.** `Mcp::Server::DISCOVER_TTL_MS` is one hour; `tools/list` stays at 0.
+The spec asserts both in one example, so the pairing is what is pinned rather than two
+numbers that could drift apart. One correction to the reasoning above: `discover_result`
+also returns `instructions`, so "cannot change without a restart" was not quite true as
+written. It holds in practice — changing `Guidance` means editing code and deploying — and
+Stage 31 makes a stale copy harmless anyway, because the rules ride on every tool result and
+nothing caches those. The comment in the code says it that way rather than the way this
+finding did.
 
 ### 5. No rule covers copyrighted material embedded in a source — **OPEN**
 

@@ -74,7 +74,16 @@ RSpec.describe "MCP, modern era (Stage 32)", type: :request do
       expect(result["capabilities"]).to eq({ "tools" => { "listChanged" => false } })
       expect(result.dig("_meta", Mcp::Era::SERVER_INFO_KEY, "name")).to eq("galedra")
       expect(result["instructions"]).to include("Galedra is a public, signed record")
-      expect(result["ttlMs"]).to eq(0)
+    end
+
+    # Unlike tools/list, this may be cached: every field is fixed for the life of
+    # the process, so no missing push notification can leave a client wrong. It
+    # was 0, and a client re-probed at every turn boundary for the same answer.
+    it "may be cached for an hour, where tools/list may not be" do
+      result = modern("server/discover")["result"]
+      expect(result["ttlMs"]).to eq(3_600_000)
+      expect(result["cacheScope"]).to eq("public")
+      expect(modern("tools/list")["result"]["ttlMs"]).to eq(0), "a tool description can change with no way to announce it"
     end
   end
 

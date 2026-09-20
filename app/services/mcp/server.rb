@@ -11,6 +11,9 @@ module Mcp
     PROTOCOL_VERSION = Era::LEGACY
     VERSION = "0.2.0"
     SERVER_INFO = { name: "galedra", version: VERSION }.freeze
+    # How long a client may cache server/discover. tools/list stays at 0 and the
+    # two are not alike; discover_result says why.
+    DISCOVER_TTL_MS = 3_600_000
     PARSE_ERROR = -32700
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
@@ -226,13 +229,24 @@ module Mcp
     # server/discover is what a modern client may call before anything else to
     # learn the versions, capabilities and identity a legacy client would have
     # got from the initialize handshake. Servers MUST implement it, so it is
-    # answered on both paths. ttlMs is 0 for the same reason tools/list sets it:
-    # nothing here can push a notification when the answer changes.
+    # answered on both paths.
+    #
+    # This one may be cached, and tools/list may not. The reason tools/list sets
+    # 0 is that a tool description changes when someone edits it and this server
+    # has no stream to announce it on, so a cached copy would stay wrong. Nothing
+    # here behaves that way: the versions, the capabilities and the identity are
+    # fixed for the life of the process. `instructions` is the only field that
+    # looks live and is not — changing `Guidance` means editing code and
+    # deploying, and the rules ride on every tool result anyway (Stage 31), so an
+    # assistant gets the current wording on its next call whatever it cached
+    # here. Before this, a client re-probed at every turn boundary for a
+    # byte-identical answer (docs/experiments/2026-09-19-live-connector-outline.md,
+    # finding 4).
     def discover_result
       { supportedVersions: Era::SUPPORTED,
         capabilities: { tools: { listChanged: false } },
         instructions: instructions,
-        ttlMs: 0, cacheScope: "public",
+        ttlMs: DISCOVER_TTL_MS, cacheScope: "public",
         _meta: { Era::SERVER_INFO_KEY => SERVER_INFO } }
     end
 
