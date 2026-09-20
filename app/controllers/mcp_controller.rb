@@ -1,6 +1,11 @@
 # POST /mcp (Stage 14): Model Context Protocol over streamable HTTP, one
 # JSON-RPC message per request, JSON responses. GET is not served: the
-# server pushes nothing.
+# server pushes nothing, and 405 is also what revision 2026-07-28 requires of
+# a server that does not host the removed GET stream.
+#
+# Stage 32: both eras are served here. Mcp::Era reads the request and decides
+# which, so a modern client gets modern shapes and every connector already
+# talking to this endpoint keeps the behaviour it has.
 class McpController < ActionController::API
   include AssistantAuth
 
@@ -12,8 +17,10 @@ class McpController < ActionController::API
 
     message = JSON.parse(request.raw_post.presence || "")
     Rails.logger.info("mcp #{message['method'] if message.is_a?(Hash)} #{message.dig('params', 'name') if message.is_a?(Hash)} ua=#{request.user_agent.to_s[0, 40].inspect} token=#{current_assistant_token ? (current_assistant_token.anonymous? ? 'anonymous' : 'named') : 'none'}")
-    status, body = Mcp::Server.new(token: current_assistant_token, base_url: request.base_url, read_only: read_only_assistant?).handle(message)
-    response.set_header("MCP-Protocol-Version", Mcp::Server::PROTOCOL_VERSION)
+    era = Mcp::Era.new(message: message, protocol_version: request.headers["MCP-Protocol-Version"],
+                       mcp_method: request.headers["Mcp-Method"], mcp_name: request.headers["Mcp-Name"])
+    status, body = Mcp::Server.new(token: current_assistant_token, base_url: request.base_url, read_only: read_only_assistant?).handle(message, era: era)
+    response.set_header("MCP-Protocol-Version", era.modern? ? era.version : Mcp::Server::PROTOCOL_VERSION)
     body.nil? ? head(status) : render(json: body, status: status)
   rescue JSON::ParserError => e
     render json: { jsonrpc: "2.0", id: nil, error: { code: Mcp::Server::PARSE_ERROR, message: "body is not valid JSON: #{e.message}" } }, status: :bad_request

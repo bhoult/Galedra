@@ -6,8 +6,11 @@ module Mcp
   # API; the two writing tools need a connected assistant's bearer token.
   # Tool descriptions carry the working rules, not just the schemas.
   class Server
-    PROTOCOL_VERSION = "2025-06-18"
+    # The revision the legacy handshake announces. Era holds the full list
+    # this server will serve, and which of them are modern (Stage 32).
+    PROTOCOL_VERSION = Era::LEGACY
     VERSION = "0.2.0"
+    SERVER_INFO = { name: "galedra", version: VERSION }.freeze
     PARSE_ERROR = -32700
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
@@ -169,17 +172,21 @@ module Mcp
       @read_only = read_only
     end
 
-    # Returns [http_status, body_or_nil].
-    def handle(message)
+    # Returns [http_status, body_or_nil]. `era` says which revision this one
+    # request speaks; it defaults to legacy so every existing caller, and every
+    # spec written before Stage 32, behaves exactly as it did.
+    def handle(message, era: Era.legacy)
       return [ 400, error(nil, INVALID_REQUEST, "expected a JSON-RPC 2.0 request object") ] unless message.is_a?(Hash) && message["jsonrpc"] == "2.0"
 
       id = message["id"]
       method = message["method"].to_s
       params = message["params"].is_a?(Hash) ? message["params"] : {}
+      return [ era.error_status, { jsonrpc: "2.0", id: id, error: era.error } ] if era.error
       return [ 202, nil ] if method.start_with?("notifications/")
 
       result = case method
       when "initialize" then initialize_result
+      when "server/discover" then discover_result
       when "ping" then {}
       # ttlMs and cacheScope are caching hints from protocol 2026-07-28. A
       # 2025-06-18 client ignores fields it does not know; a later one honours
@@ -191,9 +198,13 @@ module Mcp
       # themselves do not depend on this: they ride on every result (Stage 31).
       when "tools/list" then { tools: TOOLS, ttlMs: 0, cacheScope: "public" }
       when "tools/call" then call_tool(params)
-      else return [ 200, error(id, METHOD_NOT_FOUND, "unknown method #{method}") ]
+      else
+        # A modern server answers an unknown method with 404, so a client can
+        # tell "this server does not speak MCP here" from "it does, but not
+        # that method". Legacy keeps 200, which is what its clients expect.
+        return [ era.modern? ? 404 : 200, error(id, METHOD_NOT_FOUND, "unknown method #{method}") ]
       end
-      [ 200, { jsonrpc: "2.0", id: id, result: result } ]
+      [ 200, { jsonrpc: "2.0", id: id, result: decorate(result, era) } ]
     rescue Ledger::Rejected => e
       [ 200, tool_error(id, e.errors) ]
     rescue Assistants::CapReached => e
@@ -202,10 +213,34 @@ module Mcp
       [ 200, error(id, INVALID_PARAMS, e.message) ]
     end
 
+    # Modern results carry resultType and identify the server per response,
+    # because there is no handshake in which either could have been said. Legacy
+    # results are returned untouched: an existing connector must see no change.
+    def decorate(result, era)
+      return result unless era.modern?
+
+      meta = { Era::SERVER_INFO_KEY => SERVER_INFO }.merge(result[:_meta] || {})
+      { resultType: "complete" }.merge(result).merge(_meta: meta)
+    end
+
+    # server/discover is what a modern client may call before anything else to
+    # learn the versions, capabilities and identity a legacy client would have
+    # got from the initialize handshake. Servers MUST implement it, so it is
+    # answered on both paths. ttlMs is 0 for the same reason tools/list sets it:
+    # nothing here can push a notification when the answer changes.
+    def discover_result
+      { supportedVersions: Era::SUPPORTED,
+        capabilities: { tools: { listChanged: false } },
+        instructions: instructions,
+        ttlMs: 0, cacheScope: "public",
+        _meta: { Era::SERVER_INFO_KEY => SERVER_INFO } }
+    end
+
+    def instructions = Guidance.join(Guidance::PURPOSE, *Guidance::TOPICS.map { |t| Guidance.for(t) })
+
     def initialize_result
       { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "galedra", version: VERSION },
-        instructions: Guidance.join(Guidance::PURPOSE, *Guidance::TOPICS.map { |t| Guidance.for(t) }) }
+        serverInfo: SERVER_INFO, instructions: instructions }
     end
 
     # Guidance travels in results, which no host caches, rather than in tool

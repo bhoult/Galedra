@@ -1,6 +1,6 @@
 # Stage 32 — Speaking modern MCP as well as legacy
 
-**Status:** planned · tag will be `stage-32-modern-mcp`
+**Status:** implemented · `stage-32-modern-mcp`
 
 **Tag:** `stage-32-modern-mcp` · **Spec:** 04 §3 (agent protocol), 06 §2 (API), 11 §5
 (layout), 14 §Stage 14 (MCP and the skill), Articles XIX (transparency over persuasion),
@@ -82,6 +82,53 @@ never re-fetch, because it believes it will be told.
 5. `tools/list` carries `ttlMs` and `cacheScope` in both eras.
 6. The existing MCP request specs pass unchanged, which is the real test: they are written
    against the legacy path.
+
+## Decision Log
+
+**Declaring `_meta` is what selects modern, not the header.** A legacy client sends
+`MCP-Protocol-Version: 2025-06-18` on every request after its handshake, so treating the
+header's presence as modern intent would have reclassified every connector already talking
+to this endpoint. Per-request `_meta` is the modern mechanism, so carrying it is the signal.
+A request with no `_meta` is served exactly as it was before this stage, header or no
+header.
+
+**An unknown version in `_meta` is an error, not a fallback.** The first cut treated
+anything outside the supported list as legacy, which meant a client asking for a version
+this server does not serve got legacy shapes it never asked for. A spec caught it. Carrying
+`_meta` now selects the modern path whatever version it names, and an unsupported one gets
+`-32022` with the list.
+
+**Header validation is enforced, including `Mcp-Name`.** The transport mirrors `method` and
+`params.name` into headers so intermediaries can route without parsing the body, and
+requires the server to reject any disagreement. Skipping that would leave exactly the hole
+the headers introduce: a proxy rate-limiting or routing on the header while the server acts
+on the body. Base64 sentinel values are decoded before comparison.
+
+**Legacy results are returned untouched.** `decorate` adds `resultType` and the per-response
+`serverInfo` only on the modern path. The legacy `initialize` result is asserted field for
+field in the spec, because the cost of getting this wrong is every existing connector.
+
+**`server/discover` is answered on both paths.** Servers MUST implement it, and there is no
+reason to withhold from a legacy caller the versions and capabilities it could get from
+`initialize` anyway.
+
+### Found while testing
+
+The era check was written as "is the declared version one of the modern ones", which is
+correct for a well-behaved client and wrong for a misbehaving one: a request naming
+`1900-01-01` in `_meta` fell through to the legacy path and got `200` with a normal result.
+The acceptance test for `-32022` is what found it. The rule is now about the *presence* of
+per-request metadata, with the version checked after.
+
+### Outstanding
+
+- `listChanged` stays `false` and no `subscriptions/listen` stream exists, for the reasons
+  above. This is the one part of the revision deliberately not implemented, and
+  `server/discover` reports it honestly.
+- Multi round-trip requests (`InputRequiredResult`), elicitation and sampling are not
+  implemented. Nothing here needs them: no tool asks the client for input mid-call.
+- No modern client has been observed against this endpoint; the whole modern path is
+  covered by specs rather than by traffic. The legacy path is the one in daily use.
 
 ## Open questions for the owner
 
