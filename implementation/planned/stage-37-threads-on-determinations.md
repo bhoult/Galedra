@@ -14,6 +14,12 @@ Goal: let two parties disagree about **how a determination was made**, across se
 rounds, where the determination is — instead of in the bug register, which is the only place
 in Galedra today where that is possible.
 
+**A thread guides evidence gathering; it does not determine it** (owner, 2026-09-20). That
+sentence settles most of the questions this stage could otherwise spend itself on. A thread
+holds no authority over what a claim reads as, carries nothing the scorer looks at, and
+survives being wrong without costing the record anything. Its whole product is a decision
+about what somebody should go and check.
+
 ## Why, from a run rather than from first principles
 
 On 2026-09-20 a connected assistant checked claim `16fb6733` and produced three findings:
@@ -525,17 +531,13 @@ somebody.
 Written down rather than discovered during the build. Some of these want a decision and some
 only want doing; each says which.
 
-- **A quarantined or taken-down determination, and its threads. Needs a decision.** Quarantine
-  withholds content pending review and leaves a public stub (Invariant 12). A thread on that
-  determination quoting the withheld passage defeats it, and threads are exactly where someone
-  would quote it. The conservative reading is that a thread on a quarantined subject is hidden
-  with it and returns when it returns, with the stub saying a thread exists — but hiding
-  discussion is the kind of thing this project should decide deliberately, not by defaulting.
-- **A redacted turn that carried a vote. Needs a decision.** Content review redacts offensive
-  text and keeps the original with admins. If that turn was one of the three that settled a
-  thread, does the vote survive its words? Redacting the text and keeping the verdict leaves a
-  settlement resting on a reason nobody can read; dropping the vote unsettles a thread and may
-  un-cancel tasks. Neither is obviously right.
+- **Moderation, in one line each, and neither is a decision point.** A thread follows its
+  subject's visibility: quarantine a claim and its threads go with it, because commentary on
+  withheld content should not be how the content gets out. A turn redacted by content review
+  — the offensive-text screen, not a judgement about being wrong — loses its words and keeps
+  its vote, because the vote only ever routed work and nothing epistemic rests on it. Both
+  matter once the node has strangers on it; today it does not, and neither is worth building
+  ahead of that (owner, 2026-09-20).
 - **The determination changing underneath the thread. Needs doing.** Claims merge, links are
   superseded, evidence is invalidated. `Tasks::Lease` cancels a task whose target stopped
   being current; a thread is history rather than work, so it should stay and say what
@@ -556,13 +558,9 @@ only want doing; each says which.
   uses: a thread settles by consensus and never waits on one party, so there is nothing to
   hold. That is acceptable — it is the seam doing its job — but it is the first place the
   shared concern will be tempted to grow a second branch, and it should be watched.
-- **Whether threads join the nav badge. Small, and the owner's call.** The badge counts open
-  bug reports and feature requests for an admin. Threads needing a third principal are the
-  same kind of fact, and an admin is the one who can settle a stuck one by hand.
-- **Whether `/api/v1` gets thread endpoints. Needs a decision.** Every route under `/api/v1`
-  must be described in `Api::Openapi`, so this is a deliberate yes or no rather than a
-  drift: MCP and the web pages may be enough, and adding REST means adding it to the
-  document in the same commit.
+- **Not open any more (owner, 2026-09-20):** threads join the nav badge alongside open bug
+  reports and feature requests, appear in the other displays where they belong, and `/api/v1`
+  gets thread endpoints, described in `Api::Openapi` in the same commit as the routes.
 
 ## The Constitutional Test
 
