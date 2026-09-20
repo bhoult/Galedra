@@ -64,20 +64,47 @@ Three consequences, each testable:
 - **A thread's text is untrusted and content-reviewed**, like bug reports and personal
   views: `ContentReview::SUBJECTS` gains it, and `Reviews::Consensus` settles it.
 
-## What makes it Galedra-shaped rather than a comment section
+## What settling a thread does, and the one thing it must never do
 
-**A thread resolves into a signed contribution, or into "no change needed", and it says
-which.** That is the difference. A comment section accumulates; a thread is a queue of work
-on the record and it empties.
+**Settling a thread does nothing to the scored evidence chain** (owner decision,
+2026-09-20). No link is created, superseded, reweighted or grouped by a thread reaching
+agreement. A claim's probability, state and trace at a given seq are byte-identical before
+and after, and acceptance 5 pins that. Three principals agreeing that a passage is
+misquoted does not unquote it; someone has to record a contribution, signed and auditable
+like any other, and that act is separate from the thread that prompted it.
 
-So a turn may name the contribution that answers it — a superseding link with a fuller
-excerpt, a new independence group, a qualifying edge, a `TAG_CLAIM` — and the thread shows
-that contribution inline, as the answer. Closing without one is allowed and has to be
-stated as such: *nothing was changed, and here is why*.
+What a settled thread does instead is act on **work**, in exactly one of two ways, chosen
+by the settling consensus:
 
-That also gives the honest reading of finding 3 above: the answer is not a code change but a
-contribution — an independence group, or a claim edge, or a qualifier saying these are two
-questions.
+- **`INVESTIGATE`** — *raise a new investigation, given the discovered facts.* The thread
+  opens work: tasks on the determination it hangs on, carrying the thread as context so
+  whoever leases one can read why it exists. The thread has found something that deserves
+  checking and says so in the only currency that gets things checked here.
+- **`NO_FURTHER_WORK`** — *this no longer needs to be an open work task; it is settled.* The
+  open tasks on that determination are cancelled with a stated reason naming the thread, and
+  nothing is created. This is how a queue stops asking a question three principals have
+  agreed is not worth asking.
+
+Both are about what should be done next, never about what is true. That is the whole
+containment: a thread's authority runs to the work queue and stops there, and the queue has
+never been a scoring input.
+
+`NO_FURTHER_WORK` is the more powerful of the two and takes the tighter guard: it may cancel
+only the open tasks on the determination the thread hangs on, never a task elsewhere, and
+never a task already leased or submitted — a worker mid-lease is not overruled by a
+conversation it was not in. Cancellation is the existing mechanism with a new
+`cancelled_reason`; a cancelled task's history stays readable, as `TARGET_NOT_CURRENT`
+cancellations already do.
+
+A turn may still **name a contribution** that someone made in response — a superseding link
+with a fuller excerpt, a new independence group, a qualifying edge — and the thread shows it
+inline. That is a citation, not the thread's doing: the contribution stands on its own
+signature and would count identically if the thread had never existed.
+
+That also gives the honest reading of finding 3 above. *These two items answer different
+survey questions and the card does not say so* settles as `INVESTIGATE`: it opens a
+`SOURCE_INDEPENDENCE_CHECK` and a qualifier check, and somebody's assistant records the edge
+or the group that fixes it. The thread found the problem; it does not get to fix it.
 
 ## What can carry one
 
@@ -177,7 +204,7 @@ register's specs fail, which is the point.
    mirroring the report tools an assistant already knows. `list_threads` returns `open` and
    `open_for_you`.
 5. The claim page shows threads: open count, how many principals have agreed of the three,
-   and each turn with the contribution that answered it where there is one.
+   the settling outcome where there is one, and each turn with the contribution it cites.
 6. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
    agreement — the escape a single-principal node needs.
 7. `Guidance` gains the rule: a thread is for how the record was made; a disagreement about
@@ -194,10 +221,13 @@ register's specs fail, which is the point.
    because that is the shape a node like this one actually has.
 3. An assistant that has already spoken is not offered the thread by `next_thread`, and a
    second turn from it does not count twice toward the three.
-4. A thread naming a contribution shows it inline; a thread closed without one states that
-   nothing changed and why.
-5. No file under `app/services/scoring/` mentions threads; a claim's probability and trace
-   are byte-identical with and without one, at the same seq.
+4. Settling as `INVESTIGATE` opens tasks on that determination and creates no claim, edge,
+   evidence item or link. Settling as `NO_FURTHER_WORK` cancels only the open, unleased tasks
+   on that determination, leaves leased and submitted ones alone, and creates nothing.
+   Neither writes anything the scorer reads.
+5. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
+   trace at a given seq are byte-identical before and after a thread settles, under either
+   outcome. This is the acceptance the stage exists to satisfy.
 6. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
    threads and one without: nothing versioned, nothing replayed.
 7. The share card and share line for a claim with an open thread are byte-identical to the
