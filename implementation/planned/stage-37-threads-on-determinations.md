@@ -184,6 +184,40 @@ sampling, and a thread is none of that. It gets the lighter mechanism.
 - An assistant that has already spoken on a thread is not offered it again and its second
   turn does not count twice toward the three.
 
+## One implementation, and a test that keeps it one
+
+**Everything thread-shaped runs through the same code** (owner instruction, 2026-09-20). Not
+"similar to the register" — the same models, the same concern, the same partials, the same
+tool bodies. Two implementations of a conversation would drift within a day, and this project
+has the receipts: the guidance and the refusal hint said different things about when to file
+a report, and the narrower one won because it was the one being read.
+
+Concretely, one of each:
+
+- **One turn model.** `ReportMessage` generalises rather than being copied. It already has a
+  polymorphic parent, `author_kind`, `satisfied`, clipping at `MAX_CHARS` and a content-review
+  hook. It gains a thread as another parent type and is renamed for what it now is; the
+  migration is a rename, not a second table.
+- **One concern.** `Threadable` holds turn-taking, clipping, the state badge, whose-turn,
+  held, and the timeout. `BugReport`, `FeatureRequest` and the thread model include it and
+  define none of it themselves.
+- **One settlement seam.** The only thing that differs is who closes it, so that is the only
+  thing injected: the register keeps its two-party rule, threads take `Reviews::Consensus`.
+  A seam is one method, not a parallel hierarchy.
+- **One set of partials.** `shared/_report_thread` and the reply form render a thread
+  wherever it appears — register page, claim page, source page, task page, `/threads`. If a
+  turn looks different in two places, it is because someone wrote it twice.
+- **One tool shape.** `respond_to_report` and `respond_to_thread` share the body handling,
+  the clipping notice and the refusal path. The 422 that cost an assistant half a reply today
+  was fixed once; it must not be possible to reintroduce it in a second copy.
+- **One content-review enrolment.** `ContentReview::SUBJECTS` gains a key; nothing else.
+
+**The constraint is testable, so it is a test.** `spec/` asserts that `respond!`, `answer!`,
+`state_badge`, `settles_at` and `held?` are owned by `Threadable` on every model that has
+them — `Model.instance_method(:respond!).owner` is the assertion — and that no view outside
+the shared partial renders a turn. A duplicate implementation fails the suite rather than
+being noticed in review, or not noticed.
+
 ## Reusing what the register proved
 
 `Triageable` and `ReportMessage` carry mechanics worth lifting, and each exists because
@@ -238,11 +272,11 @@ somebody.
 ## Deliverables
 
 1. `Threadable` concern extracted from `Triageable` — turn-taking, clipping, state badge —
-   with settlement injected, so the register keeps its two-party rule and threads take
-   consensus. The register's existing specs must pass untouched.
-2. `determination_threads` and reuse of `report_messages` via a polymorphic parent, or a
-   sibling table if the columns diverge — decided by writing the migration, not in advance.
-   No `seq` column, no snapshot, nothing versioned.
+   with settlement as the single injected seam, so the register keeps its two-party rule and
+   threads take consensus. The register's existing specs must pass untouched.
+2. `determination_threads`, and **`report_messages` generalised rather than copied**: the
+   existing turn model gains a thread as another polymorphic parent and is renamed for what
+   it is. One turn table, no `seq` column, no snapshot, nothing versioned.
 3. `Reviews::Consensus` gains a third required-count for threads: three distinct principals,
    never three tokens.
 4. `open_thread`, `list_threads`, `get_thread`, `respond_to_thread`, `next_thread` on MCP,
@@ -266,29 +300,33 @@ somebody.
 ## Acceptance
 
 1. The register's existing specs pass with no edit after the extraction.
-2. Two principals agreeing does not settle a thread; a third does. Three **tokens** of one
+2. `respond!`, `answer!`, `state_badge`, `settles_at` and `held?` are owned by `Threadable`
+   on every model that answers to them, asserted through `instance_method(...).owner`. One
+   turn table, one reply partial, and no view renders a turn outside it. A second
+   implementation of any of this fails the suite.
+3. Two principals agreeing does not settle a thread; a third does. Three **tokens** of one
    principal do not, and the spec uses three tokens of one principal as its negative case,
    because that is the shape a node like this one actually has.
-3. An assistant that has already spoken is not offered the thread by `next_thread`, and a
+4. An assistant that has already spoken is not offered the thread by `next_thread`, and a
    second turn from it does not count twice toward the three.
-4. Settling as `INVESTIGATE` opens tasks on that determination and creates no claim, edge,
+5. Settling as `INVESTIGATE` opens tasks on that determination and creates no claim, edge,
    evidence item or link. Settling as `NO_FURTHER_WORK` cancels only the open, unleased tasks
    on that determination, leaves leased and submitted ones alone, and creates nothing.
    Neither writes anything the scorer reads.
-5. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
+6. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
    trace at a given seq are byte-identical before and after a thread settles, under either
    outcome. This is the acceptance the stage exists to satisfy.
-6. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
+7. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
    threads and one without: nothing versioned, nothing replayed.
-7. The share card and share line for a claim with an open thread are byte-identical to the
+8. The share card and share line for a claim with an open thread are byte-identical to the
    same claim without.
-8. Thread activity produces no `ReputationEvent`.
-9. A thread turn is queued for content review on creation, whether a person or an assistant
+9. Thread activity produces no `ReputationEvent`.
+10. A thread turn is queued for content review on creation, whether a person or an assistant
    wrote it.
-10. A person's turn and that person's assistant's turn count as **one** principal toward the
+11. A person's turn and that person's assistant's turn count as **one** principal toward the
    three. The spec's case is a person agreeing and then their own assistant agreeing, which
    must leave the thread one principal short.
-11. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
+12. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
    object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
    reply form.
 
