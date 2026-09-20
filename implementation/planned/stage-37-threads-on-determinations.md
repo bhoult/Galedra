@@ -201,6 +201,40 @@ the turn-taking and display, with settlement injected — `Triageable` keeps its
 rule, threads take `Reviews::Consensus`. If the register's behaviour changes as a result, the
 register's specs fail, which is the point.
 
+## Where a person finds them, and how a person joins in
+
+Threads hang off five different kinds of object, so the page each one lives on is not enough
+on its own: a reader would have to already know where to look, and a thread on a source
+location is three clicks from anywhere anyone starts. **There is one index of every thread on
+the node** (owner request, 2026-09-20), reachable from Browse, and it is the same shape as
+the two register lists a maintainer already reads:
+
+- Newest first, filterable by state — open, settled, and the two settling outcomes — with
+  counts that sum, the way the bug list's do.
+- Each row says what the thread hangs on and links to it: the claim's text, or the quoted
+  passage, or the link between them, in the words a reader would recognise rather than an id.
+- Whose turn it is, in one glance, and how many of the three principals have agreed.
+- `open_for_you` beside `open` for a signed-in reader, because that fault has now been
+  reported on three surfaces and this is the fourth.
+
+A thread also appears where it hangs: on the claim page, on the source page beside the
+passage, on the task. The index is for finding them; the page is for reading them in context.
+
+**A signed-in person may take a turn, and it counts as their principal** (owner request,
+2026-09-20). This follows from the settlement rule rather than being an exception to it: a
+principal is a person's account, so a person writing directly and that person's assistant
+writing on their behalf are the same principal and **must not count twice**. The guard is the
+same one the whole stage rests on, and it is worth a test of its own — a person agreeing,
+then their assistant agreeing, is one of the three, not two.
+
+Nothing about a person's turn is privileged. It is untrusted text, content-reviewed like any
+other, never scored, never on the share card. A person is a contributor here and not an
+oracle (Article XIV), and the page must not style their turn as settling anything by itself.
+
+An anonymous visitor reads and does not write, matching every other write path: there is no
+principal to attribute a turn to, and a turn that counts toward consensus has to belong to
+somebody.
+
 ## Deliverables
 
 1. `Threadable` concern extracted from `Triageable` — turn-taking, clipping, state badge —
@@ -216,12 +250,17 @@ register's specs fail, which is the point.
    `open_for_you`.
 5. The claim page shows threads: open count, how many principals have agreed of the three,
    the settling outcome where there is one, and each turn with the contribution it cites.
-6. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
+   The source page shows them beside the passage; the task page shows them on the task.
+6. `/threads`, one index of every thread on the node, under Browse: newest first, filtered by
+   state, saying what each hangs on and whose turn it is, with `open` and `open_for_you`.
+7. A reply form on a thread for a signed-in person, whose turn counts as their principal and
+   is queued for content review like any other free text.
+8. `/admin` settles a thread by hand, and the page says settled by an admin rather than by
    agreement — the escape a single-principal node needs.
-7. `Guidance` gains the rule: a thread is for how the record was made; a disagreement about
+9. `Guidance` gains the rule: a thread is for how the record was made; a disagreement about
    the world is a contribution. `Guidance::VERSION` bumps.
-8. Content review covers thread turns.
-9. The three findings above, filed as threads on `16fb6733` and its two links, as the
+10. Content review covers thread turns, from people and assistants alike.
+11. The three findings above, filed as threads on `16fb6733` and its two links, as the
    acceptance fixture.
 
 ## Acceptance
@@ -244,7 +283,14 @@ register's specs fail, which is the point.
 7. The share card and share line for a claim with an open thread are byte-identical to the
    same claim without.
 8. Thread activity produces no `ReputationEvent`.
-9. A thread turn is queued for content review on creation.
+9. A thread turn is queued for content review on creation, whether a person or an assistant
+   wrote it.
+10. A person's turn and that person's assistant's turn count as **one** principal toward the
+   three. The spec's case is a person agreeing and then their own assistant agreeing, which
+   must leave the thread one principal short.
+11. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
+   object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
+   reply form.
 
 ## The Constitutional Test
 
