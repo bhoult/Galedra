@@ -465,6 +465,68 @@ The law domain answered *"the only open tasks are on claims your own principal r
 Conflict of interest held exactly where Stage 34 left it: routine checks opened to their
 author, the rest closed.
 
+## Phase four: replay, at last
+
+The node went quiet, which `ledger:replay` needs — it truncates projections and rebuilds
+them from the signed log, so it cannot run against live writes. This is the first time it
+has run since Stage 25 (finding 1).
+
+### 17. Replay works — **VERIFIED**
+
+`REPLAYED: re-applied 3964 contributions`. The `Tasks::Status` autoload fix is proven
+against real data, which the suite structurally could not do: the bug only appeared in a
+cold-boot rake task, and no spec boots one.
+
+### 18. Its first run found rows deleted outside the log — **FIXED**
+
+Claims, evidence and links came back identical. Sections did not:
+
+| | Before | After replay |
+|---|---|---|
+| claims / evidence / links | 288 / 456 / 490 | identical |
+| **sections** | **62** | **112** |
+| **tasks** | **894** | **900** |
+
+The extra 50 were a second outline root at seq 610 — an earlier outline of the same episode,
+deleted earlier in the session. Every one of its sections had `invalidated_seq` nil, so
+**nothing in the log had ever invalidated it**. Its rows had been removed straight from the
+projections, which Invariant 2 forbids: projections are written only by `Ledger::Apply`.
+
+So replay was right and the database was wrong. Rebuilding from the log restored what the
+log still said. **That is the entire value of being able to rebuild** — and it was
+unavailable for several stages while the invariant sat in `CLAUDE.md` looking satisfied.
+
+**The remedy went through the log**, not through another delete. `INVALIDATE` targets a
+contribution rather than a section, and the authorised signers are the system key, a
+moderator, or the target's own principal. The principal here was the owner, whose key is
+server-custodied, so the entry is signed by them: the record says its principal withdrew the
+outline, which is what happened, rather than the node striking it. `CreateSection` defines no
+`invalidate` of its own and inherits the shared one, which closed all 50 rows in a cascade.
+Appended at seq 3964 with a reason naming both the supersession and the out-of-band deletion,
+so the next reader is not puzzled by it.
+
+### 19. And then it held — **VERIFIED**
+
+A second replay, over the withdrawal:
+
+```
+sections 112 (62 live, 50 closed) · claims 288 · evidence 456 · links 490 · tasks 900
+digest 310f3b5ead0a745f5ff63887f654097c → 310f3b5ead0a745f5ff63887f654097c
+```
+
+Byte-identical. **The first demonstration in this project that Invariant 2 holds**, and the
+fix verifying itself: replay now reproduces the withdrawal instead of resurrecting the
+outline.
+
+### Left unexplained
+
+The **6 extra tasks** in the first replay. Tasks now sit at 900 before and after, so the
+state is stable and reproducible, but only totals were captured before that first run, so
+which six they were cannot be recovered. The likeliest reading is that 900 was always right
+and the live 894 was stale from the same out-of-band deletion — but that is a guess, and it
+is recorded as one rather than tidied away. A `Ledger::TableDigest` snapshot taken *before* a
+replay, not just after, would have answered it outright; that is the cheap habit to adopt.
+
 ## What was wrong in the watching
 
 Three misreads, all mine, recorded because an observer who gets it wrong is part of what
