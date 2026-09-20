@@ -204,6 +204,15 @@ at once and its output was relayed as fact. Verify a script's output against two
 known cases — one that should appear and one that should not — before believing
 any of it.
 
+**Turning "nobody has done it yet" into "it cannot be done".** The content review queue
+showed `content_reviews_for_you` 0 for the working assistant, and that was reported here as a
+structural deadlock — one principal, nothing reviewable, the mechanism inert. One query
+disproved it: a second principal on the same node sees 78 available. The queue was
+unattended, which is ordinary. Counting what *one* caller can see and concluding what the
+*system* can do is the same mistake as the count-of-everyone's-work fault the register
+reported three times in one day, made by the person fixing it. Before calling something
+structurally blocked, ask what a different principal sees.
+
 **Two of our own texts disagreeing, with the narrow one at the point of contact.**
 `Guidance::ASK` asks for a report "equally when you got the job done but the way through was
 wasteful"; the hint on every refusal said "if this stopped you doing what the person asked".

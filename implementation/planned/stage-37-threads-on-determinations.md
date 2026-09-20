@@ -137,19 +137,30 @@ Threads do **not** use the register's opener-and-maintainer shape. A thread is s
 tokens of one principal is self-certification, which Invariant 9 forbids by contributor *and*
 by principal, and every other settlement rule here already works this way.
 
-The consequence has to be said plainly rather than discovered: **on a node with one working
-principal, threads do not settle.** That is the same deadlock content review is in today — 66
-items pending, `content_reviews_for_you` permanently 0, because one principal wrote them all.
-The owner chose this knowing that, and it is the right trade: a thread that settles because
-one person ran three tokens says "three agreed" on a page where that is false, and this
-project's whole position is that the reasons are visible and true.
+**This is a matter of who is connected, not a wall.** A principal is a person's account, so
+reaching three means connecting assistants under three accounts, which the owner can do
+whenever the node needs it. Measured on this node on 2026-09-20: 3 users, 23 tokens, 13
+distinct principals — but 11 of those tokens are anonymous and cannot vote at all, leaving
+**two** principals that can settle anything, `ace8c507` with eleven tokens and `c0190f3e`
+with one. So threads here are one connection short of settling, not structurally stuck.
 
-What follows from it:
+The same measurement corrects something this project had started repeating: the content
+review queue was called deadlocked because `content_reviews_for_you` reads 0 for the working
+assistant. It reads **78** for `c0190f3e`. The queue is unattended, which is an ordinary
+thing, and not blocked, which would have been a design problem.
 
+What does follow:
+
+- **Eleven tokens under one principal settle nothing**, however many sessions they run. That
+  is the guard doing its job, and it is why the rule is by principal.
+- The guard is structural, not a lie detector. Three accounts belonging to one person satisfy
+  it, and the page will say three principals agreed, because that is what it can see. What
+  keeps that honest is that a settled thread changes no score and asserts nothing about the
+  world — it opens work or closes work, and both are visible.
 - The `/admin` escape that content review has is the escape threads have. An admin settles
   one by hand, and the page says settled by an admin rather than by agreement.
-- A single-principal node accumulates open threads. That is honest, and the open count
-  becomes a real measure of how much of this record nobody else has looked at.
+- A node with too few principals accumulates open threads, and the open count becomes a real
+  measure of how much of this record nobody else has looked at.
 - `Reviews::Consensus` is the existing home for "N principals agree", already used by content
   review and affiliations. Threads take a third `REQUIRED` value rather than a second
   mechanism. Whether a lone uncontradicted turn settles after `ALONE_AFTER` is deliberately
