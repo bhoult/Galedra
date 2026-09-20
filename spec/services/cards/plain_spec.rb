@@ -19,6 +19,34 @@ RSpec.describe Cards::Plain do
     create_evidence(curator, create_location(curator, source, start: 0, finish: 18), statement: statement)
   end
 
+  # say_instead is drafted to be repeated by someone who will not open the card,
+  # so it is the one sentence where taking the recorder's word costs most. The
+  # statement is the recorder's prose; only the excerpt is quoted. A card offered
+  # "Ipsos found 85% in China and 37% in the US agree..." whose excerpt was the
+  # survey's question stem and no figures at all (01a0c0ec). The numbers were
+  # right; a reader following them to the source had no way to see that.
+  it "does not offer a sentence whose figures are absent from the passage it rests on" do
+    claim = create_claim(curator, "Most people everywhere distrust AI.")
+    source = create_source(curator, content: "Products and services using artificial intelligence have more benefits than drawbacks. #{long}")
+    unbacked = create_evidence(curator, create_location(curator, source, start: 0, finish: 85),
+                               statement: "Ipsos found 85% in China and 37% in the US agree AI has more benefits.")
+    link_evidence(curator, unbacked, claim, direction: "CONTRADICT")
+    expect(plain_for(claim)).to eq(headline: "The evidence goes against this.", say_instead: nil)
+
+    # The same sentence is offered once the passage carries the figures.
+    backed_source = create_source(curator, content: "only 38% of respondents in the U.S. said yes, in comparison to 84% elsewhere. #{long}")
+    backed = create_evidence(curator, create_location(curator, backed_source, start: 0, finish: 76),
+                             statement: "Only 38% in the US said yes, against 84% elsewhere.")
+    link_evidence(curator, backed, claim, direction: "CONTRADICT")
+    expect(plain_for(claim)[:say_instead]).to eq("Only 38% in the US said yes, against 84% elsewhere.")
+  end
+
+  it "leaves a sentence with no figures in it alone" do
+    claim = create_claim(curator, "The council banned bicycles.")
+    link_evidence(curator, evidence("The minutes record no such ban."), claim, direction: "CONTRADICT")
+    expect(plain_for(claim)[:say_instead]).to eq("The minutes record no such ban.")
+  end
+
   it "offers nothing for a claim that holds up, even with a qualifier attached" do
     claim = create_claim(curator, "Motion 14 carried.")
     link_evidence(curator, evidence("The minutes record that Motion 14 carried."), claim)

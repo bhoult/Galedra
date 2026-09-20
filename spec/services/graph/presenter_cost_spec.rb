@@ -52,6 +52,11 @@ RSpec.describe Graph::Presenter do
     # the real one.
     fresh = Claim.find(claim.id)
     seen = statements { described_class.claim(fresh, seq, model: model) }
-    expect(seen.size).to be <= 30, "#{seen.size} statements: #{seen.tally.sort_by { |_, v| -v }.first(8).inspect}"
+    # 31 rather than 30 since Cards::Plain began checking that a sentence it
+    # offers for repetition has its figures in the passage it rests on: one
+    # SourceLocation load, and only for a candidate that carries a figure at all
+    # (01a0c0ec). Raised deliberately and with the reason, because a budget that
+    # creeps without one stops being a budget.
+    expect(seen.size).to be <= 31, "#{seen.size} statements: #{seen.tally.sort_by { |_, v| -v }.first(8).inspect}"
   end
 end

@@ -90,21 +90,49 @@ module Cards
       return narrower.canonical_text if narrower && short?(narrower.canonical_text)
 
       links = result.trace["links"].select { |l| l["effective_weight"] && BigDecimal(l["effective_weight"]).positive? }
-      statements = EvidenceItem.where(id: links.map { |l| l["evidence"] }).pluck(:id, :statement).to_h
+      items = EvidenceItem.where(id: links.map { |l| l["evidence"] }).index_by(&:id)
       if %w[CONTRADICTED LEANS_CONTRADICTED].include?(result.assessment_state)
         text = links.select { |l| l["direction"] == "CONTRADICT" }.sort_by { |l| -BigDecimal(l["effective_weight"]) }
-                    .map { |l| statements[l["evidence"]] }.find { |t| short?(t) }
+                    .map { |l| items[l["evidence"]] }.compact
+                    .find { |e| short?(e.statement) && figures_backed?(e) }&.statement
         return text if text
       end
       claim.evidence_claim_links.effective_at(seq).where(direction: "QUALIFY").order(:created_seq).includes(:evidence_item).each do |qualifier|
         supported = qualified_version(claim, qualifier.evidence_item, seq, model)
         return supported.canonical_text if supported
-        return qualifier.evidence_item.statement if short?(qualifier.evidence_item.statement)
+
+        statement = qualifier.evidence_item.statement
+        return statement if short?(statement) && figures_backed?(qualifier.evidence_item)
       end
       nil
     end
 
     def short?(text) = text.present? && text.split.size <= MAX_WORDS
+
+    # A figure in the sentence has to be in the passage it rests on.
+    #
+    # say_instead is drafted to be repeated by someone who will not open the
+    # card, so it is the one sentence here where taking the recorder's word is
+    # most costly. A statement is the recorder's prose; only the excerpt is
+    # quoted. On claim 16fb6733 the offered sentence read "Ipsos found 85% in
+    # China and 37% in the US agree..." while its excerpt was the survey's
+    # question stem and nothing else — the figures were right, and a reader
+    # following them to the source found no way to check that (01a0c0ec).
+    #
+    # Digits only, and both sides normalised the way the quote verifier
+    # normalises, so this cannot turn on typography. It filters what may be
+    # offered for repetition; it does not touch scoring, and evidence with
+    # figures elsewhere in its source stays counted exactly as before.
+    # Takes the evidence rather than the excerpt so the passage is fetched only
+    # when the sentence has a figure to check, which most do not: a card that
+    # offers ordinary prose costs no extra query.
+    def figures_backed?(evidence)
+      numbers = evidence.statement.to_s.scan(/\d[\d,.]*/).map { |n| n.delete(",").sub(/\.0+\z/, "") }
+      return true if numbers.empty?
+
+      text = evidence.source_location&.excerpt.to_s.delete(",")
+      numbers.all? { |n| text.include?(n) }
+    end
 
     # The claim, other than this one, that the qualifying evidence supports
     # directly and that holds up: the version the qualifier points to.
