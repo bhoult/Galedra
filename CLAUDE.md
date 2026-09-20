@@ -260,6 +260,15 @@ page, both record it. Three habits are worth keeping, all learned by getting the
   been confidently wrong earlier, and the records say so.
 - **Fixing the code is not answering the report.** They are separate acts, and the second is
   the one the filer can see.
+- **A resolution is a record, and records go stale.** One said "0.2.0 is released but not yet
+  the default: its golden values do not exist". It was true when written and wrong
+  twenty-nine minutes later, when `4a9e9c5` pinned the default and generated the goldens.
+  Nobody went back. An assistant then read it, reasoned forward from it, and ranked a harm
+  that was not occurring as the sharpest thing open — and it caught that itself, which we
+  were lucky about. `docs/security/`, `docs/profiler/` and `docs/experiments/` carry a status
+  updated in place for exactly this reason; the register is under the same rule. When a
+  change falsifies something you wrote on a report, go back and say so on the report, even a
+  closed one.
 
 ## A local model on the host, free but usually busy
 
