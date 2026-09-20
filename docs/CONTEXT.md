@@ -204,6 +204,21 @@ at once and its output was relayed as fact. Verify a script's output against two
 known cases — one that should appear and one that should not — before believing
 any of it.
 
+**Fixing the path you were shown instead of the class of fault — twice in one day.**
+Refusals reaching a modern client as schema-invalid were fixed for the tools named in the
+report; four hours later `respond_to_report` raised `RecordInvalid` past a length limit and
+the same failure arrived as a bare HTTP 422 with a Rails exception page. A report names the
+instances the filer happened to hit. Before fixing one, ask what the fault *is* — here, a
+correct decision the caller cannot read — and put the repair where the whole class passes
+through it. The global rescue in the MCP handler is what should have been written first.
+
+**Not knowing when an investigation has finished.** A refusal arrived missing the successor
+id it is built to carry. Six queries ruled out truncation, stale data, an unaccepted merge
+and a stale process, and none of them explained it — and then came several more mechanisms
+proposed and discarded. Measurements that rule out every candidate have told you something:
+record it as observed and unexplained. The cost of a plausible story in a record is higher
+than the cost of a gap, because the next reader cannot tell them apart.
+
 ## Scoring, briefly, because it is the sharp edge
 
 Scores are **versioned**: same seq and model give a byte-identical trace, so a

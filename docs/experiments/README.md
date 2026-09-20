@@ -33,3 +33,4 @@ repeat is an anecdote, and this project is about the difference.
 
 - [2026-09-19 — A connected assistant outlines a two-hour transcript](2026-09-19-live-connector-outline.md) — the size rule, Stage 30 readings, and four bugs found by watching
 - [2026-09-20 — A connected assistant works an outline for the second time](2026-09-20-second-connector-run.md) — every refusal to a modern client is schema-invalid, and 13 queue tasks moved nothing while 48 self-chosen links moved 35 claims
+- [2026-09-20 — The same outline again, after those fixes](2026-09-20-third-connector-run.md) — a count of everyone's work read as a count of yours, three times in one day, and the report thread outgrowing the task queue it was meant to serve
