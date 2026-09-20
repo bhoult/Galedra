@@ -50,6 +50,31 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     expect(response.body).to include("1 bug report answered and held open")
     expect(response.body).to include(bug_reports_path(status: "HELD"))
 
+    # Rendered the way development renders, because that is the only environment
+    # anyone looks at. Annotations wrap every partial in HTML comments, which
+    # made an empty one non-empty and left a separator hanging off the end; the
+    # suite passed because test does not annotate.
+    annotated = with_view_annotations { get "/" }
+    badge = annotated[annotated.index("report-badge"), 4000].to_s
+    badge = badge[0, badge.index(account_path) || badge.length]
+    expect(badge).to include("status=HELD")
+    expect(badge.scan('class="sep"').size).to eq(2), "three segments want two separators, and no trailing one"
+    expect(badge[badge.rindex("</a>")..]).not_to include('class="sep"'), "nothing separates the last segment from the end"
+  end
+
+  # Templates are compiled once per process and the annotation is baked in at
+  # compile time, so flipping the flag alone changes nothing: the cache has to
+  # go with it, both ways.
+  def with_view_annotations
+    was = ActionView::Base.annotate_rendered_view_with_filenames
+    ActionView::Base.annotate_rendered_view_with_filenames = true
+    ActionView::LookupContext::DetailsKey.clear
+    yield
+    response.body
+  ensure
+    ActionView::Base.annotate_rendered_view_with_filenames = was
+    ActionView::LookupContext::DetailsKey.clear
+
     delete "/session"
     other = sign_up("second@example.com")
     get "/"

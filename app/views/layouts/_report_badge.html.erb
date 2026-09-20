@@ -1,27 +1,28 @@
-<%# Two numbers rather than a total: a bug and a feature request are answered in
-    different frames of mind, and each links to the list it counts. The icons are
-    inline so they take currentColor and dim with the rest of the pill at zero.
+<%# Open bug reports and feature requests, for the person whose job they are.
+    Two counts rather than one total: they are answered in different frames of
+    mind, and each links to its own list.
 
-    Held rides alongside its own type rather than as a third total, and only when
-    there is one: it is not work waiting on you, it is work you have agreed to and
-    not done, so it would be wrong in the count you are trying to clear and wrong
-    to leave out of the bar altogether. ◐ is the same mark the lists use. %>
+    Held rides beside the type it belongs to rather than as a third total, and
+    only when there is one. It is not work waiting on you — it is work you have
+    agreed to and not done — so it is kept out of the number you are trying to
+    clear, and out of the muted-at-zero test for the same reason.
+
+    Which segments exist is decided here, from the counts, and never by asking
+    whether a rendered partial came back blank: development annotates every
+    partial with HTML comments, so an "empty" one is not empty there and the
+    join left a trailing separator on the only environment anyone looks at. %>
 <% counts = open_report_counts %>
-<%# `none` is about the two numbers you are trying to clear, not the held ones. %>
+<% held_note = "answered and held open: work has been agreed and not done, so silence will not close it" %>
+<% segments = [
+     { icon: "bug", n: counts[:bugs], path: bug_reports_path(status: "OPEN"),
+       tip: "#{pluralize(counts[:bugs], 'bug report')} waiting on a maintainer" },
+     { icon: "held", n: counts[:held_bugs], path: bug_reports_path(status: "HELD"), klass: "held",
+       tip: "#{pluralize(counts[:held_bugs], 'bug report')} #{held_note}" },
+     { icon: "feature", n: counts[:features], path: feature_requests_path(status: "OPEN"),
+       tip: "#{pluralize(counts[:features], 'feature request')} waiting on a maintainer" },
+     { icon: "held", n: counts[:held_features], path: feature_requests_path(status: "HELD"), klass: "held",
+       tip: "#{pluralize(counts[:held_features], 'feature request')} #{held_note}" }
+   ].reject { |s| s[:icon] == "held" && s[:n].zero? } %>
 <span class="report-badge<%= " none" if (counts[:bugs] + counts[:features]).zero? %>" aria-label="Open and held reports">
-  <% bugs = "#{pluralize(counts[:bugs], 'bug report')} waiting on a maintainer" %>
-  <%= link_to bug_reports_path(status: "OPEN"), title: bugs, data: { tip: bugs } do %>
-    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
-      <path d="M5.6 4.4a2.4 2.4 0 0 1 4.8 0"/>
-      <rect x="4.6" y="4.4" width="6.8" height="8" rx="3.4"/>
-      <path d="M4.6 6.8H2.2M4.6 10.2H2.4M11.4 6.8h2.4M11.4 10.2h2.2M8 4.4v8"/>
-    </svg><%= counts[:bugs] %>
-  <% end %><%= render "layouts/held_count", n: counts[:held_bugs], path: bug_reports_path(status: "HELD"), kind: "bug report" %><span
-    class="sep" aria-hidden="true">/</span><% feats = "#{pluralize(counts[:features], 'feature request')} waiting on a maintainer" %>
-  <%= link_to feature_requests_path(status: "OPEN"), title: feats, data: { tip: feats } do %>
-    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M8 2.2a3.9 3.9 0 0 0-2.3 7.05c.5.38.8.95.8 1.55h3a1.95 1.95 0 0 1 .8-1.55A3.9 3.9 0 0 0 8 2.2Z"/>
-      <path d="M6.5 12.6h3M7 14h2"/>
-    </svg><%= counts[:features] %>
-  <% end %><%= render "layouts/held_count", n: counts[:held_features], path: feature_requests_path(status: "HELD"), kind: "feature request" %>
+  <%= safe_join(segments.map { |s| render("layouts/report_count", **s) }, tag.span("/", class: "sep", aria: { hidden: true })) %>
 </span>

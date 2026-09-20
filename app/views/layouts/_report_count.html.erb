@@ -1,0 +1,4 @@
+<%# One icon and the number it counts, linked to the list that holds them. It
+    always renders: whether a segment belongs in the badge is decided before it
+    gets here. %>
+<%= link_to path, class: local_assigns[:klass], title: tip, data: { tip: tip } do %><%= render "layouts/icon_#{icon}" %><%= n %><% end %>

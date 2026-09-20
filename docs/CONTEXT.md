@@ -212,6 +212,17 @@ instances the filer happened to hit. Before fixing one, ask what the fault *is* 
 correct decision the caller cannot read — and put the repair where the whole class passes
 through it. The global rescue in the MCP handler is what should have been written first.
 
+**Testing a view in the one environment nobody looks at.** A badge joined its segments
+with a separator and dropped the ones that rendered blank. The spec passed; the page showed
+a separator hanging off the end. Development sets
+`annotate_rendered_view_with_filenames`, which wraps every partial in HTML comments, so a
+partial that renders nothing is not blank there and the join kept it. Two lessons, and the
+second is the general one: never decide what to render by inspecting rendered output —
+decide from the data first. And when a view spec must reproduce development, flip the flag
+*and* clear `ActionView::LookupContext::DetailsKey`, because templates compile once per
+process and the annotation is baked in at compile time; without the clear the spec passes
+either way and proves nothing.
+
 **Two `rspec` runs against one test database.** Backgrounding a suite run with `&` and
 starting another produced 16 failures that read exactly like a regression from the change
 in hand. There is one `galedra_test`, and two runs truncating and seeding it concurrently
