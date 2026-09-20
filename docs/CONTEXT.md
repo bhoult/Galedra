@@ -246,15 +246,24 @@ queue putting unresolvable claims in most top-priority slots; the `Cards::Plain`
 the copyright decision on transcript readings, which gates both the Stage 33 export default
 and anything public.
 
-**The write path slows as the corpus grows, cause unknown.** Appends decayed 4.6× from
-107k/hour on an empty log to ~23k/hour at 83k claims, monotonically, during the 2026-09-20
-seed — recorded with the numbers in
+**The write path slows as the corpus grows: an N+1 in `Reputation::Calculate`.** Appends
+decayed 4.6× from 107k/hour on an empty log to ~23k/hour at 83k claims, monotonically, during
+the 2026-09-20 seed — numbers and cause in
 [`docs/profiler/2026-09-20-seed-write-path-decay.md`](profiler/2026-09-20-seed-write-path-decay.md).
-Two hypotheses were tested and **both rejected** (a missing `excerpt_hash` index; per-append
-full scans of `source_locations`), so the entry names no cause on purpose. The blocker on
-pinning it down is that `pg_stat_statements` is not installed on `galedra-db-1`; installing
-it needs `shared_preload_libraries` and a restart, so it waits for a window with no seed
-running. Do it *before* the next long seed, not during one.
+`Reputation::Calculate.summarize` ends with `events.map { |e| e.audit.result }.tally` on a
+relation with no `includes(:audit)`, so every reputation event fetches its audit on its own:
+**366 million single-row lookups** against a 6,920-row table in one seed. It runs per
+audit-eligibility check over an event set that grows with the log, which is the O(n²). Not
+fixed: reputation is audit-derived and replayable at any seq (Invariant 8), so it wants a
+stage and its goldens, not a quick `includes`.
+
+**Use `bin/rails db:top_queries`.** `pg_stat_statements` has been preloaded since Stage 26,
+and a Ruby profile names a call site while only this names the statement. The counters are
+**server-wide**: the extension being absent from one database says nothing about the server,
+and any database that has the view can read another's statements by filtering on `dbid`.
+Getting this wrong cost a day's entry its cause — the first version of the profiler record
+above declared the mechanism unfindable on the strength of one `pg_extension` query run
+against the wrong database.
 
 **What blocks `bench:cpu` right now.** That seed was allowed to run to completion rather
 than be stopped at 83%, because `RESET=1` means a restart costs another ~21 hours. Until it

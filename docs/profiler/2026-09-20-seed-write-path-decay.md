@@ -55,8 +55,10 @@ Cumulative scan counters at the time of reading (`pg_stat_user_tables`):
   finding. A live node appends one contribution per transaction, so if this is corpus-size
   dependent rather than batch-dependent, it is a capacity fact and not a seeding
   inconvenience. Nothing in `implementation/planned/stage-26-capacity.md` predicts it.
-- **The mechanism is NOT established. Status: OPEN.** Two hypotheses were tested against
-  the code and **both failed**, which is why neither appears above as a cause:
+- **The mechanism is established: an N+1 in `Reputation::Calculate`. Status: OPEN (found
+  2026-09-20, not yet fixed).** See the correction at the end of this entry for the
+  measurement. The two hypotheses below were tested first and **both failed**, and are kept
+  because a rejected cause is worth as much as the accepted one:
   - *A missing index on `source_locations.excerpt_hash`* (the table has indexes on
     `contribution_id`, `source_id`, `created_seq`, `invalidated_seq`, but not
     `excerpt_hash`). Rejected: `Ledger::Appliers::CreateSourceLocation` never looks a row
@@ -69,10 +71,10 @@ Cumulative scan counters at the time of reading (`pg_stat_user_tables`):
   being walked. The cause is more likely index maintenance, WAL volume, or a per-append
   cost that grows with `claim_scores` / `audit_schedules`, but that is a guess and is
   labelled as one.
-- **`pg_stat_statements` is not installed on `galedra-db-1`. Status: OPEN.** This is why
-  the mechanism could not be pinned down from the server side. Installing it needs
-  `shared_preload_libraries` and a **restart**, which must not happen while a 21-hour seed
-  is running. Do it in the next maintenance window, before the next long seed.
+- ~~**`pg_stat_statements` is not installed on `galedra-db-1`.**~~ **WRONG — see the
+  correction below. Status: NO ACTION NEEDED.** It is preloaded and always was; Stage 26
+  built it. It was merely absent from the `galedra_bench` database, and the counters are
+  server-wide and were readable the whole time.
 - **The seed reports no progress anyone can see. Status: OPEN.** `Bench::Seed#report`
   writes a `\r`-framed line and only emits a newline at completion, so
   `docker logs galedra-seed` held **79 bytes after 21 hours** — the two opening lines and
@@ -102,3 +104,58 @@ to be quiesced.
   `llama-server` at ~1027% CPU was most of it, started minutes before the reading. It is
   also why it cannot explain a 21-hour monotonic decay — worth stating, because a
   contention confound is the first thing this entry would otherwise be dismissed for.
+
+
+## Correction, same day · **APPLIED**
+
+Two claims above were wrong, and correcting them produced the cause the entry said it did
+not have.
+
+**`pg_stat_statements` was never missing.** The check behind that claim was
+`select count(*) from pg_extension` run **against `galedra_bench`**, and its answer — the
+extension is not registered in this database — was generalised to "not installed on the
+server", which does not follow. `show shared_preload_libraries` returns
+`pg_stat_statements`; Stage 26 preloaded it in both compose files and added
+`bin/rails db:top_queries` to read it. The extension is present in `galedra_development`.
+Because the counters are shared across the whole server, the bench database's statements
+were readable all along from any database that has the view, by filtering on `dbid` — no
+DDL, no restart, and nothing that could disturb the running seed. The recommendation to
+wait for a maintenance window was wasted advice built on a database-scoped check.
+
+**The cause, now measured.** Statements for `galedra_bench`, worst by total time:
+
+| Statement | Calls | Mean | Rows/call | Total |
+|---|---|---|---|---|
+| `SELECT "audits".* WHERE "audits"."id" = $1 LIMIT $2` | **366,107,078** | 0.00 ms | 1.0 | 1,123 s |
+| `SELECT "contributions".* WHERE "idempotency_key" = $1` | 1,818,780 | 0.21 ms | 0.0 | 380 s |
+| `INSERT INTO "contributions" …` | 876,084 | 0.39 ms | 1.0 | 339 s |
+| `SELECT "reputation_events".* WHERE "created_seq" <= …` | 434,451 | 0.56 ms | **842.7** | 243 s |
+
+366 million single-row `audits` lookups, on a table holding 6,920 rows. The call count
+matches the reputation query's returned rows almost exactly (434,451 × 842.7 ≈ 366.1M),
+which pairs them: one `audits` lookup per reputation event loaded.
+
+The call site is `Reputation::Calculate.summarize`:
+
+```ruby
+counts: events.map { |e| e.audit.result }.tally
+```
+
+`events` is a relation with no `includes(:audit)`, so every event fetches its audit
+individually. `summarize` runs per audit-eligibility check — 434k times across this run —
+and the event set it walks **grows with the corpus**, so the per-call cost rises as the log
+lengthens. That is the O(n²) shape the hourly curve shows, and it is a *write*-path N+1,
+which is a different animal from the read-path N+1s in
+`2026-09-19-weaknesses-at-3000-claims.md`.
+
+Not fixed here. The obvious repair is preloading the association, but `summarize` feeds
+reputation, and reputation is audit-derived and replayable at any seq (Invariant 8), so the
+change wants its own stage and its goldens checked rather than a quick `includes` at the end
+of a session.
+
+**What was wrong in the watching, second pass.** The first version of this entry said the
+mechanism could not be established and named the tool that would establish it as missing.
+Both halves came from one database-scoped query whose scope I did not state to myself. The
+file's own standing lesson is that a filter narrow enough to look tidy discards what you
+needed; a query scoped to one database out of three is that same mistake wearing different
+clothes, and it cost the entry its cause.
