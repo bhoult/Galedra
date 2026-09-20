@@ -230,6 +230,41 @@ context account for nearly all of it, and one `/code-review` at `max` or `ultra`
 than a long stretch of ordinary editing. A review that dies halfway leaves findings applied
 but unverified, which is worse than not starting it.
 
+## A local model on the host, free but usually busy
+
+The owner runs `ollama` as a host snap service, reachable at `127.0.0.1:11434` **from the
+host shell only** — the compose containers are on their own network and cannot see it, which
+is correct and should stay that way. Inference on it is free. The card is an RTX 5080 with
+16.3 GB, so it is small models or nothing: `gpt-oss:20b` (MXFP4, 12.7 GB) fits entirely in
+VRAM, while the 27–30B builds at 17–25 GB do not and will spill.
+
+**It is not part of this project and must never become part of it.** Invariant 18 says
+Galedra runs no model: the only `Llm::Adapter` is the deterministic stub, and a function that
+needs a model becomes a task or a tool for a connected assistant whose answer is a signed
+contribution open to audit. Nothing here changes that. This is a tool for the assistant
+working *on* the repo, in the same category as `grep`.
+
+**Check before using it, and expect the answer to be no.** It runs the owner's own work —
+organising an email archive as of 2026-09-20, expected to occupy it for days. `curl -s
+127.0.0.1:11434/api/ps` names what is loaded and `nvidia-smi` gives utilisation; if something
+is resident and the GPU is busy, leave it alone rather than queueing behind it. It is also
+the thing most likely to spoil a profiling run: at ~10 cores busy it dominated a load average
+of 18, so quiesce it before `bench:cpu` and say in the `docs/profiler/` entry whether it was
+running.
+
+**Worth using it for** work that is offline, cached, and checked by something else: generating
+a varied claim corpus once into a file the seeder samples deterministically (`Bench::Seed`
+currently builds every sentence from seven subjects and six verbs, so a 100k corpus is ~42
+skeletons repeated, which flatters `Claims::Duplicates`, index selectivity and the merge path);
+bulk recall over prose where a script then resolves each candidate, as in the doc-drift sweep;
+and driving the MCP test loop cheaply to shake out livelocks, bad refusals and wasteful routes.
+
+**Not worth using it for** anything whose wrongness is silent — drift verdicts, scoring,
+goldens, or any judgement that lands in a record. The loop's best finding was an assistant
+asking whether a `SUPPORTED` state was *deserved*, about a claim it had just scored itself; a
+20B model will not ask that, and a confident paragraph from one is exactly the failure mode
+`docs/CONTEXT.md` warns about under "theorising instead of measuring".
+
 ## Git
 
 Commit messages are one short imperative sentence in sentence case with no type prefix,
