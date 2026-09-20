@@ -43,7 +43,22 @@ module Reviews
     end
 
     def status(subject_type, subject_key)
-      verdicts = verdicts_for(subject_type, subject_key)
+      summarise(verdicts_for(subject_type, subject_key))
+    end
+
+    # The same thing for a whole listing, in one query. The admin queue asked
+    # per row and spent 72 statements on a page it renders in 40ms; `pending` is
+    # limited to 200, so the shape was 200 statements away from an admin's first
+    # busy day.
+    def status_for(subject_type, subject_keys)
+      keys = Array(subject_keys).uniq
+      return {} if keys.empty?
+
+      by_key = ReviewVerdict.where(subject_type: subject_type, subject_key: keys).order(:created_at).group_by(&:subject_key)
+      keys.index_with { |k| summarise(by_key.fetch(k, [])) }
+    end
+
+    def summarise(verdicts)
       { verdicts: verdicts.size, needed: REQUIRED, agreement: verdicts.group_by(&:key).transform_values(&:size) }
     end
   end

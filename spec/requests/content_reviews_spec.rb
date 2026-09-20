@@ -82,6 +82,23 @@ RSpec.describe "Content review of free text by consensus (owner request, 2026-09
     expect(slur.reload.status).to eq("CLEAN")
   end
 
+  # The queue page asked each pending row for its verdicts and each redacted row
+  # for the reviewer's address: 72 statements on an ordinary afternoon, and the
+  # listing is limited to 200.
+  it "renders the admin queue in a bounded number of statements however long it is" do
+    12.times { |i| BugReport.record!(happened: "Something broke, number #{i}", expected: "it not to") }
+    ContentReview.pending.limit(4).each { |r| r.vote!(AssistantToken.find_by_token(reviewer_a), "CLEAN") }
+    admin = User.create!(email_address: "admin@example.com", password: password, admin: true)
+    post "/session", params: { email_address: admin.email_address, password: password }
+
+    n = 0
+    counter = ->(*, payload) { n += 1 unless payload[:name].to_s == "SCHEMA" || payload[:sql].to_s.start_with?("BEGIN", "COMMIT") }
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get "/admin/content_reviews" }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Something broke, number 7")
+    expect(n).to be <= 15, "#{n} statements for #{ContentReview.pending.count} pending items"
+  end
+
   it "settles a lone, uncontradicted verdict after two days and never queues empty text" do
     r = BugReport.record!(happened: "x").first
     item = ContentReview.pending.find_by(subject_type: "BugReport", subject_id: r.id)
