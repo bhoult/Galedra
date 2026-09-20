@@ -541,8 +541,8 @@ only when told to; and it sent `guidance_version`, so it had read the guidance b
 from the block itself how to stop receiving it, and did. The self-describing approach works,
 and no tool schema had to change to teach it.
 
-### 20. Verifying a transcript was corroborating the claim — **OPEN, and the most serious
-finding here**
+### 20. Verifying a transcript was corroborating the claim — **FIXED by Stage 35**, and
+the most serious finding here
 
 Its report, in its own framing: an `EVIDENCE_VERIFICATION` task pairs a claim with the very
 transcript sentence the claim was extracted from. Confirming the speaker said it establishes
@@ -588,6 +588,25 @@ new goldens and a reference-scorer pass. The candidate shapes, none chosen here:
 livelock; none of my monitoring would have found this, because I was reading counts and
 states and never asking whether a state was *deserved*. It asked, on a claim it had itself
 just moved to "Supported", and reported it against its own work.
+
+**Status update (2026-09-20): fixed.**
+`implementation/implemented/stage-35-provenance-is-not-corroboration.md` took the first of
+the three candidate shapes above *and* the third: a claim's own origin cannot support it,
+and one origin per source without merging rows. The model is `ledger-default@0.2.0`, golden,
+and default since `LEDGER_DEFAULT_MODEL` was pinned — so this entry read `OPEN` for a day
+after the thing it describes had shipped, which is the exact failure this folder's status
+rule exists to prevent.
+
+On the outlined episode under `0.2.0`, directional claims fall from **43 to 7**, and those 7
+are precisely the ones carrying evidence from outside the episode. The reported claim moves
+from `SUPPORTED 0.8281` to `INSUFFICIENT_EVIDENCE` with no probability, while still reading
+`0.8281` under `0.1.0` at the same seq — which is Invariant 4 working, not a discrepancy.
+
+**What remains open is narrower than the finding**, and should not be read as this one still
+being broken: the 24 claims that lost a directional state have not been re-checked. Opening
+an `OPPOSING_EVIDENCE_SEARCH` on each is exactly the work that ought to happen, and it costs
+real money, so Stage 35 left it as an owner decision rather than spending the cap
+unprompted.
 
 ## What was wrong in the watching
 
