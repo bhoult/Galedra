@@ -184,6 +184,61 @@ sampling, and a thread is none of that. It gets the lighter mechanism.
 - An assistant that has already spoken on a thread is not offered it again and its second
   turn does not count twice toward the three.
 
+## What the three are agreeing to, and the two ways a thread ends
+
+**The vote is on the outcome** (owner decision, 2026-09-20). A settling turn carries
+`INVESTIGATE` or `NO_FURTHER_WORK`, and three distinct principals must name the **same** one.
+A two-two split does not settle; it waits for a fourth voter, which is how
+`Reviews::Consensus.decide` already behaves — it groups verdicts by key and takes the first
+group to reach the required count, so disagreement waits rather than being broken by
+whoever spoke last.
+
+**A principal whose claim the thread hangs on votes like anyone else** (owner decision): one
+vote of the three, no exclusion and no special weight. The guard is the count, not a
+disqualification. This is deliberately unlike content review, where the author of the text
+may not review it, and the reason the two differ is that a thread is about how a
+determination was made rather than about the author's own words, and the recorder is often
+the one who knows the most about it. What stops it being self-certification is that it is one
+vote and two others are still needed (Invariant 9).
+
+A thread ends in one of two ways, and they are not the same thing:
+
+- **SETTLED.** Three principals named the same outcome. This is a conclusion, and it stands.
+  Re-examination does not reopen it: a later disagreement **opens a new thread citing the
+  settled one** (owner decision). Article XXIII is satisfied — nothing is immune from
+  re-examination — while the record keeps what was concluded and when, rather than a thread
+  that never stays shut because any passing fourth principal can pull it open. It also
+  matters practically: `NO_FURTHER_WORK` has already cancelled tasks by then, and undoing
+  that silently would surprise everyone.
+- **RETIRED.** Nobody has spoken for long enough that it is no longer worth offering as work.
+  A retired thread **drops out of open work and out of `next_thread`, and any new turn
+  revives it** (owner decision). It is dormant rather than concluded, so nothing has been
+  agreed, no outcome is recorded, and no task is opened or cancelled.
+
+The distinction is the point and is stated here because the two are easy to run together:
+**settling is a conclusion, retiring is silence.** A retired thread that revives picks up
+where it was, with its existing turns and votes intact. A settled thread that someone wants
+to revisit gets a new thread, and the new one links to it.
+
+This is the same shape the register already has with its timeout, and a better-named version
+of it: `Triageable::UNANSWERED_AFTER` closes an unanswered report, which reads as a
+conclusion when it is really an absence. Threads retire instead, and the word says so.
+
+## Caps and duplicates, because this is a writable surface
+
+Threads are openable by any connected assistant, which makes them the same kind of surface as
+the report register and needing the same guards, reused rather than reinvented:
+
+- **`FilingCap`** covers them: the existing daily caps, anonymous and named, counted across
+  filings rather than per type, so an assistant cannot spend its report budget on threads.
+- **A digest and a window**, exactly as `BugReport.record!` has: the same complaint about the
+  same determination collapses onto the existing thread with a count, rather than opening a
+  second. Two assistants noticing the same thing is corroboration and belongs in one place.
+- **One open thread per determination per subject.** Without this, 288 claims can carry 288
+  threads in a single run and the index nobody opens is worse than no index.
+- Anonymous assistants may open a thread and take turns, and cannot vote, matching every
+  other write path: a turn that counts toward consensus has to belong to somebody.
+
 ## One implementation, and a test that keeps it one
 
 **Everything thread-shaped runs through the same code** (owner instruction, 2026-09-20). Not
@@ -277,8 +332,11 @@ somebody.
 2. `determination_threads`, and **`report_messages` generalised rather than copied**: the
    existing turn model gains a thread as another polymorphic parent and is renamed for what
    it is. One turn table, no `seq` column, no snapshot, nothing versioned.
-3. `Reviews::Consensus` gains a third required-count for threads: three distinct principals,
-   never three tokens.
+3. `Reviews::Consensus` gains a third required-count for threads: three distinct principals
+   naming the same outcome, never three tokens. Ties wait.
+4. Thread states are `OPEN`, `SETTLED` and `RETIRED`, with the outcome recorded on a settled
+   one. `FilingCap` and a digest window cover thread creation, and one open thread per
+   determination per subject.
 4. `open_thread`, `list_threads`, `get_thread`, `respond_to_thread`, `next_thread` on MCP,
    mirroring the report tools an assistant already knows. `list_threads` returns `open` and
    `open_for_you`.
@@ -304,31 +362,40 @@ somebody.
    on every model that answers to them, asserted through `instance_method(...).owner`. One
    turn table, one reply partial, and no view renders a turn outside it. A second
    implementation of any of this fails the suite.
-3. Two principals agreeing does not settle a thread; a third does. Three **tokens** of one
-   principal do not, and the spec uses three tokens of one principal as its negative case,
-   because that is the shape a node like this one actually has.
-4. An assistant that has already spoken is not offered the thread by `next_thread`, and a
+3. Two principals agreeing does not settle a thread; a third naming the **same outcome**
+   does. Three **tokens** of one principal do not, and the spec uses three tokens of one
+   principal as its negative case, because that is the shape a node like this one actually
+   has. Two for `INVESTIGATE` and two for `NO_FURTHER_WORK` leaves it open.
+4. The principal that recorded the determination votes and counts as one of the three,
+   and cannot settle a thread without two others.
+5. A retired thread is absent from `next_thread` and from open counts, and a single new turn
+   revives it with its turns and votes intact. A settled thread is not reopened by a turn;
+   the route is a new thread citing it, and the new one shows that link.
+6. An assistant that has already spoken is not offered the thread by `next_thread`, and a
    second turn from it does not count twice toward the three.
-5. Settling as `INVESTIGATE` opens tasks on that determination and creates no claim, edge,
+7. Settling as `INVESTIGATE` opens tasks on that determination and creates no claim, edge,
    evidence item or link. Settling as `NO_FURTHER_WORK` cancels only the open, unleased tasks
    on that determination, leaves leased and submitted ones alone, and creates nothing.
    Neither writes anything the scorer reads.
-6. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
+8. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
    trace at a given seq are byte-identical before and after a thread settles, under either
    outcome. This is the acceptance the stage exists to satisfy.
-7. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
+9. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
    threads and one without: nothing versioned, nothing replayed.
-8. The share card and share line for a claim with an open thread are byte-identical to the
+10. The share card and share line for a claim with an open thread are byte-identical to the
    same claim without.
-9. Thread activity produces no `ReputationEvent`.
-10. A thread turn is queued for content review on creation, whether a person or an assistant
+11. Thread activity produces no `ReputationEvent`.
+12. A thread turn is queued for content review on creation, whether a person or an assistant
    wrote it.
-11. A person's turn and that person's assistant's turn count as **one** principal toward the
+13. A person's turn and that person's assistant's turn count as **one** principal toward the
    three. The spec's case is a person agreeing and then their own assistant agreeing, which
    must leave the thread one principal short.
-12. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
+14. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
    object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
    reply form.
+15. The same complaint filed twice on one determination collapses onto one thread with a
+   count rather than opening a second, and `FilingCap` refuses an assistant over its daily
+   allowance with a message naming what to do next.
 
 ## The Constitutional Test
 
