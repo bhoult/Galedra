@@ -11,13 +11,26 @@ module Cards
     def call(claim, seq, model, result = Scoring::Score.call(claim, seq, model))
       lineages = result.support_groups + result.contradict_groups
       checks = result.review_checklist
+      # The counted links, once. Two things below want them — the retrieval
+      # labels want each one's source location, the anonymous-provisional test
+      # wants each one's contributor — and asking separately fetched the same
+      # rows twice and preloaded the same evidence items twice
+      # (docs/profiler/2026-09-19-weaknesses-at-3000-claims.md, finding 5).
+      counted = claim.evidence_claim_links.counted_at(seq)
+                     .includes(contribution: :contributor, evidence_item: :source_location).to_a
+      # The effective set is the counted one minus the links a counted link
+      # supersedes — exactly what the effective_at scope's NOT IN subquery says
+      # — derived here so those rows and their evidence items are fetched once
+      # rather than again by the main issue.
+      superseded = counted.filter_map(&:supersedes_link_id).to_set
+      effective = counted.reject { |l| superseded.include?(l.id) }.sort_by(&:created_seq)
       card = {
         headline: Headline.for(result.assessment_state),
         independent_lineages: lineages,
         review_checks: DisplayRules.checks_count(checks),
         stability: result.stability,
-        main_issue: MainIssue.call(claim, seq, result),
-        labels: DisplayRules.for_result(result, anonymous: anonymous_provisional?(claim, seq)),
+        main_issue: MainIssue.call(claim, seq, result, effective),
+        labels: DisplayRules.for_result(result, anonymous: anonymous_provisional?(counted, seq)),
         related: related(claim, seq, model),
         plain: Plain.call(claim, seq, model, result),
         model: model.full_name, snapshot_seq: seq,
@@ -27,15 +40,14 @@ module Cards
         stated: DisplayRules.stated(result.probability, model.full_name, seq)
       }
       card[:reason] = Headline.reason_text(result.not_applicable_reason) if result.assessment_state == "NOT_APPLICABLE"
-      card[:labels] += retrieval_labels(claim, seq)
+      card[:labels] += retrieval_labels(counted, seq)
       card
     end
 
     # Stage 17: what Galedra's own fetch found for the quoted passages behind the
     # counted evidence. A fact for the reader and for auditors, not a score input.
-    def retrieval_labels(claim, seq)
-      locations = claim.evidence_claim_links.counted_at(seq).includes(evidence_item: :source_location)
-                       .filter_map { |link| link.evidence_item&.source_location }
+    def retrieval_labels(counted, seq)
+      locations = counted.filter_map { |link| link.evidence_item&.source_location }
       # One lookup per distinct source rather than one per link: four links
       # quoting one source asked the same question four times
       # (docs/profiler/2026-09-19-weaknesses-at-3000-claims.md, finding 5).
@@ -48,8 +60,8 @@ module Cards
     end
 
     # A counted, unconfirmed link whose principal is anonymous (Stage 12).
-    def anonymous_provisional?(claim, seq)
-      claim.evidence_claim_links.counted_at(seq).includes(contribution: :contributor).any? do |link|
+    def anonymous_provisional?(counted, seq)
+      counted.any? do |link|
         link.contribution.principal_contributor&.anonymous? && !Audits::Status.confirmed?(link.contribution_id, seq)
       end
     end

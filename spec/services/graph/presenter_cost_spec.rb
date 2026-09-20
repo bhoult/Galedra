@@ -36,7 +36,9 @@ RSpec.describe Graph::Presenter do
       support: 1, contradict: 1, qualify: 1, neutral: 1, counted: 4, pending: 0
     )
 
-    # Measured on this fixture, fresh instance both times: 40 before, 35 after.
+    # Measured on this fixture, fresh instance throughout: 40 before any of this,
+    # 35 after the edge memo and the retrieval batching, 32 after the counted
+    # set was loaded once and the effective set derived from it.
     # The bound is a ratchet, not a target: it is still too many, and what is
     # left is named in the profiler entry rather than guessed at here. The four
     # remaining ClaimEdge loads are two from this memo and two from Cards::Plain,
@@ -49,6 +51,6 @@ RSpec.describe Graph::Presenter do
     # the real one.
     fresh = Claim.find(claim.id)
     seen = statements { described_class.claim(fresh, seq, model: model) }
-    expect(seen.size).to be <= 35, "#{seen.size} statements: #{seen.tally.sort_by { |_, v| -v }.first(8).inspect}"
+    expect(seen.size).to be <= 32, "#{seen.size} statements: #{seen.tally.sort_by { |_, v| -v }.first(8).inspect}"
   end
 end

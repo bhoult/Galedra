@@ -7,8 +7,12 @@ module Cards
   module MainIssue
     module_function
 
-    def call(claim, seq, result)
-      links = claim.evidence_claim_links.effective_at(seq).includes(:evidence_item)
+    # `links` is passed in by ClaimCard, which has already loaded the counted
+    # set; the default keeps this callable on its own. Note the QUALIFY branch
+    # below is first-match-wins, so the caller's order decides which link is
+    # cited — ClaimCard sorts by created_seq, because the scope itself carries
+    # no ORDER BY and an arbitrary one should not choose what a reader is told.
+    def call(claim, seq, result, links = claim.evidence_claim_links.effective_at(seq).includes(:evidence_item).order(:created_seq))
       if (audit = Audit.disputed_for(links.map(&:contribution_id), seq).first)
         # Overturned as of this seq, not merely overturned at some later one.
         return { kind: "DISPUTED_AUDIT", cites: [ "audit:#{audit.id}" ], text: "A verification of this claim's evidence was #{audit.active_at?(seq) ? 'left unresolved' : 'overturned'} on audit" }

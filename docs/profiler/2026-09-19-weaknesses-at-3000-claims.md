@@ -255,7 +255,7 @@ exactly 4 links: `Cards::ClaimCard` asks `SourceRetrieval.latest_for(location.so
 once per counted link. `ClaimEdge Load` is 6 on a claim that has **no edges at all**, so
 something is asking repeatedly for nothing — most likely the card's downstream counting.
 
-### Both fixed, 2026-09-20 · **40 → 35 statements**
+### Fixed in two passes, 2026-09-20 · **40 → 32 statements**
 
 The guess about the edges was wrong, and capturing the SQL rather than the counter names
 said so. Nothing was counting downstream: the six were **three pairs of the same two
@@ -282,3 +282,34 @@ Each of the rest still wants its own change and its own before-and-after, the wa
 pass got one. What this entry has that it did not is the list, measured rather than guessed,
 so the next session starts from where the statements actually go instead of from "the
 presenter is slow".
+
+### The link and item loads · **FIXED 2026-09-20**
+
+Captured as SQL rather than counter names again, which is the only reason the shape was
+visible. `Cards::ClaimCard` asked for the same counted links **twice** — once with
+`evidence_item: :source_location` preloaded for the retrieval labels, once with
+`contribution: :contributor` for the anonymous-provisional test — so the same rows and the
+same evidence items were fetched twice over. `Cards::MainIssue` then asked a third time for
+the effective subset.
+
+The card now loads the counted set once with both preloads, and derives the effective set in
+Ruby: counted minus the links a counted link supersedes, which is exactly what the
+`effective_at` scope's `NOT IN` subquery says. `EvidenceClaimLink` loads 5 → 3,
+`EvidenceItem` 3 → 2, total **35 → 32**.
+
+**One deliberate behaviour change, stated rather than slipped in.** `MainIssue`'s QUALIFY
+branch is first-match-wins, and `effective_at` carries no `ORDER BY`, so which qualifier a
+reader was shown rested on whatever order Postgres happened to return. The derived set is
+sorted by `created_seq`, and the default argument now orders too, so the answer is defined
+instead of incidental. In an append-only table physical order and `created_seq` agree, which
+is why nothing moved: 393 green, including the demo card goldens, and the reference scorer
+prints ALL PASS.
+
+**Still not batched, on purpose:** `Cards::Plain`. Two of the four remaining `ClaimEdge`
+loads and one link query are its, it filters in SQL with no explicit order, and its
+precedence is a standing open question in `docs/CONTEXT.md`. Folding it in could change which
+candidate wins a tie, and that deserves its own change with its own before and after.
+
+What is left at 32, for whoever picks this up: 4 `ClaimEdge` (2 memo, 2 Plain), 3
+`EvidenceClaimLink`, 2 each of `EvidenceItem`, `Contribution`, `Inference`, `ClaimMerge`,
+`Claim` and the two direction counts.
