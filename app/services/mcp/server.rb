@@ -85,6 +85,15 @@ module Mcp
         description: "What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, section_id: { type: "string", description: "Only work under this outline or section" }, limit: { type: "integer", default: 5 } } },
         outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
+      { name: "list_claims", annotations: { readOnlyHint: true, openWorldHint: false },
+        description: "The claims under an outline or section, as id, text, type and state only, filtered and paginated. Use state: \"INSUFFICIENT_EVIDENCE\" with checkable: true to find the claims an outside source would actually move — the ones worth researching. get_outline returns whole trees and full text and will not fit a large outline in one reply; this will.",
+        inputSchema: { type: "object", properties: { section_id: { type: "string", description: "An outline root or any section under it; its whole subtree is included" },
+                                                     state: { type: "string", enum: Sections::Tree::STATES, description: "Only claims in this assessment state" },
+                                                     checkable: { type: "boolean", description: "Leave out claims no model scores: forecasts, opinions and the like" },
+                                                     limit: { type: "integer", default: 50 }, offset: { type: "integer", default: 0 } }, required: %w[section_id] },
+        outputSchema: { type: "object", properties: { section_id: { type: "string" }, total: { type: "integer" }, offset: { type: "integer" }, limit: { type: "integer" },
+                                                      claims: { type: "array", items: { type: "object", properties: { id: { type: "string" }, text: { type: "string" }, type: { type: "string" }, state: { type: "string" }, url: { type: "string" } } } },
+                                                      more: { type: "boolean", description: "True when there are further pages; raise offset by limit" } } } },
       { name: "next_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Lease the next open task for this assistant, highest priority first. You may work the routine checks on your own principal's claims — that is how a person finishes their own investigation without waiting for a volunteer — and they are recorded as self-performed and never raise the claim's review coverage, which is the figure meaning someone else has looked. Not handed to you: an audit, a source independence check, an inference review, or a blind check your own principal asked for with open_task. Returns the task in plain form with answer_with saying exactly what to send to submit_task, and the lease expiry. Do the reading yourself. Optional filters: types, domains, claim_id. Needs a connected (non-anonymous) assistant.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" }, section_id: { type: "string", description: "Only work under this outline or section (from an outline URL the person gave)" },
@@ -124,6 +133,10 @@ module Mcp
         description: "Revise an evidence link (its direction, strength, or interpretive steps) by id from get_claim's evidence. Your own link is revised now; someone else's is a proposal. Give a reason.",
         inputSchema: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction reason] },
         outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" }, new_link_id: { type: "string" } } } },
+      { name: "list_reports", annotations: { readOnlyHint: true, openWorldHint: false },
+        description: "What you have filed with report_bug and request_feature, newest first, with each one's status and the maintainer's resolution when there is one. Read this before filing: a report you already made may be answered, and a diagnosis you gave may have been corrected.",
+        inputSchema: { type: "object", properties: { status: { type: "string", enum: %w[OPEN DONE IGNORED] }, limit: { type: "integer", default: 20 } } },
+        outputSchema: { type: "object", properties: { reports: { type: "array", items: { type: "object", properties: { id: { type: "string" }, kind: { type: "string" }, status: { type: "string" }, filed_at: { type: "string" }, summary: { type: "string" }, resolution: { type: [ "string", "null" ] } } } }, total: { type: "integer" } } } },
       { name: "open_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Hand a doubt to a different principal as a blind task: OPPOSING_EVIDENCE_SEARCH, QUALIFIER_CHECK, SOURCE_INDEPENDENCE_CHECK (sources that share an origin), or EVIDENCE_VERIFICATION with the location_id of the passage (from get_claim's evidence) when a quoted passage looks wrong. An open task of the same kind is returned rather than duplicated. You cannot work a task you opened.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" }, type: { type: "string", enum: Corrections::TASK_TYPES }, location_id: { type: "string" } }, required: %w[claim_id type] },
@@ -268,7 +281,7 @@ module Mcp
     GUIDANCE_FOR = { "search_claims" => :check, "search" => :check, "get_claim" => :check, "fetch" => :check, "record_investigation" => :check, "add_evidence" => :check,
                      "create_outline" => :outline, "get_outline" => :outline,
                      "record_inference" => :inference,
-                     "list_tasks" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
+                     "list_tasks" => :work, "list_claims" => :work, "list_reports" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
     # The rules ride on every result because that is the only channel nothing
@@ -290,10 +303,17 @@ module Mcp
       seen = args.is_a?(Hash) ? args["guidance_version"].to_s : ""
       return { version: Guidance::VERSION, topic: topic, unchanged: true } if seen == Guidance::VERSION
 
-      { version: Guidance::VERSION, topic: topic, text: Guidance.for(topic),
+      # `repeat` before `text`, because it was after it: the hint sat at the
+      # bottom of the 1,500 tokens it tells you how to suppress, so an assistant
+      # paid them on roughly fifteen calls before noticing — about 20,000 tokens
+      # of identical text in one session
+      # (docs/experiments/2026-09-20-second-connector-run.md). Discoverable is
+      # not the same as discovered.
+      { version: Guidance::VERSION, topic: topic,
         repeat: "These rules arrive with every result so a correction reaches you without reinstalling anything. " \
                 "Once you have read them, send guidance_version: \"#{Guidance::VERSION}\" with any call and only the " \
-                "version comes back. Send the full text's version again whenever it changes." }
+                "version comes back. Send the full text's version again whenever it changes.",
+        text: Guidance.for(topic) }
     end
 
     def call_tool(params)
@@ -529,6 +549,27 @@ module Mcp
         note: winner ? "Consensus reached and applied to every requester." : "Your verdict is recorded; it waits for another principal to agree, or stands alone after #{Reviews::Consensus::ALONE_AFTER.inspect}." }
     end
 
+    # Filing was write-only. An assistant filed a confidently wrong diagnosis,
+    # caught it a call later by chance, filed a correction, and could not link
+    # the two or learn that either had been read — while a maintainer reading the
+    # first would go digging for a red herring it had authored. It asked for this
+    # (docs/experiments/2026-09-20-second-connector-run.md).
+    def tool_list_reports(args)
+      require_token!
+      limit = args.fetch("limit", 20).to_i.clamp(1, 50)
+      wanted = args["status"].presence
+      rows = [ [ BugReport, "bug" ], [ FeatureRequest, "feature" ] ].flat_map do |model, kind|
+        scope = model.where(assistant_token_id: @token.id)
+        scope = scope.where(status: wanted.to_s) if wanted
+        scope.order(created_at: :desc).limit(limit).map do |r|
+          { id: r.id, kind: kind, status: r.status, filed_at: r.created_at.utc.iso8601,
+            summary: (kind == "bug" ? r.happened : r.needed).to_s[0, 200], resolution: r.resolution }
+        end
+      end.sort_by { |r| r[:filed_at] }.reverse
+      { reports: rows.first(limit), total: rows.size,
+        note: "A resolution is the maintainer's answer. Nothing here is deleted; a correction is a new report, so say in it which one it corrects." }
+    end
+
     def tool_report_bug(args)
       raise ArgumentError, "happened is required" if args["happened"].to_s.strip.empty?
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
@@ -623,6 +664,39 @@ module Mcp
       TaskAssignment.where(status: %w[LEASED SUBMITTED])
                     .where("contributor_id = :c OR principal_contributor_id = :p", c: agent.id, p: principal&.id)
                     .pluck(:task_id).to_set
+    end
+
+    # An assistant had no way to ask "which claims here still need outside
+    # sources?". It called get_outline at depth 2, the reply was truncated
+    # mid-chapter at its own token limit, and it lost roughly sixty checkable
+    # claims it never recovered — the ones it worked are the ones that happened
+    # to fall above the cut
+    # (docs/experiments/2026-09-20-second-connector-run.md). Id, text, type and
+    # state only, so a whole outline fits.
+    def tool_list_claims(args)
+      section = Section.find_by(id: args["section_id"].to_s)
+      raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.section_id", detail: "no such section" } ]) if section.nil?
+
+      seq = Contribution.maximum(:seq)
+      model = Scoring::Registry.default_model
+      ids = ClaimPlacement.active_at(seq).where(section_id: Tasks::Lease.subtree_ids(section.id)).pluck(:claim_id).uniq
+      claims = Claim.where(id: ids).order(:created_seq).to_a
+      scored = model ? Scoring::Score.call_many(claims, seq, model) : {}
+
+      rows = claims.filter_map do |c|
+        state = scored[c.id]&.assessment_state
+        # "Checkable" means a model scores it at all: NOT_APPLICABLE carries no
+        # probability (Invariant 5), so no evidence can move it.
+        next if args["checkable"].present? && state == "NOT_APPLICABLE"
+        next if args["state"].present? && state != args["state"].to_s
+
+        { id: c.id, text: c.canonical_text, type: c.claim_type, state: state, url: url_for(c) }
+      end
+
+      limit = args.fetch("limit", 50).to_i.clamp(1, 200)
+      offset = args.fetch("offset", 0).to_i.clamp(0, 1_000_000)
+      { section_id: section.id, total: rows.size, offset: offset, limit: limit,
+        claims: rows[offset, limit] || [], more: (offset + limit) < rows.size }
     end
 
     def tool_next_task(args)

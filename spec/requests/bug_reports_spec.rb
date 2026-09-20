@@ -15,6 +15,31 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     [ body.dig("result", "structuredContent"), body.dig("result", "isError") ]
   end
 
+  # Filing was write-only: an assistant filed a wrong diagnosis, corrected it a
+  # call later, and could neither link the two nor learn that either had been
+  # read (docs/experiments/2026-09-20-second-connector-run.md).
+  it "reads back what this assistant filed, with the maintainer's answer" do
+    call_tool("report_bug", { happened: "add_evidence returned a malformed result", expected: "a readable error", context_tool: "add_evidence" })
+    call_tool("request_feature", { asked: "work the open tasks", needed: "a way to split a mixed claim", expected: "a fork operation" })
+    BugReport.last.update!(status: "DONE", resolution: "Fixed: the refusal was schema-invalid, not the record.")
+
+    data, err = call_tool("list_reports", {})
+    expect(err).to be(false), data.inspect
+    expect(data["total"]).to eq(2)
+    bug = data["reports"].find { |r| r["kind"] == "bug" }
+    expect(bug).to include("status" => "DONE", "resolution" => "Fixed: the refusal was schema-invalid, not the record.")
+    expect(bug["summary"]).to include("malformed result")
+    expect(data["reports"].map { |r| r["kind"] }).to include("feature")
+
+    open_only, = call_tool("list_reports", { "status" => "OPEN" })
+    expect(open_only["reports"].map { |r| r["kind"] }).to eq([ "feature" ]), "the answered one is filtered out"
+
+    # Someone else's reports are not this assistant's to read.
+    other = Assistants::Connect.call(user: User.create!(email_address: "other@example.com", password: password), name: "Other", provider: "anthropic").last
+    mine, = call_tool("list_reports", {}, other)
+    expect(mine["total"]).to eq(0)
+  end
+
   it "records a report from an assistant, counts repeats, caps the day, and is named in the guidance" do
     data, err = call_tool("report_bug", { happened: "get_claim returned a card with no headline", expected: "a headline", steps: "get_claim on any claim", context_tool: "get_claim", last_error: "none" })
     expect(err).to be(false), data.inspect

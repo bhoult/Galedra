@@ -37,6 +37,29 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
   # filed a feature request, and was handed two more, because next_task filtered
   # on task type and domain and neither can express "a claim whose state can
   # change" (docs/experiments/2026-09-20-second-connector-run.md, finding 2).
+  # get_outline returns whole trees and full text; asked for a 255-claim outline
+  # it overran the caller's own token limit mid-chapter, and roughly sixty
+  # checkable claims were never recovered
+  # (docs/experiments/2026-09-20-second-connector-run.md).
+  it "lists the claims that still need outside sources, filtered and paginated" do
+    source = create_source(curator, title: "Episode for the worklist")
+    created = append(action_type: "CREATE_SECTION", key_pair: curator, payload: { "source_id" => source.id, "sections" => [ { "heading" => "Episode" } ] })
+    root = Section.where(contribution_id: created.contribution.id).first
+    checkable = create_claim(curator, "Remote work raised measured output by 14 per cent in the trial.", type: "QUANTITATIVE", section_id: root.id)
+    forecast = create_claim(curator, "Yang-Mills will fall next.", type: "FORECAST", section_id: root.id)
+
+    data, err = call_tool("list_claims", { "section_id" => root.id, "checkable" => true })
+    expect(err).to be(false), data.inspect
+    expect(data["claims"].map { |c| c["id"] }).to eq([ checkable.id ]), "a FORECAST is not checkable"
+    expect(data["claims"].first.keys).to match_array(%w[id text type state url]), "id, text, type and state only: the whole point is that it fits"
+
+    all, = call_tool("list_claims", { "section_id" => root.id })
+    expect(all["total"]).to eq(2)
+    page, = call_tool("list_claims", { "section_id" => root.id, "limit" => 1 })
+    expect(page["claims"].size).to eq(1)
+    expect(page["more"]).to be(true), "a caller must be able to tell there is another page"
+  end
+
   it "can be asked for claims a model actually scores" do
     forecast = create_claim(curator, "Yang-Mills will be the next problem to fall.", type: "FORECAST")
     checkable, = curated_claim("Remote work raised measured output in the trial.")

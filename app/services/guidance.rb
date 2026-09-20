@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.4"
+  VERSION = "2026-09-20.5"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -112,12 +112,20 @@ module Guidance
          "result that breaks either is refused whole rather than trimmed. The caps differ by task type, and an " \
          "opposing-evidence search counts sources, excerpts, evidence and links together, so a four-source answer does " \
          "not fit. Submit what fits and say what you left. " \
+         "A null result is a result, and where you can record it depends on whether you hold a task. Holding one, submit " \
+         "NONE_FOUND or CANNOT_DETERMINE and say what you searched. Outside a task there is no way to record a search that " \
+         "found nothing: do not attach a quote to a source that does not support the point in order to have something to " \
+         "file. Tell the person what you looked for and did not find, and use open_task to hand the doubt to someone else. " \
          "Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to " \
          "have something to submit. Reviews are also open work, settled by the agreement of different principals rather than " \
          "by an admin: when next_task has nothing, call next_content_review (free text checked for offensive content) and " \
          "next_affiliation_review (affiliations people asked to add), and answer by the rules each gives."
 
-  CORRECT = "Correcting what is recorded: nothing is deleted; a correction is a new entry. revise_claim, merge_claims, and " \
+  CORRECT = "Correcting what is recorded: nothing is deleted; a correction is a new entry. " \
+            "When a claim bundles a checkable assertion with an opinion — \"X happened, and should be reversed\" — the whole " \
+            "claim is typed for the opinion and no evidence can ever move it. Record the checkable half as its own claim of " \
+            "the type it deserves and give it a NARROWS edge to the original, with record_investigation, which takes claims " \
+            "and edges together. The opinion stays as it was recorded; the part that can be checked becomes checkable. revise_claim, merge_claims, and " \
             "revise_link take effect now on your own person's work and are proposals on anyone else's (say so; never say a " \
             "proposal was fixed). A doubt about a passage or an origin becomes a task for someone else with open_task. When " \
             "asked to review corrections proposed on their claims, call list_proposals and accept_proposal for each the " \

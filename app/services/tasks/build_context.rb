@@ -67,7 +67,15 @@ module Tasks
         "current_state" => state,
         "current_counted_statements" => items.select { |l, _, _| l.direction == current_side }.map { |_, e, _| e.statement.to_s },
         "exclude_lineage_keys" => items.filter_map { |_, _, loc| loc.source.lineage_key }.uniq.sort,
-        "scope" => "any source you can cite exactly; new sources are stored metadata-only until a human imports them"
+        # Said plainly because an assistant added ~30 sources and could not tell
+        # whether the work was live or parked, and reported it would have spent
+        # its effort differently had it known
+        # (docs/experiments/2026-09-20-second-connector-run.md). "Until a human
+        # imports them" was also stale: Stage 17's trusted job fetches them, no
+        # person is in the loop, and the evidence is counted at once either way.
+        "scope" => "any source you can cite exactly. A new source is stored by reference: your evidence counts toward the claim immediately, " \
+                   "and Galedra's own fetch of the page follows on its own (no person is queued behind it). What that fetch finds is shown " \
+                   "beside the evidence as a fact for readers, and is never a scoring input."
       } ]
     end
 
