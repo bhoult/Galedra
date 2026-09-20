@@ -24,7 +24,13 @@ module FilingCap
   class_methods do
     def cap_for(token) = token&.anonymous? == false ? NAMED_DAILY_CAP : ANONYMOUS_DAILY_CAP
 
-    def filed_today(token) = where(assistant_token: token).where("created_at >= ?", Time.current.beginning_of_day).count
+    # Counted per filer, not per token, or reconnecting would reset the day's
+    # count — which it did.
+    def filed_today(token)
+      return 0 if token.nil?
+
+      where(assistant_token_id: token.filer_token_ids).where("created_at >= ?", Time.current.beginning_of_day).count
+    end
 
     # A refusal a filer can act on: what it has spent, what the limit is, when it
     # resets, and what to do instead. The old one said only "at most 10 a day",

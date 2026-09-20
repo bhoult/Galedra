@@ -578,7 +578,7 @@ module Mcp
       limit = args.fetch("limit", 20).to_i.clamp(1, 50)
       wanted = args["status"].presence
       rows = [ [ BugReport, "bug" ], [ FeatureRequest, "feature" ] ].flat_map do |model, kind|
-        scope = model.where(assistant_token_id: @token.id)
+        scope = model.where(assistant_token_id: @token.filer_token_ids)
         scope = scope.where(status: wanted.to_s) if wanted
         scope.order(created_at: :desc).limit(limit).map do |r|
           { id: r.id, kind: kind, status: r.status, filed_at: r.created_at.utc.iso8601,
@@ -619,8 +619,9 @@ module Mcp
 
     # A report this assistant filed. Someone else's is not theirs to read.
     def find_report(id)
-      row = BugReport.find_by(id: id.to_s, assistant_token_id: @token.id) ||
-            FeatureRequest.find_by(id: id.to_s, assistant_token_id: @token.id)
+      mine = @token.filer_token_ids
+      row = BugReport.find_by(id: id.to_s, assistant_token_id: mine) ||
+            FeatureRequest.find_by(id: id.to_s, assistant_token_id: mine)
       raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.report_id", detail: "no report you filed with that id" } ]) if row.nil?
 
       row

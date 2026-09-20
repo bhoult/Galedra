@@ -28,6 +28,22 @@ class AssistantToken < ApplicationRecord
   def revoked? = revoked_at.present?
   def anonymous? = principal.identity_tier == "ANONYMOUS"
 
+  # Every token this filer has held. A reinstall issues a new token for the same
+  # person, and anything scoped to the token alone vanishes with it: fourteen
+  # filed reports became invisible to the assistant that filed them, along with
+  # the answers written for it, and it reasonably read that as the reports being
+  # gone (docs/experiments/2026-09-20-second-connector-run.md).
+  #
+  # A named token is one connection of an accountable principal, so its filings
+  # follow the principal. Anonymous stays scoped to the token itself: an
+  # anonymous principal is not a stable identity, and treating it as one could
+  # show one filer somebody else's reports.
+  def filer_token_ids
+    return [ id ] if anonymous?
+
+    self.class.where(principal_contributor_id: principal_contributor_id).pluck(:id)
+  end
+
   # Usable only while its delegation is live, so revocation in the log wins.
   def usable?
     !revoked? && !delegation.revoked? && delegation.in_window? && !agent.revoked?

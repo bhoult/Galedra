@@ -143,6 +143,34 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(response.body).to include("What the reporter suspects", "Ruled out", "guess")
   end
 
+  # Reinstalling issues a new token for the same person. Scoped to the token,
+  # fourteen filed reports became invisible to their own filer, along with the
+  # answers written for it (docs/experiments/2026-09-20-second-connector-run.md).
+  it "still shows an assistant its reports after it reconnects with a new token" do
+    call_tool("report_bug", { happened: "filed before the reinstall" })
+    filed = BugReport.last
+
+    reconnected = Assistants::Connect.call(user: user, name: "Claude", provider: "anthropic").last
+    expect(reconnected).not_to eq(token), "a reinstall really does issue a different token"
+
+    seen, err = call_tool("list_reports", {}, reconnected)
+    expect(err).to be(false), seen.inspect
+    expect(seen["reports"].map { |r| r["id"] }).to include(filed.id)
+
+    one, err = call_tool("get_report", { "report_id" => filed.id }, reconnected)
+    expect(err).to be(false), one.inspect
+    expect(one["id"]).to eq(filed.id)
+
+    # And the day's count follows the filer, so reconnecting is not a way to
+    # start the cap over.
+    expect(BugReport.filed_today(AssistantToken.find_by(id: AssistantToken.last.id))).to be >= 1
+
+    # Someone else's remain theirs.
+    other = Assistants::Connect.call(user: User.create!(email_address: "elsewhere@example.com", password: password), name: "Other", provider: "anthropic").last
+    theirs, = call_tool("list_reports", {}, other)
+    expect(theirs["total"]).to eq(0)
+  end
+
   it "records a report from an assistant, counts repeats, caps the day, and is named in the guidance" do
     data, err = call_tool("report_bug", { happened: "get_claim returned a card with no headline", expected: "a headline", steps: "get_claim on any claim", context_tool: "get_claim", last_error: "none" })
     expect(err).to be(false), data.inspect
