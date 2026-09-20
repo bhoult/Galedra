@@ -63,6 +63,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -196,6 +220,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9085",
+          "stability": "MEDIUM",
+          "review_coverage": "0.25",
+          "support_groups": 4,
+          "contradict_groups": 0,
+          "independence_unreviewed": 3,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9085",
+          "stability": "MEDIUM",
+          "review_coverage": "0.25",
+          "support_groups": 4,
+          "contradict_groups": 0,
+          "independence_unreviewed": 3,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -247,6 +295,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "SUPPORTED",
           "probability": "0.8581",
           "stability": "MEDIUM",
@@ -323,6 +395,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -355,6 +451,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "NOT_APPLICABLE",
           "probability": null,
           "stability": null,
@@ -416,6 +536,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NOT_SCORED_BY_MODEL",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.3792",
+          "stability": "LOW",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "NOT_APPLICABLE",
           "probability": null,
           "stability": null,
@@ -510,6 +654,30 @@
           "not_applicable_reason": null,
           "contested": true,
           "provisional": true
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7790",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": true,
+          "provisional": true
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7790",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": true,
+          "provisional": true
         }
       }
     },
@@ -566,6 +734,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "LEANS_CONTRADICTED",
           "probability": "0.3682",
           "stability": "MEDIUM",
@@ -704,6 +896,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7146",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "LEANS_SUPPORTED",
+          "probability": "0.7146",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "LEANS_SUPPORTED",
           "probability": "0.7146",
           "stability": "MEDIUM",
@@ -874,6 +1090,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.5247",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.5247",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -925,6 +1165,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "SUPPORTED",
           "probability": "0.8581",
           "stability": "MEDIUM",
@@ -996,6 +1260,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -1057,6 +1345,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": true
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
         }
       }
     },
@@ -1108,6 +1420,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 1,
+          "not_applicable_reason": "NOT_SCORED_BY_MODEL",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "UNRESOLVED",
+          "probability": "0.5382",
+          "stability": "LOW",
+          "review_coverage": "0.00",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 1,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "NOT_APPLICABLE",
           "probability": null,
           "stability": null,
@@ -1184,6 +1520,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "LEANS_CONTRADICTED",
+          "probability": "0.3682",
+          "stability": "MEDIUM",
+          "review_coverage": "0.75",
+          "support_groups": 0,
+          "contradict_groups": 1,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -1216,6 +1576,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "NOT_APPLICABLE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": "NORMATIVE_OR_VALUE",
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "NOT_APPLICABLE",
           "probability": null,
           "stability": null,
@@ -1287,6 +1671,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": true
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.8581",
+          "stability": "MEDIUM",
+          "review_coverage": "0.50",
+          "support_groups": 1,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": true
         }
       }
     },
@@ -1319,6 +1727,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "INSUFFICIENT_EVIDENCE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "INSUFFICIENT_EVIDENCE",
+          "probability": null,
+          "stability": null,
+          "review_coverage": "0.00",
+          "support_groups": 0,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "INSUFFICIENT_EVIDENCE",
           "probability": null,
           "stability": null,
@@ -1426,6 +1858,30 @@
           "not_applicable_reason": null,
           "contested": false,
           "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9683",
+          "stability": "HIGH",
+          "review_coverage": "0.25",
+          "support_groups": 3,
+          "contradict_groups": 0,
+          "independence_unreviewed": 2,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9683",
+          "stability": "HIGH",
+          "review_coverage": "0.25",
+          "support_groups": 3,
+          "contradict_groups": 0,
+          "independence_unreviewed": 2,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
         }
       }
     },
@@ -1513,6 +1969,30 @@
           "provisional": false
         },
         "ledger-strict@0.1.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9468",
+          "stability": "HIGH",
+          "review_coverage": "0.50",
+          "support_groups": 2,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-default@0.2.0": {
+          "assessment_state": "SUPPORTED",
+          "probability": "0.9468",
+          "stability": "HIGH",
+          "review_coverage": "0.50",
+          "support_groups": 2,
+          "contradict_groups": 0,
+          "independence_unreviewed": 0,
+          "not_applicable_reason": null,
+          "contested": false,
+          "provisional": false
+        },
+        "ledger-strict@0.2.0": {
           "assessment_state": "SUPPORTED",
           "probability": "0.9468",
           "stability": "HIGH",

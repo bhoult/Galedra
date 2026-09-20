@@ -11,6 +11,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = {
     "default": json.load(open(os.path.join(HERE, "..", "scoring-config-v0.1.json"))),
     "strict": json.load(open(os.path.join(HERE, "..", "scoring-config-strict-v0.1.json"))),
+    # 0.2.0 (Stage 35): evidence from an origin the claim was extracted from is
+    # provenance, not corroboration, and ungrouped evidence is keyed by origin
+    # and passage so one page entered twice cannot count twice.
+    "default@0.2.0": json.load(open(os.path.join(HERE, "..", "scoring-config-v0.2.json"))),
+    "strict@0.2.0": json.load(open(os.path.join(HERE, "..", "scoring-config-strict-v0.2.json"))),
 }
 
 def q(x, places):
@@ -47,14 +52,24 @@ def score(claim, links, evidence, sources, checks, model="default"):
 
     # Step 2
     pen = Decimal(CFG["interpretive_step_penalty"])
+    prov_cfg = CFG.get("provenance_factor")
+    fallback = CFG.get("independence_fallback")
     weighted = []
     for l in sorted(links, key=lambda l: l["id"]):
         e = evidence[l["evidence"]]
+        # A model that declares neither key scores exactly as 0.1.0 always did.
+        prov = Decimal(prov_cfg["SELF" if l.get("self") else "INDEPENDENT"]) if prov_cfg else Decimal(1)
         mag = (Decimal(CFG["relevance_weight"][l["rel"]])
                * Decimal(CFG["observation_weight"][e["obs"]])
-               * max(Decimal(0), 1 - pen * l.get("steps", 0)))
-        weighted.append((l, q(mag, 6), CFG["direction_sign"][l["dir"]],
-                         e.get("group") or "solo:" + l["evidence"]))
+               * max(Decimal(0), 1 - pen * l.get("steps", 0))
+               * prov)
+        if e.get("group"):
+            grp = e["group"]
+        elif fallback == "origin" and e.get("origin"):
+            grp = "origin:%s/%s" % (e["origin"], e.get("passage"))
+        else:
+            grp = "solo:" + l["evidence"]
+        weighted.append((l, q(mag, 6), CFG["direction_sign"][l["dir"]], grp))
 
     # Step 3: strongest-only per (group, sign); ties -> lowest evidence id, then link id
     kept = {}
@@ -113,6 +128,61 @@ def run(title, cases, sources, evidence_at, links):
             bad += not ok
             print(f"{'PASS' if ok else 'FAIL'} {model:7} {chk} {name} {got}" + ("" if ok else f"\n     expected {e}"))
     return bad
+
+# ---------------- Provenance (Stage 35): what 0.2.0 changes and 0.1.0 must not ----------------
+# Both cases are reasoned, not read off the output. The prior for OBSERVATIONAL
+# is 0.50, so the log-odds start at zero and one DIRECT x DIRECT_TEXT link is
+# 2.0 * 0.9 = 1.8, giving sigmoid(1.8) = 0.8581, which clears the 0.80 threshold.
+#
+#   A  one supporting link drawn from the claim's own origin.
+#      0.1.0 knows nothing of origins and scores it SUPPORTED 0.8581.
+#      0.2.0 multiplies it by SELF = 0.0, so every kept magnitude is zero and the
+#      answer is INSUFFICIENT_EVIDENCE with no probability — the claim is not
+#      contradicted, it is simply unchecked.
+#
+#   B  the same passage entered twice, as happens when one URL is recorded as two
+#      sources. Neither link is self-referential. 0.1.0 treats ungrouped evidence
+#      as independent, keeps both, and reaches 1.8 + 1.8 = 3.6 -> 0.9734 over two
+#      groups. 0.2.0 keys the fallback group by origin and passage, so they are
+#      one group, the strongest is kept, and it is 0.8581 over one group.
+#      Stability differs too, and not by design: two groups meet the minimum for
+#      HIGH, one does not and is capped to MEDIUM. Collapsing a duplicate lowers
+#      the confidence in the number as well as the number, which is right — one
+#      passage read twice is not two readings.
+PROV_SOURCES = {"SELFSRC": "WEBSITE", "DUP": "WEBSITE"}
+PROV_EVIDENCE = {
+    "E_self": {"source": "SELFSRC", "obs": "DIRECT_TEXT", "origin": "uri:example.org/a", "passage": "p1"},
+    "E_dup1": {"source": "DUP", "obs": "DIRECT_TEXT", "origin": "uri:example.org/b", "passage": "p2"},
+    "E_dup2": {"source": "DUP", "obs": "DIRECT_TEXT", "origin": "uri:example.org/b", "passage": "p2"},
+}
+PROV_LINKS = {
+    "L_self": {"id": "L_self", "evidence": "E_self", "dir": "SUPPORT", "rel": "DIRECT", "steps": 0, "self": True},
+    "L_dup1": {"id": "L_dup1", "evidence": "E_dup1", "dir": "SUPPORT", "rel": "DIRECT", "steps": 0},
+    "L_dup2": {"id": "L_dup2", "evidence": "E_dup2", "dir": "SUPPORT", "rel": "DIRECT", "steps": 0},
+}
+PROV_CASES = [
+    ("A", "own-origin support", ["L_self"],
+     ("SUPPORTED", "0.8581", "MEDIUM", "0.00", 1, 0, 1, None),
+     ("INSUFFICIENT_EVIDENCE", None, None, "0.00", 0, 0, 1, None)),
+    ("B", "one passage entered twice", ["L_dup1", "L_dup2"],
+     ("SUPPORTED", "0.9734", "HIGH", "0.00", 2, 0, 2, None),
+     ("SUPPORTED", "0.8581", "MEDIUM", "0.00", 1, 0, 2, None)),
+]
+
+def run_provenance():
+    bad = 0
+    print("== Provenance (Stage 35)")
+    for name, title, lids, exp_old, exp_new in PROV_CASES:
+        for model, exp in (("default", exp_old), ("default@0.2.0", exp_new)):
+            r = score(claim("OBSERVATIONAL"), [PROV_LINKS[i] for i in lids], PROV_EVIDENCE,
+                      PROV_SOURCES, set(), model)
+            got = (r["state"], r["p"], r["stability"], r["review_coverage"], r["sg"], r["cg"],
+                   r["independence_unreviewed"], r["reason"])
+            ok = got == exp
+            bad += not ok
+            print(f"{'PASS' if ok else 'FAIL'} {model:15} {name} {title} {got}" + ("" if ok else f"\n     expected {exp}"))
+    return bad
+
 
 # ---------------- Public demo (08): the statistic that traces to one survey ----------------
 PUB_SOURCES = {"SR": "DATASET", "SP": "PRIMARY_TEXT", "SN1": "SECONDARY_TEXT", "SN2": "SECONDARY_TEXT",
@@ -211,5 +281,6 @@ W_CASES = [
 if __name__ == "__main__":
     bad = run("public demo (08)", PUB_CASES, PUB_SOURCES, pub_ev, PL)
     bad += run("watchers stress test", W_CASES, W_SOURCES, w_ev, WL)
+    bad += run_provenance()
     print("ALL PASS" if not bad else f"{bad} FAILURES")
     raise SystemExit(1 if bad else 0)

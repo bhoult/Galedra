@@ -1,6 +1,6 @@
 # Stage 35 — Provenance is not corroboration
 
-**Status:** implemented, not yet default · `stage-35-provenance-is-not-corroboration`
+**Status:** implemented and golden; not default pending the owner's decision · `stage-35-provenance-is-not-corroboration`
 
 **Tag:** `stage-35-provenance-is-not-corroboration` · **Spec:** 02 §3 (sources, locations,
 evidence), 03 §3–§7 (weights, independence, states, and why a number needs its model and
@@ -172,15 +172,35 @@ are exactly those carrying evidence from outside the episode. The reported claim
 `SUPPORTED 0.8281` to `INSUFFICIENT_EVIDENCE` with no probability, while still reading
 `0.8281` under `0.1.0` at the same seq.
 
-### Outstanding — and why this is not default yet
+### The goldens, and what generating them showed
 
-- **`0.2.0` has no golden values.** `08 §8` and the Watchers fixtures describe `0.1.0` only,
-  and `CLAUDE.md` forbids adjusting a golden to make anything pass. The end-to-end suite now
-  runs each case against the models its fixtures describe, asserting the `0.1.0` pair stays
-  covered so coverage cannot quietly shrink. **Generating `0.2.0` goldens and extending the
-  reference scorer is the work that gates making it default.**
-- The demo narrative in `08` will change when it does: claims it calls supported are
-  supported by the source they came from.
+**`0.2.0` scores every existing golden case exactly as `0.1.0` does.** All 20 cases across
+both suites and both model families: 22 of 22 identical. That is not a coincidence to wave
+at — the demo corpus contains no evidence drawn from a claim's own origin and no passage
+entered twice, so the only two things this model changes never arise in it. The fixture now
+carries `0.2.0` expectations for all 20, and the end-to-end suite recomputes them from the
+graph, so a wrong value fails loudly rather than sitting there agreeing with itself.
+
+**Which is also why those 20 prove nothing about the new rule**, so a provenance suite was
+added to both implementations — `reference_scorer.py` and `spec/services/scoring/provenance_spec.rb`
+— over the same inputs, with no code shared between them:
+
+| | `0.1.0` | `0.2.0` |
+|---|---|---|
+| One supporting link from the claim's own origin | SUPPORTED 0.8581, 1 group | **INSUFFICIENT_EVIDENCE**, no probability, 0 groups |
+| The same passage entered twice | SUPPORTED 0.9734, 2 groups, HIGH | **SUPPORTED 0.8581, 1 group, MEDIUM** |
+| Two genuine passages of one document | — | SUPPORTED 0.9734, 2 groups (unchanged, deliberately) |
+
+The expectations were reasoned before they were run: the prior for `OBSERVATIONAL` is 0.50,
+so the log-odds start at zero and one `DIRECT` × `DIRECT_TEXT` link is 2.0 × 0.9 = 1.8,
+giving sigmoid(1.8) = 0.8581. Seven of the eight predicted fields were right first time. The
+eighth was wrong and the scorer was right: stability for the duplicate case under `0.1.0` is
+HIGH, not MEDIUM, because two groups meet the minimum and one does not. That the confidence
+falls along with the number when a duplicate collapses is correct — one passage read twice
+is not two readings — and it was found by predicting rather than by reading the output.
+
+**No golden value was altered.** `0.1.0`'s numbers are untouched; `0.2.0`'s were generated
+and cross-checked.
 - Acceptance 7 (the card saying the quotation is faithful and nothing outside was checked) is
   not built; the state is honest but the sentence is not written.
 - Nothing re-checks the claims that lost a directional state. Opening an opposing-evidence
