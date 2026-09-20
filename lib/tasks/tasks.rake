@@ -1,6 +1,25 @@
 # frozen_string_literal: true
 
 namespace :tasks do
+  desc "Cancel open tasks whose target is no longer current: bin/rails tasks:sweep_stale_targets (DRY_RUN=1)"
+  task sweep_stale_targets: :environment do
+    # Tasks::Lease cancels these where it finds them, and says why: a sweep on
+    # every lease would load every open task, and this corpus already has
+    # hundreds. That is right for the hot path and leaves the dead ones counted
+    # until something happens to consider them — ten of them here, inflating the
+    # open and answers_wanted totals an assistant reads to decide what is left
+    # (docs/experiments/2026-09-20-second-connector-run.md). Batch work belongs
+    # in a batch, so this is the same rule applied where it costs nothing.
+    dry = ENV["DRY_RUN"] == "1"
+    seq = Contribution.maximum(:seq) || 0
+    stale = Task.where(status: %w[OPEN LEASED], target_type: "CLAIM")
+                .where(target_id: Claim.where.not(status: "ACTIVE").select(:id))
+                .reject { |t| Claim.find_by(id: t.target_id)&.current_at?(seq) }
+
+    stale.each { |t| t.update!(status: "CANCELLED", cancelled_reason: Tasks::Lease::TARGET_NOT_CURRENT) } unless dry
+    puts "#{dry ? 'would cancel' : 'cancelled'} #{stale.size} task(s) whose target is no longer current"
+  end
+
   desc "Recompute stored priority for open tasks: bin/rails tasks:reprioritise (DRY_RUN=1 to count only)"
   task reprioritise: :environment do
     # Tasks::Create stamps priority at creation, so a change to the heuristic or

@@ -308,6 +308,24 @@ All but two, in `6ea6a04` and `c366e16`. 397 examples green, reference scorer AL
   answerable from the reply.
 - **`PruneClaimScoresJob` is scheduled** in `config/recurring.yml`.
 
+### Found by reviewing the older bug reports · **FIXED 2026-09-20**
+
+Reading the 2026-09-20 02:18 report in full, rather than as a summary, was worth it twice.
+
+It confirmed finding 3: its resolution says a task whose target is merged is cancelled on
+sight because "`Claim#current_at?` already answered the question and the lease never asked
+it" — and `Sections::Tree` still asks `counted_at?`. It also supplies precedent for the
+`CLAIM_NOT_CURRENT` fix above, which is not a new idea here: the LEASE_EXPIRED report at
+13:52 was resolved *"Not a bug, and the message was"*, and its refusal now reports how long
+ago the lease lapsed and what the server clock reads.
+
+And it surfaced a residue. That fix cancels lazily and says why — a sweep on every lease
+would load every open task, which is right for the hot path. It leaves the dead ones counted
+until something considers them: **10 tasks were still OPEN against merged claims**, all in
+this outline, inflating the `open` and `answers_wanted` totals an assistant reads to decide
+what is left. `bin/rails tasks:sweep_stale_targets` does the batch work in a batch. Applied:
+10 cancelled, 0 remain, and a second run cancels nothing.
+
 ### Still open
 
 - **Finding 5, `get_outline`'s cold recompute.** The score cache is keyed on the exact seq
