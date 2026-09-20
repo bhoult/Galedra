@@ -8,10 +8,6 @@
     asked <%= pluralize(@row.count, "time") %> ·
     from <%= @row.reporter %>
   </p>
-  <% if @row.resolution.present? %>
-    <p class="resolution"><strong>Resolution</strong> <%= simple_format(@row.resolution) %></p>
-  <% end %>
-  <%= render "shared/triage_actions", row: @row %>
 </div>
 
 <h2>The person asked</h2>
@@ -34,3 +30,5 @@
 <% end %>
 
 <%= render "shared/report_thread", row: @row %>
+
+<%= render "shared/triage_actions", row: @row %>

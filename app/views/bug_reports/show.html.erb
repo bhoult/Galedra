@@ -8,13 +8,9 @@
     reported <%= pluralize(@row.count, "time") %> ·
     from <%= @row.reporter %>
   </p>
-  <% if @row.resolution.present? %>
-    <p class="resolution"><strong>Resolution</strong> <%= simple_format(@row.resolution) %></p>
-  <% end %>
-  <%= render "shared/triage_actions", row: @row %>
 </div>
 
-<%= render "shared/report_thread", row: @row %>
+
 
 <h2>What happened</h2>
 <div class="card"><%= simple_format(@row.happened) %></div>
@@ -37,3 +33,7 @@
     <% if @row.last_error.present? %><p><strong>Last error</strong> <code><%= @row.last_error %></code></p><% end %>
   </div>
 <% end %>
+
+<%= render "shared/report_thread", row: @row %>
+
+<%= render "shared/triage_actions", row: @row %>

@@ -45,6 +45,14 @@ module Triage
     # reads it, says whether it settles the thing, and only their verdict reaches
     # CLOSED (owner request, 2026-09-20).
     resolution = params[:resolution].to_s.strip
+    # Handing a report back with nothing said, and nothing said before, leaves the
+    # reporter nothing to agree or disagree with. Handing it back again after an
+    # earlier answer is fine: that answer is still in the thread.
+    if status == "ANSWERED" && resolution.blank? && row.resolution.blank?
+      return redirect_back fallback_location: triage_index_path,
+                           alert: "Say something in the reply: answering hands the report back, and an empty answer gives the reporter nothing to respond to."
+    end
+
     row.answer!(body: resolution, user: Current.user, status: status)
     redirect_back fallback_location: triage_index_path, notice: notice_for(status)
   end

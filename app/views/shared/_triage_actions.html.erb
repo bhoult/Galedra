@@ -1,20 +1,26 @@
-<%# Status and reason together: the box is filled in at the moment the decision
-    is made, because a closed list with no reasons tells the next reader nothing
-    about whether a thing was fixed, was working as intended, or was set aside.
-    Leaving it empty keeps whatever reason was given before. %>
-<%= form_with url: url_for(controller: controller_name, action: :update, id: row.id), method: :patch, class: "triage-form" do |f| %>
-  <%= f.label :resolution, "Why", class: "meta" %>
-  <%= f.text_area :resolution, value: row.resolution, rows: 3,
-                  placeholder: "What was done, or why this needs nothing. Shown on this page from now on." %>
-  <p class="triage-actions">
-    <% Triageable::STATUSES.each do |target| %>
-      <% next if target == row.status %>
-      <%# "Answer" rather than "Done": a maintainer's reply hands the report back
-          to whoever filed it, and only their verdict reaches Closed. %>
-      <%= f.submit({ "OPEN" => "Reopen", "ANSWERED" => "Answer", "CLOSED" => "Close", "IGNORED" => "Ignore" }.fetch(target, target.capitalize),
-                   name: "status", value: target,
-                   class: target == "ANSWERED" ? "primary small" : "secondary small") %>
-    <% end %>
-    <%= f.submit "Save reason", name: "status", value: row.status, class: "secondary small" %>
-  </p>
-<% end %>
+<%# A reply is a turn in the exchange, so the box starts empty: what was said
+    before is in the thread above, and pre-filling it would repost it. %>
+<h2>Your reply</h2>
+<div class="card">
+  <%= form_with url: url_for(controller: controller_name, action: :update, id: row.id), method: :patch, class: "triage-form" do |f| %>
+    <%= f.label :resolution, row.awaiting_reporter? ? "Add to your answer" : "What you want to say to whoever filed this", class: "meta" %>
+    <%= f.text_area :resolution, value: nil, rows: 4,
+                    placeholder: "What was done, or why this needs nothing. It goes on this page as your turn, and the reporter is asked whether it settles the thing." %>
+    <p class="triage-actions">
+      <%= f.submit "Answer", name: "status", value: "ANSWERED", class: "primary small" %>
+      <% if row.status != "OPEN" %>
+        <%= f.submit "Reopen", name: "status", value: "OPEN", class: "secondary small" %>
+      <% end %>
+      <% if row.status != "IGNORED" %>
+        <%= f.submit "Ignore", name: "status", value: "IGNORED", class: "secondary small" %>
+      <% end %>
+      <% if row.status != "CLOSED" %>
+        <%= f.submit "Close it yourself", name: "status", value: "CLOSED", class: "secondary small" %>
+      <% end %>
+    </p>
+    <p class="meta">
+      <strong>Answer</strong> replies and hands it back: the reporter says whether it settles the thing, and only then does it close.
+      <strong>Close it yourself</strong> skips that, which is what a report from a visitor with nobody to ask needs.
+    </p>
+  <% end %>
+</div>
