@@ -9,8 +9,13 @@ RSpec.describe Cards::Plain do
 
   def plain_for(claim) = described_class.call(claim, Contribution.maximum(:seq), model, Scoring::Score.call(claim, Contribution.maximum(:seq), model))
 
-  def evidence(statement)
-    source = create_source(curator, content: "Motion 14 carried. #{long}")
+  # `origin` decides whether two readings share a passage. The payloads are
+  # byte-identical for a given origin, so the log's idempotency returns the same
+  # source and the same location — which is what makes two readings of it
+  # dependent under ledger-default@0.2.0. Left as the default because the tests
+  # below depend on it; pass a different origin when independence is the point.
+  def evidence(statement, origin: "Motion 14 carried.")
+    source = create_source(curator, content: "#{origin} #{long}")
     create_evidence(curator, create_location(curator, source, start: 0, finish: 18), statement: statement)
   end
 
@@ -34,13 +39,27 @@ RSpec.describe Cards::Plain do
 
     short = evidence("The ban covers Market Street on Saturdays only.")
     link_evidence(curator, short, claim, direction: "CONTRADICT")
-    # Under ledger-default@0.1.0 this preferred the short contradiction; under
-    # 0.2.0 it prefers the narrower claim, which is the order this method's own
-    # comment describes ("a narrower claim that holds up" before "the strongest
-    # counted contradiction"). Both sentences are true of the claim and neither
-    # is invented, so nothing here is wrong for a reader — but the mechanism
-    # behind the change was not traced, and the precedence deserves a look on
-    # its own rather than being settled by whichever model happens to be default.
+    # Traced 2026-09-20. The precedence did not change between models; which
+    # links carry weight did. Both contradictions here are readings of ONE
+    # passage — every `evidence` call above builds the same source payload, so
+    # the log returns one source and one location — and 0.2.0 counts only the
+    # strongest of a dependent set (Invariant 6). The trace says so directly:
+    # under 0.1.0 both CONTRADICT links weigh 1.800000; under 0.2.0 the second
+    # weighs 0.000000 with reason "dependent_strongest_only". The dropped one is
+    # the only short contradiction, so that branch yields nothing and the
+    # qualifier branch answers. Correct under both models, for different reasons.
     expect(plain_for(claim)[:say_instead]).to eq("The council banned bicycles on Market Street on Saturdays.")
+  end
+
+  it "prefers the strongest counted contradiction when the readings are independent" do
+    claim = create_claim(curator, "The council banned bicycles.")
+    link_evidence(curator, evidence(long, origin: "Minutes of the first meeting."), claim, direction: "CONTRADICT")
+    link_evidence(curator, evidence("The ban covers Market Street on Saturdays only.", origin: "Minutes of the second meeting."), claim, direction: "CONTRADICT")
+
+    # Separate passages, so nothing is collapsed and the contradiction branch has
+    # a short candidate to offer. This is the same precedence as the case above,
+    # reaching a different branch because the evidence differs — which is the
+    # whole point of pinning both.
+    expect(plain_for(claim)[:say_instead]).to eq("The ban covers Market Street on Saturdays only.")
   end
 end

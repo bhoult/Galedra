@@ -74,6 +74,11 @@ Acceptance:
   `say_instead` is rule-based and null unless the graph supports a sentence: a
   narrower claim that holds up (via `NARROWS`/`BROADENS` edges), else the strongest
   counted contradiction, else a counted qualifier. Nothing is invented (Invariant 10).
+  **Correction (2026-09-20):** that description is missing a condition the code has
+  always had. The contradiction branch is reached only when the claim's own state is
+  `CONTRADICTED` or `LEANS_CONTRADICTED`; a claim that is merely unresolved skips it and
+  goes to the qualifier. Only which *candidates* are offered depends on the model, never
+  the order they are tried in — see the trace in `docs/CONTEXT.md`.
 - The example agent gained `investigate --token`, posting `examples/agent/investigation.json`
   (a fictional town-council meme) and printing each claim's plain headline and URL. The
   API source presenter now includes `retrieval_pending`.

@@ -101,8 +101,11 @@ module Cards
     end
 
     def narrower_supported(claim, seq, model)
-      candidates = claim.incoming_edges.counted_at(seq).where(relationship_type: "NARROWS").includes(:from_claim).map(&:from_claim) +
-                   claim.outgoing_edges.counted_at(seq).where(relationship_type: "BROADENS").includes(:to_claim).map(&:to_claim)
+      # Filtered from the memoised counted edges rather than by two more queries:
+      # the result is sorted by created_seq just below, so the order these arrive
+      # in does not decide anything (docs/profiler/2026-09-19-weaknesses-at-3000-claims.md).
+      candidates = claim.counted_incoming_edges(seq).select { |e| e.relationship_type == "NARROWS" }.map(&:from_claim) +
+                   claim.counted_outgoing_edges(seq).select { |e| e.relationship_type == "BROADENS" }.map(&:to_claim)
       candidates.uniq.sort_by(&:created_seq).find do |other|
         next false if Governance::Quarantines.live_for("CLAIM", other.id)
 

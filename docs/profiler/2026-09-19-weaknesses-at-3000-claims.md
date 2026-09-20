@@ -255,7 +255,7 @@ exactly 4 links: `Cards::ClaimCard` asks `SourceRetrieval.latest_for(location.so
 once per counted link. `ClaimEdge Load` is 6 on a claim that has **no edges at all**, so
 something is asking repeatedly for nothing — most likely the card's downstream counting.
 
-### Fixed in two passes, 2026-09-20 · **40 → 32 statements**
+### Fixed in three passes, 2026-09-20 · **40 → 30 statements**
 
 The guess about the edges was wrong, and capturing the SQL rather than the counter names
 said so. Nothing was counting downstream: the six were **three pairs of the same two
@@ -305,11 +305,14 @@ instead of incidental. In an append-only table physical order and `created_seq` 
 is why nothing moved: 393 green, including the demo card goldens, and the reference scorer
 prints ALL PASS.
 
-**Still not batched, on purpose:** `Cards::Plain`. Two of the four remaining `ClaimEdge`
-loads and one link query are its, it filters in SQL with no explicit order, and its
-precedence is a standing open question in `docs/CONTEXT.md`. Folding it in could change which
-candidate wins a tie, and that deserves its own change with its own before and after.
+**`Cards::Plain`, deferred three times, now folded in.** It was held back because its
+precedence was a standing open question and its filtered queries carried no explicit order,
+so sharing a set could change which candidate wins a tie. Tracing the precedence settled
+both: the order never changed, and `narrower_supported` sorts its candidates by `created_seq`
+immediately after collecting them, so the order they arrive in decides nothing. Its two edge
+queries now read the memo: `ClaimEdge` 4 → 2, total **32 → 30**.
 
-What is left at 32, for whoever picks this up: 4 `ClaimEdge` (2 memo, 2 Plain), 3
-`EvidenceClaimLink`, 2 each of `EvidenceItem`, `Contribution`, `Inference`, `ClaimMerge`,
-`Claim` and the two direction counts.
+What is left at 30, for whoever picks this up: 3 `EvidenceClaimLink`, 2 `ClaimEdge`, and 2
+each of `EvidenceItem`, `Contribution`, `Inference`, `ClaimMerge`, `Claim` and the direction
+counts. Nothing left is an obvious duplicate; the next step is deciding what the claims index
+actually needs per row, rather than shaving the render further.

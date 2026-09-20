@@ -79,3 +79,15 @@ reading: they render the public stub).
 - `bin/demo --example check` runs the whole "check before you post" flow: an anonymous
   assistant, the fixture bundle, plain cards, a rendered share card, replay, and chain
   verification.
+- Correction (2026-09-20): this stage also changed what a card says, and said nothing about
+  it. `Cards::Plain#say_instead` returned `"This has not held up: <statement>"` and
+  `"This is only partly supported: <statement>"`; the commit dropped both prefixes and
+  returned the bare statement, under a message about the MCP endpoint, OpenAPI, the skill
+  and share cards. Found by tracing the say-instead precedence, not by a spec — nothing
+  tests that a commit's message covers what it changed.
+
+  **The change was right and is kept.** A prefix is text the graph does not contain, and
+  Invariant 10 says nothing is invented; Stage 15 later put the same principle in words
+  when the owner asked for the line to be "either a whole graph sentence or absent". It was
+  right by accident and unrecorded for a week, which is the part worth noticing: the
+  reasoning arrived after the code, so nothing would have caught it had it been wrong.

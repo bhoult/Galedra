@@ -242,7 +242,7 @@ them or it will report the fixes as fresh drift.
 **Also open:** `bench:cpu` against a still corpus (18s requests, two distinct faults, and
 `/weaknesses` at 13.5s — the largest untouched problem; **blocked as of 2026-09-20**, see
 below); re-checking the claims that lost a directional state under `0.2.0`; the task
-queue putting unresolvable claims in most top-priority slots; the `Cards::Plain` precedence that changed for reasons never traced; and
+queue putting unresolvable claims in most top-priority slots; and
 the copyright decision on transcript readings, which gates both the Stage 33 export default
 and anything public.
 
@@ -277,6 +277,22 @@ than be stopped at 83%, because `RESET=1` means a restart costs another ~21 hour
 finishes, and until the host's `ollama` llama-server is stopped for the run, a profile
 measures contention. Two things to hold still, not one — the second is easy to forget
 because it is not part of this project.
+
+**The `Cards::Plain` precedence — TRACED 2026-09-20, nothing was wrong.** The open item read
+"changed for reasons never traced". The precedence never changed. What changed is which links
+carry weight. In that fixture every `evidence` call builds a byte-identical source payload, so
+the log's idempotency returns **one source and one location**: the two contradictions are two
+readings of one passage. `ledger-default@0.2.0` counts only the strongest of a dependent set
+(Invariant 6), and the trace says it in words — under `0.1.0` both CONTRADICT links weigh
+`1.800000`; under `0.2.0` the second weighs `0.000000`, reason `dependent_strongest_only`. The
+dropped one was the only *short* contradiction, so that branch had nothing to offer and the
+qualifier branch answered. Both outputs are right, for different reasons.
+
+**The lesson is about the fixture, not the card.** Two `create_source` calls with identical
+payloads are not two sources, and a test that silently relies on that will look like a
+precedence bug for a day. The helper now takes an `origin:` so a shared passage is a choice,
+and both branches are pinned: one case where the readings collapse and the qualifier answers,
+one where they are independent and the strongest contradiction does.
 
 ## Standing unknowns
 
