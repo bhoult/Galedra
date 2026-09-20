@@ -556,7 +556,9 @@ module Mcp
     def refused_ids(args, outcome)
       return "" unless outcome.to_s == "refused" && args.is_a?(Hash)
 
-      pairs = args.select { |k, v| k.to_s.end_with?("_id") && v.is_a?(String) && v.length <= 64 }
+      # `id` as well as `*_id`: `fetch` takes a bare `id`, and the first version of
+      # this filter missed it within ten minutes of shipping.
+      pairs = args.select { |k, v| (k.to_s == "id" || k.to_s.end_with?("_id")) && v.is_a?(String) && v.length <= 64 }
       pairs.empty? ? "" : " #{pairs.map { |k, v| "#{k}=#{v}" }.join(' ')}"
     end
 
