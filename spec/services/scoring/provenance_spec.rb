@@ -66,26 +66,45 @@ RSpec.describe "Provenance is not corroboration (Stage 35)" do
       create_claim(pair, "A claim with nothing else attached.")
     end
 
-    def card_for(state, provenances)
+    def card_for(state, provenances, audited: false)
       result = Result.new(assessment_state: state,
-                          trace: { "links" => provenances.map { |p| { "provenance" => p } } })
+                          trace: { "links" => provenances.map { |p| { "provenance" => p, "audit_confirmed" => audited } } })
       Cards::Plain.call(bare_claim, Contribution.maximum(:seq), Scoring::Registry.default_model, result)
     end
 
-    it "says the quotation is faithful and nothing outside was checked" do
-      expect(card_for("INSUFFICIENT_EVIDENCE", %w[SELF SELF])[:headline]).to eq(Cards::Plain::PROVENANCE_ONLY)
+    def provenance_headlines = [ Cards::Plain::PROVENANCE_CONFIRMED, Cards::Plain::PROVENANCE_UNCHECKED ]
+
+    it "says the quotation is faithful only once an audit has confirmed it" do
+      expect(card_for("INSUFFICIENT_EVIDENCE", %w[SELF SELF], audited: true)[:headline]).to eq(Cards::Plain::PROVENANCE_CONFIRMED)
+    end
+
+    # Extraction creates SELF links by itself, so provenance says where the
+    # evidence came from and never that anybody read it. Claiming faithfulness
+    # from provenance alone told readers a check had happened that had not
+    # (01a0c0d5); the link's own extraction and audit fields said UNVERIFIED in
+    # the same trace.
+    it "does not claim a faithful quotation on evidence nobody has audited" do
+      headline = card_for("INSUFFICIENT_EVIDENCE", %w[SELF SELF])[:headline]
+      expect(headline).to eq(Cards::Plain::PROVENANCE_UNCHECKED)
+      expect(headline).not_to include("faithful")
+    end
+
+    # A documented null search is a check that counts nothing, and the first
+    # wording called that "nothing checked" to the assistant that had just run it.
+    it "speaks of what has been counted rather than what has been checked" do
+      provenance_headlines.each { |h| expect(h).to include("counted").and(satisfy { |t| !t.include?("Nothing outside it has been checked") }) }
     end
 
     it "does not say it when any evidence came from elsewhere" do
-      expect(card_for("INSUFFICIENT_EVIDENCE", %w[SELF INDEPENDENT])[:headline]).not_to eq(Cards::Plain::PROVENANCE_ONLY)
+      expect(provenance_headlines).not_to include(card_for("INSUFFICIENT_EVIDENCE", %w[SELF INDEPENDENT])[:headline])
     end
 
     it "does not say it for a claim with no evidence at all" do
-      expect(card_for("INSUFFICIENT_EVIDENCE", [])[:headline]).not_to eq(Cards::Plain::PROVENANCE_ONLY)
+      expect(provenance_headlines).not_to include(card_for("INSUFFICIENT_EVIDENCE", [])[:headline])
     end
 
     it "does not say it for a claim that reached a directional state" do
-      expect(card_for("SUPPORTED", %w[SELF])[:headline]).not_to eq(Cards::Plain::PROVENANCE_ONLY)
+      expect(provenance_headlines).not_to include(card_for("SUPPORTED", %w[SELF])[:headline])
     end
   end
 end

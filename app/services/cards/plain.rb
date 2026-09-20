@@ -27,19 +27,29 @@ module Cards
     module_function
 
     # Stage 35. A claim whose only evidence comes from the source it was taken
-    # out of is not unevidenced in the ordinary way: someone has checked it, and
-    # what they established is that the quotation is faithful. Saying only
-    # "insufficient evidence" hides both halves — that the work was done, and
-    # that it cannot settle the claim. A reader deserves the distinction, since
-    # the obvious next step differs: this one wants an outside source, not a
-    # first reading.
-    PROVENANCE_ONLY = "The quotation is faithful to the source. Nothing outside it has been checked."
+    # out of is not unevidenced in the ordinary way: what is there is provenance
+    # rather than corroboration. Saying only "insufficient evidence" hides that,
+    # and the obvious next step differs — this one wants an outside source, not
+    # a first reading.
+    #
+    # Two sentences, because the original said "the quotation is faithful"
+    # whenever every link was SELF, and inferred a check from where the evidence
+    # came from. Extraction creates those links on its own: a claim with two
+    # UNVERIFIED, never-audited links was telling readers its quotation had been
+    # confirmed (reported in 01a0c0d5). Faithfulness is claimed only when an
+    # audit actually confirmed it. The second sentence says "counted" rather
+    # than "checked" because a documented null search is a check that counts
+    # nothing, and the first version called that "nothing checked" to the
+    # assistant that had just performed it.
+    PROVENANCE_CONFIRMED = "The quotation is faithful to the source. No outside evidence has been counted."
+    PROVENANCE_UNCHECKED = "The only evidence is the source the claim was taken from, which is where it came from rather than a check of it. " \
+                           "No outside evidence has been counted."
 
     def call(claim, seq, model, result)
       headline = if result.assessment_state == "NOT_APPLICABLE"
         REASONS.fetch(result.not_applicable_reason, HEADLINES["NOT_APPLICABLE"])
       elsif provenance_only?(result)
-        PROVENANCE_ONLY
+        quotation_confirmed?(result) ? PROVENANCE_CONFIRMED : PROVENANCE_UNCHECKED
       else
         HEADLINES.fetch(result.assessment_state, Headline.for(result.assessment_state))
       end
@@ -55,6 +65,13 @@ module Cards
 
       links = result.trace.is_a?(Hash) ? result.trace["links"] : nil
       links.is_a?(Array) && links.any? && links.all? { |entry| entry["provenance"] == "SELF" }
+    end
+
+    # Someone audited the passage and it held. Never inferred from provenance:
+    # SELF says where the evidence came from, not that anybody read it.
+    def quotation_confirmed?(result)
+      links = result.trace.is_a?(Hash) ? result.trace["links"] : nil
+      links.is_a?(Array) && links.any? { |entry| entry["audit_confirmed"] == true }
     end
 
     # A sentence to say instead is offered only when the claim as stated does

@@ -131,6 +131,30 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["moves"]).not_to include("raises how well reviewed")
   end
 
+  # The task type is named for the usual case, but BuildContext picks the
+  # direction per claim: a claim nothing yet supports is sent looking FOR
+  # evidence. `moves` said "against" either way, so a worker was told the
+  # opposite of what it had been asked for, in the field whose only job is to
+  # say what the work can achieve before the effort is spent (01a0c0d5).
+  it "names the direction the search actually asks for" do
+    claim, = curated_claim("Remote work raised measured output in the trial.")
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+    supported, = call_tool("next_task", { "claim_id" => claim.id, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    direction = supported.dig("context", "search_direction")
+    expect(supported["moves"]).to include(direction == "SUPPORT" ? "search FOR it" : "search AGAINST it")
+    expect(supported["moves"]).to include(direction == "SUPPORT" ? "evidence for the claim" : "evidence against the claim")
+
+    # And the bare claim the report was filed against: nothing counted, so the
+    # search is for support, and the field must not say "against".
+    bare = create_claim(curator, "A claim with nothing counted for it yet.", type: "OBSERVATIONAL")
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: bare)
+    data, err = call_tool("next_task", { "claim_id" => bare.id, "types" => [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    expect(err).to be(false), data.inspect
+    expect(data.dig("context", "search_direction")).to eq("SUPPORT")
+    expect(data["moves"]).to include("search FOR it")
+    expect(data["moves"]).not_to include("evidence against the claim")
+  end
+
   it "lists tasks in a bounded number of statements, and suggests only work this caller can take" do
     claim, = curated_claim
     12.times { |i| Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: create_claim(curator, "Spare claim #{i} about productivity.", type: "CAUSAL")) }

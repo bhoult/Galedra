@@ -75,7 +75,15 @@ module Tasks
         "Confirming this establishes that the quotation is faithful to its source. Where the passage comes from the same source the " \
         "claim was taken out of, that is provenance and not corroboration, so it will not move the headline on its own."
       when "OPPOSING_EVIDENCE_SEARCH"
-        "Finding evidence against the claim moves the headline. NONE_FOUND records a documented null search" +
+        # The task type is named for the usual case, but the direction is
+        # computed per claim: an unsupported claim is sent looking FOR evidence,
+        # not against it (Tasks::BuildContext). This field said "against" either
+        # way, so a worker handed a SUPPORT search was told the opposite of what
+        # it had been asked for, in the one field whose job is to say what the
+        # work can achieve before the effort is spent.
+        wanted = task.packet.dig("context", "search_direction") == "SUPPORT" ? "for" : "against"
+        "Finding evidence #{wanted} the claim moves the headline; this task asks you to search " \
+        "#{wanted == 'for' ? 'FOR it, because nothing yet supports it' : 'AGAINST it'}. NONE_FOUND records a documented null search" +
           (own ? ", though it is your own principal's claim, so it is recorded as self-performed and does not raise review coverage: that needs a different principal." :
                  " and satisfies the opposing-search check, which raises how well reviewed the claim is.")
       when "QUALIFIER_CHECK"

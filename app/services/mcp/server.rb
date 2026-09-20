@@ -531,7 +531,11 @@ module Mcp
     end
 
     def tool_request_feature(args)
-      raise ArgumentError, "asked and needed are required" if args["asked"].to_s.strip.empty? || args["needed"].to_s.strip.empty?
+      # Naming both when one was supplied is the day's recurring fault in
+      # miniature: a correct refusal the caller cannot act on. It sent `needed`
+      # and was told `needed` is required.
+      missing = %w[asked needed].reject { |k| args[k].to_s.strip.present? }
+      raise ArgumentError, "#{missing.join(' and ')} #{missing.one? ? 'is' : 'are'} required" if missing.any?
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
 
       request, created, clipped = FeatureRequest.record!(token: @token, asked: args["asked"], needed: args["needed"], expected: args["expected"], context_tool: args["context_tool"], last_error: args["last_error"])
