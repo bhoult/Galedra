@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.7"
+  VERSION = "2026-09-20.8"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -160,6 +160,12 @@ module Guidance
   # cost.
   ASK = "Report what is wrong here without being asked. Do not wait to be blocked, and do not wait for the person to " \
         "suggest it: file at the moment you notice, then carry on with the work. " \
+        "That rule is about the OBSERVATION. A cause is a second claim and it does not get the same licence: an assistant " \
+        "following this filed three confident diagnoses in one session that were all fiction, and the real cause was a " \
+        "single mistyped character. So report what you saw straight away, put any explanation in suspected_cause with a " \
+        "confidence of certain, likely or guess, and use ruled_out for what you checked that did not explain it. Saying " \
+        "guess costs nothing; a wrong certain sends someone digging where nothing is wrong. If you have tested nothing, " \
+        "file the observation with no cause at all — that is a complete report, not a lesser one. " \
         "Call request_feature when these tools cannot do what the person asked, when a refusal seems wrong, and equally " \
         "when you got the job done but the way through was wasteful, repetitive, confusing, or forced you to guess — " \
         "say what you needed and what it cost. Call report_bug when something went wrong: a broken page, a result that " \

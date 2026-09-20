@@ -15,11 +15,18 @@ class BugReport < ApplicationRecord
   validates :happened, presence: true, length: { maximum: MAX_CHARS }
   validates :expected, :steps, length: { maximum: MAX_CHARS }, allow_nil: true
   validates :url, :context_tool, :last_error, length: { maximum: 500 }, allow_nil: true
+  # A cause is a separate claim from an observation, and a filer who has to say
+  # how sure they are, and what they checked that did not explain it, files
+  # fewer confident fictions (01a0c05d-db76).
+  CONFIDENCE = %w[certain likely guess].freeze
+  validates :suspected_cause, :ruled_out, length: { maximum: MAX_CHARS }, allow_nil: true
+  validates :confidence, inclusion: { in: CONFIDENCE }, allow_nil: true
 
   def self.digest_for(happened) = Digest::SHA256.hexdigest(happened.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip)
 
   # Returns [report, created]. token or user says who reported; both nil is a visitor.
-  def self.record!(happened:, token: nil, user: nil, expected: nil, steps: nil, url: nil, context_tool: nil, last_error: nil)
+  def self.record!(happened:, token: nil, user: nil, expected: nil, steps: nil, url: nil, context_tool: nil, last_error: nil,
+                   suspected_cause: nil, ruled_out: nil, confidence: nil)
     if token && where(assistant_token: token).where("created_at >= ?", Time.current.beginning_of_day).count >= DAILY_CAP
       raise Ledger::Rejected.new([ { code: "RATE_LIMITED", path: "$", detail: "at most #{DAILY_CAP} bug reports a day for one assistant" } ])
     end
@@ -32,12 +39,15 @@ class BugReport < ApplicationRecord
     # Clipping happens; being clipped in silence is the defect. `clipped` names
     # the fields that were too long so the filer is told at the time
     # (docs/experiments/2026-09-20-second-connector-run.md).
-    clipped = { "happened" => happened, "expected" => expected, "steps" => steps }
+    clipped = { "happened" => happened, "expected" => expected, "steps" => steps,
+                "suspected_cause" => suspected_cause, "ruled_out" => ruled_out }
               .select { |_, v| v.to_s.strip.length > MAX_CHARS }.keys
     clip = ->(s, n) { s.presence && s.to_s.strip[0, n] }
     [ create!(id: SecureRandom.uuid_v7, assistant_token: token, user: user, happened: happened.to_s.strip[0, MAX_CHARS],
               expected: clip.call(expected, MAX_CHARS), steps: clip.call(steps, MAX_CHARS), url: clip.call(url, 500),
               context_tool: clip.call(context_tool, 500), last_error: clip.call(last_error, 500),
+              suspected_cause: clip.call(suspected_cause, MAX_CHARS), ruled_out: clip.call(ruled_out, MAX_CHARS),
+              confidence: CONFIDENCE.include?(confidence.to_s) ? confidence.to_s : nil,
               anonymous: token ? token.anonymous? : user.nil?, digest: digest).tap { |r| ContentReview.enqueue!(r) }, true, clipped ]
   end
 

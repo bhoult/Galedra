@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -101,6 +101,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_200000) do
   create_table "bug_reports", id: :uuid, default: nil, force: :cascade do |t|
     t.boolean "anonymous", default: false, null: false
     t.uuid "assistant_token_id"
+    t.string "confidence"
     t.string "context_tool"
     t.integer "count", default: 1, null: false
     t.datetime "created_at", null: false
@@ -109,8 +110,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_200000) do
     t.text "happened", null: false
     t.string "last_error"
     t.text "resolution"
+    t.text "ruled_out"
     t.string "status", default: "OPEN", null: false
     t.text "steps"
+    t.text "suspected_cause"
     t.datetime "updated_at", null: false
     t.string "url"
     t.bigint "user_id"

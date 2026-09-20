@@ -20,6 +20,22 @@
   <div class="card"><%= simple_format(@row.expected) %></div>
 <% end %>
 
+<% if @row.suspected_cause.present? || @row.ruled_out.present? %>
+  <%# Kept apart from what happened, because a cause is a second claim and a
+      confident wrong one sends a maintainer digging where nothing is wrong. %>
+  <h2>What the reporter suspects</h2>
+  <div class="card">
+    <% if @row.suspected_cause.present? %>
+      <p class="meta"><strong>Suspected cause</strong><%= " · #{@row.confidence}" if @row.confidence.present? %></p>
+      <%= simple_format(@row.suspected_cause) %>
+    <% end %>
+    <% if @row.ruled_out.present? %>
+      <p class="meta"><strong>Ruled out</strong></p>
+      <%= simple_format(@row.ruled_out) %>
+    <% end %>
+  </div>
+<% end %>
+
 <% if @row.steps.present? %>
   <h2>Steps</h2>
   <div class="card"><%= simple_format(@row.steps) %></div>

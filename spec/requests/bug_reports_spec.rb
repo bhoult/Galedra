@@ -114,6 +114,35 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(back["status"]).to eq("OPEN")
   end
 
+  # The filing path invited a causal story and asked nothing that would falsify
+  # it, and an assistant following it filed three confident fictions in one
+  # session (01a0c05d-db76).
+  it "keeps a suspected cause apart from what was seen, with how sure and what was ruled out" do
+    data, err = call_tool("report_bug", { happened: "get_claim returned a malformed frame",
+                                          suspected_cause: "the claim record is corrupt",
+                                          ruled_out: "merge status: a merged claim reads back fine",
+                                          confidence: "guess" })
+    expect(err).to be(false), data.inspect
+    row = BugReport.last
+    expect(row).to have_attributes(suspected_cause: "the claim record is corrupt", confidence: "guess")
+    expect(row.ruled_out).to include("merged claim reads back fine")
+    expect(row.happened).not_to include("corrupt"), "what was seen stays separate from what is guessed"
+
+    # A cause is optional: an observation on its own is a complete report.
+    bare, err = call_tool("report_bug", { happened: "the share card renders blank on the check page" })
+    expect(err).to be(false), bare.inspect
+    expect(BugReport.last.suspected_cause).to be_nil
+
+    # Nonsense confidence is dropped rather than stored.
+    call_tool("report_bug", { happened: "a third thing went wrong somewhere", confidence: "absolutely" })
+    expect(BugReport.last.confidence).to be_nil
+
+    user.update!(moderator: true)
+    post session_path, params: { email_address: user.email_address, password: password }
+    get "/bug_reports/#{row.id}"
+    expect(response.body).to include("What the reporter suspects", "Ruled out", "guess")
+  end
+
   it "records a report from an assistant, counts repeats, caps the day, and is named in the guidance" do
     data, err = call_tool("report_bug", { happened: "get_claim returned a card with no headline", expected: "a headline", steps: "get_claim on any claim", context_tool: "get_claim", last_error: "none" })
     expect(err).to be(false), data.inspect

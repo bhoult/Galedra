@@ -166,7 +166,11 @@ module Mcp
         outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, request_id: { type: "string" }, repeat: { type: "boolean" }, note: { type: "string" } } } },
       { name: "report_bug", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Tell Galedra's maintainers that something went wrong: a tool answered with an error that makes no sense, a result contradicted itself, a page or link was broken, or the person reports a problem with Galedra. Say what happened, what you expected, and how to make it happen again. Read by maintainers only; never shown to other assistants or the public. For something the tools simply cannot do, use request_feature instead.",
-        inputSchema: { type: "object", properties: { happened: { type: "string", description: "what went wrong, in a sentence or two" }, expected: { type: "string", description: "what should have happened" }, steps: { type: "string", description: "the calls or clicks that make it happen again" }, url: { type: "string", description: "the page or claim URL involved, if any" }, context_tool: { type: "string", description: "the tool you were using" }, last_error: { type: "string", description: "the error code or message you got, if any" } }, required: %w[happened] },
+        inputSchema: { type: "object", properties: { happened: { type: "string", description: "what you OBSERVED, not what you think caused it: the call you made and what came back" }, expected: { type: "string", description: "what should have happened" }, steps: { type: "string", description: "the calls that reproduce it" },
+                                                     suspected_cause: { type: "string", description: "what you think is behind it, if anything. Optional, and separate from what you saw on purpose: a cause is a second claim, and a confident wrong one sends a maintainer digging where nothing is wrong." },
+                                                     ruled_out: { type: "string", description: "what you checked that did NOT explain it. The most useful line in a report, and the one nothing used to ask for." },
+                                                     confidence: { type: "string", enum: BugReport::CONFIDENCE, description: "how sure you are of suspected_cause: certain, likely, or guess. Say guess; it costs nothing and a wrong certain costs a search." },
+                                                     url: { type: "string", description: "the page or claim URL involved, if any" }, context_tool: { type: "string", description: "the tool you were using" }, last_error: { type: "string", description: "the error code or message you got, if any" } }, required: %w[happened] },
         outputSchema: { type: "object", properties: { recorded: { type: "boolean" }, report_id: { type: "string" }, repeat: { type: "boolean" }, note: { type: "string" } } } },
       # Content review (owner request, 2026-09-19): free text people and assistants added, checked for offensive content.
       { name: "next_content_review", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -627,6 +631,7 @@ module Mcp
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
 
       report, created, clipped = BugReport.record!(token: @token, happened: args["happened"], expected: args["expected"], steps: args["steps"], url: args["url"],
+                                          suspected_cause: args["suspected_cause"], ruled_out: args["ruled_out"], confidence: args["confidence"],
                                           context_tool: args["context_tool"], last_error: args["last_error"])
       { recorded: true, report_id: report.id, repeat: !created, clipped: clipped.presence,
         note: clipped.presence ? "Recorded, but #{clipped.join(' and ')} ran past #{BugReport::MAX_CHARS} characters and the rest was cut. File the missing part as a response on this report rather than a new one." :
