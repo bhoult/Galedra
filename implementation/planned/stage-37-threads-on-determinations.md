@@ -334,8 +334,10 @@ somebody.
 
 1. **Does it preserve the reasons?** Yes, and it captures reasons that currently have
    nowhere to live: today they are filed as bugs against Galedra or lost.
-2. **Could it manufacture agreement?** No. A thread changes nothing about a claim; only the
-   contribution it resolves into does, and that is signed and auditable as usual.
+2. **Could it manufacture agreement?** No. Settling changes nothing about a claim: it opens
+   work or closes work, and neither is read by the scorer. What does change a claim is a
+   contribution somebody records afterwards, which stands on its own signature and would
+   count identically had the thread never existed.
 3. **Does it let identity substitute for evidence?** This is the risk, and the reason for the
    line above. A thread turn is not evidence, is never scored, and never leaves the page. The
    answer to a turn about the world is a contribution. Settlement by three distinct
