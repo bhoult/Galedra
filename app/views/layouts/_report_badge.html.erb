@@ -1,0 +1,22 @@
+<%# Two numbers rather than a total: a bug and a feature request are answered in
+    different frames of mind, and each links to the list it counts. The icons are
+    inline so they take currentColor and dim with the rest of the pill at zero.
+    Muted at zero, so an empty queue reads as empty rather than as a thing to
+    click. %>
+<% counts = open_report_counts %>
+<span class="report-badge<%= " none" if counts.values.sum.zero? %>" aria-label="Open reports">
+  <% bugs = "#{pluralize(counts[:bugs], 'bug report')} waiting on a maintainer" %>
+  <%= link_to bug_reports_path(status: "OPEN"), title: bugs, data: { tip: bugs } do %>
+    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+      <path d="M5.6 4.4a2.4 2.4 0 0 1 4.8 0"/>
+      <rect x="4.6" y="4.4" width="6.8" height="8" rx="3.4"/>
+      <path d="M4.6 6.8H2.2M4.6 10.2H2.4M11.4 6.8h2.4M11.4 10.2h2.2M8 4.4v8"/>
+    </svg><%= counts[:bugs] %>
+  <% end %><span class="sep" aria-hidden="true">/</span><% feats = "#{pluralize(counts[:features], 'feature request')} waiting on a maintainer" %>
+  <%= link_to feature_requests_path(status: "OPEN"), title: feats, data: { tip: feats } do %>
+    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M8 2.2a3.9 3.9 0 0 0-2.3 7.05c.5.38.8.95.8 1.55h3a1.95 1.95 0 0 1 .8-1.55A3.9 3.9 0 0 0 8 2.2Z"/>
+      <path d="M6.5 12.6h3M7 14h2"/>
+    </svg><%= counts[:features] %>
+  <% end %>
+</span>

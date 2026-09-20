@@ -48,6 +48,14 @@ header.site nav { display: flex; gap: 0.2rem 1rem; flex-wrap: wrap; font-size: 0
 header.site nav a { color: var(--ink); opacity: 0.85; padding: 0.15rem 0; border-bottom: 2px solid transparent; }
 header.site nav a:hover { opacity: 1; text-decoration: none; border-bottom-color: var(--accent); }
 header.site .account { margin-left: auto; display: flex; align-items: center; gap: 0.8rem; font-size: 0.92rem; }
+/* Open bug reports / feature requests, for admins only. Reads as one pill; the
+   two halves link to their own lists. */
+header.site .report-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.5rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+header.site .report-badge a { color: var(--accent-ink, #8a3324); border-bottom: 0; display: inline-flex; align-items: center; gap: 0.25rem; }
+header.site .report-badge svg { display: block; flex: 0 0 auto; }
+header.site .report-badge a:hover { text-decoration: underline; border-bottom: 0; }
+header.site .report-badge .sep { color: var(--muted, #666); }
+header.site .report-badge.none a { color: var(--muted, #666); }
 /* Drop-down menus (Stage 24): details/summary, styled like the old links. */
 header.site nav details.menu { position: relative; }
 header.site nav details.menu > summary { list-style: none; cursor: pointer; color: var(--ink); opacity: 0.85; padding: 0.15rem 0; border-bottom: 2px solid transparent; user-select: none; }

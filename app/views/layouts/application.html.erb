@@ -22,6 +22,8 @@
       <%= link_to root_path, class: "brand" do %><%= image_tag "logo.svg", alt: "", class: "brand-mark", width: 26, height: 26 %> Galedra<% end %>
       <%= render "layouts/nav" %>
       <div class="account">
+        <%# Open reports, at the right of the bar, for the person whose job they are. %>
+        <% if admin? %><%= render "layouts/report_badge" %><% end %>
         <% if authenticated? %>
           <%= link_to Current.user.email_address, account_path, class: "muted", title: "Your account" %>
           <%= button_to "Sign out", session_path, method: :delete, class: "secondary small", form_class: "inline" %>

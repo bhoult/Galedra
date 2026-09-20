@@ -24,6 +24,30 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     expect(second).not_to be_admin
   end
 
+  # The queue an admin is responsible for, in the bar they are already looking
+  # at (owner request, 2026-09-20).
+  it "badges open bug reports and feature requests for an admin, and for nobody else" do
+    admin = sign_up("first@example.com")
+    BugReport.record!(happened: "The share card renders blank", expected: "an image")
+    BugReport.record!(happened: "The outline page is truncated", expected: "the whole tree")
+    answered = BugReport.record!(happened: "Something else", expected: "something").first
+    answered.answer!(body: "Fixed.", user: admin)
+    raw = Assistants::Connect.call(user: admin, name: "Claude", provider: "anthropic").last
+    FeatureRequest.record!(asked: "list claims by source", needed: "a filter", token: AssistantToken.find_by_token(raw))
+
+    get "/"
+    expect(response.body).to match(%r{<span class="report-badge"})
+    expect(response.body).to include("2 bug reports waiting on a maintainer")
+    expect(response.body).to include("1 feature request waiting on a maintainer"), "answered is the filer's turn, not ours"
+    expect(response.body).to include(bug_reports_path(status: "OPEN"))
+
+    delete "/session"
+    other = sign_up("second@example.com")
+    get "/"
+    expect(response.body).not_to include("report-badge")
+    expect(other).not_to be_admin
+  end
+
   it "shows the Admin menu only to admins and refuses the page to others" do
     admin = sign_up("first@example.com")
     get "/"
