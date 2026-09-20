@@ -22,6 +22,53 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
 
   def errors_of(data) = data["errors"].map { |e| e["code"] }
 
+  def statements
+    n = 0
+    counter = ->(*, payload) { n += 1 unless payload[:name].to_s == "SCHEMA" || payload[:sql].to_s.start_with?("BEGIN", "COMMIT") }
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { yield }
+    n
+  end
+
+  # list_tasks asked every task for its open slots — two queries — then asked the
+  # whole set again to total them, then a Section per task for the outline
+  # grouping. Over ~840 tasks that was 3,714 statements to return five tasks and
+  # some counts (docs/experiments/2026-09-20-second-connector-run.md, finding 4).
+  # The queue handed an assistant six unsettleable claims in a row. It noticed,
+  # filed a feature request, and was handed two more, because next_task filtered
+  # on task type and domain and neither can express "a claim whose state can
+  # change" (docs/experiments/2026-09-20-second-connector-run.md, finding 2).
+  it "can be asked for claims a model actually scores" do
+    forecast = create_claim(curator, "Yang-Mills will be the next problem to fall.", type: "FORECAST")
+    checkable, = curated_claim("Remote work raised measured output in the trial.")
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: forecast)
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: checkable)
+
+    data, err = call_tool("next_task", { "settleable" => true })
+    expect(err).to be(false)
+    expect(data["available"]).to be(true)
+    expect(data.dig("target", "claim_id")).to eq(checkable.id), "a FORECAST can never leave NOT_APPLICABLE"
+
+    schema = Mcp::Server::TOOLS.find { |t| t[:name] == "next_task" }[:inputSchema]
+    expect(schema[:properties]).to have_key(:settleable), "a lever an assistant cannot discover is not a lever"
+  end
+
+  it "lists tasks in a bounded number of statements, and suggests only work this caller can take" do
+    claim, = curated_claim
+    12.times { |i| Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: create_claim(curator, "Spare claim #{i} about productivity.", type: "CAUSAL")) }
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+
+    used = statements { call_tool("list_tasks", { "limit" => 5 }) }
+    expect(used).to be <= 25, "#{used} statements for a listing; it was ~3 per task plus a Section each"
+
+    # Lease one, and it should stop being suggested to the caller holding it,
+    # the way Tasks::Lease.candidates already refuses to hand it over twice.
+    leased, err = call_tool("next_task", {})
+    expect(err).to be(false)
+    data, = call_tool("list_tasks", { "limit" => 20 })
+    expect(data["next"].map { |t| t["task_id"] }).not_to include(leased["task_id"])
+    expect(data["open"]).to be_positive, "the totals stay objective: they describe the outline, not the caller"
+  end
+
   # A curator's claim with one direct support: a claim someone else recorded.
   def curated_claim(text = "Remote work raises productivity.")
     source = create_source(curator, content: "Employees who worked remotely reported higher productivity in the survey.")

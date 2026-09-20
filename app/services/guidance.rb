@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.3"
+  VERSION = "2026-09-20.4"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -103,6 +103,8 @@ module Guidance
          "Someone watching a long run cannot tell steady work from a stall, and silence reads as the second. " \
          "If the kind of task you are on stops being useful — the checks keep coming back CANNOT_DETERMINE, or the passage " \
          "can only ever establish that a quotation is faithful — say so and switch to a kind that can move something. " \
+         "When the claims themselves are the problem, pass settleable to next_task: a forecast or an opinion finishes as " \
+         "NOT_APPLICABLE whatever you find, so no evidence can move it, and settleable asks only for claims a model scores. " \
          "Filter next_task by types or domains, or search for what would count against a claim and record it with " \
          "add_evidence, which is not a task and is never blocked. Doing the useful work is the instruction; the task queue " \
          "is only where most of it happens to be. " \

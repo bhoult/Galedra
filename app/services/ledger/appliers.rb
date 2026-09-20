@@ -137,8 +137,20 @@ module Ledger
       def current_claim!(payload, key, created_ids: [])
         claim = live!(Claim, payload, key)
         reject("CLAIM_NOT_ACCEPTED", path(key), "claim is a proposal awaiting acceptance by a different principal") unless claim.accepted? || created_ids.include?(claim.id)
-        reject("CLAIM_NOT_CURRENT", path(key), "claim is #{claim.status.downcase}") unless claim.status == "ACTIVE"
+        reject("CLAIM_NOT_CURRENT", path(key), not_current_reason(claim)) unless claim.status == "ACTIVE"
         claim
+      end
+
+      # Where the claim went, not merely that it went. Naming only the status
+      # leaves a caller knowing it must retry and not against what, so it either
+      # guesses or gives up; both were observed
+      # (docs/experiments/2026-09-20-second-connector-run.md).
+      def not_current_reason(claim)
+        case claim.status
+        when "MERGED" then "claim is merged#{" into #{claim.merged_into_id}" if claim.merged_into_id}"
+        when "SUPERSEDED" then "claim is superseded#{" by #{claim.superseded_by_id}" if claim.superseded_by_id}"
+        else "claim is #{claim.status.downcase}"
+        end
       end
     end
 

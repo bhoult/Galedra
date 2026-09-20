@@ -65,6 +65,23 @@ RSpec.describe "MCP, modern era (Stage 32)", type: :request do
       expect(body["result"]["resultType"]).to eq("complete")
       expect(body["result"]["isError"]).to be_falsey
     end
+
+    # A refusal is a completed call whose tool reported an error, so it carries
+    # resultType like any other result. It did not: only the success path went
+    # through `decorate`, so every Ledger::Rejected and every DAILY_CAP reached a
+    # modern client as a malformed frame and the reason never arrived. The test
+    # above passed throughout, because its second line asserts isError is falsey
+    # — it pinned the happy path and said in the same breath that this one was
+    # out of scope (docs/experiments/2026-09-20-second-connector-run.md).
+    it "sends a refusal as a well-formed result carrying its reason" do
+      body = modern("tools/call", { "name" => "get_claim", "arguments" => { "claim_id" => SecureRandom.uuid } })
+
+      expect(body["result"]["isError"]).to be(true)
+      expect(body["result"]["resultType"]).to eq("complete"), "a refused call still completed"
+      expect(body["result"].dig("_meta", Mcp::Era::SERVER_INFO_KEY, "name")).to eq("galedra")
+      expect(body["result"].dig("structuredContent", "errors").first).to include("code" => "NOT_FOUND")
+      expect(body["result"].dig("content", 0, "text")).to include("NOT_FOUND", "no such claim")
+    end
   end
 
   describe "acceptance 3: server/discover" do

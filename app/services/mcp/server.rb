@@ -87,7 +87,8 @@ module Mcp
         outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
       { name: "next_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Lease the next open task for this assistant, highest priority first. You may work the routine checks on your own principal's claims — that is how a person finishes their own investigation without waiting for a volunteer — and they are recorded as self-performed and never raise the claim's review coverage, which is the figure meaning someone else has looked. Not handed to you: an audit, a source independence check, an inference review, or a blind check your own principal asked for with open_task. Returns the task in plain form with answer_with saying exactly what to send to submit_task, and the lease expiry. Do the reading yourself. Optional filters: types, domains, claim_id. Needs a connected (non-anonymous) assistant.",
-        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" }, section_id: { type: "string", description: "Only work under this outline or section (from an outline URL the person gave)" } } },
+        inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, claim_id: { type: "string" }, section_id: { type: "string", description: "Only work under this outline or section (from an outline URL the person gave)" },
+                                                     settleable: { type: "boolean", description: "Only claims a model scores. Forecasts, opinions and the like finish as NOT_APPLICABLE whatever you find, so evidence cannot move them; set this when the checks you are getting cannot change anything." } } },
         outputSchema: { type: "object", properties: { available: { type: "boolean" }, reason: { type: "string" }, task_id: { type: "string" }, task_type: { type: "string" }, domain: { type: "string" }, objective: { type: "string" }, target: { type: "object" }, context: { type: "object" }, outcomes: { type: "array", items: { type: "string" } }, constraints: { type: "object", description: "What the result must satisfy: allowed_ops, max_ops, require_exact_location.", properties: { allowed_ops: { type: "array", items: { type: "string" } }, max_ops: { type: "integer" }, require_exact_location: { type: "boolean" } } }, lease_expires_at: { type: "string" }, task_url: { type: "string" }, answer_with: { type: "string" }, rules: { type: "string" } } } },
       { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim, and excerpt: \"packet\" for the task's own passage where it has one (EVIDENCE_VERIFICATION does; QUALIFIER_CHECK and OPPOSING_EVIDENCE_SEARCH do not, so cite a source_location_id from the claim's counted evidence instead). An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
@@ -103,7 +104,9 @@ module Mcp
                                                        inferences: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, conclusion: { type: "string", description: "a claim handle, id, or \"target\" for an inference review" }, premises: { type: "array", items: { type: "object", properties: { claim: { type: "string" }, polarity: { type: "string", enum: InferencePremise::POLARITIES } }, required: %w[claim] } }, type: { type: "string", enum: Inference::TYPES }, rule: { type: "string" }, strength: { type: "string", enum: Inference::STRENGTHS } }, required: %w[handle conclusion premises] } },
                                                        supersede: { type: "array", items: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction] } } } } },
                        required: %w[task_id outcome] },
-        outputSchema: { type: "object", properties: { task_id: { type: "string" }, contribution_id: { type: "string" }, accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, items: { type: "integer" }, task_url: { type: "string" }, claim: { type: "object" } } } },
+        outputSchema: { type: "object", properties: { task_id: { type: "string" }, contribution_id: { type: "string" }, accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, items: { type: "integer" }, task_url: { type: "string" }, claim: { type: "object" },
+                                                      self_performed: { type: "boolean", description: "True when you checked your own principal's work. Recorded as such, and it never raises review_coverage." },
+                                                      review_coverage: { type: "string", description: "The claim's review coverage after this result: how much of the checking was done by someone else. Self-performed checks leave it where it was." } } } },
       { name: "release_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Give back a task you leased and will not finish, so someone else can take it.",
         inputSchema: { type: "object", properties: { task_id: { type: "string" } }, required: [ "task_id" ] },
@@ -209,9 +212,9 @@ module Mcp
       end
       [ 200, { jsonrpc: "2.0", id: id, result: decorate(result, era) } ]
     rescue Ledger::Rejected => e
-      [ 200, tool_error(id, e.errors) ]
+      [ 200, tool_error(id, e.errors, era) ]
     rescue Assistants::CapReached => e
-      [ 200, tool_error(id, [ { code: "DAILY_CAP", path: "$", detail: e.message } ]) ]
+      [ 200, tool_error(id, [ { code: "DAILY_CAP", path: "$", detail: e.message } ], era) ]
     rescue ArgumentError => e
       [ 200, error(id, INVALID_PARAMS, e.message) ]
     end
@@ -382,9 +385,17 @@ module Mcp
         pending_claims: tree[:pending], tree: outline_node(tree), open_tasks: Task.where(section_id: Tasks::Lease.subtree_ids(section.id), status: %w[OPEN LEASED]).count, note: Sections::Tree::NOTE }
     end
 
+    # `merged_into` because a merged claim keeps its placement: the outline listed
+    # it as ordinary open work while every write to it was refused, so a caller
+    # reading the outline was led to ids that cannot accept writes
+    # (docs/experiments/2026-09-20-second-connector-run.md, finding 3). Marked
+    # rather than omitted: dropping it would change the 06 §6 counts line, and
+    # the claim is still part of the outline's history. `merged_into_id` is a
+    # column on the already-loaded row, so this costs no query.
     def outline_node(node)
       { id: node[:section].id, heading: node[:section].heading, counts_line: Sections::Tree.counts_line(node[:counts]),
-        claims: node[:claims].map { |c| { id: c.id, text: c.canonical_text, state: node[:states][c.id], url: url_for(c) } },
+        claims: node[:claims].map { |c| { id: c.id, text: c.canonical_text, state: node[:states][c.id], url: url_for(c),
+                                          merged_into: c.merged_into_id }.compact },
         children: node[:children].map { |ch| outline_node(ch) } }
     end
 
@@ -533,7 +544,20 @@ module Mcp
       ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
       keys = args.is_a?(Hash) ? args.keys.map(&:to_s).sort.join(",") : "-"
       who = @token.nil? ? "none" : (@token.anonymous? ? "anonymous" : "named")
-      Rails.logger.info("mcp_call tool=#{name} outcome=#{outcome}#{" codes=#{codes.join('|')}" if codes.any?}#{" detail=#{detail.to_s[0, 80].inspect}" if detail} ms=#{ms} token=#{who} read_only=#{@read_only} args=#{keys}")
+      Rails.logger.info("mcp_call tool=#{name} outcome=#{outcome}#{" codes=#{codes.join('|')}" if codes.any?}#{" detail=#{detail.to_s[0, 80].inspect}" if detail} ms=#{ms} token=#{who} read_only=#{@read_only} args=#{keys}#{refused_ids(args, outcome)}")
+    end
+
+    # On a refusal, the id-shaped arguments and their values, not only their
+    # names. A caller mistyped one character of a claim id and this line could
+    # say only that `claim_id` was present, so the fault could not be diagnosed
+    # from the server side at all
+    # (docs/experiments/2026-09-20-second-connector-run.md, finding 8). An id is
+    # not content: the rule above holds, and no claim text or excerpt is logged.
+    def refused_ids(args, outcome)
+      return "" unless outcome.to_s == "refused" && args.is_a?(Hash)
+
+      pairs = args.select { |k, v| k.to_s.end_with?("_id") && v.is_a?(String) && v.length <= 64 }
+      pairs.empty? ? "" : " #{pairs.map { |k, v| "#{k}=#{v}" }.join(' ')}"
     end
 
     def outcome_of(name, data)
@@ -550,8 +574,18 @@ module Mcp
       scope = scope.where(task_type: Array(args["types"]).map(&:to_s)) if args["types"].present?
       scope = scope.where(domain: Array(args["domains"]).map(&:to_s)) if args["domains"].present?
       scope = scope.where(section_id: Tasks::Lease.subtree_ids(args["section_id"].to_s)) if args["section_id"].present?
-      open = scope.order(priority: :desc, created_at: :asc).to_a.select { |t| t.open_slots.positive? }
-      top = open.first(args.fetch("limit", 5).to_i.clamp(1, 20)).map do |t|
+      all = scope.order(priority: :desc, created_at: :asc).to_a
+      slots = Task.open_slots_for(all)
+      open = all.select { |t| slots.fetch(t.id, 0).positive? }
+      # `next` suggests what to work, so it leaves out what this caller cannot
+      # take. Tasks::Lease.candidates already skips tasks this contributor or
+      # principal has leased or submitted; this listing did not, so a returning
+      # assistant was shown its own finished work at the top of the queue
+      # (docs/experiments/2026-09-20-second-connector-run.md, finding 8). The
+      # `open` and `answers_wanted` totals stay objective: they describe the
+      # outline, not the caller.
+      mine = taken_task_ids
+      top = open.reject { |t| mine.include?(t.id) }.first(args.fetch("limit", 5).to_i.clamp(1, 20)).map do |t|
         { task_id: t.id, task_type: t.task_type, domain: t.domain, priority: t.priority.to_s("F"),
           target: t.packet["target"].slice("claim_id", "claim_text", "claim_type", "source_id", "title"), url: "#{@base_url}/tasks/#{t.id}" }
       end
@@ -560,11 +594,33 @@ module Mcp
       # move. An assistant submitted 32 results, saw "open" unchanged, and filed
       # it as a bug — correctly, in the sense that the number it was given could
       # not show the work it had done. This one falls by one per submission.
-      { open: open.size, answers_wanted: open.sum(&:open_slots),
+      { open: open.size, answers_wanted: open.sum { |t| slots.fetch(t.id, 0) },
         by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
         content_reviews_pending: ContentReview.pending.count, affiliation_reviews_pending: AffiliationRequest.pending.distinct.count(:normalized),
-        by_outline: open.filter_map { |t| t.section_id && Section.find_by(id: t.section_id)&.root_id }.tally.map { |root_id, n| { root_id: root_id, heading: Section.find(root_id).heading, open: n, url: "#{@base_url}/sections/#{root_id}" } }.sort_by { |o| -o[:open] }.first(3),
+        by_outline: by_outline(open),
         how: "Say \"work N open tasks in Galedra\": the assistant then calls next_task and submit_task N times. Leasing needs a connected, non-anonymous assistant." }
+    end
+
+    # Two queries for the whole listing rather than a Section.find_by per task
+    # and a Section.find per group.
+    def by_outline(open)
+      roots = Section.where(id: open.filter_map(&:section_id).uniq).pluck(:id, :root_id).to_h
+      tally = open.filter_map { |t| t.section_id && roots[t.section_id] }.tally
+      headings = Section.where(id: tally.keys).pluck(:id, :heading).to_h
+      tally.map { |root_id, n| { root_id: root_id, heading: headings[root_id], open: n, url: "#{@base_url}/sections/#{root_id}" } }
+           .sort_by { |o| -o[:open] }.first(3)
+    end
+
+    # Tasks this caller already holds or has answered. Empty without a token,
+    # which is how an anonymous listing behaves today.
+    def taken_task_ids
+      agent = @token&.agent
+      return Set.new if agent.nil?
+
+      principal = agent.agent? ? @token.delegation&.principal : agent
+      TaskAssignment.where(status: %w[LEASED SUBMITTED])
+                    .where("contributor_id = :c OR principal_contributor_id = :p", c: agent.id, p: principal&.id)
+                    .pluck(:task_id).to_set
     end
 
     def tool_next_task(args)
@@ -572,7 +628,8 @@ module Mcp
       types = Array(args["types"]).map(&:to_s)
       domains = Array(args["domains"]).map(&:to_s)
       target_id = args["claim_id"].presence && find_claim("claim_id" => args["claim_id"]).id
-      assignment = Tasks::Lease.next(contributor: @token.agent, delegation: @token.delegation, types: types, domains: domains, target_id: target_id, section_id: args["section_id"].presence)
+      assignment = Tasks::Lease.next(contributor: @token.agent, delegation: @token.delegation, types: types, domains: domains, target_id: target_id,
+                                     section_id: args["section_id"].presence, settleable: args["settleable"].present?)
       return { available: false, reason: nothing_available(types, domains, target_id) } if assignment.nil?
 
       { available: true }.merge(Tasks::Answer.present(assignment.task, assignment, base_url: @base_url))
@@ -583,10 +640,26 @@ module Mcp
       task = find_task(args)
       result = Tasks::Answer.submit(@token, task, outcome: args["outcome"], answer: args["answer"])
       accepted = result.acceptance.present?
+      # Whether this was the assistant's own work, said on the result rather than
+      # only in a tool description read once at connection. Thirteen self-checks
+      # in one run were each answered "Counted now, and open to audit." while
+      # review coverage stayed at 0.00, and nothing in the reply said why
+      # (docs/experiments/2026-09-20-second-connector-run.md, finding 8).
+      self_performed = TaskAssignment.where(result_contribution_id: result.contribution.id, self_performed: true).exists?
+      note = accepted ? "Counted now, and open to audit." : "Recorded as a proposal; it counts once a different principal accepts it."
+      note += " Recorded as self-performed, so it does not raise this claim's review coverage: that needs a different principal." if self_performed
       out = { task_id: task.id, contribution_id: result.contribution.id, accepted: accepted, status: accepted ? "ACCEPTED" : result.contribution.current_status,
               items: result.contribution.payload["ops"].size, task_url: "#{@base_url}/tasks/#{task.id}",
-              note: accepted ? "Counted now, and open to audit." : "Recorded as a proposal; it counts once a different principal accepts it." }
-      out[:claim] = brief(Claim.find(task.target_id), Contribution.maximum(:seq), Scoring::Registry.default_model) if task.target_type == "CLAIM"
+              self_performed: self_performed, note: note }
+      if task.target_type == "CLAIM"
+        seq = Contribution.maximum(:seq)
+        model = Scoring::Registry.default_model
+        claim = Claim.find(task.target_id)
+        out[:claim] = brief(claim, seq, model)
+        # The figure the work is meant to move, so "did that help?" is answerable
+        # from the reply instead of by inference across calls.
+        out[:review_coverage] = Scoring::Score.call(claim, seq, model).review_coverage
+      end
       out
     end
 
@@ -731,10 +804,18 @@ module Mcp
       { jsonrpc: "2.0", id: id, error: { code: code, message: message } }
     end
 
-    def tool_error(id, errors)
+    # A refused call is a completed call whose tool reported an error, so it
+    # carries resultType like any other result. It did not, because only the
+    # success path went through `decorate`, and a modern client rejected every
+    # refusal as a malformed frame rather than showing the reason. An assistant
+    # then mistyped one character of a claim id, never saw "no such claim", and
+    # spent two bug reports concluding the record was corrupt
+    # (docs/experiments/2026-09-20-second-connector-run.md, finding 1).
+    def tool_error(id, errors, era = Era.legacy)
       hint = "If this stopped you doing what the person asked, call request_feature with what you needed."
-      { jsonrpc: "2.0", id: id, result: { content: [ { type: "text", text: (errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" } + [ hint ]).join("\n") } ],
-                                          structuredContent: { errors: errors, hint: hint }, isError: true } }
+      result = { content: [ { type: "text", text: (errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" } + [ hint ]).join("\n") } ],
+                 structuredContent: { errors: errors, hint: hint }, isError: true }
+      { jsonrpc: "2.0", id: id, result: decorate(result, era) }
     end
   end
 end

@@ -27,13 +27,13 @@ module Tasks
 
     module_function
 
-    def next(contributor:, delegation:, types: [], domains: [], target_id: nil, section_id: nil)
+    def next(contributor:, delegation:, types: [], domains: [], target_id: nil, section_id: nil, settleable: false)
       principal = contributor.agent? ? delegation&.principal : contributor
       reject("DELEGATION_REQUIRED", "$.delegation_id", "agents lease under a delegation") if contributor.agent? && delegation.nil?
       reject("LEASE_LIMIT", "$", "hourly task limit reached for this delegation") if delegation && over_hourly_limit?(contributor, delegation)
 
       expire_stale!
-      candidates(contributor, principal, delegation, types, domains, target_id, section_id).each do |task|
+      candidates(contributor, principal, delegation, types, domains, target_id, section_id, settleable).each do |task|
         next if task.open_slots <= 0
         # Cancelled where it is found rather than swept in a batch: the sweep
         # would load every open task on every lease, and this corpus already has
@@ -67,10 +67,19 @@ module Tasks
       (attempts = (attempts || 0) + 1) < 3 ? retry : nil
     end
 
-    def candidates(contributor, principal, delegation, types, domains, target_id = nil, section_id = nil)
+    # `settleable` restricts to claims a model actually scores. A claim whose
+    # type is not in scored_types is NOT_APPLICABLE by construction, so a
+    # qualifier check or an opposing-evidence search on it has its outcome fixed
+    # before the work starts. An assistant could see this happening and had no
+    # way to ask for anything else: next_task filtered on task type and domain,
+    # and neither can express "a claim whose state can change". It reported the
+    # problem and was handed two more
+    # (docs/experiments/2026-09-20-second-connector-run.md, finding 2).
+    def candidates(contributor, principal, delegation, types, domains, target_id = nil, section_id = nil, settleable = false)
       scope = Task.where(status: %w[OPEN LEASED]).order(priority: :desc, created_at: :asc)
       scope = scope.where(target_id: target_id) if target_id
       scope = scope.where(section_id: subtree_ids(section_id)) if section_id
+      scope = scope.where(target_type: "CLAIM", target_id: scoreable_claim_ids) if settleable
       allowed_types = delegation ? Array(delegation.permissions["allowed_task_types"]) : Types::ALL
       allowed_domains = delegation ? Array(delegation.permissions["domains"]) : Audits::Policy.domains
       types = types.presence || allowed_types
@@ -78,6 +87,15 @@ module Tasks
       scope = scope.where(task_type: types & allowed_types, domain: domains & allowed_domains)
       taken = TaskAssignment.where(status: %w[LEASED SUBMITTED]).where("contributor_id = :c OR principal_contributor_id = :p", c: contributor.id, p: principal.id).select(:task_id)
       scope.where.not(id: taken).limit(50)
+    end
+
+    # The claim types the default model scores. Anything else finishes as
+    # NOT_APPLICABLE with reason NOT_SCORED_BY_MODEL, carrying no probability
+    # (Invariant 5), so no evidence can move it.
+    def scoreable_claim_ids
+      model = Scoring::Registry.default_model
+      types = model&.config&.fetch("scored_types", nil) || Claim::TYPES
+      Claim.where(claim_type: types).select(:id)
     end
 
     # Stage 21: a section means its whole subtree.
