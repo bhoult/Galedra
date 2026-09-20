@@ -490,31 +490,79 @@ somebody.
 8. A `NO_FURTHER_WORK` settlement carrying at least one `INVESTIGATE` vote opens exactly one
    task, whose packet carries the dissenting turns as context. Unopposed, it opens none. The
    spec's case is the 3–2 sequence: two closes, two opens, one close.
-9. A settled thread shows its split — `3–2` where there was dissent, `3–0` where there was
+9. A `NO_FURTHER_WORK` cancellation is durable: after it, the path that opens verification
+   tasks does not re-open one on that determination. This pins an incidental property of
+   `Tasks::OpenVerification` — its existence check ignores status — on which every thread
+   settlement silently depends.
+10. A settled thread shows its split — `3–2` where there was dissent, `3–0` where there was
    not — and re-filing the same complaint collapses onto a settled thread with a count rather
    than opening a second.
-10. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
+11. No file under `app/services/scoring/` mentions threads; a claim's probability, state and
    trace at a given seq are byte-identical before and after a thread settles, under either
    outcome. This is the acceptance the stage exists to satisfy.
-11. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
+12. `bin/rails ledger:replay` produces identical row and snapshot digests on a database with
    threads and one without: nothing versioned, nothing replayed.
-12. The share card and share line for a claim with an open thread are byte-identical to the
+13. The share card and share line for a claim with an open thread are byte-identical to the
    same claim without.
-13. Thread activity produces no `ReputationEvent`.
-14. A thread turn is queued for content review on creation, whether a person or an assistant
+14. Thread activity produces no `ReputationEvent`.
+15. A thread turn is queued for content review on creation, whether a person or an assistant
    wrote it.
-15. A person's turn and that person's assistant's turn count as **one** principal toward the
+16. A person's turn and that person's assistant's turn count as **one** principal toward the
    three. The spec's case is a person agreeing and then their own assistant agreeing, which
    must leave the thread one principal short.
-16. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
+17. `/threads` lists a thread on each of the five kinds of subject, and each row links to the
    object it hangs on. An anonymous visitor sees the index and the threads, and is offered no
    reply form.
-17. The same complaint filed twice on one determination collapses onto one thread with a
+18. The same complaint filed twice on one determination collapses onto one thread with a
    count rather than opening a second, and `FilingCap` refuses an assistant over its daily
    allowance with a message naming what to do next.
-18. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
+19. A claim carrying an open thread says so in `get_claim`'s result and in the packet of a
    task on it, so an assistant meets the thread where it is working rather than only in
    guidance. `spec/lib/skills_spec.rb` passes unchanged: none of this reached the skill.
+
+## What this does not yet answer
+
+Written down rather than discovered during the build. Some of these want a decision and some
+only want doing; each says which.
+
+- **A quarantined or taken-down determination, and its threads. Needs a decision.** Quarantine
+  withholds content pending review and leaves a public stub (Invariant 12). A thread on that
+  determination quoting the withheld passage defeats it, and threads are exactly where someone
+  would quote it. The conservative reading is that a thread on a quarantined subject is hidden
+  with it and returns when it returns, with the stub saying a thread exists — but hiding
+  discussion is the kind of thing this project should decide deliberately, not by defaulting.
+- **A redacted turn that carried a vote. Needs a decision.** Content review redacts offensive
+  text and keeps the original with admins. If that turn was one of the three that settled a
+  thread, does the vote survive its words? Redacting the text and keeping the verdict leaves a
+  settlement resting on a reason nobody can read; dropping the vote unsettles a thread and may
+  un-cancel tasks. Neither is obviously right.
+- **The determination changing underneath the thread. Needs doing.** Claims merge, links are
+  superseded, evidence is invalidated. `Tasks::Lease` cancels a task whose target stopped
+  being current; a thread is history rather than work, so it should stay and say what
+  happened — *this hangs on a claim since merged into …* — and stop being offered by
+  `next_thread`. The rule is clear; it is simply not written into the deliverables yet.
+- **`NO_FURTHER_WORK` stays cancelled only by accident. Needs pinning.**
+  `Tasks::OpenVerification` skips a claim that already has a task of that type by asking
+  `Task.where(task_type:, target_type:, target_id:).exists?` — with no status filter, so a
+  CANCELLED task blocks re-creation. That is what makes the cancellation durable, and it is an
+  incidental property of another service. Narrowing that check to `OPEN`/`LEASED` would look
+  like a tidy-up and would silently make every thread settlement temporary. It needs an
+  acceptance of its own.
+- **Threads do not travel, and should say so. Needs doing.** They are node-local and carry no
+  version, so they are outside federation (Stage 23) and outside export and import (Stage 28)
+  by construction. Both of those stages should state it rather than leave the next reader to
+  infer it from the absence of a `seq`.
+- **`held` belongs to the register alone.** The shared concern carries a method one consumer
+  uses: a thread settles by consensus and never waits on one party, so there is nothing to
+  hold. That is acceptable — it is the seam doing its job — but it is the first place the
+  shared concern will be tempted to grow a second branch, and it should be watched.
+- **Whether threads join the nav badge. Small, and the owner's call.** The badge counts open
+  bug reports and feature requests for an admin. Threads needing a third principal are the
+  same kind of fact, and an admin is the one who can settle a stuck one by hand.
+- **Whether `/api/v1` gets thread endpoints. Needs a decision.** Every route under `/api/v1`
+  must be described in `Api::Openapi`, so this is a deliberate yes or no rather than a
+  drift: MCP and the web pages may be enough, and adding REST means adding it to the
+  document in the same commit.
 
 ## The Constitutional Test
 
