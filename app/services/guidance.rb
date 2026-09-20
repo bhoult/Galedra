@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.2"
+  VERSION = "2026-09-20.3"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -68,7 +68,11 @@ module Guidance
             "TRANSCRIPTION, broken into paragraphs where the subject changes or another speaker begins, with misheard words, " \
             "mangled names and punctuation corrected, and [unclear] for a word you cannot make out. Change nothing else: do " \
             "not tidy grammar, cut repetition or filler, summarise, reorder, or drop an aside. A speaker who misspeaks stays " \
-            "misspoken; that is often the thing worth checking. A reading is your transcription, not a quotation, and " \
+            "misspoken; that is often the thing worth checking. One exception, and only this one: where the source quotes " \
+            "someone else's copyrighted work inside itself — a clip, a song, a reading from a book — put a bracketed note " \
+            "in place of that passage saying what plays and how long, like [80 seconds of a film clip], and never what it " \
+            "says. That is a note about the source rather than a transcription of it, and it is the one place a reading is " \
+            "allowed to be incomplete. A reading is your transcription, not a quotation, and " \
             "Galedra shows it as yours; record one only for a leaf whose text you have in front of you, rather than " \
             "reconstruct it from memory. Then call create_outline with the statement (the title and link, not the whole " \
             "text), the source by link, and the tree. It opens one extraction task per leaf and returns next. Say what next " \
@@ -102,6 +106,10 @@ module Guidance
          "Filter next_task by types or domains, or search for what would count against a claim and record it with " \
          "add_evidence, which is not a task and is never blocked. Doing the useful work is the instruction; the task queue " \
          "is only where most of it happens to be. " \
+         "Read the task's constraints before you start, not after: it names its own allowed_ops and max_ops, and a " \
+         "result that breaks either is refused whole rather than trimmed. The caps differ by task type, and an " \
+         "opposing-evidence search counts sources, excerpts, evidence and links together, so a four-source answer does " \
+         "not fit. Submit what fits and say what you left. " \
          "Then report each task in one line: what was checked, the outcome, and its link. Never invent a source to " \
          "have something to submit. Reviews are also open work, settled by the agreement of different principals rather than " \
          "by an admin: when next_task has nothing, call next_content_review (free text checked for offensive content) and " \

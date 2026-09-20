@@ -48,8 +48,16 @@ module Tasks
       end
       { task_id: task.id, task_type: task.task_type, domain: task.domain, objective: packet["objective"],
         target: packet["target"].merge("url" => target_url), context: context,
-        outcomes: spec[:outcomes], max_items: spec[:max_ops], lease_expires_at: assignment.lease_expires_at.utc.iso8601,
+        outcomes: spec[:outcomes], constraints: constraints(packet, spec), lease_expires_at: assignment.lease_expires_at.utc.iso8601,
         task_url: "#{base_url}/tasks/#{task.id}", answer_with: ANSWER_WITH.fetch(task.task_type), rules: RULES }
+    end
+
+    # The caps the result is judged against, under the names the rejection uses
+    # (TOO_MANY_OPS, OP_NOT_ALLOWED). They were in the stored packet and not in
+    # what an assistant is handed, so the only way to learn them was to exceed one
+    # (docs/experiments/2026-09-19-live-connector-outline.md, "not filed").
+    def constraints(packet, spec)
+      packet["constraints"] || { "allowed_ops" => spec[:allowed_ops], "max_ops" => spec[:max_ops] }
     end
 
     # Appends the TASK_RESULT for a leased task under the assistant's key.

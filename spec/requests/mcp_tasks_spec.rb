@@ -49,6 +49,18 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["answer_with"]).to include("NONE_FOUND")
     expect(data["outcomes"]).to include("FOUND")
 
+    # The caps were in the stored packet and not in what the assistant is handed,
+    # so the only way to learn one was to exceed it and be refused. They are named
+    # here the way the rejection names them: TOO_MANY_OPS reads max_ops, and
+    # OP_NOT_ALLOWED reads allowed_ops.
+    expect(data["constraints"]).to include(
+      "max_ops" => Tasks::Types.spec("OPPOSING_EVIDENCE_SEARCH")[:max_ops],
+      "allowed_ops" => Tasks::Types.spec("OPPOSING_EVIDENCE_SEARCH")[:allowed_ops]
+    )
+    expect(data).not_to have_key("max_items"), "one number, one name (canonical vocabulary)"
+    schema = Mcp::Server::TOOLS.find { |t| t[:name] == "next_task" }[:outputSchema]
+    expect(schema[:properties]).to have_key(:constraints), "a field an assistant must read cannot be undeclared"
+
     answer = { "sources" => [ a_source ], "excerpts" => [ { "handle" => "x", "source" => "s", "text" => "Remote workers reported lower productivity." } ],
                "evidence" => [ { "handle" => "e", "excerpt" => "x", "statement" => "The study reports lower productivity for remote workers." } ],
                "links" => [ { "evidence" => "e", "claim" => "target", "direction" => "CONTRADICT", "strength" => "MODERATE", "steps" => 1 } ] }
