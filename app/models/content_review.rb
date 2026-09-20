@@ -58,8 +58,19 @@ class ContentReview < ApplicationRecord
     raise Ledger::Rejected.new([ { code: "NOT_AUTHORIZED", path: "$", detail: "content review needs a connected, non-anonymous assistant" } ]) if token.nil? || token.anonymous?
     raise Ledger::Rejected.new([ { code: "RATE_LIMITED", path: "$", detail: "at most #{DAILY_CAP} reviews a day for one assistant" } ]) if ReviewVerdict.where(subject_type: name, assistant_token_id: token.id).where("created_at >= ?", Time.current.beginning_of_day).count >= DAILY_CAP
 
+    available_for(token).order(:created_at).first
+  end
+
+  # What this principal may actually review: not its own text, and nothing it has
+  # already voted on. `pending` counts everyone's, which is a true number and a
+  # useless one to a caller — list_tasks reported sixty waiting while
+  # next_content_review said none awaited, because all sixty were that
+  # assistant's own words (reported in 01a0c085).
+  def self.available_for(token)
+    return none if token.nil? || token.anonymous?
+
     voted = ReviewVerdict.where(subject_type: name, principal_contributor_id: token.principal_contributor_id).pluck(:subject_key)
-    pending.where.not(id: voted).where("author_principal_id IS NULL OR author_principal_id <> ?", token.principal_contributor_id).order(:created_at).first
+    pending.where.not(id: voted).where("author_principal_id IS NULL OR author_principal_id <> ?", token.principal_contributor_id)
   end
 
   # One principal's verdict; settles the item when consensus is reached.

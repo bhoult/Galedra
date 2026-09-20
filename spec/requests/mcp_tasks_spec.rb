@@ -60,6 +60,28 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(page["more"]).to be(true), "a caller must be able to tell there is another page"
   end
 
+  # list_tasks said sixty content reviews were waiting while next_content_review
+  # said none awaited, seconds apart. Both were right: all sixty were that
+  # assistant's own words, which it may not review (01a0c085).
+  it "separates reviews waiting from reviews this caller may take" do
+    call_tool("report_bug", { happened: "something to review", expected: "no crash" })
+    expect(ContentReview.pending.count).to be_positive
+
+    data, err = call_tool("list_tasks", {})
+    expect(err).to be(false), data.inspect
+    expect(data["content_reviews_pending"]).to eq(ContentReview.pending.count)
+    expect(data["content_reviews_for_you"]).to eq(0), "its own words are not reviewable by it"
+
+    mine, err = call_tool("next_content_review", {})
+    expect(err).to be(false)
+    expect(mine["available"]).to be(false), "and the two tools must not contradict each other"
+
+    # Somebody else's words are both counted and offered.
+    other = Assistants::Connect.call(user: User.create!(email_address: "reviewer@example.com", password: "correct horse battery staple"), name: "Other", provider: "anthropic").last
+    theirs, = call_tool("list_tasks", {}, other)
+    expect(theirs["content_reviews_for_you"]).to be_positive
+  end
+
   it "can be asked for claims a model actually scores" do
     forecast = create_claim(curator, "Yang-Mills will be the next problem to fall.", type: "FORECAST")
     checkable, = curated_claim("Remote work raised measured output in the trial.")

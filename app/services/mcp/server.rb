@@ -84,7 +84,10 @@ module Mcp
       { name: "list_tasks", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, section_id: { type: "string", description: "Only work under this outline or section" }, limit: { type: "integer", default: 5 } } },
-        outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" }, how: { type: "string" } } } },
+        outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" },
+                                                      content_reviews_pending: { type: "integer", description: "Awaiting review from anyone." },
+                                                      content_reviews_for_you: { type: "integer", description: "Of those, the ones you may take: never your own principal's words, never one you have already voted on." },
+                                                      how: { type: "string" } } } },
       { name: "list_claims", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "The claims under an outline or section, as id, text, type and state only, filtered and paginated. Use state: \"INSUFFICIENT_EVIDENCE\" with checkable: true to find the claims an outside source would actually move — the ones worth researching. get_outline returns whole trees and full text and will not fit a large outline in one reply; this will.",
         inputSchema: { type: "object", properties: { section_id: { type: "string", description: "An outline root or any section under it; its whole subtree is included" },
@@ -698,7 +701,14 @@ module Mcp
       # not show the work it had done. This one falls by one per submission.
       { open: open.size, answers_wanted: open.sum { |t| slots.fetch(t.id, 0) },
         by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
-        content_reviews_pending: ContentReview.pending.count, affiliation_reviews_pending: AffiliationRequest.pending.distinct.count(:normalized),
+        # Both numbers, because one of them alone misleads: the total said sixty
+        # were waiting while next_content_review said none awaited, and both were
+        # right — all sixty were that assistant's own words, which it may not
+        # review (01a0c085). `open` and `answers_wanted` keep the same split:
+        # the totals describe the queue, the "_for_you" figures describe you.
+        content_reviews_pending: ContentReview.pending.count,
+        content_reviews_for_you: ContentReview.available_for(@token).count,
+        affiliation_reviews_pending: AffiliationRequest.pending.distinct.count(:normalized),
         by_outline: by_outline(open),
         how: "Say \"work N open tasks in Galedra\": the assistant then calls next_task and submit_task N times. Leasing needs a connected, non-anonymous assistant." }
     end
