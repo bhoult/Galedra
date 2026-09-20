@@ -20,10 +20,15 @@ module Triage
 
   def index
     scope = triage_model.newest_first.with_status(params[:status])
-    @status = Triageable::STATUSES.include?(params[:status].to_s) ? params[:status].to_s : nil
+    @status = Triageable::VIEWS.include?(params[:status].to_s) ? params[:status].to_s : nil
     @page = params[:page].to_i.clamp(1, 500)
     @total = scope.count
+    # HELD is carved out of ANSWERED rather than added beside it, so the filter's
+    # numbers still sum to the whole and a held report is not counted twice.
     @counts = triage_model.group(:status).count
+    held = triage_model.held.count
+    @counts["HELD"] = held
+    @counts["ANSWERED"] = @counts.fetch("ANSWERED", 0) - held
     # The turns come with the rows: the list says whose turn each one is, and
     # asking per row would be a query each.
     @rows = scope.includes(:messages).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
@@ -37,9 +42,15 @@ module Triage
   def update
     row = triage_model.find(params[:id])
     status = params[:status].to_s
-    unless Triageable::STATUSES.include?(status)
+    unless Triageable::VIEWS.include?(status)
       return redirect_back fallback_location: triage_index_path, alert: "Unknown status."
     end
+
+    # HELD is a kind of answer, not a status of its own: it hands the report back
+    # and says the timeout must not close it, because the work it agreed to has
+    # not been done.
+    settles = status != "HELD"
+    status = "ANSWERED" unless settles
 
     # The resolution is kept when the box is left empty on a later change, so
     # reopening and re-closing does not silently erase the reason given before.
@@ -55,8 +66,8 @@ module Triage
                            alert: "Say something in the reply: answering hands the report back, and an empty answer gives the reporter nothing to respond to."
     end
 
-    row.answer!(body: resolution, user: Current.user, status: status)
-    redirect_back fallback_location: triage_index_path, notice: notice_for(status)
+    row.answer!(body: resolution, user: Current.user, status: status, settles: settles)
+    redirect_back fallback_location: triage_index_path, notice: notice_for(settles ? status : "HELD")
   end
 
   private
@@ -64,6 +75,7 @@ module Triage
   def notice_for(status)
     case status
     when "ANSWERED" then "Answered. The reporter sees it as their turn and can say whether it settles the thing."
+    when "HELD" then "Held. It stays open however long the silence, because you have agreed to work that is not done."
     when "CLOSED" then "Closed. Normally the reporter closes it by agreeing; closing it here says so on their behalf."
     else "Marked #{status.downcase}."
     end

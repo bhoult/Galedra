@@ -146,10 +146,42 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     row = call_tool("list_reports", {}).first["reports"].find { |r| r["id"] == report.id }
     expect(row["held"]).to be(true)
 
+    # The lists tell the two apart, and carve one out of the other so the filter's
+    # numbers still sum.
+    user.update!(admin: true)
+    post "/session", params: { email_address: user.email_address, password: password }
+    get "/bug_reports"
+    expect(response.body).to include("Held (1)").and include("Answered (0)")
+    get "/bug_reports?status=HELD"
+    expect(response.body).to include(report.happened[0, 40])
+    get "/bug_reports?status=ANSWERED"
+    expect(response.body).to include("Nothing here.")
+
     # The next answer settles by default, and the clock starts then.
     report.answer!(body: "Shipped.", user: user)
     expect(report.reload).not_to be_held
     expect(report.settles_at).to be_present
+    get "/bug_reports"
+    expect(response.body).to include("Held (0)").and include("Answered (1)")
+  end
+
+  # A maintainer holds a report the same way they answer it, from the page.
+  it "holds a report from the reply form and will not let silence close it" do
+    call_tool("report_bug", { happened: "A quoted passage reads as not found", expected: "the quotation confirmed" })
+    report = BugReport.last
+    user.update!(admin: true)
+    post "/session", params: { email_address: user.email_address, password: password }
+
+    patch "/bug_reports/#{report.id}", params: { status: "HELD", resolution: "Agreed; it needs a new verdict and Stage 36 is planned." }
+    expect(flash[:notice]).to include("Held")
+    expect(report.reload).to have_attributes(status: "ANSWERED")
+    expect(report).to be_held
+    BugReport.settle_unanswered!(now: 1.week.from_now)
+    expect(report.reload.status).to eq("ANSWERED")
+
+    # And answering again lets go of it.
+    patch "/bug_reports/#{report.id}", params: { status: "ANSWERED", resolution: "Shipped in Stage 36." }
+    expect(report.reload).not_to be_held
   end
 
   # The filing path invited a causal story and asked nothing that would falsify

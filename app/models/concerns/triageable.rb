@@ -13,6 +13,15 @@ module Triageable
   # 2026-09-20).
   STATUSES = %w[OPEN ANSWERED CLOSED IGNORED].freeze
 
+  # HELD is not a stored status and must not become one: it is ANSWERED with the
+  # last maintainer turn marked as not settling, which is a fact about the
+  # thread rather than a fourth thing a report can be. It is a view, because
+  # "answered and waiting on the reporter" and "answered and waiting on a stage
+  # nobody has built" are different queues to work, and a list that shows them
+  # as one is the same fault as a count of everyone's work read as a count of
+  # yours. The lists carve HELD out of ANSWERED, so the two still sum.
+  VIEWS = %w[OPEN ANSWERED HELD CLOSED IGNORED].freeze
+
   # A reporter may simply never come back, and a report cannot wait on someone
   # who has gone (owner request, 2026-09-20). An answer that has stood this long
   # without a word against it is taken as settled. Nothing is lost by it: the
@@ -24,7 +33,22 @@ module Triageable
     validates :status, inclusion: { in: STATUSES }
     has_many :messages, class_name: "ReportMessage", as: :report, dependent: :destroy, inverse_of: :report
 
-    scope :with_status, ->(value) { STATUSES.include?(value.to_s) ? where(status: value.to_s) : all }
+    # ANSWERED, with the last maintainer turn marked as not settling.
+    scope :held, -> {
+      where(status: "ANSWERED").where(
+        "EXISTS (SELECT 1 FROM report_messages m WHERE m.report_type = :t AND m.report_id = #{table_name}.id " \
+        "AND m.author_kind = 'maintainer' AND m.settles = FALSE AND m.created_at = " \
+        "(SELECT MAX(m2.created_at) FROM report_messages m2 WHERE m2.report_type = :t AND m2.report_id = #{table_name}.id AND m2.author_kind = 'maintainer'))", t: name
+      )
+    }
+    scope :with_status, lambda { |value|
+      case value.to_s
+      when "HELD" then held
+      when "ANSWERED" then where(status: "ANSWERED").where.not(id: held.select(:id))
+      when *STATUSES then where(status: value.to_s)
+      else all
+      end
+    }
     scope :newest_first, -> { order(created_at: :desc) }
   end
 

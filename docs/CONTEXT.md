@@ -212,6 +212,12 @@ instances the filer happened to hit. Before fixing one, ask what the fault *is* 
 correct decision the caller cannot read — and put the repair where the whole class passes
 through it. The global rescue in the MCP handler is what should have been written first.
 
+**Two `rspec` runs against one test database.** Backgrounding a suite run with `&` and
+starting another produced 16 failures that read exactly like a regression from the change
+in hand. There is one `galedra_test`, and two runs truncating and seeding it concurrently
+will fail in ways unrelated to the code. Re-running serially gave 0. Before believing a
+sudden batch of failures, check that nothing else is using the database.
+
 **Not knowing when an investigation has finished.** A refusal arrived missing the successor
 id it is built to carry. Six queries ruled out truncation, stale data, an unaccepted merge
 and a stale process, and none of them explained it — and then came several more mechanisms

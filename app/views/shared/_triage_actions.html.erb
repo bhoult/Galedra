@@ -8,6 +8,7 @@
                     placeholder: "What was done, or why this needs nothing. It goes on this page as your turn, and the reporter is asked whether it settles the thing." %>
     <p class="triage-actions">
       <%= f.submit "Answer", name: "status", value: "ANSWERED", class: "primary small" %>
+      <%= f.submit "Answer and hold", name: "status", value: "HELD", class: "secondary small" %>
       <% if row.status != "OPEN" %>
         <%= f.submit "Reopen", name: "status", value: "OPEN", class: "secondary small" %>
       <% end %>
@@ -20,7 +21,9 @@
     </p>
     <p class="meta">
       <strong>Answer</strong> replies and hands it back: the reporter says whether it settles the thing, and only then does it close.
-      <strong>Close it yourself</strong> skips that, which is what a report from a visitor with nobody to ask needs.
+      <strong>Answer and hold</strong> replies the same way but stops the <%= Triageable::UNANSWERED_AFTER.inspect %> timeout closing it,
+      for when you have agreed to work that is not done yet and silence would settle nothing.
+      <strong>Close it yourself</strong> skips the reporter's turn, which is what a report from a visitor with nobody to ask needs.
     </p>
   <% end %>
 </div>
