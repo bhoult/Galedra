@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_230100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_240000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -349,7 +349,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_230100) do
     t.uuid "subject_id", null: false
     t.string "subject_type", null: false
     t.datetime "updated_at", null: false
-    t.uuid "user_id"
+    t.bigint "user_id"
     t.index ["digest"], name: "index_determination_threads_on_digest"
     t.index ["status"], name: "index_determination_threads_on_status"
     t.index ["subject_type", "subject_id", "status"], name: "idx_on_subject_type_subject_id_status_318c001d2e"
@@ -938,7 +938,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_230100) do
     t.boolean "settles", default: true, null: false
     t.uuid "thread_id", null: false
     t.string "thread_type", null: false
-    t.uuid "user_id"
+    t.bigint "user_id"
     t.string "verdict"
     t.index ["thread_type", "thread_id", "created_at"], name: "index_thread_turns_on_thread_type_and_thread_id_and_created_at"
   end

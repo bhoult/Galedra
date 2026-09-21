@@ -96,6 +96,11 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     call_tool("report_bug", { happened: "The share card renders blank", expected: "an image" })
     report = BugReport.last
     report.answer!(body: "Fixed in the renderer.", user: user)
+    # users has a bigint primary key and the column was uuid, so every
+    # maintainer turn since the register gained an exchange recorded no author
+    # at all — 62 of them, nil every time, with nothing raised. The register's
+    # own specs had never asserted it; a thread spec found it.
+    expect(report.turns.last.user_id).to eq(user.id), "a maintainer's turn has to carry the maintainer"
 
     data, = call_tool("list_reports", {})
     row = data["reports"].first

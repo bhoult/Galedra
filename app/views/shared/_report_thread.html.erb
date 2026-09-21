@@ -1,17 +1,26 @@
-<%# Every turn on a report, in order. Filing used to be one-way: an assistant
-    could not learn whether its report had been read, and a wrong diagnosis it
-    had already retracted stayed on the page with nothing linking the two. %>
-<h2>Exchange</h2>
+<%# Every turn in a conversation, in order: a bug report, a feature request, or a
+    thread on a determination. One partial for all of them, because two
+    renderings of a turn would drift the way two implementations of anything
+    here drift.
+
+    Filing used to be one-way: an assistant could not learn whether its report
+    had been read, and a wrong diagnosis it had already retracted stayed on the
+    page with nothing linking the two. %>
+<% thread = row.is_a?(DeterminationThread) %>
+<h2><%= thread ? "Turns" : "Exchange" %></h2>
 <% if row.turns.none? %>
-  <div class="card"><p class="meta">Nothing yet. Answering below starts the exchange, and the reporter can say whether it settles the thing.</p></div>
+  <div class="card"><p class="meta"><%= thread ? "Nothing yet. A turn below starts it." : "Nothing yet. Answering below starts the exchange, and the reporter can say whether it settles the thing." %></p></div>
 <% else %>
   <% row.turns.oldest_first.each do |m| %>
     <div class="card">
       <p class="meta">
-        <strong><%= m.from_assistant? ? "Reporter" : "Maintainer" %></strong> ·
+        <strong><%= thread ? (m.from_assistant? ? "Assistant" : "Person") : (m.from_assistant? ? "Reporter" : "Maintainer") %></strong> ·
         <%= m.created_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC
         <% unless m.satisfied.nil? %>
           · <strong><%= m.satisfied ? "satisfied" : "not satisfied" %></strong>
+        <% end %>
+        <% if m.verdict.present? %>
+          · voted <strong><%= m.verdict.downcase.tr("_", " ") %></strong>
         <% end %>
       </p>
       <%= simple_format(m.body) %>
@@ -20,7 +29,9 @@
 <% end %>
 <p class="meta">
   <strong><%= row.state_line %></strong>
-  <% if row.awaiting_reporter? && row.settles_at %>
+  <%# Only the register waits on one party; a thread waits on a count, so it has
+      no settling time and says so through its own state line. %>
+  <% if row.respond_to?(:awaiting_reporter?) && row.awaiting_reporter? && row.settles_at %>
     · nothing said by <%= row.settles_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC and it closes on its own; they can still disagree afterwards and it reopens.
   <% elsif row.status == "CLOSED" && !row.agreed? %>
     · the reporter never answered, so this settled on its own. It reopens if they disagree later.

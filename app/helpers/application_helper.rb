@@ -27,8 +27,35 @@ module ApplicationHelper
   # act on now. Counting those would make the badge a number nobody can clear.
   #
   # Memoised per request because the header renders on every page.
+  # What a thread hangs on, in words a reader would recognise rather than an id.
+  def thread_subject_label(thread)
+    row = thread.subject
+    case row
+    when Claim then truncate(row.canonical_text.to_s.squish, length: 70)
+    when EvidenceClaimLink then "a link on #{truncate(row.claim&.canonical_text.to_s.squish, length: 50)}"
+    when EvidenceItem then "evidence: #{truncate(row.statement.to_s.squish, length: 55)}"
+    when SourceLocation then "a quoted passage: #{truncate(row.excerpt.to_s.squish, length: 50)}"
+    when TaskAssignment then "a task result"
+    else "#{thread.subject_type.underscore.humanize.downcase} (no longer here)"
+    end
+  end
+
+  def thread_subject_path(thread)
+    row = thread.subject
+    case row
+    when Claim then claim_path(row)
+    when EvidenceClaimLink then claim_path(row.claim_id)
+    when EvidenceItem then evidence_path(row)
+    when SourceLocation then source_path(row.source_id)
+    else thread_path(thread)
+    end
+  end
+
   def open_report_counts
     @open_report_counts ||= { bugs: BugReport.where(status: "OPEN").count, features: FeatureRequest.where(status: "OPEN").count,
-                              held_bugs: BugReport.held.count, held_features: FeatureRequest.held.count }
+                              held_bugs: BugReport.held.count, held_features: FeatureRequest.held.count,
+                              # Threads that can still be moved along. A thread on a merged
+                              # claim is history rather than work and is not counted.
+                              threads: DeterminationThread.open_threads.to_a.count(&:workable?) }
   end
 end

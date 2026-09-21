@@ -78,7 +78,8 @@ RSpec.describe "OpenAPI document (Stage 14)", type: :request do
       "/api/v1/contributions/{id}" => claim.contribution_id, "/api/v1/tasks/{id}" => task.id,
       "/api/v1/sections/{id}" => section.id, "/api/v1/inferences/{id}" => inference.id,
       "/api/v1/contributors/{id}" => curator.id, "/api/v1/snapshots/{seq}" => Contribution.maximum(:seq),
-      "/api/v1/schemas/{name}" => "eir-contribution-v1"
+      "/api/v1/schemas/{name}" => "eir-contribution-v1",
+      "/api/v1/threads/{id}" => DeterminationThread.record!(subject: claim, concern: "The figures are not in the passage it rests on.").first.id
     }
 
     doc["paths"].each do |path, ops|

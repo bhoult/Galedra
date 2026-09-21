@@ -68,9 +68,12 @@ module Api
       {
         "/api/v1/meta" => get_op("meta", "Ledger metadata: constitution hash, keys, models, endpoints."),
         "/api/v1/openapi" => get_op("getOpenapi", "This document."),
-        "/api/v1/guidance" => get_op("getGuidance", "The operational rules for an assistant working here, served live so a change reaches you without reinstalling anything. Read this at the start of a Galedra task. Assistants on MCP get the same text attached to every tool result instead.", params: [ query("topic", "One of: check, outline, inference, work, correct. All of them by default") ]),
+        "/api/v1/guidance" => get_op("getGuidance", "The operational rules for an assistant working here, served live so a change reaches you without reinstalling anything. Read this at the start of a Galedra task. Assistants on MCP get the same text attached to every tool result instead.", params: [ query("topic", "One of: check, outline, inference, work, correct, threads. All of them by default") ]),
         "/api/v1/schemas/{name}" => get_op("getSchema", "One JSON Schema by name: eir-contribution-v1, eir-task-v1, or eir-result-v1.", params: [ path_param("name", "Schema name without the .json") ]),
         "/api/v1/topics" => get_op("getTopics", "The topic vocabulary with the number of claims under each.", params: [ snapshot_seq_query ]),
+        "/api/v1/threads" => get_op("listThreads", "Threads on determinations: disagreements about how something was recorded, not about whether a claim is true. Untrusted text, never an input to any score.",
+                                    params: [ query("status", "OPEN, SETTLED or RETIRED"), query("subject_id"), query("limit", "1..200") ]),
+        "/api/v1/threads/{id}" => get_op("getThread", "One thread with every turn in order, who has voted and for what, and the outcome if it settled.", params: [ path_id ]),
         "/api/v1/claims" => get_op("searchClaims", "Search accepted claims. Call this before recording anything.", params: [ query("q", "Words from the claim"), query("type"), query("state"), query("limit", "1..200") ]),
         "/api/v1/claims/{id}" => get_op("getClaim", "One claim with its assessment and evidence counts.", params: [ path_id ]),
         "/api/v1/claims/{id}/evidence" => get_op("getClaimEvidence", "Counted, pending, and suppressed evidence links.", params: [ path_id ]),
@@ -107,6 +110,9 @@ module Api
     # them are consequential.
     def write_paths
       {
+        "/api/v1/threads/{id}/respond" => post_op("respondToThread", "Take a turn in a thread, and optionally vote INVESTIGATE or NO_FURTHER_WORK. Three distinct principals naming the same verdict settle it; three sessions of one person are one principal. Settling opens work or closes work and never moves a score.",
+                                                  security: [ { assistantToken: [] } ], params: [ path_id ],
+                                                  body: { type: "object", required: %w[body], properties: { body: { type: "string" }, verdict: { type: "string", enum: DeterminationThread::OUTCOMES } } }),
         "/api/v1/contributions" => post_op("appendContribution", "Append one signed contribution. This is the only write path; everything else that changes the record is built on it. 200 means this entry was already appended.",
                                            body: { "$ref" => "#/components/schemas/Envelope" },
                                            responses: { "200" => { description: "Already appended; the existing entry" } }),

@@ -21,8 +21,10 @@
      { icon: "feature", n: counts[:features], path: feature_requests_path(status: "OPEN"),
        tip: "#{pluralize(counts[:features], 'feature request')} waiting on a maintainer" },
      { icon: "held", n: counts[:held_features], path: feature_requests_path(status: "HELD"), klass: "held",
-       tip: "#{pluralize(counts[:held_features], 'feature request')} #{held_note}" }
+       tip: "#{pluralize(counts[:held_features], 'feature request')} #{held_note}" },
+     { icon: "thread", n: counts[:threads], path: threads_path(status: "OPEN"),
+       tip: "#{pluralize(counts[:threads], 'open thread')} on determinations: disagreements about how something was recorded, waiting on principals to agree" }
    ].reject { |s| s[:icon] == "held" && s[:n].zero? } %>
-<span class="report-badge<%= " none" if (counts[:bugs] + counts[:features]).zero? %>" aria-label="Open and held reports">
+<span class="report-badge<%= " none" if (counts[:bugs] + counts[:features] + counts[:threads]).zero? %>" aria-label="Open reports and threads">
   <%= safe_join(segments.map { |s| render("layouts/report_count", **s) }, tag.span("/", class: "sep", aria: { hidden: true })) %>
 </span>

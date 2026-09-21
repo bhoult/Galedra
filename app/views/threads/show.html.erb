@@ -1,0 +1,58 @@
+<% content_for :title, "Thread" %>
+<p class="meta"><%= link_to "Threads", threads_path %> › <%= @row.created_at.utc.strftime("%Y-%m-%d %H:%M") %> UTC</p>
+<h1>Thread</h1>
+<div class="card">
+  <p class="meta">
+    <strong><%= @row.state_line %></strong>
+    <% if @row.subject %> · on <%= link_to thread_subject_label(@row), thread_subject_path(@row) %><% else %> · on a <%= @row.subject_type.underscore.humanize.downcase %> that is no longer here<% end %>
+    <%= " · raised #{pluralize(@row.count, 'time')}" if @row.count > 1 %>
+    <% if @row.cites %> · <%= link_to "revisits an earlier settled thread", thread_path(@row.cites) %><% end %>
+  </p>
+</div>
+
+<h2>The concern</h2>
+<div class="card"><%= simple_format(@row.concern) %></div>
+
+<h2>Where it stands</h2>
+<div class="card">
+  <p class="meta">
+    <% @row.tally.each do |verdict, n| %><strong><%= n %></strong> for <%= verdict.downcase.tr("_", " ") %>&emsp;<% end %>
+    <% if @row.tally.empty? %>Nobody has voted yet.<% end %>
+  </p>
+  <p><%= DeterminationThread::REQUIRED %> distinct principals naming the same outcome settle it. Three sessions of one person are one principal. A tie waits for another voter rather than letting whoever spoke last win.</p>
+  <% if @row.settled? %>
+    <p><strong>Settled as <%= @row.outcome.downcase.tr("_", " ") %>.</strong>
+      <%= @row.outcome == "INVESTIGATE" ? "Work is open on it." : "Its open checks were stood down." %>
+      <% if @row.dissenters.any? %>
+        <%= pluralize(@row.dissenters.size, "principal") %> disagreed, so one check was opened carrying their words: the argument ended and the concern still gets looked at.
+      <% end %>
+      No score moved.</p>
+  <% end %>
+</div>
+
+<%= render "shared/report_thread", row: @row %>
+
+<% if authenticated? %>
+  <h2>Your reply</h2>
+  <div class="card">
+    <%= form_with url: respond_thread_path(@row), method: :post, class: "triage-form" do |f| %>
+      <%= f.label :body, "What you want to say about how this was made", class: "meta" %>
+      <%= f.text_area :body, rows: 4, placeholder: "Your turn. It is untrusted text, is never scored, and carries no authority by itself." %>
+      <p class="triage-actions">
+        <%= f.submit "Say this", class: "secondary small" %>
+        <%= f.submit "…and vote to investigate", name: "verdict", value: "INVESTIGATE", class: "primary small" %>
+        <%= f.submit "…and vote no further work", name: "verdict", value: "NO_FURTHER_WORK", class: "secondary small" %>
+      </p>
+      <p class="meta">Your vote counts as <strong>you</strong>, not as this session: a turn from your own assistant is the same principal and does not count twice.</p>
+    <% end %>
+    <% if admin? && @row.open? %>
+      <p class="meta"><strong>Admin:</strong> settle it by hand when the node has too few principals to reach <%= DeterminationThread::REQUIRED %>. The page will say it was settled by an admin.</p>
+      <p class="triage-actions">
+        <%= button_to "Settle: investigate", settle_admin_thread_path(@row, outcome: "INVESTIGATE"), class: "secondary small" %>
+        <%= button_to "Settle: no further work", settle_admin_thread_path(@row, outcome: "NO_FURTHER_WORK"), class: "secondary small" %>
+      </p>
+    <% end %>
+  </div>
+<% else %>
+  <p class="muted"><%= link_to "Sign in", new_session_path %> to take a turn. A vote has to belong to somebody.</p>
+<% end %>

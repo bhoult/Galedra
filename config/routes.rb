@@ -16,6 +16,9 @@ Rails.application.routes.draw do
         post :restore
       end
     end
+    resources :threads, only: [] do
+      member { post :settle }
+    end
     resources :affiliation_requests, only: [ :index ] do
       collection do
         post :merge
@@ -57,6 +60,13 @@ Rails.application.routes.draw do
   resources :affiliation_requests, only: [ :create ]
   resources :feature_requests, only: [ :index, :show, :update ]
   resources :bug_reports, only: [ :new, :create, :index, :show, :update ]
+  # Threads on determinations (Stage 37): one index of every thread on the node,
+  # because a thread hangs off five kinds of object and the page each lives on is
+  # not enough on its own — one on a source location is three clicks from
+  # anywhere anyone starts.
+  resources :threads, only: [ :index, :show, :create ] do
+    member { post :respond }
+  end
   get "topics", to: "topics#index", as: :topics
   get "topics/*path", to: "topics#show", as: :topic
   post "mcp", to: "mcp#create"
@@ -104,6 +114,9 @@ Rails.application.routes.draw do
       get "guidance", to: "guidance#show"
       get "openapi", to: "openapi#show"
       get "topics", to: "topics#index"
+      resources :threads, only: [ :index, :show ] do
+        post :respond, on: :member
+      end
       get "log", to: "log#index"
       get "claims/:id/views", to: "claims#views"
       resources :sections, only: [ :index, :show ]

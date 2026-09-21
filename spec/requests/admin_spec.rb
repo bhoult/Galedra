@@ -41,6 +41,7 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     expect(response.body).to include("1 feature request waiting on a maintainer"), "answered is the filer's turn, not ours"
     expect(response.body).to include(bug_reports_path(status: "OPEN"))
     expect(response.body).not_to include("held open"), "nothing is held, so the mark is absent rather than zero"
+    expect(response.body).to include("0 open threads"), "a queue you are meant to clear shows its zero"
 
     # Held rides beside its own type, and is not added to the number you clear.
     BugReport.record!(happened: "A quoted passage reads as not found", expected: "it confirmed").first
@@ -57,8 +58,11 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     annotated = with_view_annotations { get "/" }
     badge = annotated[annotated.index("report-badge"), 4000].to_s
     badge = badge[0, badge.index(account_path) || badge.length]
+    # The pill ends at its last link; anything past that is the account block.
+    badge = badge[0, badge.rindex("</a>") + 4]
     expect(badge).to include("status=HELD")
-    expect(badge.scan('class="sep"').size).to eq(2), "three segments want two separators, and no trailing one"
+    segments = badge.scan("<a ").size
+    expect(badge.scan('class="sep"').size).to eq(segments - 1), "#{segments} segments want #{segments - 1} separators, and no trailing one"
     expect(badge[badge.rindex("</a>")..]).not_to include('class="sep"'), "nothing separates the last segment from the end"
   end
 

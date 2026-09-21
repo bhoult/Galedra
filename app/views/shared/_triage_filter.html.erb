@@ -2,14 +2,15 @@
     index route, `counts` a {status => n} hash, `total` the size of the filtered
     set. %>
 <p class="meta triage-filter">
-  <% [ [ nil, "All" ] ] .concat(Triageable::VIEWS.map { |s| [ s, s.capitalize ] }).each do |value, label| %>
+  <% states = local_assigns.fetch(:views, Triageable::VIEWS) %>
+  <% [ [ nil, "All" ] ] .concat(states.map { |s| [ s, s.capitalize.tr("_", " ") ] }).each do |value, label| %>
     <% n = value.nil? ? counts.values.sum : counts.fetch(value, 0) %>
     <% if status == value %>
       <strong><%= label %> (<%= n %>)</strong>
     <% else %>
       <%= link_to "#{label} (#{n})", url_for(status: value, page: nil) %>
     <% end %>
-    <%= " · " unless value == Triageable::VIEWS.last %>
+    <%= " · " unless value == states.last %>
   <% end %>
 </p>
 <% pages = (total / per_page.to_f).ceil %>
