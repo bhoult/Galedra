@@ -22,16 +22,14 @@ module Triageable
   # yours. The lists carve HELD out of ANSWERED, so the two still sum.
   VIEWS = %w[OPEN ANSWERED HELD CLOSED IGNORED].freeze
 
-  # A reporter may simply never come back, and a report cannot wait on someone
-  # who has gone (owner request, 2026-09-20). An answer that has stood this long
-  # without a word against it is taken as settled. Nothing is lost by it: the
-  # reporter can still disagree afterwards and the report reopens, so this
-  # closes the waiting rather than the question.
-  UNANSWERED_AFTER = 3.hours
+  # Kept as the register's own name for it; the rule itself lives in the
+  # settlement object, with everything else about who closes a report.
+  UNANSWERED_AFTER = Settlements::Opener::UNANSWERED_AFTER
 
   included do
+    include Threadable
+    settles_by Settlements::Opener
     validates :status, inclusion: { in: STATUSES }
-    has_many :messages, class_name: "ThreadTurn", as: :thread, dependent: :destroy, inverse_of: :thread
 
     # ANSWERED, with the last maintainer turn marked as not settling.
     scope :held, -> {
@@ -60,52 +58,11 @@ module Triageable
   # The reporter said the answer settled it. Closing can also happen without
   # them — by timeout, or by a maintainer closing on behalf of a filer who has
   # nobody to ask — and a list that shows both as "closed" hides which.
-  def agreed? = messages.any? { |m| m.from_assistant? && m.satisfied }
+  def agreed? = turns.any? { |m| m.from_assistant? && m.satisfied }
 
-  # Whose turn it is. A status word does not say: "answered" read the same for a
-  # report waiting on its filer and for one already settled. Said in three
-  # widths, because the list column is a few characters wide and the full
-  # sentence wrapped to four lines in it (owner request, 2026-09-20):
-  # a key for styling, a mark and one word for the row, the sentence for the
-  # tooltip and the report's own page.
-  def state_badge
-    case status
-    when "OPEN"
-      messages.any? ? [ "needs-you", "●", "you", "Reopened by the reporter. Waiting on a maintainer." ]
-                    : [ "needs-you", "●", "you", "Filed. Waiting on a maintainer." ]
-    when "ANSWERED"
-      if held?
-        [ "held", "◐", "held", "Answered, and held open on purpose until the work it needs is done. It will not close itself." ]
-      else
-        [ "with-reporter", "○", "them", "Answered. Waiting on the reporter to say whether it settles it." ]
-      end
-    when "CLOSED"
-      agreed? ? [ "agreed", "✓", "agreed", "Closed: the reporter said it was settled." ]
-              : [ "lapsed", "✓", "lapsed", "Closed with no reply from the reporter. It reopens if they disagree later." ]
-    when "IGNORED"
-      [ "aside", "–", "aside", "Set aside." ]
-    else
-      [ "other", "·", status.downcase, status.downcase ]
-    end
-  end
+  def last_answer_at = turns.where(author_kind: "maintainer").maximum(:created_at)
 
-  def state_line = state_badge.last
-
-  # When silence will settle this, so the reporter can be told rather than
-  # finding out afterwards.
-  def settles_at
-    return nil unless awaiting_reporter?
-    return nil if held?
-
-    (last_answer_at || updated_at) + UNANSWERED_AFTER
-  end
-
-  def last_answer_at = messages.where(author_kind: "maintainer").maximum(:created_at)
-
-  # Answered, and deliberately not settling: the last maintainer turn said so.
-  def held? = last_answer&.settles == false
-
-  def last_answer = messages.where(author_kind: "maintainer").order(:created_at).last
+  def last_answer = turns.where(author_kind: "maintainer").order(:created_at).last
 
   class_methods do
     # Closes answers nobody has come back on. Idempotent, and it records the
@@ -117,9 +74,8 @@ module Triageable
         next if due.nil? || due > now
 
         row.transaction do
-          row.messages.create!(author_kind: "maintainer", body: "Closed with no response after #{UNANSWERED_AFTER.inspect}. " \
-                                                                "Say so with respond_to_report if this is not settled and it reopens.",
-                               created_at: now)
+          row.add_turn!(author_kind: "maintainer", body: "Closed with no response after #{UNANSWERED_AFTER.inspect}. " \
+                                                         "Say so with respond_to_report if this is not settled and it reopens.")
           row.update!(status: "CLOSED")
         end
       end
@@ -134,7 +90,7 @@ module Triageable
   # timeout, because the timeout's licence is "if you think it is settled".
   def answer!(body:, user: nil, status: "ANSWERED", settles: true)
     transaction do
-      messages.create!(author_kind: "maintainer", user: user, body: body, settles: settles, created_at: Time.current) if body.present?
+      add_turn!(body: body, author_kind: "maintainer", user: user, settles: settles) if body.present?
       update!(status: status, resolution: body.presence || resolution)
     end
   end
@@ -149,8 +105,7 @@ module Triageable
     text = body.to_s.strip
     clipped = text.length > ThreadTurn::MAX_CHARS
     transaction do
-      messages.create!(author_kind: "assistant", assistant_token: token, user: user,
-                       body: text[0, ThreadTurn::MAX_CHARS], satisfied: satisfied, created_at: Time.current)
+      add_turn!(body: text, author_kind: "assistant", token: token, user: user, satisfied: satisfied)
       update!(status: satisfied ? "CLOSED" : "OPEN")
     end
     clipped

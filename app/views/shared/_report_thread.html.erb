@@ -2,10 +2,10 @@
     could not learn whether its report had been read, and a wrong diagnosis it
     had already retracted stayed on the page with nothing linking the two. %>
 <h2>Exchange</h2>
-<% if row.messages.none? %>
+<% if row.turns.none? %>
   <div class="card"><p class="meta">Nothing yet. Answering below starts the exchange, and the reporter can say whether it settles the thing.</p></div>
 <% else %>
-  <% row.messages.oldest_first.each do |m| %>
+  <% row.turns.oldest_first.each do |m| %>
     <div class="card">
       <p class="meta">
         <strong><%= m.from_assistant? ? "Reporter" : "Maintainer" %></strong> ·

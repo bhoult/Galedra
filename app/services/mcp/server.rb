@@ -616,7 +616,7 @@ module Mcp
       { id: row.id, kind: row.is_a?(BugReport) ? "bug" : "feature", status: row.status,
         awaiting_you: row.awaiting_reporter?, settles_at: row.settles_at&.utc&.iso8601, held: row.held?,
         filed: (row.is_a?(BugReport) ? row.happened : row.needed).to_s,
-        messages: row.messages.oldest_first.map do |m|
+        messages: row.turns.oldest_first.map do |m|
           { at: m.created_at.utc.iso8601, from: m.author_kind, body: m.body, satisfied: m.satisfied }.compact
         end }
     end

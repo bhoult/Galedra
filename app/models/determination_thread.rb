@@ -16,6 +16,8 @@
 # a source" is a contribution; the thread is for how the determination was made.
 class DeterminationThread < ApplicationRecord
   include FilingCap
+  include Threadable
+  settles_by Settlements::Consensus
 
   # What three principals may agree on. INVESTIGATE raises work given the
   # discovered facts; NO_FURTHER_WORK says this no longer needs to be an open
@@ -30,12 +32,10 @@ class DeterminationThread < ApplicationRecord
   RETIRE_AFTER = 14.days
   WINDOW = 30.days
   SUBJECTS = %w[Claim EvidenceClaimLink EvidenceItem SourceLocation TaskAssignment].freeze
-  MAX_CHARS = 5_000
 
   belongs_to :assistant_token, optional: true
   belongs_to :user, optional: true
   belongs_to :cites, class_name: "DeterminationThread", foreign_key: :cites_thread_id, optional: true, inverse_of: false
-  has_many :turns, class_name: "ThreadTurn", as: :thread, dependent: :destroy, inverse_of: :thread
 
   validates :status, inclusion: { in: STATUSES }
   validates :subject_type, inclusion: { in: SUBJECTS }
@@ -69,10 +69,10 @@ class DeterminationThread < ApplicationRecord
       return [ existing, false ]
     end
     text = concern.to_s.strip
-    [ create!(id: SecureRandom.uuid_v7, subject_type: subject.class.name, subject_id: subject.id, concern: text[0, MAX_CHARS],
+    [ create!(id: SecureRandom.uuid_v7, subject_type: subject.class.name, subject_id: subject.id, concern: text[0, ThreadTurn::MAX_CHARS],
               assistant_token: token, user: user, opener_principal_id: token&.principal_contributor_id || user&.contributor&.id,
               anonymous: token ? token.anonymous? : false, digest: digest, cites_thread_id: cites&.id, last_turn_at: Time.current)
-        .tap { |t| ContentReview.enqueue!(t) }, text.length > MAX_CHARS ]
+        .tap { |t| ContentReview.enqueue!(t) }, text.length > ThreadTurn::MAX_CHARS ]
   end
 
   # A turn, and optionally a vote with it.
@@ -91,15 +91,16 @@ class DeterminationThread < ApplicationRecord
     raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.verdict", detail: "expected one of #{OUTCOMES.join(', ')}" } ]) if verdict.present? && !OUTCOMES.include?(verdict)
 
     vote = verdict.present? ? record_vote(token: token, user: user, verdict: verdict) : :none
+    clipped = false
     transaction do
-      turns.create!(author_kind: user ? "maintainer" : "assistant", assistant_token: token, user: user,
-                    body: text[0, MAX_CHARS], verdict: (verdict if vote == :counted), created_at: Time.current)
+      clipped = add_turn!(body: text, author_kind: user ? "maintainer" : "assistant", token: token, user: user,
+                          verdict: (verdict if vote == :counted))
       # A retired thread is dormant, not concluded: any turn revives it with its
       # turns and votes intact.
       update!(status: (retired? ? "OPEN" : status), last_turn_at: Time.current)
     end
     settle_if_agreed! if vote == :counted
-    { clipped: text.length > MAX_CHARS, vote: vote }
+    { clipped: clipped, vote: vote }
   end
 
   # One vote per principal, whoever cast it. A person writing directly and that
@@ -178,24 +179,6 @@ class DeterminationThread < ApplicationRecord
   end
 
   def workable? = open? && subject_current?
-
-  def state_badge
-    case status
-    when "OPEN"
-      subject_current? ? [ "needs-you", "●", "open", "Open. #{REQUIRED - (tally.values.max || 0)} more principal(s) agreeing on one outcome settles it." ]
-                       : [ "aside", "–", "stale", "Open, but what it hangs on is no longer current. Kept as history; it is not offered as work." ]
-    when "SETTLED"
-      agreed, against = split
-      [ "agreed", "✓", outcome == "INVESTIGATE" ? "investigate" : "settled",
-        "Settled #{agreed}–#{against} as #{outcome.downcase.tr('_', ' ')}#{' by an admin' if outcome && settled_at && votes.size < REQUIRED}." ]
-    when "RETIRED"
-      [ "lapsed", "○", "retired", "Retired after #{RETIRE_AFTER.inspect} of silence. Nothing was agreed; any turn revives it." ]
-    else
-      [ "other", "·", status.downcase, status.downcase ]
-    end
-  end
-
-  def state_line = state_badge.last
 
   # Silence, swept. Never applied to a settled thread, which has a conclusion.
   def self.retire_silent!(now: Time.current)

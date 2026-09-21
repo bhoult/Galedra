@@ -31,7 +31,7 @@ module Triage
     @counts["ANSWERED"] = @counts.fetch("ANSWERED", 0) - held
     # The turns come with the rows: the list says whose turn each one is, and
     # asking per row would be a query each.
-    @rows = scope.includes(:messages).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
+    @rows = scope.includes(:turns).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
     @per_page = PER_PAGE
   end
 

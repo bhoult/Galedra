@@ -484,11 +484,18 @@ somebody.
 ## Acceptance
 
 1. The register's existing specs pass with no edit after the extraction.
-2. `respond!`, `answer!` and `state_badge` are owned by `Threadable` on every model that
-   answers to them, asserted through `instance_method(...).owner`, and `held?` and
-   `settles_at` are answered by the settlement object rather than by the concern. One turn
-   table, one reply partial, and no view renders a turn outside it. A second implementation
-   of any of this fails the suite.
+2. `add_turn!`, `state_badge`, `state_line`, `held?` and `settles_at` are owned by
+   `Threadable` on every model that has a conversation, asserted through
+   `instance_method(...).owner`, and `held?` and `settles_at` are answered through the
+   settlement object. One turn table, one reply partial, and no view renders a turn outside
+   it. A second implementation of any of this fails the suite.
+
+   **Corrected while building**: this said `respond!` and `answer!` would be shared, and they
+   should not be. A reporter saying an answer satisfied them and a principal naming an
+   outcome are different operations on different columns, and forcing them into one method
+   would be worse than having two. What they share is `add_turn!` — the row, the clipping,
+   and saying that it clipped — and that is shared. The line the code found is better than
+   the line the plan drew.
 3. Two principals agreeing does not settle a thread; a third naming the **same outcome**
    does. Three **tokens** of one principal do not, and the spec uses three tokens of one
    principal as its negative case, because that is the shape a node like this one actually
