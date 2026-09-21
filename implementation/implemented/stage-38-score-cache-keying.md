@@ -415,8 +415,15 @@ head means "assume everything moved", costs one recomputation per claim, and can
   from before the claim had an origin. `Watermark.claim_ids` now asks about the contribution
   *and* the one it names, which is the shape of every ACCEPT, INVALIDATE and AUDIT.
 - `bin/rails scores:watermarks VERIFY=1` scores a whole corpus through the marks and again
-  at the head with the cache cleared, and aborts on any disagreement. Run on the dev node:
-  clean.
+  at the head with the cache cleared, and aborts on any disagreement.
+
+  The first two runs of it were close to vacuous: every mark sat at the head, so scoring
+  "through the mark" and "at the head" were the same thing and agreement proved nothing. The
+  run that counts was taken on **2026-09-21 against a corpus seeded from empty with the
+  stamping live** — 8,026 claims and **8,026 distinct watermarks**, one per claim, scattered
+  across 82,320 contributions, which is the state a real node is in. Every claim scored the
+  same through its mark as it did at the head. That is the differential this stage rests on,
+  and it is clean.
 - `Scoring::Affected` was deliberately **not** widened, because the scorer itself reads it
   through `Audits::Status.downstream_count`; widening it would have changed a score. The
   watermark's extra reach lives in `Scoring::Watermark`, and the goldens are unchanged.
@@ -490,6 +497,11 @@ claim served from cache at 100,024 claims: **0.6 ms**, against 13 ms cold.
 - **`Watermark.marks` costs one extra query on a miss**, where fifteen others are already
   happening. Deliberate: the alternative was an extra round trip on every *hit*, which is
   the common case.
+- **What the differential does not cover, stated rather than glossed.** It ran under the
+  default model only, at 8,026 claims rather than a hundred thousand, and against a corpus
+  with **no tasks in it** — `Bench::Seed` opens none, so the TASK_RESULT branch of the
+  mapping is covered by a spec and by nothing at scale. Seeding tasks is on Stage 26's list
+  for the same reason.
 - **The compiled-scorer question is untouched and unmeasured.** The section above says what
   would have to be true before it ships, and the cheap measurement it waits on — where
   Ruby's 34× over the Python reference actually goes — has still not been taken.
