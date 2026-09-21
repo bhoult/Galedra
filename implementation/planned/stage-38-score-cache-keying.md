@@ -111,10 +111,47 @@ score, maintained where projections are already refreshed rather than computed o
   `PruneClaimScoresJob` gets simpler and `claim_scores` stops growing per-append. Measured on
   2026-09-20: 413 distinct snapshot seqs against 258 rows useful at head.
 
-**The alternative, named and rejected:** leave the keying alone and make a miss cheaper. It
-does not help. The miss is not slow because of query overhead — Stage 26 already batched that
-— it is slow because it rescores every claim in the page from its links. Making a rescore
-faster is worth doing on its own merits and does not remove the rescore.
+## Where the time actually goes
+
+Measured on the dev node, 2026-09-21, scoring 50 claims cold. Indicative rather than a
+profiler entry: the corpus was small and an assistant was writing to it, so the absolute
+numbers are soft and the proportions are the point.
+
+| | |
+|---|---|
+| Wall | 700.8 ms |
+| SQL | 177.8 ms (25%), 782 queries |
+| Ruby | 523.0 ms (75%) |
+
+And splitting the Ruby:
+
+| | per claim | share |
+|---|---|---|
+| `Scoring::BuildInput` | 17.63 ms | **96%** |
+| `Registry.score` — the whole scorer | 0.69 ms | 4% |
+| trace canonicalisation and hashing | 0.10 ms | under 1% |
+
+**The scorer is not slow. Assembling its input is the entire cost**, and it is what issues
+those 782 queries — about fifteen per claim, mostly per-link `Contribution` loads (193),
+per-item `IndependenceGroupAssignment` (110), and per-claim `ClaimEvaluabilitySetting` (55).
+So this is not cleanly "Ruby or the database": it is N+1 wearing both hats, where the Ruby
+time is largely ActiveRecord materialising rows it asked for one at a time. On a database
+that is not local and idle the SQL share grows sharply, because 782 round trips is the real
+shape.
+
+**A correction to what this stage first said.** It claimed making a miss cheaper "does not
+help", on the grounds that Stage 26 had already batched the queries. Stage 26 batched the
+*cache lookup*; `BuildInput` was never batched, and it is 96% of a miss. So the alternative is
+not an alternative — it is a second, independent win, and both are worth having:
+
+- **Keying** removes the work that should never have happened. It is this stage.
+- **Batching `BuildInput`** makes the work that must happen cheaper — loading a page of
+  claims' links, evidence, groups, evaluability and audit status in a handful of queries
+  rather than fifteen per claim. That is the same shape as Stage 26's batching and belongs in
+  its own stage rather than being smuggled in here, because it touches what the scorer reads
+  and wants its own byte-identical-trace acceptance.
+
+Keying first, because a cache hit costs nothing however slow a miss is.
 
 ## Deliverables
 
