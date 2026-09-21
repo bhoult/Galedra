@@ -31,6 +31,9 @@ module Bench
       h = Demo::Helpers.new
       authors = 4.times.map { |i| h.register_server_user("bench#{i}@galedra.invalid", display_name: "Bench author #{i}").last }
       auditor = h.register_server_user("benchaudit@galedra.invalid", display_name: "Bench auditor", identity_tier: "ESTABLISHED").last
+      # A principal of its own, because a claim's author may not answer the
+      # checks on it (Invariant 9, no self-certification).
+      _signer, @worker, @worker_user = h.register_server_user("benchwork@galedra.invalid", display_name: "Bench reviewer", identity_tier: "ESTABLISHED")
 
       rate = measure_unbatched(h, authors.first)
       @out.puts "unbatched append rate: #{rate.round(1)}/s (#{(1000 / rate).round(1)} ms each) over #{SAMPLE} appends"
@@ -58,6 +61,7 @@ module Bench
       elapsed = clock - started
       @out.puts "seeded #{made} claims in #{appended} contributions, #{elapsed.round(1)}s " \
                 "(#{(appended / elapsed).round(1)}/s batched, #{(appended.to_f / made).round(1)} contributions per claim)"
+      @out.puts "#{Task.count} tasks opened, #{TaskAssignment.where.not(result_contribution_id: nil).count} answered"
       if Rails.env.test?
         @out.puts "NOTE: this corpus is in the test database, where the suite expects a clean log. " \
                   "Before running rspec: bin/rails db:drop db:create db:schema:load (RAILS_ENV=test)."
@@ -100,7 +104,47 @@ module Bench
         end
         h.audit(auditor, claim.contribution, result: "CONFIRMED") if @rng.rand(12).zero?
       end
+      open_and_work_tasks(h, claims, locations.first)
       claims.size
+    end
+
+    # The work queue, which a corpus without it cannot measure at all.
+    #
+    # Until 2026-09-21 the seeder made claims and never opened a task, so
+    # `bench:report` timed `/tasks` as an empty page, nothing exercised the lease
+    # path or `Tasks::Checks` inside scoring, and Stage 38's watermark had no
+    # TASK_RESULT to react to outside its own spec. A claim recorded through
+    # `Investigations::Record` gets three verification tasks; this opens them the
+    # same way, for a proportion of claims, and answers some.
+    TASK_SHARE = 3        # one investigation in three opens tasks
+    ANSWER_SHARE = 2      # and one claim in two of those has a check answered
+    ANSWERABLE = { "QUALIFIER_CHECK" => "NONE_MATERIAL", "OPPOSING_EVIDENCE_SEARCH" => "NONE_FOUND" }.freeze
+
+    def open_and_work_tasks(h, claims, location)
+      return unless (@rng.rand(TASK_SHARE)).zero?
+
+      Tasks::OpenVerification.call(claims, location_for: ->(_claim) { location })
+      claims.each { |claim| answer_a_check(claim) if (@rng.rand(ANSWER_SHARE)).zero? }
+    end
+
+    # Leases and answers one routine check, with no ops: the point is the
+    # TASK_RESULT and the review coverage it carries, not more graph.
+    def answer_a_check(claim)
+      type = ANSWERABLE.keys[@rng.rand(ANSWERABLE.size)]
+      task = Task.where(task_type: type, target_type: "CLAIM", target_id: claim.id, status: "OPEN").first
+      return if task.nil?
+
+      assignment = Tasks::Lease.next(contributor: @worker, delegation: nil, types: [ type ], domains: [ task.domain ], target_id: claim.id)
+      return if assignment.nil?
+
+      envelope = Contributions::Envelope.build_result(task: assignment.task, key_pair: Crypto::Custody.signer_for(@worker_user),
+                                                     outcome: ANSWERABLE.fetch(type), ops: [])
+      Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
+    rescue Ledger::Rejected => e
+      # A refused lease or result is not a reason to abandon a corpus; it is
+      # recorded once so a run that quietly stops opening tasks is visible.
+      @task_refusals = (@task_refusals || 0) + 1
+      @out.puts "task result refused (#{e.errors.first&.dig(:code)}); #{@task_refusals} so far" if @task_refusals <= 3
     end
 
     def reference_source(h, author)
