@@ -36,8 +36,12 @@ module Bench
       list["GET /api/v1/weaknesses"] = -> { get("/api/v1/weaknesses") }
       if claim && model
         list["Scoring::Score (cached)"] = -> { Scoring::Score.call(claim, seq, model) }
+        # Every row for the claim, not the one at this seq: since Stage 38 the
+        # cache is keyed on the claim's watermark, so deleting at the seq asked
+        # for would leave the row a read actually uses and time a cache hit
+        # while calling it cold.
         list["Scoring::Score (cold)"] = lambda {
-          ClaimScore.where(claim_id: claim.id, snapshot_seq: seq).delete_all
+          ClaimScore.where(claim_id: claim.id).delete_all
           Scoring::Score.call(claim, seq, model)
         }
         list["Cards::ClaimCard"] = -> { Cards::ClaimCard.call(claim, seq, model) }

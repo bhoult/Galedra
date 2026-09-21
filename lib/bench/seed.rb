@@ -38,15 +38,21 @@ module Bench
       before = Contribution.count
       made = 0
       started = clock
-      while made < @claims
-        Contribution.transaction do
-          @batch.times do
-            break if made >= @claims
+      # Held still for the same reason a measurement is (Bench::Isolation): a
+      # million appends through development's verbose query logs write gigabytes
+      # nobody reads, and the writing is a large share of the time. Measured
+      # 2026-09-21: 56 MB of log in the first minutes of a 100,000-claim run.
+      Isolation.call do
+        while made < @claims
+          Contribution.transaction do
+            @batch.times do
+              break if made >= @claims
 
-            made += investigation(h, authors[@rng.rand(authors.size)], auditor)
+              made += investigation(h, authors[@rng.rand(authors.size)], auditor)
+            end
           end
+          report(made, before, started)
         end
-        report(made, before, started)
       end
       appended = Contribution.count - before
       elapsed = clock - started
