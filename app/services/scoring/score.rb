@@ -49,9 +49,9 @@ module Scoring
 
       # Each claim is keyed on its own watermark, so the cache is asked for a
       # set of (claim, seq) pairs — still one query.
-      hits = Watermark.hits(claims.map(&:id), seq, model.id).index_by(&:claim_id)
+      hits = lookup(claims, seq, model)
       misses = claims.reject { |c| hits.key?(c.id) }
-      marks = misses.any? ? Watermark.marks(misses.map(&:id)) : {}
+      marks = marks_for(misses)
       at = misses.to_h { |c| [ c.id, Watermark.bound(marks[c.id], seq) ] }
       # Audit state is a function of the log up to this seq, and the log does
       # not move while the set is being scored; the same contributions recur
@@ -60,16 +60,32 @@ module Scoring
       # sound for the same reason the watermark itself is: every quarantine,
       # audit and revocation it holds would have moved the mark of any claim it
       # bears on (Scoring::Watermark).
-      computed = Audits::Status.memoized do
-        Pass.over(misses, seq, down_to: at.values.min || seq) do
-          misses.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, at[c.id]), model) ] }
-        end
-      end
-      store_all(computed, at, model)
+      computed = Audits::Status.memoized { compute_misses(misses, at, seq, model) }
 
       claims.to_h do |c|
         row = hits[c.id]
         [ c.id, still_current(row ? from_cache(row) : computed[c.id], row ? row.snapshot_seq : at[c.id], seq) ]
+      end
+    end
+
+    # In slices, because `Scoring::Pass` loads every counted link of the set it
+    # is given, with its contribution — and a whole-graph pass hands it the
+    # node. On the bench corpus at 100,024 claims that is one object graph of
+    # hundreds of thousands of rows off the widest table in the schema, held
+    # until the pass ends, and nothing reaches `claim_scores` until all of it is
+    # scored. A slice at a time bounds the memory and lands the rows as it goes,
+    # so a pass that is interrupted keeps what it computed. The answers are
+    # identical: a pass is a memo of questions whose answers cannot change while
+    # the log stands still (Invariant 4).
+    SCORE_BATCH = 500
+
+    def compute_misses(misses, at, seq, model)
+      misses.each_slice(SCORE_BATCH).reduce({}) do |all, slice|
+        computed = Pass.over(slice, seq, down_to: slice.map { |c| at[c.id] }.min || seq) do
+          slice.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, at[c.id]), model) ] }
+        end
+        store_all(computed, at, model)
+        all.merge(computed)
       end
     end
 
@@ -85,6 +101,25 @@ module Scoring
     # Chunked: a trace is a whole JSON document, so a few hundred rows at a time
     # keeps one statement from carrying megabytes.
     STORE_BATCH = 250
+
+    # And the same on the way in. A whole-graph pass hands `call_many` every
+    # claim on the node — 100,024 of them on the bench corpus — and an IN list
+    # that long is a statement of several megabytes before any row comes back.
+    # A page of claims is well under one slice, so the ordinary case is still
+    # one statement.
+    LOOKUP_BATCH = 1_000
+
+    def lookup(claims, seq, model)
+      claims.each_slice(LOOKUP_BATCH)
+            .flat_map { |slice| Watermark.hits(slice.map(&:id), seq, model.id).to_a }
+            .index_by(&:claim_id)
+    end
+
+    def marks_for(claims)
+      return {} if claims.empty?
+
+      claims.each_slice(LOOKUP_BATCH).reduce({}) { |all, slice| all.merge(Watermark.marks(slice.map(&:id))) }
+    end
 
     def store_all(results_by_claim_id, seq_by_claim_id, model)
       return if results_by_claim_id.empty?

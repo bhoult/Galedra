@@ -86,6 +86,31 @@ RSpec.describe "Capacity: batched scoring, score-cache retention, and a bounded 
     expect(counts[:audits]).to be <= 2, "one grouped load for the set, not one per link"
   end
 
+  # A whole-graph pass hands call_many every claim on the node. Scoring::Pass
+  # then loads every counted link of that set with its contribution, and nothing
+  # reached claim_scores until the last claim was scored: 4.9 GB resident and
+  # twelve minutes with nothing written, measured on the bench corpus at 100,024
+  # claims on 2026-09-21. It works in slices now.
+  it "scores a large set in slices, writing what it has computed as it goes" do
+    _pair, claims = graph(6)
+    seq = Contribution.maximum(:seq)
+    model = Scoring::Registry.default_model
+    ClaimScore.delete_all
+
+    stub_const("Scoring::Score::SCORE_BATCH", 2)
+    seen = []
+    allow(Scoring::Score).to receive(:store_all).and_wrap_original do |original, *args|
+      original.call(*args)
+      seen << ClaimScore.count
+    end
+
+    results = Scoring::Score.call_many(claims, seq, model)
+    expect(results.size).to eq(claims.size)
+    expect(seen.size).to eq((claims.size / 2.0).ceil), "expected one write per slice, got #{seen.size}"
+    expect(seen).to eq(seen.sort), "each slice must land before the next is scored"
+    expect(ClaimScore.count).to eq(claims.size)
+  end
+
   it "scores a set in one cache query and returns byte-identical traces to scoring one at a time (#1)" do
     _pair, claims = graph(6)
     seq = Contribution.maximum(:seq)
