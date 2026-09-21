@@ -538,6 +538,9 @@ module Mcp
         out[:calculation] = { assessment_state: result.assessment_state, probability: result.probability, model: model.full_name, snapshot_seq: seq,
                               stated_as: Cards::DisplayRules.stated(result.probability, model.full_name, seq),
                               review_checklist: result.review_checklist, stability: result.stability, note: "Model-conditional and reproducible, not objective; never a percentage true." }
+        # Stage 38: which entry this was actually computed at, when nothing since
+        # has borne on the claim. Worth having: it says how settled the answer is.
+        out[:calculation][:unchanged_since] = result.unchanged_since if result.unchanged_since
       end
       out
     end

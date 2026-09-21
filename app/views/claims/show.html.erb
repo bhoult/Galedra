@@ -74,6 +74,12 @@
           <p><strong>No probability.</strong> <%= @assessment[:assessment_state] == "NOT_APPLICABLE" ? not_applicable_text(@assessment[:not_applicable_reason]) : "No counted evidence bears on this claim at this snapshot." %></p>
         <% end %>
         <p class="meta">Model <%= @assessment[:model] %> (<%= @model == Scoring::Registry.default_model ? "the default model, not the answer" : "an alternative model" %>) · snapshot <%= @assessment[:snapshot_seq] %> · trace <code><%= @assessment[:trace_hash] %></code></p>
+        <%# Stage 38: this was computed once, at the entry that last bore on the
+            claim, and reused since. Saying so is more use than a number
+            recomputed at a snapshot where nothing had changed. %>
+        <% if @assessment[:unchanged_since] %>
+          <p class="meta">Last changed at entry <%= seq_link(@assessment[:unchanged_since]) %>; nothing logged since has borne on this claim.</p>
+        <% end %>
       </div>
     <% else %>
       <p><%= link_to "Show calculation", claim_path(@claim, model: params[:model], snapshot_seq: params[:snapshot_seq], calculation: 1) %></p>

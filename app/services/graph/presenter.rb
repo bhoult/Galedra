@@ -61,7 +61,7 @@ module Graph
         support_groups: result.support_groups, contradict_groups: result.contradict_groups,
         independence_unreviewed: result.independence_unreviewed, contested: result.contested,
         provisional: result.provisional, not_applicable_reason: result.not_applicable_reason, trace_hash: result.trace_hash
-      }
+      }.merge(result.unchanged_since ? { unchanged_since: result.unchanged_since } : {})
     end
 
     # The public stub that stays at a quarantined claim's URL (spec 05 §13).

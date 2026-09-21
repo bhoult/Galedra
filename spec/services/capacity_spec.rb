@@ -113,13 +113,20 @@ RSpec.describe "Capacity: batched scoring, score-cache retention, and a bounded 
     # Six claims used to mean six cache lookups and six inserts. Now it is one
     # of each, whatever the corpus: the count no longer grows with it.
     expect(cache_queries).to eq(2), "expected one lookup and one insert, got #{cache_queries} statements"
-    expect(ClaimScore.where(snapshot_seq: seq).count).to eq(claims.size)
+    # One row per claim, keyed on that claim's watermark rather than on the seq
+    # anyone asked for (Stage 38); at this corpus every claim was last touched
+    # at or before the head.
+    expect(ClaimScore.count).to eq(claims.size)
+    claims.each do |c|
+      mark = Claim.find(c.id).scored_inputs_seq
+      expect(ClaimScore.where(claim_id: c.id, snapshot_seq: mark)).to be_any, "no row at claim #{c.id}'s watermark #{mark}"
+    end
 
     # A second call is served from the cache and writes nothing.
     expect { Scoring::Score.call_many(claims, seq, model) }.not_to change(ClaimScore, :count)
   end
 
-  it "prunes the score cache to the head, the pinned snapshots, and recent work, and loses nothing (#2)" do
+  it "prunes the score cache to what is current, the pinned snapshots, and recent work, and loses nothing (#2)" do
     _pair, claims = graph(3)
     model = Scoring::Registry.default_model
     early = Contribution.maximum(:seq)
@@ -129,20 +136,30 @@ RSpec.describe "Capacity: batched scoring, score-cache retention, and a bounded 
     create_claim(register_key.first, "One more, so the head moves past the pinned snapshot.")
     head = Contribution.maximum(:seq)
     head_results = Scoring::Score.call_many(claims, head, model)
-    middle = (early + 1)
-    Scoring::Score.call_many(claims, middle, model) if middle < head
-    ClaimScore.where.not(snapshot_seq: [ early, head ]).update_all(computed_at: 30.days.ago)
+    current = ClaimScore.all.to_a
+    # Stage 38: reading at the new head reused what was already cached, because
+    # nothing bearing on these claims moved. There is nothing to prune yet.
+    expect(Scoring::Prune.call(keep_days: 7, dry_run: true).deleted).to eq(0)
 
-    expect(Scoring::Prune.call(keep_days: 7, dry_run: true).deleted).to eq(ClaimScore.where.not(snapshot_seq: [ early, head ]).count)
+    # Rows from seqs nobody keys on any more: the old behaviour, one per read.
+    stale = current.map do |row|
+      ClaimScore.create!(row.attributes.merge("id" => SecureRandom.uuid_v7, "snapshot_seq" => row.snapshot_seq - 1,
+                                              "computed_at" => 30.days.ago))
+    end
+
+    expect(Scoring::Prune.call(keep_days: 7, dry_run: true).deleted).to eq(stale.size)
     result = Scoring::Prune.call(keep_days: 7)
 
-    expect(ClaimScore.where(snapshot_seq: head)).to be_any, "the head must survive"
+    claims.each do |c|
+      mark = Claim.find(c.id).scored_inputs_seq
+      expect(ClaimScore.where(claim_id: c.id, snapshot_seq: mark)).to be_any, "a claim's current score must survive"
+    end
     expect(ClaimScore.where(snapshot_seq: pinned.seq)).to be_any, "a pinned snapshot must survive"
-    expect(ClaimScore.where.not(snapshot_seq: [ early, head ])).to be_empty
-    expect(result.deleted).to be_positive
+    expect(ClaimScore.where(id: stale.map(&:id))).to be_empty
+    expect(result.deleted).to eq(stale.size)
 
     # The property that makes a cache safe to throw away: it comes back the same.
-    ClaimScore.where(snapshot_seq: head).delete_all
+    ClaimScore.where(id: current.map(&:id)).delete_all
     Scoring::Score.call_many(claims, head, model).each do |id, r|
       expect(r.trace).to eq(head_results[id].trace)
       expect(r.trace_hash).to eq(head_results[id].trace_hash)

@@ -14,11 +14,15 @@ module Scoring
   #   "task_checks" => [{"check", "by"}]
   # }
   class Calculate
+    # `unchanged_since` (Stage 38) is not part of the assessment and never
+    # reaches a trace: it is the seq this score was computed at, set when the
+    # answer is served for a later seq at which nothing bearing on it had moved.
     Result = Struct.new(:assessment_state, :probability, :review_coverage, :review_checklist, :stability,
                         :support_groups, :contradict_groups, :independence_unreviewed, :contested, :provisional,
-                        :not_applicable_reason, :model_dependent, :trace, :trace_hash, keyword_init: true) do
+                        :not_applicable_reason, :model_dependent, :trace, :trace_hash, :unchanged_since,
+                        keyword_init: true) do
       def to_h_public
-        to_h.except(:trace, :trace_hash)
+        to_h.except(:trace, :trace_hash, :unchanged_since)
       end
     end
 

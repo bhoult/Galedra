@@ -6,8 +6,15 @@ module Ledger
   module TableDigest
     MODELS = (Contribution::PROJECTION_MODELS + %w[Quarantine ScoringModel Audit AuditSchedule ReputationEvent Contributor AgentDelegation]).freeze
 
+    # Cache metadata, digested no more than `claim_scores` is: Stage 38's
+    # `scored_inputs_seq` is a hint about when a score last *could* have moved,
+    # rebuilt by replay and discardable without loss. Including it would change
+    # every digest ever taken of `claims` for something that carries no claim.
+    DERIVED = { "claims" => %w[scored_inputs_seq] }.freeze
+
     def self.table(model)
-      rows = model.order(:id).map { |row| row.attributes.as_json }
+      derived = DERIVED[model.table_name] || []
+      rows = model.order(:id).map { |row| row.attributes.as_json.except(*derived) }
       Crypto::Hashing.json(rows)
     end
 

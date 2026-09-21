@@ -17,7 +17,7 @@ production:
   # back. Half-hourly so the 3-hour window is honoured to within a half hour.
   settle_answered_reports:
     class: SettleAnsweredReportsJob
-    schedule: every half hour
+    schedule: every 30 minutes
   # Stage 26 built the retention and scheduled it nowhere, so it only ever ran
   # when someone typed `bin/rails scores:prune`. The cache is keyed on the exact
   # seq and the head moves with every append, so an active writer leaves a fresh
@@ -45,7 +45,7 @@ development:
   # back. Half-hourly so the 3-hour window is honoured to within a half hour.
   settle_answered_reports:
     class: SettleAnsweredReportsJob
-    schedule: every half hour
+    schedule: every 30 minutes
   # Silence, not a conclusion. A thread nobody has touched leaves the work list
   # so it does not clog next_thread; any turn revives it with its turns and
   # votes intact (Stage 37).

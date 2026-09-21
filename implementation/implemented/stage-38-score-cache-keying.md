@@ -1,6 +1,6 @@
 # Stage 38 — A score that has not changed should not be recomputed
 
-**Status:** planned · tag will be `stage-38-score-cache-keying`
+**Status:** built 2026-09-21 · tagged `stage-38-score-cache-keying`
 
 **Tag:** `stage-38-score-cache-keying` · **Spec:** 03 §1–§7 (scoring), 02 §3 (projections),
 11 §5 (layout), Invariants 2 (projections are written only by `Ledger::Apply`), 4
@@ -349,3 +349,97 @@ Answered because this touches scoring, even though it changes no value.
    replay does.
 10. **Is anything invented?** No. A served score is one that was computed, at a seq that is
     reported honestly.
+
+
+## Decision Log (2026-09-21)
+
+Built as `Scoring::Watermark`, `claims.scored_inputs_seq`, and a keying change in
+`Scoring::Score`. Measured on the dev node at 304 claims / 5,163 contributions, scoring the
+same fifty claims:
+
+| | Wall | Queries |
+|---|---|---|
+| Cold, cache emptied | 588.0 ms | 819 |
+| Warm, nothing written since | 6.7 ms | 1 |
+| **After an unrelated write** — two appends, then read again | **21.8 ms** | 51 |
+
+The third row is the stage. Under the old key it was the first row, every time, because the
+head had moved. (The 51 queries are the fifty `Claim.find`s the measurement script issues to
+reload the objects; the scoring itself is the one cache lookup.)
+
+### Four departures from the plan, each because the plan was wrong about something
+
+**1. The mark is read from the database, never off the object.** `Watermark.at(claim, seq)`
+was written to read `claim.scored_inputs_seq`, which is what the plan describes. The golden
+tables failed immediately: a `Claim` loaded before an append carries the mark it had then,
+and recording an investigation scores claims it has just written, so the first read after a
+write keyed on a mark from before its own evidence and served a score without it. The mark
+now comes from a query every time. **This is the failure mode the stage warned about, found
+in the first hour by the oldest tests in the project**, which is the argument for having
+golden values at all.
+
+**2. A cache hit still costs one statement, because the key is decided in SQL.** Reading the
+mark in Ruby and then the row added a round trip to every scored claim on every page —
+`spec/services/graph/presenter_cost_spec.rb` caught it as two statements over budget. The
+lookup now joins `claims` and compares `snapshot_seq = LEAST(COALESCE(scored_inputs_seq,
+:seq), :seq)`, so a hit is one statement, as it was when the key was the seq itself. The
+mark is read separately only on a miss, where fifteen other queries are about to happen
+anyway.
+
+**3. Mapped or global, rather than a hand-enumerated dependency list.** The plan listed the
+inputs and proposed maintaining the mark for each. The list turned out to be incomplete in
+ways that only showed up while writing the code: `Audits::Status.confirmed?` reads
+`downstream_count`, so **a claim edge can change the audit state of a link and therefore a
+score**; `REVOKE_KEY` opens a compromise window over every link its key signed, and there is
+no row to find them by. So an action type is now one of three things. `NONE` cannot reach a
+score. `PRECISE` names the claims it reached. **Everything else marks every claim** — which
+is exactly the old behaviour, so an unmapped or newly added action type is slow, never
+wrong. `REVOKE_KEY` and `TAKEDOWN` are global for that reason.
+
+**4. The backfill sets every claim to the head, not to a derived mark.** Deriving each
+existing claim's true mark would mean enumerating the dependency set in SQL — the same
+enumeration, with no write to correct it if it is wrong, and no test that would notice. The
+head means "assume everything moved", costs one recomputation per claim, and cannot lie.
+`bin/rails scores:watermarks REBUILD=1` does the same thing on demand.
+
+### What guards it
+
+- `spec/services/scoring/watermark_spec.rb` mutates each member of the dependency set in
+  turn — linking evidence, invalidating a link, quarantining a source, auditing a link,
+  assigning an independence group, setting evaluability, placing the claim in an outline,
+  answering a review check, drawing an edge, revoking a key — and fails unless the mark
+  moves **and** the score through the mark equals the score computed at the head with the
+  cache emptied. That second half is what makes it more than a tautology.
+- It caught one real gap while being written: **accepting a placement did not mark the
+  claim**, only the placement itself did, so between the two the served score was the one
+  from before the claim had an origin. `Watermark.claim_ids` now asks about the contribution
+  *and* the one it names, which is the shape of every ACCEPT, INVALIDATE and AUDIT.
+- `bin/rails scores:watermarks VERIFY=1` scores a whole corpus through the marks and again
+  at the head with the cache cleared, and aborts on any disagreement. Run on the dev node:
+  clean.
+- `Scoring::Affected` was deliberately **not** widened, because the scorer itself reads it
+  through `Audits::Status.downstream_count`; widening it would have changed a score. The
+  watermark's extra reach lives in `Scoring::Watermark`, and the goldens are unchanged.
+
+### On the digest
+
+`scored_inputs_seq` is excluded from `Ledger::TableDigest` (`DERIVED`). It is cache metadata,
+rebuilt by replay and discardable without loss; including it would change every digest ever
+taken of `claims` for something that carries no claim. `ClaimScore` remains outside the
+digest entirely, so acceptance 5 holds by construction: row and snapshot digests are
+byte-identical across the stage.
+
+### What the cache looks like now
+
+`Scoring::Prune` protects, in addition to the head and the pinned snapshots, **every row
+keyed on a claim's current mark** — those are the rows reads actually ask for, however long
+ago they were computed. On the dev node before this stage: 9,540 cached scores, of which 270
+were useful at head. Under the new key a read after an unrelated write reuses what is there
+and writes nothing, so the table stops growing per-append (acceptance 7).
+
+### Still open
+
+Acceptance 1–7 are met on the dev node and in the suite. The **100,000-claim run belongs to
+Stage 26** and is recorded there; this stage's `docs/profiler/` entry waits on that corpus,
+because a timing taken against 304 claims is not evidence about capacity. Batching
+`Scoring::BuildInput` — the 96% of a miss — is untouched and is Stage 39's second half.

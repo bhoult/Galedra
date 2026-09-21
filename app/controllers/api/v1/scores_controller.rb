@@ -13,6 +13,7 @@ module Api
         result = Scoring::Score.call(@claim, @seq, model)
         render json: { claim_id: @claim.id, snapshot_seq: @seq, model: model.full_name,
                        assessment: Graph::Presenter.assessment(result, @seq, model), trace_hash: result.trace_hash }
+                     .merge(unchanged(result))
       end
 
       def trace
@@ -21,6 +22,7 @@ module Api
         result = Scoring::Score.call(@claim, @seq, model)
         render json: { claim_id: @claim.id, snapshot_seq: @seq, model: model.full_name, assessment_state: result.assessment_state,
                        trace: result.trace, trace_hash: result.trace_hash, canonical_trace: Scoring::Trace.canonical(result.trace) }
+                     .merge(unchanged(result))
       end
 
       def compare
@@ -40,6 +42,14 @@ module Api
         rb = Scoring::Score.call(@claim, @seq, b)
         render json: { claim_id: @claim.id, snapshot_seq: @seq, assessment_state: { a.full_name => ra.assessment_state, b.full_name => rb.assessment_state } }
                         .merge(Scoring::Compare.call(ra, rb, config_a: a.config, config_b: b.config))
+      end
+
+      # Stage 38: the trace is the one computed at the last seq that bore on this
+      # claim, not a recomputation at the seq asked for, so the answer says which
+      # seq that was. The trace inside carries the same number: nothing here is
+      # ever restamped with a seq at which it was not computed.
+      def unchanged(result)
+        result.unchanged_since ? { unchanged_since: result.unchanged_since } : {}
       end
 
       # The default model, and the strict model of the same version when there is

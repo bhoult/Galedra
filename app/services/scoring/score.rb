@@ -7,15 +7,28 @@ module Scoring
   module Score
     module_function
 
+    # Stage 38: the cache is keyed on the claim's watermark — the last seq at
+    # which anything bearing on its score moved — not on the seq asked for. The
+    # score is computed at the watermark and the trace says so; a read at a
+    # later seq gets that trace with `unchanged_since` beside it, which is a
+    # truer answer than a recomputation at a seq where nothing had changed.
     def call(claim, seq, model)
       model = Registry.find(model) unless model.is_a?(ScoringModel)
       raise ActiveRecord::RecordNotFound, "claim did not exist at seq #{seq}" if claim.created_seq > seq
 
-      cached = ClaimScore.find_by(claim_id: claim.id, snapshot_seq: seq, scoring_model_id: model.id)
-      return from_cache(cached) if cached
+      cached = Watermark.hits([ claim.id ], seq, model.id).first
+      return still_current(from_cache(cached), cached.snapshot_seq, seq) if cached
 
-      result = Registry.score(BuildInput.call(claim, seq), model)
-      store(claim, seq, model, result)
+      at = Watermark.at(claim, seq)
+      result = Registry.score(BuildInput.call(claim, at), model)
+      store(claim, at, model, result)
+      still_current(result, at, seq)
+    end
+
+    # Reported, never restamped. Saying the trace was computed at the seq that
+    # was asked for would assert a computation that never happened.
+    def still_current(result, at, seq)
+      result.unchanged_since = at if at < seq
       result
     end
 
@@ -34,23 +47,34 @@ module Scoring
       claims = claims.reject { |c| c.created_seq > seq }
       return {} if claims.empty?
 
-      hits = ClaimScore.where(claim_id: claims.map(&:id), snapshot_seq: seq, scoring_model_id: model.id).index_by(&:claim_id)
+      # Each claim is keyed on its own watermark, so the cache is asked for a
+      # set of (claim, seq) pairs — still one query.
+      hits = Watermark.hits(claims.map(&:id), seq, model.id).index_by(&:claim_id)
       misses = claims.reject { |c| hits.key?(c.id) }
+      marks = misses.any? ? Watermark.marks(misses.map(&:id)) : {}
+      at = misses.to_h { |c| [ c.id, Watermark.bound(marks[c.id], seq) ] }
       # Audit state is a function of the log up to this seq, and the log does
       # not move while the set is being scored; the same contributions recur
-      # across links and across models, so ask once.
+      # across links and across models, so ask once. The pass is built at the
+      # seq asked for and used down to the oldest watermark in the set, which is
+      # sound for the same reason the watermark itself is: every quarantine,
+      # audit and revocation it holds would have moved the mark of any claim it
+      # bears on (Scoring::Watermark).
       computed = Audits::Status.memoized do
-        Pass.over(misses, seq) do
-          misses.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, seq), model) ] }
+        Pass.over(misses, seq, down_to: at.values.min || seq) do
+          misses.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, at[c.id]), model) ] }
         end
       end
-      store_all(computed, seq, model)
+      store_all(computed, at, model)
 
-      claims.to_h { |c| [ c.id, hits[c.id] ? from_cache(hits[c.id]) : computed[c.id] ] }
+      claims.to_h do |c|
+        row = hits[c.id]
+        [ c.id, still_current(row ? from_cache(row) : computed[c.id], row ? row.snapshot_seq : at[c.id], seq) ]
+      end
     end
 
     def recompute(claim, seq, model)
-      ClaimScore.where(claim_id: claim.id, snapshot_seq: seq, scoring_model_id: model.id).delete_all
+      ClaimScore.where(claim_id: claim.id, snapshot_seq: [ seq, Watermark.at(claim, seq) ].uniq, scoring_model_id: model.id).delete_all
       call(claim, seq, model)
     end
 
@@ -62,11 +86,11 @@ module Scoring
     # keeps one statement from carrying megabytes.
     STORE_BATCH = 250
 
-    def store_all(results_by_claim_id, seq, model)
+    def store_all(results_by_claim_id, seq_by_claim_id, model)
       return if results_by_claim_id.empty?
 
       results_by_claim_id.each_slice(STORE_BATCH) do |slice|
-        rows = slice.map { |claim_id, result| row_for(claim_id, seq, model, result) }
+        rows = slice.map { |claim_id, result| row_for(claim_id, seq_by_claim_id[claim_id], model, result) }
         ClaimScore.upsert_all(rows, unique_by: [ :claim_id, :snapshot_seq, :scoring_model_id ])
       end
     end

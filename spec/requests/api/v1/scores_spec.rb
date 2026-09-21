@@ -23,7 +23,14 @@ RSpec.describe "Score endpoints (spec 06 §2)", type: :request do
     expect(response.parsed_body["assessment"]).to include("assessment_state" => "NOT_APPLICABLE", "probability" => nil, "not_applicable_reason" => "NOT_SCORED_BY_MODEL")
 
     get "/api/v1/claims/#{causal.id}/trace"
-    expect(response.parsed_body["trace"]).to include("model" => Scoring::Registry.default_model.full_name, "snapshot_seq" => seq, "probability" => "0.3792")
+    # Stage 38: the trace carries the seq it was computed at, which is the last
+    # one that bore on this claim and may be earlier than the one asked for. The
+    # envelope carries both, and `unchanged_since` says so in as many words.
+    body = response.parsed_body
+    expect(body).to include("snapshot_seq" => seq)
+    expect(body["trace"]).to include("model" => Scoring::Registry.default_model.full_name, "probability" => "0.3792")
+    expect(body["trace"]["snapshot_seq"]).to be <= seq
+    expect(body["unchanged_since"] || seq).to eq(body["trace"]["snapshot_seq"])
     expect(response.parsed_body["canonical_trace"]).to start_with("{")
 
     get "/api/v1/claims/#{causal.id}/compare", params: { models: "ledger-default@0.1.0,ledger-strict@0.1.0" }

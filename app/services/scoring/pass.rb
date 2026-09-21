@@ -28,18 +28,25 @@ module Scoring
 
     module_function
 
-    def over(claims, seq)
+    # `down_to` (Stage 38): the oldest seq this pass may answer for. A claim is
+    # scored at its own watermark, which is at or before the seq the pass was
+    # built at, and everything held here — quarantines on its sources, audits on
+    # its link entries, revocations of their signers — would have moved that
+    # watermark had it changed in between. So one load still serves the set.
+    # The default is the seq itself, which is the old behaviour exactly.
+    def over(claims, seq, down_to: seq)
       outermost = Thread.current[KEY].nil?
-      Thread.current[KEY] ||= build(Array(claims), seq)
+      Thread.current[KEY] ||= build(Array(claims), seq).merge(down_to: down_to)
       yield
     ensure
       Thread.current[KEY] = nil if outermost
     end
 
-    # nil means "not in a pass, or a pass at another seq": ask the database.
+    # nil means "not in a pass, or a pass that cannot answer for this seq": ask
+    # the database.
     def store(seq)
       s = Thread.current[KEY]
-      s if s && s[:seq] == seq
+      s if s && seq <= s[:seq] && seq >= s.fetch(:down_to, s[:seq])
     end
 
     def quarantined_sources(seq) = store(seq)&.fetch(:quarantined_sources)

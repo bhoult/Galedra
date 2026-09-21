@@ -29,7 +29,7 @@ module Scoring
     def call(keep_days: DEFAULT_KEEP_DAYS, dry_run: false, out: nil)
       before = size
       kept_seqs = protected_seqs
-      scope = ClaimScore.where.not(snapshot_seq: kept_seqs)
+      scope = ClaimScore.where.not(snapshot_seq: kept_seqs).where.not(id: current_rows.select(:id))
       scope = scope.where(computed_at: ...keep_days.days.ago) if keep_days&.positive?
 
       deleted = dry_run ? scope.count : delete_in_batches(scope)
@@ -43,6 +43,15 @@ module Scoring
     # can ask for by name, so their scores stay cheap to serve.
     def protected_seqs
       ([ Contribution.maximum(:seq) ] + GraphSnapshot.pluck(:seq)).compact.uniq
+    end
+
+    # Stage 38: a row keyed on the claim's current watermark is the live cache
+    # entry — the one every read at every later seq will ask for — however long
+    # ago it was computed. Before the watermark existed the head stood in for
+    # this, and deleting these would throw away the whole point of the keying.
+    def current_rows
+      ClaimScore.joins("JOIN claims ON claims.id = claim_scores.claim_id")
+                .where("claim_scores.snapshot_seq = claims.scored_inputs_seq")
     end
 
     # In batches, so a long-neglected cache does not become one statement that
@@ -64,7 +73,7 @@ module Scoring
 
     def report(result, keep_days, dry_run, out)
       out.puts "#{dry_run ? 'would delete' : 'deleted'} #{result.deleted} rows; #{result.kept} remain"
-      out.puts "kept the head seq, #{result.seqs_kept - 1} pinned snapshot(s), and anything scored in the last #{keep_days} days"
+      out.puts "kept every claim's current score, the head seq, #{result.seqs_kept - 1} pinned snapshot(s), and anything scored in the last #{keep_days} days"
       out.puts "claim_scores #{human(result.bytes_before)} -> #{human(result.bytes_after)}" unless dry_run
       out.puts "every pruned row recomputes byte-identically from the log; nothing epistemic was lost"
     end

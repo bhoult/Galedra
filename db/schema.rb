@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_240000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -232,6 +232,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_240000) do
     t.string "not_evaluable_reason"
     t.jsonb "qualifiers", default: {}, null: false
     t.bigint "redacted_by_seq"
+    t.bigint "scored_inputs_seq"
     t.string "status", default: "ACTIVE", null: false
     t.uuid "superseded_by_id"
     t.uuid "supersedes_claim_id"
@@ -244,6 +245,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_240000) do
     t.index ["created_seq"], name: "index_claims_on_created_seq"
     t.index ["extracted_from_source_id"], name: "index_claims_on_extracted_from_source_id"
     t.index ["invalidated_seq"], name: "index_claims_on_invalidated_seq"
+    t.index ["scored_inputs_seq"], name: "index_claims_on_scored_inputs_seq"
     t.index ["supersedes_claim_id"], name: "index_claims_on_supersedes_claim_id"
   end
 
@@ -900,8 +902,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_240000) do
     t.datetime "updated_at", null: false
     t.index ["contributor_id", "created_at"], name: "index_task_assignments_on_contributor_id_and_created_at"
     t.index ["status", "lease_expires_at"], name: "index_task_assignments_on_status_and_lease_expires_at"
-    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
-    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY (ARRAY[('LEASED'::character varying)::text, ('SUBMITTED'::character varying)::text]))"
+    t.index ["task_id", "contributor_id"], name: "index_task_assignments_active_per_contributor", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
+    t.index ["task_id", "principal_contributor_id"], name: "index_task_assignments_active_per_principal", unique: true, where: "((status)::text = ANY ((ARRAY['LEASED'::character varying, 'SUBMITTED'::character varying])::text[]))"
     t.index ["task_id", "self_performed"], name: "index_task_assignments_on_task_id_and_self_performed"
   end
 

@@ -8,6 +8,7 @@ module Ledger
       if contribution.redacted?
         Ledger.applying do
           Redaction.rebuild!(contribution)
+          Scoring::Watermark.stamp!(contribution)
           Audits::Sample.schedule!(contribution) if contribution.epistemic?
         end
         return
@@ -18,6 +19,9 @@ module Ledger
 
       Ledger.applying do
         applier.apply(contribution)
+        # Inside the append transaction, not in the recompute job: a read
+        # between the two would serve a score from before this write (Stage 38).
+        Scoring::Watermark.stamp!(contribution)
         Audits::Sample.schedule!(contribution) if contribution.epistemic?
       end
     end
