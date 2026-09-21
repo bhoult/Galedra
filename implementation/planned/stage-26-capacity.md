@@ -5,8 +5,10 @@
 Built: `bench:seed`, `bench:report`, the profiling harness (`bench:cpu`, `bench:memory`,
 `bench:rss`, `bench:boot`), batched scoring, `scores:prune`, the contributor-tally index,
 `pg_stat_statements` with `db:top_queries`, a bounded and paged `/weaknesses`, the load
-test under `script/`, and `docs/HOSTING.md` §3. Outstanding: the owner decisions below,
-the acceptance run at 100,000 claims, and the load test against a real droplet.
+test under `script/`, and `docs/HOSTING.md` §3. **The acceptance run at 100,024 claims was
+taken on 2026-09-21 — see "The acceptance run" at the bottom of this file.** Acceptance 1,
+3 and 5 are met, and 2 is met for every page but `/weaknesses`. Outstanding: the owner
+decision about how `/weaknesses` is answered, and the load test against a real droplet.
 
 ## Plan
 
@@ -316,3 +318,71 @@ the write scenario appends real contributions.
 
 **The hosting document.** §3 replaces "jobs are light" with what was measured, in the order
 a reader would act on it.
+
+## The acceptance run (2026-09-21)
+
+Run against `galedra_bench` — **100,024 claims, 1,019,834 contributions** — the corpus the
+long seed of 2026-09-19/20 produced. Everything below is in
+[`docs/profiler/2026-09-21-capacity-at-100k-claims.md`](../../docs/profiler/2026-09-21-capacity-at-100k-claims.md)
+with the conditions it was taken under. The host was **not** quiet: `ollama` was serving the
+owner's own work at ~95% GPU throughout, so every wall time is an upper bound.
+
+### What was resolved
+
+**Acceptance 1 — the corpus and the report. MET.** `bench:seed[100000]` completed (that run
+is what `galedra_bench` holds) and `bench:report` prints the table, recorded in the profiler
+entry with the machine. The append rate under current code, measured at the start of a fresh
+run on 2026-09-21: **43.4/s unbatched, 135/s batched**, against 52.2/s and ~96/s before the
+`Reputation::Calculate` N+1 was fixed.
+
+**Acceptance 2 — the timings at 100,000 claims. MET except `/weaknesses`.**
+
+| | Target | Measured |
+|---|---|---|
+| Claims index | under 200 ms | **48.5 ms** |
+| Claim page | under 200 ms | **161.8 ms** (slowest run 212.9 ms) |
+| A recorded investigation of ten claims | under 5 s | **3,491.7 ms** |
+| `/weaknesses` | under 500 ms | **26.3 s** computed, 25.7 ms from the report cache |
+
+**Acceptance 3 — retention. MET.** `scores:prune` removed 200,021 rows of 400,053 in 8.3 s,
+and every pruned claim rescored byte-identically afterwards. Since Stage 38 it keeps each
+claim's *current* score rather than the head seq's, which is both a smaller set and the one
+reads ask for.
+
+**Acceptance 5 — profiling out of the production image. MET.** `BUNDLE_WITHOUT=development
+bundle list` names none of `stackprof`, `memory_profiler`, `rack-mini-profiler` or
+`derailed_benchmarks`, and nothing requires them at boot.
+
+**Two things were fixed by the run itself**, both in `4322699`:
+
+- The whole-graph scoring pass held **4.9 GB** resident and wrote nothing until the last
+  claim was scored. It works in slices of 500 now, writing as it goes; the same run peaks at
+  2.7 GB. `spec/services/capacity_spec.rb` holds it to one write per slice.
+- `docs/HOSTING.md` §3 said "memory is not the ceiling". True of serving pages, false of
+  this one. It now says which it means, and carries the 100,024-claim figures.
+
+### What remains
+
+- **`/weaknesses` cannot meet 500 ms by caching, and the decision is the owner's.** With
+  every score cached and nothing to recompute it is still **25 seconds**, because the rest
+  is Ruby walking 100,024 claims: the claim set, `Facts`, and each weakness list. The two
+  candidates are already recorded above as owner decisions — answer for the latest pinned
+  `graph_snapshot` rather than the head, or compute on a schedule. Either turns 25 seconds
+  into a cache read. Neither should be chosen without the owner, so the stage stays open on
+  this point. A third, smaller step is available whoever decides: the report holds a full
+  `Calculate::Result` per claim, trace and all, when it needs states and counts that are
+  columns on `claim_scores` in their own right.
+- **Acceptance 4 — the ten-minute load test on the recommended droplet. NOT RUN, and not
+  runnable here.** There is no droplet; `script/loadtest.js` and `script/loadtest.sh` are
+  built and waiting for a target. This is the one criterion that needs infrastructure rather
+  than work.
+- **The corpus has no tasks.** `Bench::Seed` opens no verification tasks, so nothing in this
+  run exercised the task queue, the lease path, `Tasks::Checks` inside scoring, or `/tasks`
+  under load. `GET /tasks` at 2.7 ms is an empty page, not a fast one. Any capacity claim
+  about the work queue is still unmeasured, and the seeder should open tasks before the next
+  run.
+- **`bench:cpu` still has no quiesced host.** The sampling profile of `/weaknesses` at this
+  corpus — which would say where the 25 seconds actually goes — needs `ollama` stopped, and
+  that is the owner's call, not something to do to someone's running work.
+- **`GET /contributors` is 208 ms**, of which `Contributors::Tally.top` is 193 ms. Outside
+  acceptance 2, but the slowest ordinary page at this corpus.

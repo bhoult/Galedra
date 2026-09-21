@@ -437,9 +437,63 @@ ago they were computed. On the dev node before this stage: 9,540 cached scores, 
 were useful at head. Under the new key a read after an unrelated write reuses what is there
 and writes nothing, so the table stops growing per-append (acceptance 7).
 
-### Still open
+## How this stage closed (2026-09-21)
 
-Acceptance 1–7 are met on the dev node and in the suite. The **100,000-claim run belongs to
-Stage 26** and is recorded there; this stage's `docs/profiler/` entry waits on that corpus,
-because a timing taken against 304 claims is not evidence about capacity. Batching
-`Scoring::BuildInput` — the 96% of a miss — is untouched and is Stage 39's second half.
+### What was resolved
+
+A read no longer pays for writes that had nothing to do with it. The cache key was the
+exact seq, the head moves with every append, so **any** write on the node made **every**
+cached score unaskable-for; the assistant working the recommended route — write evidence,
+read the worklist, write again — invalidated its own next read every cycle. That is gone.
+
+Measured on the bench corpus, 100,024 claims and 1,019,834 contributions, one append that
+bore on no claim, same process, same corpus
+([the run](../../docs/profiler/2026-09-21-capacity-at-100k-claims.md)):
+
+| | Wall | Scores recomputed |
+|---|---|---|
+| The whole-graph report, keyed the old way | **663,568 ms** (11 m 4 s) | 200,023 |
+| The same report, keyed on the watermark | **25,755 ms** | **0** |
+
+And on the dev node, fifty claims after an unrelated write: **588 ms → 21.8 ms**. One
+claim served from cache at 100,024 claims: **0.6 ms**, against 13 ms cold.
+
+### How
+
+- `claims.scored_inputs_seq` — the highest seq at which anything bearing on the claim's
+  score moved — written by `Scoring::Watermark.stamp!` from `Ledger::Apply`, inside the
+  append transaction so no read can fall between the write and the mark.
+- An action type is `NONE` (cannot reach a score), `PRECISE` (names the claims it reached),
+  or **anything else, which marks every claim**. The default is the old behaviour, so an
+  unmapped or newly added action type is slow, never wrong.
+- `Scoring::Score` keys on `LEAST(COALESCE(scored_inputs_seq, :seq), :seq)`, decided in SQL
+  so a cache hit is still one statement. The trace keeps the seq it was computed at and the
+  answer carries `unchanged_since` beside it — nothing is ever restamped with a seq at
+  which it was not computed.
+- Guards: `spec/services/scoring/watermark_spec.rb` mutates each member of the dependency
+  set in turn and fails unless the mark moves *and* the score through the mark equals the
+  score computed at the head with the cache emptied; `spec/services/capacity_spec.rb`
+  counts the statements; `bin/rails scores:watermarks VERIFY=1` rescores a whole corpus
+  both ways and aborts on any disagreement.
+- Acceptance 1 and 5 checked by hand on 2026-09-21 as well as in the suite:
+  `reference_scorer.py` prints `ALL PASS`, and `ledger:replay` over the dev node's 5,165
+  contributions followed by `ledger:verify` reports `CHAIN_VERIFIED` with the digests
+  unchanged. The watermark is excluded from `Ledger::TableDigest`, so it cannot move a row
+  or snapshot hash.
+
+### What remains
+
+- **A miss is as dear as it ever was.** Keying removes work that should not have happened;
+  it makes nothing faster that genuinely has to run. `Scoring::BuildInput` is still 96% of
+  a cold score and still asks its questions one row at a time — **Stage 39**, and the first
+  thing to do after this.
+- **`Watermark.marks` costs one extra query on a miss**, where fifteen others are already
+  happening. Deliberate: the alternative was an extra round trip on every *hit*, which is
+  the common case.
+- **The compiled-scorer question is untouched and unmeasured.** The section above says what
+  would have to be true before it ships, and the cheap measurement it waits on — where
+  Ruby's 34× over the Python reference actually goes — has still not been taken.
+- **Nothing here helps `/weaknesses` meet its 500 ms.** With every score cached and nothing
+  to recompute the report is still 25 seconds at 100,024 claims, because the rest is Ruby
+  walking the corpus. That is Stage 26's open owner decision (pinned snapshot, or a
+  schedule), not something this stage can close.

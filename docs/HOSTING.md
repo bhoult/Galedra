@@ -119,9 +119,18 @@ flatters the timings: the droplet above has a small fraction of that, so read th
 rather than the absolute. Each run is written up under `docs/profiler/` with the corpus
 and machine it was taken on. Reproduce any of it with `bin/rails bench:report`.
 
-**Memory is not the ceiling.** One Puma worker boots at 126 MB, settles at 162 MB after
-300 requests, and does not grow after that: the slope over the second half of a run is
-flat. On 2 GB that leaves room for the database, the job thread and several workers.
+**Memory is not the ceiling for serving pages.** One Puma worker boots at 126 MB, settles
+at 162 MB after 300 requests, and does not grow after that: the slope over the second half
+of a run is flat. On 2 GB that leaves room for the database, the job thread and several
+workers.
+
+**It is the ceiling for the one page that walks the whole graph.** Measured at 100,024
+claims on 2026-09-21: a cold `Weaknesses::Report` held **4.9 GB** resident, because the
+scoring pass loaded every counted link of every claim, with its contribution, in one
+object graph. It now scores in slices, which brought the same run to **2.7 GB** — better,
+and still far more than the droplet above has. **Until `/weaknesses` is answered from a pinned snapshot
+or on a schedule (an open owner decision), do not run this node at a hundred thousand
+claims on 2 GB.** Everything else on the node fits comfortably.
 
 **Storage grows about twice as fast as the log.** At 3,026 claims the contributions table
 was 70 MB and the score cache 18 MB, and the cache had no retention at all until
@@ -147,6 +156,22 @@ reader after each append pays in full.
 | Contributors | 22 ms |
 | `/api/v1/claims?limit=50` | 296 ms |
 | `/weaknesses` | seconds, cold |
+
+At **100,024 claims and 1,019,834 contributions**, on the same workstation
+([the run](profiler/2026-09-21-capacity-at-100k-claims.md)):
+
+| | |
+|---|---|
+| One claim scored from cache | 0.6 ms |
+| One claim scored cold | 13 ms |
+| `Weaknesses::Report`, cold | 11 m 4 s |
+| `Weaknesses::Report`, every score already cached | 25 s |
+| `claim_scores` | 202 MB per model, against a 2.7 GB log |
+
+Since Stage 38 an append no longer invalidates the score cache: a write that bears on no
+claim leaves every cached score askable-for, so the reader after it pays the 25 seconds,
+not the eleven minutes. The 25 seconds is Ruby walking 100,024 claims to build the lists,
+and no cache removes it — that is what the pinned-snapshot decision is about.
 
 **What to do when it hurts.** In order: run `scores:prune` on a schedule; check
 `bin/rails db:top_queries`, which reads `pg_stat_statements` and names the statements
