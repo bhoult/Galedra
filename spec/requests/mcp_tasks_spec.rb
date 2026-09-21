@@ -131,6 +131,26 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["moves"]).not_to include("raises how well reviewed")
   end
 
+  # A thread on the claim reached only opposing-evidence packets, so an assistant
+  # that worked verifications and qualifier checks never learned one existed and
+  # walked past a source-lineage finding on the claim it was checking. It
+  # reported that itself: the taxonomy was usable, the bridge from task work to
+  # existing threads was missing.
+  it "carries open threads on the claim into every kind of check" do
+    claim, location, = curated_claim
+    DeterminationThread.record!(subject: claim, concern: "Its two counted items may trace to one pollster.")
+    %w[EVIDENCE_VERIFICATION QUALIFIER_CHECK OPPOSING_EVIDENCE_SEARCH].each do |type|
+      Tasks::Create.call(task_type: type, target: claim, location: (location if type == "EVIDENCE_VERIFICATION"))
+      packet = Task.where(task_type: type, target_id: claim.id).order(:created_at).last.packet
+      threads = packet.dig("context", "threads")
+      expect(threads).to be_present, "#{type} packet does not mention the thread"
+      expect(threads["count"]).to eq(1)
+      expect(threads["thread_ids"]).to be_present, "and it has to say which, or get_thread is a search"
+      expect(threads["note"]).to include("get_thread")
+      expect(threads["note"]).to include("never as a finding")
+    end
+  end
+
   # A null search left no trace: both submissions returned items: 0, and the
   # terms, the sources and the reasoning were discarded at the boundary. The
   # guidance said to say what you searched and the packet said to answer with an

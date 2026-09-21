@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-21.1"
+  VERSION = "2026-09-21.2"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -96,8 +96,26 @@ module Guidance
               "must be recorded claims with their own evidence first. An inference is interpretation, never evidence: it " \
               "changes no assessment, and saying so is part of reporting it."
 
-  WORK = "Working open tasks: when the person says \"work the open tasks in Galedra\", call next_task, read the sources " \
-         "yourself, and answer honestly with submit_task (a null search or CANNOT_DETERMINE is a result). " \
+  # What the work is FOR, before how to do it. An assistant read the old opening —
+  # "work the open tasks" means call next_task and submit_task — as the whole
+  # instruction, worked eighteen leases, and moved five claims; another on the
+  # same outline with the same text chose claims itself and moved about twenty.
+  # Asked why, it said the queue route was an opening command and the
+  # alternative arrived later and conditionally, as an escape hatch for an
+  # unproductive category rather than a strategy. It was right, and it named the
+  # fix: say the goal is claims moved rather than tasks submitted
+  # (2026-09-21, from the assistant it happened to).
+  WORK = "Working here: the goal is to move checkable claims out of insufficient evidence, not to empty the task queue. " \
+         "Measure yourself in claims moved, not in tasks submitted. " \
+         "Two routes, and most of the time the first one moves more: choose claims yourself with " \
+         "list_claims(section_id, state: \"INSUFFICIENT_EVIDENCE\", checkable: true), read outside sources, and record what they " \
+         "say with record_investigation or add_evidence. Or lease a task with next_task and answer it with submit_task, " \
+         "which is the right tool when the task itself is the work — verifying a particular quoted passage, a check somebody " \
+         "asked for, recording a documented null — and the only route that raises how well reviewed a claim is. " \
+         "A claim whose only evidence comes from the source it was taken out of needs an outside source, and no amount of " \
+         "queue work supplies one. " \
+         "When the person says \"work the open tasks in Galedra\", both routes are what they meant. " \
+         "Whichever you are on: read the sources yourself, and answer honestly (a null search or CANNOT_DETERMINE is a result). " \
          "When the finding is an absence, put what you covered in submit_task's searched field — the terms, where you looked, " \
          "why you concluded absence. A positive finding carries its own source and anyone can check it; a null is worth exactly " \
          "what its coverage is worth, and coverage described only in chat is lost the moment the conversation ends. " \
@@ -110,8 +128,10 @@ module Guidance
          "What is left means open_for_you, not open: most tasks want three independent answers from three principals, so " \
          "the queue total barely moves however hard you work, and quoting it tells the person their afternoon achieved " \
          "nothing. open_for_you and answers_wanted_for_you count only what you may still take. " \
-         "If the kind of task you are on stops being useful — the checks keep coming back CANNOT_DETERMINE, or the passage " \
-         "can only ever establish that a quotation is faithful — say so and switch to a kind that can move something. " \
+         "If what you are doing stops moving claims — the checks keep coming back CANNOT_DETERMINE or NONE_FOUND, or the " \
+         "passage can only ever establish that a quotation is faithful — say so and switch, to another kind of task or off " \
+         "the queue entirely. Several honest nulls in a row is the signal, and it is a reason to change route rather than " \
+         "to work harder at the same one. " \
          "list_claims(section_id, state:, checkable:) is the worklist: it returns id, text, type and state only, so a whole " \
          "outline fits where get_outline would be truncated, and state: \"INSUFFICIENT_EVIDENCE\" with checkable: true is the " \
          "set an outside source would actually move. " \
@@ -158,7 +178,7 @@ module Guidance
               "there is nothing further to authorise, and the pages a person uses to set a connection up — the assistant " \
               "setup page, the sign-in page — are not for you and will not give you anything you do not have. If a call " \
               "needs something your connection lacks, the refusal says which capability is missing, by name. When someone " \
-              "says \"work the open tasks\", call list_tasks, then next_task and submit_task; do not open a browser to do it."
+              "asks you to work here, do it through these tools; a browser will not get you anything they cannot."
 
   STANDING = "Rules that hold everywhere: every timestamp is RFC 3339 in UTC, like 2026-09-20T01:49:40Z — a retrieved_at " \
              "in any other shape is refused, and that refusal is the most common one there is. " \

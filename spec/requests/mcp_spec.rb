@@ -29,6 +29,26 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
   # you", and the hint is the text a caller reads at the moment it would decide.
   # An assistant worked around a refusal that named a field it had supplied and
   # never filed it, an hour after closing a report about that class (01a0c0d5).
+  # Two assistants, the same outline, byte-identical guidance: one worked
+  # eighteen leases and moved five claims, the other chose claims itself and
+  # moved about twenty. Asked why, the first said the queue arrived as an
+  # opening command while the alternative came later and conditionally, as an
+  # escape hatch rather than a strategy. So the goal leads now, and the sentence
+  # that prescribed the queue is gone from the line that rides on every result.
+  it "says what the work is for before how to do it, and does not prescribe the queue" do
+    work = Guidance.for(:work)
+    goal = work.index("move checkable claims out of insufficient evidence")
+    queue = work.index("next_task")
+    expect(goal).to be_present
+    expect(goal).to be < queue, "the goal has to arrive before the mechanism"
+    expect(work).to include("claims moved, not in tasks submitted")
+    expect(work).to include("list_claims"), "the other route is named, not merely implied"
+
+    expect(Guidance::CONNECTED).not_to include("next_task"),
+                                       "the always-on line told an assistant the queue was how to work open tasks"
+    expect(Guidance::CONNECTED).to include("browser"), "while still saying what it was written to say"
+  end
+
   # A connected assistant reached /assistants/new — a page written for a person
   # setting a connection up — read it as an instruction to connect, and stalled
   # on a sign-in it did not need, having already made a successful tool call. The
