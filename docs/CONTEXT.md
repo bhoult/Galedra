@@ -83,6 +83,15 @@ against its own work.
   of the flaky spec.
 - Watch for `outcome=refused` as well as errors: a refusal now carries the field
   and the expected format, which is how two client-side faults were diagnosed.
+- **Since 2026-09-21 the node watches itself, if the flag is on.** Stage 40's
+  `request_tallies` and `request_samples` record, for every controller action, how
+  long it took, **how many statements it issued**, and how often it was asked for;
+  `bin/rails metrics:report` reads them and `metrics:clear[action]` drops an
+  action's rows once it is fixed, which is the right thing to do the moment a fix
+  lands. The statement count is the part the Rails log has never carried, and it is
+  what found every slow path that day. During a connector run it is worth reading
+  between batches: it says what the assistant actually hit, rather than what the
+  watcher guessed it hit.
 
 ## The four record folders
 
@@ -194,6 +203,41 @@ in the same command, and only the two expected files were read. Stage explicitly
 the untracked list first. Generated output directories are the specific hazard, and this
 happened an hour after writing "a filter narrow enough to look tidy is narrow enough to
 discard what you needed" into this file.
+
+**Blaming the thing that was easy to blame, twice in one day (2026-09-21).** The
+weaknesses report was 25 seconds with every score cached, and the first written
+explanation was "Ruby walking 100,024 claims to build the lists". Measured, the
+seven filters over the whole corpus cost **247 ms between them** — 1% — and the
+25 seconds was 12 s of building rows the page then discarded and 10 s of reading
+a 2 KB trace per claim to get at fields that were already columns. Both were
+removable without any of the architectural decisions the slowness had been
+attributed to. The same shape a few hours earlier: an outline page at 5,343
+statements was assumed to be the corpus and was one unindexed predicate and two
+per-row loops. **A performance explanation written before the measurement is a
+guess wearing a sentence.**
+
+**Turning on a flag in `.env` and forgetting the suite reads it.** Stage 40's
+request metrics were switched on for this node; dotenv loads `.env` in the test
+environment too, so every request spec silently gained an upsert and a
+statement-count budget failed. `spec/rails_helper.rb` already neutralises `.env`
+for exactly this reason — it pins the system key three lines above — and the fix
+was one more line there. **Any new `LEDGER_*` flag that changes what a request
+does needs a line in `rails_helper` before it is turned on.**
+
+**Reading an intermittent suite failure as a regression.** `bin/demo`'s spec
+failed in three full-suite runs and passed alone every time, while a 100,000-claim
+scoring pass was running against the same Postgres. `docs/CONTEXT.md` already
+carried the two-concurrent-rspec-runs version of this. The rule generalises: **a
+failure that will not reproduce alone, while something heavy is running against
+the same database, is contention until proven otherwise** — and the honest move
+is to say so rather than to chase it or to quietly re-run until green.
+
+**Migrating a scratch database and committing the schema dump it produced.**
+`db:migrate` against `galedra_bench` rewrote `db/schema.rb` from a database that
+has no `pg_stat_statements` and formats index predicates differently, which would
+have silently dropped an extension line from the canonical schema. Caught by
+reading `git diff` before committing. **Always dump the schema from development,
+and read the diff when a migration has been pointed anywhere else.**
 
 **Over-correcting on a word.** Told the tool was "graphiphy", not "graphify", the
 install was declared wrong before checking whether the new name resolved. It did
