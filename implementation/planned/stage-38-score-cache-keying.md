@@ -132,12 +132,50 @@ And splitting the Ruby:
 | trace canonicalisation and hashing | 0.10 ms | under 1% |
 
 **The scorer is not slow. Assembling its input is the entire cost**, and it is what issues
-those 782 queries — about fifteen per claim, mostly per-link `Contribution` loads (193),
-per-item `IndependenceGroupAssignment` (110), and per-claim `ClaimEvaluabilitySetting` (55).
-So this is not cleanly "Ruby or the database": it is N+1 wearing both hats, where the Ruby
-time is largely ActiveRecord materialising rows it asked for one at a time. On a database
-that is not local and idle the SQL share grows sharply, because 782 round trips is the real
-shape.
+those 782 queries — about fifteen per claim. So this is not cleanly "Ruby or the database":
+it is N+1 wearing both hats, where the Ruby time is largely ActiveRecord materialising rows
+it asked for one at a time. On a database that is not local and idle the SQL share grows
+sharply, because 782 round trips is the real shape.
+
+### The queries, by shape and call site
+
+Twenty claims, 357 queries, 67 distinct shapes. Every hot one is `WHERE x = ?` on a single
+id:
+
+| Count | Site | Query |
+|---|---|---|
+| 35 | `evidence_item.rb:21` | `independence_group_assignments` by evidence item |
+| 33 | `tasks/checks.rb:59` | `contributions` by task — inside the per-claim loop below |
+| 22 | `claim.rb:86` | `contributions` by id |
+| 20 | `tasks/checks.rb:58` | `tasks` by claim |
+| 20 | `build_input.rb:48` | `evidence_claim_links` by claim |
+| 20 | `build_input.rb:25` | `claim_placements` by claim |
+
+`Tasks::Checks` is an N+1 inside an N+1: one `tasks` query per claim, then one
+`contributions` query per task.
+
+**They collapse, and the batch already exists.** `call_many` receives the whole set of claims
+and then asks per claim anyway. Each of these becomes one `WHERE … IN (ids)` grouped in
+memory — roughly eight to ten queries for a page instead of 357. Nothing here needs a clever
+query; it needs the collection the method was already handed.
+
+**And they over-fetch.** `SELECT "contributions".*` on a table averaging **1,859 bytes across
+24 columns**, because it carries `payload`, `envelope`, `signature`, `server_signature`,
+`entry_hash` and `prev_hash`. Fifty-five whole rows per twenty claims to answer *"was this
+accepted at seq?"* — about 100 KB across the wire for three columns, on the widest table in
+the schema. That is also where much of the 75% Ruby share goes: instantiating 24-column
+objects whose bytes nobody reads. A narrow `select` or `pluck` for status questions removes
+both halves at once.
+
+### Why it survived being looked at
+
+Worth recording, because the code was read repeatedly on the day it was measured.
+`build_input.rb`'s last commit is `60f9706`, *"Ask the per-link questions once for a whole
+scoring pass"* — it memoised one per-row question and left the others. `call_many` carries a
+comment saying the batched path exists, and it does: for the **cache lookup**, not for the
+input assembly that is 96% of the cost. Two true statements that together read as a solved
+problem. The rule that follows is in `CLAUDE.md`: prove a batching fix with a statement count
+that fails against the old code, never with a commit message.
 
 **A correction to what this stage first said.** It claimed making a miss cheaper "does not
 help", on the grounds that Stage 26 had already batched the queries. Stage 26 batched the
@@ -145,11 +183,13 @@ help", on the grounds that Stage 26 had already batched the queries. Stage 26 ba
 not an alternative — it is a second, independent win, and both are worth having:
 
 - **Keying** removes the work that should never have happened. It is this stage.
-- **Batching `BuildInput`** makes the work that must happen cheaper — loading a page of
-  claims' links, evidence, groups, evaluability and audit status in a handful of queries
-  rather than fifteen per claim. That is the same shape as Stage 26's batching and belongs in
-  its own stage rather than being smuggled in here, because it touches what the scorer reads
-  and wants its own byte-identical-trace acceptance.
+- **Batching `BuildInput`** makes the work that must happen cheaper, in three separable
+  steps, in this order of value: take the collection `call_many` already holds and issue one
+  query per table instead of one per row; narrow the `contributions` reads to the columns the
+  status questions actually use; and only then weigh whether the arithmetic floor justifies a
+  compiled core. That belongs in its own stage rather than being smuggled in here, because it
+  touches what the scorer reads and wants its own byte-identical-trace acceptance and its own
+  statement-count budget.
 
 Keying first, because a cache hit costs nothing however slow a miss is.
 
