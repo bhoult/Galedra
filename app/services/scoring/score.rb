@@ -136,8 +136,56 @@ module Scoring
         assessment_state: result.assessment_state, probability: result.probability, review_coverage: result.review_coverage,
         stability: result.stability, support_groups: result.support_groups, contradict_groups: result.contradict_groups,
         contested: result.contested, provisional: result.provisional, trace: result.trace, trace_hash: result.trace_hash,
+        independence_unreviewed: result.independence_unreviewed.to_i,
+        review_checks_done: Cards::DisplayRules.checks_done(result.review_checklist || {}),
         computed_at: Time.current
       }
+    end
+
+    # What a list of claims needs to be filtered and shown, without the trace.
+    #
+    # A whole-graph report asked `call_many` for full results and used nine
+    # fields of them: eight are columns on `claim_scores` and the ninth is now
+    # one too. Rehydrating a ~2 KB trace per claim to read them cost 5.0 s of SQL
+    # and most of a 19.6 s Ruby share at 100,024 claims. Selecting the columns
+    # never touches the trace at all, so Postgres does not detoast it and nothing
+    # is parsed on this side.
+    #
+    # A claim with no cached score is scored the ordinary way — correctness is
+    # the same either way, and a report at a seq nobody has scored is the cold
+    # case this cannot help with.
+    # Positional, and built positionally: a whole-graph report reads a summary
+    # for every claim under every released model, and a keyword hash per row is
+    # 300,000 hashes nobody keeps.
+    Summary = Struct.new(:assessment_state, :probability, :review_coverage, :review_checks_done,
+                         :support_groups, :contradict_groups, :contested, :provisional,
+                         :independence_unreviewed)
+
+    SUMMARY_COLUMNS = %w[claim_id assessment_state probability review_coverage review_checks_done
+                         support_groups contradict_groups contested provisional independence_unreviewed]
+                      .map { |c| "claim_scores.#{c}" }.freeze
+
+    def summaries(claims, seq, model)
+      model = Registry.find(model) unless model.is_a?(ScoringModel)
+      claims = claims.reject { |c| c.created_seq > seq }
+      return {} if claims.empty?
+
+      found = {}
+      claims.each_slice(LOOKUP_BATCH) do |slice|
+        Watermark.hits(slice.map(&:id), seq, model.id).pluck(*SUMMARY_COLUMNS).each do |row|
+          found[row.first] = Summary.new(*row.drop(1))
+        end
+      end
+      missing = claims.reject { |c| found.key?(c.id) }
+      call_many(missing, seq, model).each { |id, result| found[id] = summarize(result) } if missing.any?
+      found
+    end
+
+    def summarize(result)
+      Summary.new(result.assessment_state, result.probability, result.review_coverage,
+                  Cards::DisplayRules.checks_done(result.review_checklist || {}),
+                  result.support_groups, result.contradict_groups, result.contested,
+                  result.provisional, result.independence_unreviewed.to_i)
     end
 
     def from_cache(row)

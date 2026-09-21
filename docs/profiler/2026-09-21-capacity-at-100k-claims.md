@@ -88,18 +88,107 @@ first run computed and the other two read the report cache. **25.7 ms is a cache
 | `scores:prune` | 8,329.9 ms, deleted 200,021, kept 200,032 |
 | Every pruned claim rescored byte-identically afterwards | yes |
 
+## Where the 25 seconds goes
+
+Taken afterwards on the same corpus, with every score already cached, by timing each phase
+of `compute_lists` and counting every statement by shape. **The first reading of this
+number — "Ruby walking 100,024 claims to build the lists" — was wrong**, and it was wrong in
+the way this codebase's performance guesses usually are: the walk is not the cost.
+
+| Phase | Wall |
+|---|---|
+| Load the claim set (100,034 rows) | 270 ms |
+| `Scoring::Score.call_many`, every claim a cache hit | 4,159 ms |
+| `Facts` — three set queries | 1,427 ms |
+| **The seven filters, over 100,034 claims each** | **247 ms, all seven together** |
+| `models_disagree` — the whole corpus again under the strict model | 9,205 ms |
+| **Building the entries: 2,500 rows of `Cards::Why.most_moving_addition`** | **11,986 ms** |
+| Wall | **27,293 ms** |
+| of which SQL | 7,683 ms (28%) |
+| of which Ruby | 19,610 ms (72%) |
+| Statements | 26,474 |
+
+The statements, by total time:
+
+| Calls | Total | Mean | Shape |
+|---|---|---|---|
+| 301 | 5,006 ms | 16.6 ms | `SELECT claim_scores.* … JOIN claims …` |
+| 2,252 | 273 ms | 0.12 ms | `claim_evaluability_settings` by claim |
+| 3,546 | 257 ms | 0.07 ms | `audits` by target contribution |
+| 2,348 | 176 ms | 0.08 ms | `independence_group_assignments` by evidence item |
+| 2,252 | 159 ms | 0.07 ms | `claim_placements` by claim |
+| 1,700 | 110 ms | 0.07 ms | `quarantines` existence by source |
+| 290 | 24 ms | 0.08 ms | `contributions` where `action_type = 'REVOKE_KEY'` |
+
+### The three defects, all of them present
+
+1. **Work for rows nobody asked for — 12 of the 27 seconds.** Each kind builds
+   `MAX_ENTRIES` (500) entries at compute time, and every entry calls
+   `Cards::Why.most_moving_addition`, ~4.8 ms each. Seven kinds is up to 3,500 of them. The
+   page then **slices 25 or 50 rows off the front and throws the rest away.** The cap was
+   added so a reader could not ask the node to build ten thousand rows; it did not stop the
+   node building five hundred per kind unasked. Every one of the small per-row statements in
+   the table above is inside those calls — that is the N+1, and it is one row at a time in
+   the classic shape.
+2. **Over-fetch, the same pattern Stage 38's own planning named.** `SELECT claim_scores.*`
+   carries `trace`, a ~2 KB JSON document, for 200,000 rows — 5.0 s of SQL in one shape at
+   16.6 ms a call, plus the Ruby to parse each one and build a `Calculate::Result` from it.
+   The lists read `assessment_state`, `review_coverage`, `support_groups`,
+   `contradict_groups`, `contested` and `provisional`, and **every one of those is already
+   its own column on `claim_scores`**. Only `independence_unreviewed` is trace-only, and it
+   is computed at score time like the rest, so it could be a column too.
+3. **The corpus walk, which is what I blamed first, is 1%.** Filtering 100,034 claims seven
+   times costs 247 ms in total. Loading them costs 270 ms. There is nothing to fix there.
+
+### After the fixes
+
+Same corpus, same conditions, `Weaknesses::Report.call(seq, limit: 50)` end to end with the
+page cache off:
+
+| | Before | After |
+|---|---|---|
+| Wall | 27,293 ms | **7,068 ms** |
+| SQL | 7,683 ms | 3,283 ms |
+| Ruby | 19,610 ms | 3,784 ms |
+| Statements | 26,474 | **2,912** |
+| Rows returned, and their content | 250 | 250, identical |
+
+Four changes, all of them the same kind of thing: stop doing work nobody asked for.
+
+- **"What would most change this" is built for the page, not for the report.** `page` fills
+  it in for the rows it returns; `entry` no longer does it for 500 rows of every kind.
+- **The lists read columns, not traces.** `Scoring::Score.summaries` selects the nine fields
+  the lists use, so `trace` is never in the select list and Postgres never detoasts it.
+  `independence_unreviewed` and `review_checks_done` became columns on `claim_scores` to
+  make that possible — a cache table outside the digest, so this costs nothing epistemic.
+- **`models_disagree` stopped re-reading the default model's scores**, which it already had
+  in hand. That was a third of every row this report reads.
+- **Summaries are built positionally**, not from a keyword hash per row. 300,000 hashes
+  nobody keeps.
+
+What is left is a floor: reading a summary for every claim under every model (~200,000 rows,
+3.3 s), `Facts`, and the filters. **This is the number the owner decision should be taken
+against**, and it is the kind of thing a pinned snapshot or a schedule genuinely does fix,
+because it is work that has to happen and only needs to happen once per snapshot.
+
+**This changes what the owner decision is about.** Roughly 12 s is entries nobody asked for
+and roughly 10 s is reading traces nobody reads; neither needs a decision about snapshots or
+schedules to remove, and both are ordinary work. What would be left is `Facts`, the claim
+load and the filters — on the order of 2 s at a hundred thousand claims. Whether *that*
+needs a pinned snapshot is a much smaller question, and it should be asked after the work,
+not before it.
+
 ## Findings
 
-- **`/weaknesses` does not meet Stage 26 acceptance 2 (under 500 ms at 100,000 claims), by
-  any keying. Status: OPEN — and the decision is the owner's.** Cold it is eleven minutes;
-  with every score already cached and nothing to recompute it is still **25 seconds**,
-  because the remaining work is Ruby over the whole corpus: the claim set, `Facts`, and
-  each weakness list walking 100,024 claims. Caching the report per snapshot makes the
-  *second* reader at a given seq cheap, but a node taking writes moves the seq
-  constantly. The stage already records the two candidate answers as owner decisions —
-  answer for the latest pinned `graph_snapshot` rather than the head, or compute on a
-  schedule — and this is the measurement that makes the choice concrete. Either one turns
-  25 seconds into a cache read; neither is a change to make without the owner.
+- **`/weaknesses` does not meet Stage 26 acceptance 2 (under 500 ms at 100,000 claims).
+  Status: OPEN, and most of it is ordinary work rather than an owner decision.** Cold it is
+  eleven minutes; with every score already cached it is still 25 seconds. But the phase
+  timing above says **~12 s of that is entries the page throws away and ~10 s is traces
+  nobody reads**, and neither needs a decision about pinned snapshots or schedules. Build
+  the "what would most change this" for the rows actually returned rather than for 500 per
+  kind, and read the columns `claim_scores` already has instead of rehydrating a trace per
+  claim, and what remains is on the order of 2 s. The owner decision — pinned snapshot, or
+  a schedule — should be taken against that number, not this one.
 - **The report held 4.9 GB resident. Status: PARTLY FIXED (`4322699`) — 4.9 GB → 2.7 GB.**
   `Scoring::Score.call_many` was handed all 100,024 claims at once, and `Scoring::Pass`
   then loaded every counted link of that set *with its contribution* — the widest table in

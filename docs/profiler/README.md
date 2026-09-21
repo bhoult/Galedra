@@ -52,4 +52,4 @@ them. See `implementation/planned/stage-26-capacity.md` for the plan this serves
 |---|---|---|
 | 2026-09-19 | [The weaknesses page at 3,000 claims](2026-09-19-weaknesses-at-3000-claims.md) | The score cache was queried once per claim per model. Carries a same-day correction, and a follow-up measuring what the cold path costs |
 | 2026-09-20 | [The write path slows as the corpus grows](2026-09-20-seed-write-path-decay.md) | Appends decayed 4.6x from 0 to 83k claims, monotonically. Mechanism still open: two hypotheses tested and both rejected |
-| 2026-09-21 | [Capacity at 100,024 claims](2026-09-21-capacity-at-100k-claims.md) | The whole-graph report is 11 minutes cold and 25 seconds with every score cached, so `/weaknesses` cannot meet 500 ms by caching alone. It also held 4.9 GB |
+| 2026-09-21 | [Capacity at 100,024 claims](2026-09-21-capacity-at-100k-claims.md) | The whole-graph report is 11 minutes cold and 25 s warm — but 12 s of that is entries the page throws away and 10 s is traces nobody reads, and filtering all 100,024 claims is 247 ms |

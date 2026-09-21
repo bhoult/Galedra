@@ -363,15 +363,24 @@ bundle list` names none of `stackprof`, `memory_profiler`, `rack-mini-profiler` 
 
 ### What remains
 
-- **`/weaknesses` cannot meet 500 ms by caching, and the decision is the owner's.** With
-  every score cached and nothing to recompute it is still **25 seconds**, because the rest
-  is Ruby walking 100,024 claims: the claim set, `Facts`, and each weakness list. The two
-  candidates are already recorded above as owner decisions — answer for the latest pinned
-  `graph_snapshot` rather than the head, or compute on a schedule. Either turns 25 seconds
-  into a cache read. Neither should be chosen without the owner, so the stage stays open on
-  this point. A third, smaller step is available whoever decides: the report holds a full
-  `Calculate::Result` per claim, trace and all, when it needs states and counts that are
-  columns on `claim_scores` in their own right.
+- **`/weaknesses` is 25 s with every score cached, and most of that is ordinary work, not
+  an owner decision.** The phase timing in the profiler entry says where it goes, and the
+  first answer written here — "Ruby walking 100,024 claims" — was wrong: the seven filters
+  over the whole corpus cost **247 ms between them**. The cost is two things this project
+  already has a name for:
+  - **12 s building entries nobody asked for.** Every kind builds `MAX_ENTRIES` (500)
+    entries at compute time, each calling `Cards::Why.most_moving_addition` at ~4.8 ms, and
+    the page then slices 25 or 50 off the front. Up to 3,500 calls to serve fifty rows, and
+    the per-row statements inside them are 12,000 of the run's 26,474.
+  - **10 s reading traces nobody reads.** `SELECT claim_scores.*` carries a ~2 KB `trace`
+    for 200,000 rows — 5.0 s of SQL in one shape — and the lists read `assessment_state`,
+    `review_coverage`, `support_groups`, `contradict_groups`, `contested` and `provisional`,
+    every one of which is already its own column. Only `independence_unreviewed` is
+    trace-only, and it could be a column like the rest.
+
+  Both are removable without deciding anything about snapshots. **Do them first**, then ask
+  the owner about the ~2 s that would be left, rather than choosing a caching strategy to
+  hide work that should not be happening.
 - **Acceptance 4 — the ten-minute load test on the recommended droplet. NOT RUN, and not
   runnable here.** There is no droplet; `script/loadtest.js` and `script/loadtest.sh` are
   built and waiting for a target. This is the one criterion that needs infrastructure rather

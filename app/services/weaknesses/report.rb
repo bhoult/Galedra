@@ -36,9 +36,35 @@ module Weaknesses
     end
 
     # Slices each list, and says how many there are and whether the cap bit.
+    #
+    # "What would most change this" is worked out here, for the rows actually
+    # returned, and not when the report is computed. Each one rebuilds the
+    # claim's scorer input and scores several hypotheticals — 4.8 ms, and a
+    # handful of single-row queries — and the report used to do that for
+    # MAX_ENTRIES rows of every kind before slicing fifty off the front: up to
+    # 3,500 of them to serve one page, 12 of the 27 seconds a warm whole-graph
+    # report cost at 100,024 claims
+    # (docs/profiler/2026-09-21-capacity-at-100k-claims.md).
     def page(full, limit, offset)
-      lists = full[:lists].to_h { |kind, entries| [ kind, entries[offset, limit] || [] ] }
+      model = Scoring::Registry.find(full[:model]) if full[:model]
+      lists = full[:lists].to_h { |kind, entries| [ kind, next_steps(entries[offset, limit] || [], full[:snapshot_seq], model) ] }
       full.merge(lists: lists, limit: limit, offset: offset)
+    end
+
+    # One load and one scoring pass for the page, whatever its length.
+    def next_steps(entries, seq, model)
+      return entries if entries.empty? || model.nil?
+
+      claims = Claim.where(id: entries.map { |e| e[:claim_id] }).index_by(&:id)
+      results = Scoring::Score.call_many(claims.values, seq, model)
+      entries.map do |e|
+        claim = claims[e[:claim_id]]
+        result = results[e[:claim_id]]
+        next e if claim.nil? || result.nil?
+
+        e.merge(what_would_most_change_this: Cards::Why.most_moving_addition(claim, seq, model, result)
+                                                       &.slice(:direction, :observation, :state_from, :state_to, :text))
+      end
     end
 
     def compute(seq, kinds, model)
@@ -48,7 +74,9 @@ module Weaknesses
     def compute_lists(seq, kinds, model)
       models = Scoring::Registry.released.to_a
       claims = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids).order(:created_seq).to_a
-      scored = Scoring::Score.call_many(claims, seq, model)
+      # The lists read nine fields, every one of them a column: the trace stays
+      # in the database (Scoring::Score.summaries).
+      scored = Scoring::Score.summaries(claims, seq, model)
       facts = Facts.new(claims, seq)
       totals = {}
       lists = kinds.to_h do |k|
@@ -81,16 +109,16 @@ module Weaknesses
       def evidenced?(claim_id) = @evidenced.include?(claim_id)
     end
 
-    def entry(claim, result, detail, seq, model)
-      { claim_id: claim.id, text: claim.canonical_text, assessment_state: result.assessment_state, detail: detail,
-        what_would_most_change_this: Cards::Why.most_moving_addition(claim, seq, model, result)&.slice(:direction, :observation, :state_from, :state_to, :text) }
+    # No "what would most change this" here: that is built for the page being
+    # returned, in `next_steps`.
+    def entry(claim, result, detail, _seq, _model)
+      { claim_id: claim.id, text: claim.canonical_text, assessment_state: result.assessment_state, detail: detail }
     end
 
     def low_coverage_scored(claims, scored, *)
       claims.filter_map do |c|
         r = scored[c.id]
-        done = Cards::DisplayRules.checks_done(r.review_checklist)
-        [ c, { review_checks_done: done } ] if r.probability && done <= 1
+        [ c, { review_checks_done: r.review_checks_done } ] if r.probability && r.review_checks_done <= 1
       end
     end
 
@@ -109,11 +137,15 @@ module Weaknesses
     # One batch per released model rather than one query per claim per model:
     # at two models and a few thousand claims that was the larger half of the
     # report's round trips (Stage 26).
-    def models_disagree(claims, scored, seq, _model, models, facts)
+    def models_disagree(claims, scored, seq, model, models, facts)
       evidenced = claims.select { |c| facts.evidenced?(c.id) }
       return [] if evidenced.empty?
 
-      by_model = models.to_h { |m| [ m.full_name, Scoring::Score.call_many(evidenced, seq, m) ] }
+      # The default model's summaries are already in hand: reading them again is
+      # a third of the rows this report reads at all.
+      by_model = models.to_h do |m|
+        [ m.full_name, m.id == model&.id ? scored : Scoring::Score.summaries(evidenced, seq, m) ]
+      end
       evidenced.filter_map do |c|
         states = by_model.transform_values { |results| results[c.id]&.assessment_state }
         [ c, { states: states } ] if states.values.compact.uniq.size > 1
