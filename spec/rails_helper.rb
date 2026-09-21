@@ -13,6 +13,12 @@ ENV["LEDGER_SYSTEM_PRIVATE_KEY"] = Base64.urlsafe_encode64(
 ENV["LEDGER_SYSTEM_PUBLIC_KEY"] = Base64.urlsafe_encode64(
   [ "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a" ].pack("H*"), padding: false
 )
+# Stage 40, and the same reason as the key above: Docker Compose passes .env
+# into the container, and this node has request metrics on, which would add an
+# upsert and sometimes an insert to every request the suite makes — enough to
+# break the statement-count budgets that guard against N+1s. Examples that want
+# it turn it on for themselves.
+ENV["LEDGER_REQUEST_METRICS"] = "off"
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?

@@ -99,6 +99,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 37 | A thread on a determination | implemented | [implementation/implemented/stage-37-threads-on-determinations.md](implementation/implemented/stage-37-threads-on-determinations.md) |
 | 38 | A score that has not changed should not be recomputed | built | [implementation/implemented/stage-38-score-cache-keying.md](implementation/implemented/stage-38-score-cache-keying.md) |
 | 39 | The read paths ask one row at a time | planned | [implementation/planned/stage-39-read-paths-one-row-at-a-time.md](implementation/planned/stage-39-read-paths-one-row-at-a-time.md) |
+| 40 | The node records how long it took, and how often it was asked | built | [implementation/implemented/stage-40-request-timings.md](implementation/implemented/stage-40-request-timings.md) |
 
 Work done between stages, each with its own dated entry:
 

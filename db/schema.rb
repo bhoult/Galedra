@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -192,8 +192,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
     t.timestamptz "computed_at", null: false
     t.boolean "contested", null: false
     t.integer "contradict_groups", null: false
+    t.integer "independence_unreviewed"
     t.decimal "probability", precision: 5, scale: 4
     t.boolean "provisional", null: false
+    t.integer "review_checks_done"
     t.decimal "review_coverage", precision: 3, scale: 2, null: false
     t.uuid "scoring_model_id", null: false
     t.bigint "snapshot_seq", null: false
@@ -589,6 +591,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_120000) do
     t.index ["audit_id"], name: "index_reputation_events_on_audit_id"
     t.index ["contributor_id", "task_type", "domain"], name: "idx_on_contributor_id_task_type_domain_f317753e89"
     t.index ["principal_contributor_id", "task_type", "domain"], name: "idx_on_principal_contributor_id_task_type_domain_8c73a2ddc9"
+  end
+
+  create_table "request_samples", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "action", null: false
+    t.decimal "db_ms", precision: 10, scale: 2
+    t.decimal "duration_ms", precision: 10, scale: 2, null: false
+    t.bigint "head_seq"
+    t.string "method", null: false
+    t.timestamptz "recorded_at", null: false
+    t.string "request_id"
+    t.integer "statements", default: 0, null: false
+    t.integer "status"
+    t.decimal "view_ms", precision: 10, scale: 2
+    t.index ["action", "recorded_at"], name: "index_request_samples_on_action_and_recorded_at"
+    t.index ["duration_ms"], name: "index_request_samples_on_duration_ms"
+    t.index ["recorded_at"], name: "index_request_samples_on_recorded_at"
+  end
+
+  create_table "request_tallies", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "action", null: false
+    t.bigint "calls", default: 0, null: false
+    t.timestamptz "created_at", null: false
+    t.timestamptz "hour", null: false
+    t.decimal "max_ms", precision: 10, scale: 2, default: "0.0", null: false
+    t.bigint "slow_calls", default: 0, null: false
+    t.bigint "statements", default: 0, null: false
+    t.decimal "total_ms", precision: 14, scale: 2, default: "0.0", null: false
+    t.timestamptz "updated_at", null: false
+    t.index ["action", "hour"], name: "index_request_tallies_on_action_and_hour", unique: true
+    t.index ["hour"], name: "index_request_tallies_on_hour"
   end
 
   create_table "review_verdicts", id: :uuid, default: nil, force: :cascade do |t|
