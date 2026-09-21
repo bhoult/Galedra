@@ -76,6 +76,29 @@ RSpec.describe "Source retrieval by a trusted job (Stage 17)" do
     expect(source.reload.retrieval_pending).to be(true)
   end
 
+  # One word carried two facts: a passage genuinely absent, and a document this
+  # server never read. The primary figures behind a claim were published as a
+  # PDF and reported the same way as a quote that was not there (01a0c0ec).
+  # Galedra's fetch was never the reader — a connected assistant opens the PDF —
+  # so the fix is to say what was not done, not to build a second reader.
+  it "says it did not read a document rather than that the passage was not found" do
+    pair, = register_key
+    url = "https://pdf.example/report.pdf"
+    source, locations = reference_source(pair, url: url, excerpts: [ "Eighty-five per cent in China." ], type: "DATASET")
+    fetcher = FakeFetcher.new(url => FakeFetcher::Page.new("FETCHED", "application/pdf", "%PDF-1.7 binary bytes", url))
+    Sources::Retrieve.call(source, fetcher: fetcher)
+
+    row = SourceRetrieval.latest_for(source.id)
+    expect(row.outcome).to eq("FETCHED"), "the fetch worked; it is the reading that did not happen"
+    expect(row.finding_for(locations.first.id)).to eq("NOT_READ")
+    # Which kind is on the retrieval row, where it is recorded once, rather than
+    # repeated onto every excerpt in a signed payload.
+    expect(row.media_type).to eq("application/pdf")
+    expect(SourceRetrieval.means("NOT_READ")).to include("read it yourself")
+    expect(SourceRetrieval.means("NOT_FOUND")).to include("looked")
+    expect(SourceRetrieval::FINDING_MEANS.keys).to match_array(SourceRetrieval::FINDINGS)
+  end
+
   it "records TOO_LARGE, TIMEOUT, NOT_FOUND, BLOCKED, and UNSUPPORTED outcomes once each, and honours robots.txt (#3)" do
     pair, = register_key
     pages = {
@@ -107,7 +130,9 @@ RSpec.describe "Source retrieval by a trusted job (Stage 17)" do
     bytes = "\x89PNG\r\n\x1a\n".b + ("x" * 100).b
     contribution = Sources::Retrieve.call(image, fetcher: FakeFetcher.new("https://img.example/m.png" => FakeFetcher::Page.new("FETCHED", "image/png", bytes)))
     expect(contribution.payload).to include("outcome" => "FETCHED", "content_hash" => Crypto::Hashing.bytes(bytes), "media_type" => "image/png")
-    expect(contribution.payload["excerpts"]).to eq([ { "location_id" => location.id, "found" => "UNSUPPORTED" } ])
+    # NOT_READ rather than UNSUPPORTED: an image holds no text this server reads,
+    # which is a different fact from a passage it looked for and did not find.
+    expect(contribution.payload["excerpts"]).to eq([ { "location_id" => location.id, "found" => "NOT_READ" } ])
 
     stored = create_source(pair)
     expect(Sources::Retrieve.call(stored, fetcher: FakeFetcher.new({}))).to be_nil

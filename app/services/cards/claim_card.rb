@@ -55,6 +55,10 @@ module Cards
       findings = locations.filter_map { |location| latest[location.source_id]&.finding_for(location.id) }
       labels = []
       labels << "A quoted passage was not found on the page when Galedra fetched it." if findings.include?("NOT_FOUND")
+      # Said separately from NOT_FOUND, because they are different facts and
+      # sharing a sentence was the whole complaint: a primary source published as
+      # a PDF read as a passage that could not be found.
+      labels << "A quoted passage is in a document this server does not read, such as a PDF, so it has not been checked here." if findings.include?("NOT_READ")
       labels << "Every quoted passage was confirmed on the page when Galedra fetched it." if findings.any? && findings.all? { |f| %w[VERBATIM NORMALIZED].include?(f) }
       labels
     end

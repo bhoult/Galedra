@@ -40,7 +40,12 @@ module Tasks
       context = packet["context"]
       if task.task_type == "EVIDENCE_VERIFICATION" && (location_id = context["source_location_id"])
         finding = SourceRetrieval.latest_for(context["source_id"])&.finding_for(location_id)
-        context = context.merge("retrieval" => finding && { "found" => finding, "note" => "Galedra's own fetch of the page: #{finding.downcase.tr('_', ' ')}. A fact for you to weigh, not a verdict." })
+        context = context.merge("retrieval" => finding && {
+          "found" => finding,
+          "means" => SourceRetrieval.means(finding),
+          "note" => "Galedra's own fetch of the page: #{SourceRetrieval.means(finding)}. A fact for you to weigh, not a verdict" \
+                    "#{', and here it is not even that: open the document and read it yourself' if finding == 'NOT_READ'}."
+        })
       end
       if task.section_id && (section = Section.find_by(id: task.section_id))
         context = context.merge("section" => { "id" => section.id, "path" => section.path, "url" => "#{base_url}/sections/#{section.id}",

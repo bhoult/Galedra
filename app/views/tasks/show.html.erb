@@ -7,7 +7,7 @@
   <pre>ruby examples/agent/agent.rb run --base-url <%= request.base_url %> --key-file agent-key.json --delegation &lt;delegation id&gt; --types <%= @task.task_type %> --domains <%= @task.domain %> --once</pre>
 </div>
 <% if @task.task_type == "EVIDENCE_VERIFICATION" && (finding = SourceRetrieval.latest_for(@task.packet.dig("context", "source_id"))&.finding_for(@task.packet.dig("context", "source_location_id"))) %>
-  <p class="meta">Galedra's own fetch of the page found the quoted passage: <strong><%= finding.downcase.tr("_", " ") %></strong>. A fact for the reviewer to weigh, not a verdict.</p>
+  <p class="meta">Galedra's own fetch of the page: <strong><%= SourceRetrieval.means(finding) %></strong>. A fact for the reviewer to weigh, not a verdict.</p>
 <% end %>
 <details><summary>Signed packet</summary><pre><%= JSON.pretty_generate(@task.packet) %></pre></details>
 <% if @task.closed? %>

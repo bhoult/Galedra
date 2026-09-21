@@ -33,8 +33,10 @@
         <p><strong><%= r.outcome %></strong> at <%= r.fetched_at.utc.iso8601 %><% if r.final_url.present? %> · <%= safe_source_link(r.final_url) %><% end %> · <%= link_to "seq #{r.created_seq}", contribution_path(r.contribution_id) %></p>
         <% if r.fetched? %><p class="meta">Server hash <code><%= r.content_hash %></code> · <%= r.content_length %> bytes · <%= r.media_type %><% if @source.content_hash && @source.content_hash != r.content_hash %> · differs from the reader's hash<% elsif @source.content_hash %> · matches the reader's hash<% end %>. The reader's record is unchanged; this is the server's finding beside it.</p><% end %>
         <% if r.excerpts.any? %>
+          <%# The word and what it means, because one word carried two facts: a
+              passage genuinely absent and a document this server never read. %>
           <table><tr><th>Excerpt</th><th>Finding</th></tr>
-          <% r.excerpts.each do |e| %><% loc = SourceLocation.find_by(id: e["location_id"]) %><tr><td><%= truncate(loc&.excerpt.to_s, length: 160) %></td><td><%= e["found"].to_s.downcase.tr("_", " ") %></td></tr><% end %></table>
+          <% r.excerpts.each do |e| %><% loc = SourceLocation.find_by(id: e["location_id"]) %><tr><td><%= truncate(loc&.excerpt.to_s, length: 160) %></td><td><strong><%= e["found"].to_s.downcase.tr("_", " ") %></strong> — <%= SourceRetrieval.means(e["found"]) %></td></tr><% end %></table>
         <% end %>
       </div>
     <% end %>

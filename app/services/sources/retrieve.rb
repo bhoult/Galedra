@@ -77,7 +77,10 @@ module Sources
 
     def findings(source, locations, body, media_type)
       textual = TEXT_TYPES.any? { |t| media_type.to_s.start_with?(t) } && source.source_type != "IMAGE"
-      return locations.map { |l| { "location_id" => l.id, "found" => "UNSUPPORTED" } } unless textual
+      # NOT_READ, not UNSUPPORTED: we did not look. A PDF is the common case and
+      # is often the primary source behind a claim, so reporting it the same way
+      # as a passage genuinely absent understates the record's own reach.
+      return locations.map { |l| { "location_id" => l.id, "found" => "NOT_READ" } } unless textual
 
       text = extract_text(body, media_type)
       normalized_text = normalize(text)
