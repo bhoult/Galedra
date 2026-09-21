@@ -38,5 +38,9 @@
     <h2>Sources read</h2>
     <ul><% @sources.each do |s| %><li><%= link_to s.title, source_path(s) %><% if s.canonical_uri.present? %> · <%= safe_source_link(s.canonical_uri) %><% end %></li><% end %></ul>
   <% end %>
+  <%= render "shared/attribution", agent: @investigation.assistant_token&.agent,
+             principal: @investigation.assistant_token&.principal,
+             at: @investigation.created_at, contribution_id: nil,
+           everyone_path: contributors_investigation_path(@investigation) %>
   <p class="meta">Recorded at snapshot <%= @investigation.snapshot_seq %>; this page reads the current state of each claim. Any number here is model-conditional, not a share of truth. <%= link_to "What Galedra is", root_path %>.</p>
 </div>

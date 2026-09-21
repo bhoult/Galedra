@@ -1,0 +1,27 @@
+<%# Who initiated a piece of work, at the foot of the page that shows it
+    (owner request, 2026-09-21). Everything here is already in the log — the
+    signing key, the person it acted for, and the entry itself — and was simply
+    not shown, so a reader had no way to ask "who did this?" without going to
+    the log and working it out.
+
+    One partial for investigations and outlines alike. `agent` is the key that
+    signed; `principal` is the person it acted for, which is the same contributor
+    when the work was anonymous. `everyone_path` is optional: where the whole set
+    of contributors to this piece of work is listed. %>
+<p class="meta attribution">
+  <% if agent %>
+    Recorded by <%= link_to short_id(agent.key_id), contributor_path(agent) %><%= " (#{agent.kind.downcase})" if agent.kind %>
+    <% if principal && principal != agent %>
+      · for <%= link_to(principal.display_name.presence || short_id(principal.key_id), contributor_path(principal)) %>
+    <% elsif principal&.identity_tier == "ANONYMOUS" %>
+      · anonymously, under no one's name
+    <% end %>
+  <% else %>
+    Recorded by a contributor no longer on this node
+  <% end %>
+  <% if at %>· <%= at.utc.strftime("%Y-%m-%d %H:%M") %> UTC<% end %>
+  <% if contribution_id %>· <%= link_to "the entry in the log", contribution_path(contribution_id) %><% end %>
+  <%# Who started it is the smaller half of the answer; the rest is a page of its own. %>
+  <% if local_assigns[:everyone_path] %>· <%= link_to "everyone who contributed", local_assigns[:everyone_path] %><% end %>
+  · every write here is signed and stays open to audit.
+</p>

@@ -1,0 +1,50 @@
+<%# Everyone whose signed entry went into one check or outline (owner request,
+    2026-09-21). One template for both, rendered by InvestigationsController and
+    SectionsController, because two pages answering "who contributed?" would
+    drift the way two of anything here drift.
+
+    Nothing on this page is asserted: every row is counted from the log, and the
+    entries link back to it so a reader can check the count rather than take it. %>
+<% content_for :title, "Who contributed" %>
+<h1>Who contributed</h1>
+<p class="meta">
+  <%= @subject.present? ? "“#{@subject}”" : "This record" %>
+  · <%= link_to "back to #{@back_label}", @back %>
+</p>
+<% if @parties.empty? %>
+  <div class="card"><p class="meta">Nothing signed has reached this yet.</p></div>
+<% else %>
+  <p>
+    <%= pluralize(@parties.size, "signing key") %>, ordered by how much of this each one wrote.
+    An agent signs for the person it acts for; both are named. Every entry counted here is in the log and open to audit.
+  </p>
+  <table>
+    <thead><tr><th>Key</th><th>For</th><th>Entries</th><th>What they did</th><th>First</th><th>Last</th></tr></thead>
+    <tbody>
+      <% @parties.each do |party| %>
+        <tr>
+          <td>
+            <%= link_to short_id(party.agent.key_id), contributor_path(party.agent) %>
+            <%= "(#{party.agent.kind.downcase})" if party.agent.kind %>
+          </td>
+          <td>
+            <% if party.for_someone_else? %>
+              <%= link_to(party.principal.display_name.presence || short_id(party.principal.key_id), contributor_path(party.principal)) %>
+            <% elsif party.agent.agent? %>
+              <span class="meta">no delegation on the entry</span>
+            <% elsif party.agent.anonymous? %>
+              <span class="meta">anonymously, under no one's name</span>
+            <% else %>
+              <span class="meta">itself</span>
+            <% end %>
+          </td>
+          <td><%= party.entries %></td>
+          <td><%= party.did.map { |phrase, count| count > 1 ? "#{phrase} (#{count})" : phrase }.join(", ") %></td>
+          <td class="meta"><%= party.first_at&.utc&.strftime("%Y-%m-%d %H:%M") %></td>
+          <td class="meta"><%= party.last_at&.utc&.strftime("%Y-%m-%d %H:%M") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <p class="meta">Times are UTC. A key that wrote nothing here does not appear, however much it wrote elsewhere.</p>
+<% end %>

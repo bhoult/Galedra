@@ -2,7 +2,7 @@
 # by topic; one section's subtree as a directory tree; and a signed-in
 # person's "Add an outline" from indented headings.
 class SectionsController < ApplicationController
-  allow_unauthenticated_access only: [ :index, :show ]
+  allow_unauthenticated_access only: [ :index, :show, :contributors ]
 
   def index
     @seq = current_seq
@@ -35,6 +35,20 @@ class SectionsController < ApplicationController
     @text = Sections::Text.call(@section, @seq)
     @share_line = Sections::Progress.share_line(@section.root, @seq, section_url(@section.root))
     @current_claim = params[:claim].presence
+  end
+
+  # The same page for an outline: whoever broke the source into sections counts
+  # as much as whoever checked a claim inside it.
+  def contributors
+    section = Section.find(params[:id])
+    root = Section.find_by(id: section.root_id) || section
+    claim_ids = ClaimPlacement.where(section_id: Section.where(root_id: root.root_id).select(:id)).distinct.pluck(:claim_id)
+
+    @subject = root.heading
+    @back = section_path(root)
+    @back_label = "the outline"
+    @parties = Attribution::Participants.for_outline(root.root_id, claim_ids)
+    render "shared/participants"
   end
 
   # Indented text → one CREATE_SECTION with a nested payload.

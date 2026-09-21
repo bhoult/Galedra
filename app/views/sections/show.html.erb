@@ -50,6 +50,14 @@
   <p><strong>Open work under this section: <%= open_tasks.size %></strong><% if open_tasks.any? %> (<%= open_tasks.group_by(&:task_type).map { |k, v| "#{v.size} #{k.downcase.tr('_', ' ')}" }.join(", ") %>)<% end %>.</p>
   <p class="meta">To help, tell your assistant: <code>work the open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are recorded and their verification tasks open at once, so anyone can carry on from where the last person stopped.</p>
 </div>
+<%# Who initiated this outline: the contributor who recorded its root section,
+    not whoever last added a child (owner request, 2026-09-21). %>
+<% root = @section.root_id ? Section.find_by(id: @section.root_id) : @section %>
+<% entry = (root || @section).contribution %>
+<%= render "shared/attribution", agent: entry&.contributor, principal: entry&.principal_contributor,
+           at: entry&.received_at, contribution_id: entry&.id,
+           everyone_path: contributors_section_path(@section) %>
+
 <% if authenticated? %>
   <details><summary>Add sections under this one</summary>
     <%= form_with url: sections_path, method: :post do |f| %>

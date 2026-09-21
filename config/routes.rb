@@ -42,6 +42,8 @@ Rails.application.routes.draw do
   resources :assistants, only: [ :new, :create, :destroy ]
   resources :investigations, only: [ :index, :new, :create, :show ] do
     get :card, on: :member
+    # Everyone whose signed entry went into the check, not only whoever started it.
+    get :contributors, on: :member
   end
   get "adopt/:code", to: "adoptions#show", as: :adopt
   post "adopt/:code", to: "adoptions#create"
@@ -56,7 +58,9 @@ Rails.application.routes.draw do
   end
   resource :account, only: [ :show, :update ]
   # Stage 20: outlines of long sources, as trees of sections.
-  resources :sections, only: [ :index, :show, :create ]
+  resources :sections, only: [ :index, :show, :create ] do
+    get :contributors, on: :member
+  end
   resources :affiliation_requests, only: [ :create ]
   resources :feature_requests, only: [ :index, :show, :update ]
   resources :bug_reports, only: [ :new, :create, :index, :show, :update ]

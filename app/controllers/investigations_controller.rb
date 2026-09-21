@@ -70,6 +70,19 @@ class InvestigationsController < ApplicationController
                       .uniq.reject(&:redacted?)
   end
 
+  # Everyone who worked on the check, not only whoever recorded it. Derived from
+  # the log: the claims, and every entry that reached them (owner request).
+  def contributors
+    @investigation = Investigation.find(params[:id])
+    return redirect_to contributors_section_path(@investigation.section_id) if @investigation.outline?
+
+    @subject = @investigation.title
+    @back = investigation_path(@investigation)
+    @back_label = "the check"
+    @parties = Attribution::Participants.for_claims(@investigation.claim_ids)
+    render "shared/participants"
+  end
+
   def card
     investigation = Investigation.find(params[:id])
     ClaimReference.count!(investigation.claim_ids, "SHARED")
