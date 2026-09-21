@@ -663,17 +663,12 @@ module Mcp
     end
 
     def tool_get_thread(args)
-      thread = DeterminationThread.find_by(id: args["thread_id"].to_s) or
-        raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.thread_id", detail: "no thread with that id" } ])
-
-      thread_detail(thread)
+      thread_detail(find_thread(args))
     end
 
     def tool_respond_to_thread(args)
       require_token!
-      thread = DeterminationThread.find_by(id: args["thread_id"].to_s) or
-        raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.thread_id", detail: "no thread with that id" } ])
-
+      thread = find_thread(args)
       result = thread.respond!(body: args["body"].to_s, token: @token, verdict: args["verdict"].presence)
       note = DeterminationThread::VOTE_NOTES[result[:vote]].to_s.dup
       note << " Your turn was longer than #{ThreadTurn::MAX_CHARS} characters and was clipped to that." if result[:clipped]
@@ -719,6 +714,13 @@ module Mcp
       return false if principal.nil?
 
       thread.turns.any? { |t| t.principal_id == principal }
+    end
+
+    def find_thread(args)
+      given = args["thread_id"].to_s.strip
+      DeterminationThread.find_by(id: given) ||
+        by_prefix(given, "$.thread_id", "thread") { |m| [ DeterminationThread.where(m) ] } ||
+        raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.thread_id", detail: "no thread with that id#{near_miss_hint(DeterminationThread, given)}" } ]))
     end
 
     def thread_subject(args)
@@ -805,13 +807,65 @@ module Mcp
     end
 
     # A report this assistant filed. Someone else's is not theirs to read.
+    # Ids are displayed as eight characters everywhere in this app — short_id is
+    # what every page and every list prints — so an assistant reading a page, or
+    # its own earlier note, holds a prefix. Accepting only the full form meant the
+    # server refused an id in the form it publishes, and said "no report you
+    # filed with that id" about a report the caller had in fact filed.
+    #
+    # An unambiguous prefix resolves. An ambiguous one says how many it matched,
+    # because "be more specific" is actionable and "not found" is not.
     def find_report(id)
       mine = @token.filer_token_ids
-      row = BugReport.find_by(id: id.to_s, assistant_token_id: mine) ||
-            FeatureRequest.find_by(id: id.to_s, assistant_token_id: mine)
-      raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.report_id", detail: "no report you filed with that id" } ]) if row.nil?
+      given = id.to_s.strip
+      row = BugReport.find_by(id: given, assistant_token_id: mine) ||
+            FeatureRequest.find_by(id: given, assistant_token_id: mine) ||
+            by_prefix(given, "$.report_id", "report",
+                      everywhere: ->(m) { [ BugReport.where(m), FeatureRequest.where(m) ] }) { |m|
+              [ BugReport.where(assistant_token_id: mine).where(m), FeatureRequest.where(assistant_token_id: mine).where(m) ]
+            }
+      raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.report_id", detail: report_not_found_detail(given) } ]) if row.nil?
 
       row
+    end
+
+    # Whether somebody else filed it, because "no report you filed" reads as "no
+    # such report" and sends a caller looking for a typo that is not there.
+    def report_not_found_detail(given)
+      elsewhere = prefix_matches(given) { |m| [ BugReport.where(m), FeatureRequest.where(m) ] }
+      return "that id belongs to a report somebody else filed; list_reports shows yours" if elsewhere.any?
+
+      "no report you filed with that id#{near_miss_hint(BugReport, given)}"
+    end
+
+    # A prefix of at least eight characters, which is the width this app prints.
+    # Resolves only when the shortened id is unique across the whole table, never
+    # merely unique among the caller's own rows: resolving to the one row the
+    # caller happens to own would answer the wrong report confidently, which is
+    # worse than refusing. Ambiguity says how many, because "give more of it" is
+    # actionable and "not found" is not.
+    def by_prefix(given, path, noun, everywhere: nil)
+      return nil unless prefix?(given)
+
+      all = prefix_matches(given) { |m| Array(everywhere ? everywhere.call(m) : yield(m)) }
+      if all.size > 1
+        raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: path,
+                                       detail: "that shortened id matches #{all.size} #{noun}s — ids here are time-ordered, so rows made in the same " \
+                                               "minute share a leading run of characters. Give more of it, or the whole id." } ])
+      end
+      matches = prefix_matches(given) { |m| yield(m) }
+      matches.one? ? matches.first : nil
+    end
+
+    def prefix?(given) = given.length.between?(8, 35) && given.match?(/\A[0-9a-f-]+\z/i)
+
+    # Either end, because what this app prints is the tail and what a caller has
+    # copied out of an older note may be the head.
+    def prefix_matches(given)
+      return [] unless prefix?(given)
+
+      match = ActiveRecord::Base.sanitize_sql_array([ "id::text LIKE ? OR id::text LIKE ?", "#{given}%", "%#{given}" ])
+      Array(yield(match)).flat_map { |scope| scope.limit(4).to_a }
     end
 
     def tool_report_bug(args)
@@ -1131,7 +1185,8 @@ module Mcp
       id = args["claim_id"].to_s
       raise ArgumentError, "claim_id is required" if id.empty?
 
-      Claim.find_by(id: id) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.claim_id", detail: "no such claim#{near_miss_hint(Claim, id)}" } ]))
+      Claim.find_by(id: id) || by_prefix(id, "$.claim_id", "claim") { |m| [ Claim.where(m) ] } ||
+        raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.claim_id", detail: "no such claim#{near_miss_hint(Claim, id)}" } ]))
     end
 
     # Ids here are long hex strings retyped out of large payloads, so one wrong

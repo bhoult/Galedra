@@ -213,6 +213,18 @@ unattended, which is ordinary. Counting what *one* caller can see and concluding
 reported three times in one day, made by the person fixing it. Before calling something
 structurally blocked, ask what a different principal sees.
 
+**A displayed id that could not be typed back, and that collided.** `short_id` printed the
+first eight characters of a UUIDv7 — and the leading 48 bits of a v7 are a millisecond clock,
+so eight hex characters is 32 bits of it and **everything created inside roughly the same
+65-second window shares them**. Measured on the dev node: all three determination threads
+shared one, and four of eleven feature requests shared another. That is exactly the set of
+rows someone compares side by side. Worse, the tools accepted only the full id, so the app
+printed an identifier in a form it refused. Now `short_id` prints the random tail, and the
+MCP resolvers accept either end but only when the shortened form is unique **across the
+table** — resolving to the one row the caller happens to own would answer the wrong report
+confidently, which is worse than refusing. Before inventing a short form of an id, check what
+the id's own structure puts at that end.
+
 **Two of our own texts disagreeing, with the narrow one at the point of contact.**
 `Guidance::ASK` asks for a report "equally when you got the job done but the way through was
 wasteful"; the hint on every refusal said "if this stopped you doing what the person asked".

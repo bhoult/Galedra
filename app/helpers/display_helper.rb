@@ -34,8 +34,21 @@ module DisplayHelper
     link_to "seq #{seq}", contributions_path(after_seq: seq - 1, limit: 1)
   end
 
+  # The LAST eight characters, not the first.
+  #
+  # Ids here are UUIDv7, whose leading 48 bits are a millisecond timestamp, so
+  # eight hex characters off the front is 32 bits of that clock: everything
+  # created inside roughly the same 65-second window shares it. Measured on the
+  # dev node, all three determination threads shared one prefix and four of
+  # eleven feature requests shared another — which is precisely the set of rows
+  # someone is most likely to be comparing. The tail is random bits and does not
+  # collide that way.
+  #
+  # Mcp::Server accepts either end when resolving a shortened id, so what is
+  # printed here can be typed back.
   def short_id(id)
-    id.to_s[0, 8]
+    text = id.to_s
+    text.length > 8 ? text[-8..] : text
   end
 
   # A contributor-supplied URI is linked only when it is http or https;

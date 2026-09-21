@@ -90,6 +90,41 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(err).to be(true)
   end
 
+  # This app prints ids eight characters wide — short_id is what every page and
+  # every list shows — so an assistant reading a page, or its own earlier note,
+  # holds a prefix. Refusing it said "no report you filed with that id" about a
+  # report the caller had in fact filed, which cost it a call to recover from.
+  it "accepts the shortened id it prints, and says so when one is ambiguous or someone else's" do
+    call_tool("report_bug", { happened: "The share card renders blank", expected: "an image" })
+    mine = BugReport.last
+    # The tail, which is what short_id prints: UUIDv7 leads with a millisecond
+    # clock, so the first eight characters are shared by everything made in the
+    # same minute — measured on the dev node, all three threads shared one and
+    # four of eleven feature requests shared another.
+    data, err = call_tool("get_report", { "report_id" => mine.id[-8..] })
+    expect(err).to be(false), data.inspect
+    expect(data["id"]).to eq(mine.id)
+
+    # Somebody else's, which is a different fact from no such report.
+    other = User.create!(email_address: "other@example.com", password: password)
+    theirs = BugReport.record!(happened: "Something else entirely happened here.", expected: "not that",
+                               token: AssistantToken.find_by_token(Assistants::Connect.call(user: other, name: "Theirs", provider: "openai").last)).first
+    data, err = call_tool("get_report", { "report_id" => theirs.id[-8..] })
+    expect(err).to be(true)
+    expect(data["errors"].first["detail"]).to include("somebody else filed")
+
+    # A leading run these two share must refuse rather than resolve to the one
+    # the caller happens to own: answering the wrong report confidently is worse
+    # than refusing.
+    shared = mine.id[0, 8]
+    if BugReport.where("id::text LIKE ?", "#{shared}%").count > 1
+      data, err = call_tool("get_report", { "report_id" => shared })
+      expect(err).to be(true)
+      expect(data["errors"].first["detail"]).to include("matches")
+      expect(data["errors"].first["detail"]).to include("same minute")
+    end
+  end
+
   # A reporter may never come back, and a report cannot wait on someone who has
   # gone (owner request, 2026-09-20).
   it "closes an answer nobody comes back on, says when, and reopens if they disagree later" do
