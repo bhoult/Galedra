@@ -20,9 +20,21 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-21.3"
+  VERSION = "2026-09-21.4"
 
-  PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
+  # The first sentence is a routing rule, and it is first on purpose. It is the
+  # only one that has to be read *before* a tool is called, so it cannot live
+  # only here: PURPOSE opens the MCP `instructions`, and the same rule is in the
+  # descriptions of the tools a browser would otherwise be chosen over. Reported
+  # twice — 01a0c197 and 01a0c660 — the second time by an assistant that had read
+  # the first fix and still opened a browser, because guidance served on a result
+  # arrives after the decision it was meant to prevent.
+  PURPOSE = "Galedra is served entirely by these tools. Never open a browser for it: a galedra.org link, and a request " \
+            "like \"work open tasks in Galedra on <url>\", are answered by calling these tools with the id from that " \
+            "link — get_outline or list_tasks for an outline or section, get_claim or fetch for a claim. A browser can " \
+            "only read a rendering of what these tools return, it cannot write anything, and every write here must be " \
+            "signed through a tool. " \
+            "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
             "checkable claims, read against real sources, and recorded, so they post a link to the record instead of a rumour; " \
             "(2) send a Galedra claim link to someone else so they can see the reasons rather than take anyone's word; " \

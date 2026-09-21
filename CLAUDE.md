@@ -229,6 +229,16 @@ queue rather than on the evidence chain. `Threadable` holds the mechanics for th
 and for threads alike, with settlement as the only seam; `spec/models/threadable_spec.rb`
 fails if a second implementation appears.
 
+**A rule the assistant must know *before* its first tool call cannot live in `Guidance` alone.**
+`Guidance` rides on every result, which is the only channel that reaches a live session — but a result
+arrives after the decision. A routing rule ("a Galedra URL is answered by these tools, never by a
+browser") has to be in the MCP `instructions` and in the **descriptions of the tools it is choosing
+between**, because those are what discovery shows. This was reported twice: `01a0c197` was closed as
+fixed by result guidance, and `01a0c660` is the same assistant opening a browser anyway, having read
+that fix. `Guidance::PURPOSE` opens with the routing rule and `Mcp::Server::TOOLS` repeats it on
+`list_tasks`, `get_outline`, `fetch` and `next_task`, so it survives a host that discards
+`instructions` — claude.ai is reported to.
+
 **An operational rule for an assistant goes in `app/services/guidance.rb`, never in `skills/galedra.md`.**
 A skill is installed once and never re-read, so a rule written there is frozen until every user reinstalls,
 which is not realistic in production. `Guidance` is served on every MCP tool result (nothing caches a result)
