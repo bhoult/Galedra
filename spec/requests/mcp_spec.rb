@@ -29,6 +29,28 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
   # you", and the hint is the text a caller reads at the moment it would decide.
   # An assistant worked around a refusal that named a field it had supplied and
   # never filed it, an hour after closing a report about that class (01a0c0d5).
+  # The field took YYYY-MM-DD and said only "string", so an assistant with a
+  # source known by year wrote something, was refused, and retried. The schema
+  # now says the shape, and the refusal says what to do when the date is not
+  # fully known — which is to leave it out, because a day nobody established is
+  # a fact this record did not have.
+  it "says the date shape in the schema and what to do when only the year is known" do
+    described = Mcp::Server::TOOLS.flat_map { |t| JSON.generate(t).scan(/publication_date[^}]*}/) }
+    expect(described).to be_any
+    described.each do |bit|
+      expect(bit).to include("YYYY-MM-DD"), "publication_date is described as a bare string somewhere"
+      expect(bit).to include("Omit it")
+    end
+
+    body = rpc("tools/call", { name: "record_investigation", arguments: {
+                 "sources" => [ { "handle" => "s", "type" => "WEBSITE", "title" => "A book", "url" => "https://example.test/b",
+                                  "retrieved_at" => Time.now.utc.iso8601, "publication_date" => "1937" } ],
+                 "claims" => [ { "handle" => "c", "text" => "A claim from a book known only by year.", "type" => "TEXTUAL" } ] } })
+    detail = body.dig("result", "structuredContent", "errors")&.first&.dig("detail").to_s
+    expect(detail).to include("whole date")
+    expect(detail).to include("leave it out"), "the refusal has to say what to do, not only what is wrong"
+  end
+
   # One message for three faults: an assistant passed its excerpt handles where
   # evidence handles belong — reasonable, since both are handles it named in the
   # same bundle — sent exactly two of them, and was told "expected at least two".

@@ -153,6 +153,57 @@ not an alternative — it is a second, independent win, and both are worth havin
 
 Keying first, because a cache hit costs nothing however slow a miss is.
 
+## Whether the scorer should be compiled (owner, 2026-09-21)
+
+To consider, and worth writing down with the numbers beside it rather than as a standing
+intention: doing the heavy computation in a compiled language — C, Rust or Go, as an
+extension or a separate process — rather than in Ruby.
+
+**What the measurement says about today.** The arithmetic is not where the time is.
+`Registry.score` is 0.69 ms per claim, 4% of a cold pass; `BuildInput` is 17.63 ms, 96%. And
+`BuildInput` is mostly ActiveRecord materialising rows it asked for one at a time, which a
+faster language does not fix — the same N+1 in Rust is the same N+1. Rewriting the scorer
+today would address 4% of a problem.
+
+**Where it would matter.** Once keying and batching have removed the avoidable work, the
+arithmetic is the floor, and the floor is what a whole-corpus pass runs into. At the seeded
+100,024-claim corpus, 0.69 ms per claim is about **69 seconds of pure scoring** for one pass
+over everything, before a single query. That is squarely in the way of Stage 26's acceptance
+— the timings on a still corpus — and of any future whole-graph report or re-score after a
+model release. If the floor is what blocks those, a compiled core is justified; if it is not,
+this is an optimisation looking for a problem.
+
+**The hard constraint, and it is the whole difficulty.** Invariant 4: same seq and same model
+give a byte-identical trace. The scorer is `BigDecimal` with half-even rounding at six places
+for weights, four for probability, two for coverage, and the trace serialises decimals as
+fixed-place strings. A compiled implementation must reproduce that exactly, including every
+boundary case, or it is a different scorer and needs a new model version — which would
+invalidate every score already recorded under the old one.
+
+There is already a second implementation: `reference/reference_scorer.py`, which must print
+`ALL PASS` against every golden. A compiled core would be a **third**, and that cuts both
+ways:
+
+- **As an asset:** three independent implementations agreeing on every golden is strong
+  evidence that the spec says what it means, which is more than most of this project can
+  currently claim.
+- **As a hazard:** two agreeing and one drifting on a rounding boundary is a crisis, and the
+  drift would show up as a probability changing on a claim nobody touched.
+
+So the acceptance for any such work is not "it is faster". It is: the goldens pass under all
+three, `bin/demo` passes, the reference scorer prints `ALL PASS`, and a differential run over
+the whole seeded corpus produces byte-identical traces between the Ruby and the compiled
+path. Anything less and the speed is not worth having.
+
+**Also worth weighing:** a native extension puts a build toolchain in the production image and
+ties deployment to a target triple, against a stack chosen for having two services and no
+external dependencies (11 §5). A separate process avoids that and adds an interface. Neither
+is free, and neither should be paid for 4%.
+
+**Recommendation:** measure again after keying and batching land. If the arithmetic floor is
+what stops Stage 26's acceptance or a full re-score, this becomes justified and should get its
+own stage with the differential acceptance above. Not before.
+
 ## Deliverables
 
 1. `claims.scored_inputs_seq`, defaulting to `created_seq`, with a backfill that sets it from

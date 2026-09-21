@@ -45,7 +45,9 @@ module Ledger
 
         Date.iso8601(value.to_s)
       rescue Date::Error
-        reject("SCHEMA_INVALID", path("publication_date"), "expected YYYY-MM-DD")
+        reject("SCHEMA_INVALID", path("publication_date"),
+               "expected YYYY-MM-DD, the whole date. If you only know the year or the month, leave it out rather than " \
+               "padding it: a day nobody established is worse here than a blank.")
       end
 
       def self.apply_payload(c, p, index = nil)
