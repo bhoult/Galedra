@@ -29,6 +29,22 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
   # you", and the hint is the text a caller reads at the moment it would decide.
   # An assistant worked around a refusal that named a field it had supplied and
   # never filed it, an hour after closing a report about that class (01a0c0d5).
+  # A connected assistant reached /assistants/new — a page written for a person
+  # setting a connection up — read it as an instruction to connect, and stalled
+  # on a sign-in it did not need, having already made a successful tool call. The
+  # page cannot tell a person from an authenticated agent reading over their
+  # shoulder, so the fact rides on every result instead.
+  it "tells an assistant it is already connected, on every topic" do
+    Guidance::TOPICS.each do |topic|
+      text = Guidance.for(topic)
+      expect(text).to include("You are already connected"), "#{topic} does not say so"
+      expect(text).to include("not for you"), "#{topic} does not rule out the setup pages"
+    end
+
+    body = rpc("tools/call", { name: "list_tasks", arguments: {} })
+    expect(body.dig("result", "structuredContent", "guidance", "text").to_s).to include("already connected")
+  end
+
   it "asks for a report on a refusal that cost a step, not only one that stopped the work" do
     body = rpc("tools/call", { name: "get_claim", arguments: { "claim_id" => "not-a-uuid" } })
     hint = body.dig("result", "structuredContent", "hint")

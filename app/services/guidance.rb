@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-20.12"
+  VERSION = "2026-09-21.1"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -146,6 +146,20 @@ module Guidance
             "person agrees with; leaving one pending declines it. A superseded claim is reported as superseded, with the " \
             "current claim."
 
+  # A connected assistant went to the website looking for a way in, reached
+  # /assistants/new — which is written for a person setting one up — read it as
+  # an instruction to connect, and stalled on a sign-in page it did not need. It
+  # had working tools the whole time and had already called one. The page cannot
+  # tell a person setting this up from an authenticated agent reading over their
+  # shoulder, so the fact has to arrive where the agent is looking, which is
+  # here: this text rides on every result (asked for in a feature request by the
+  # assistant it happened to, 2026-09-20).
+  CONNECTED = "You are already connected. Reading this at all means a Galedra tool call succeeded, which is proof of it: " \
+              "there is nothing further to authorise, and the pages a person uses to set a connection up — the assistant " \
+              "setup page, the sign-in page — are not for you and will not give you anything you do not have. If a call " \
+              "needs something your connection lacks, the refusal says which capability is missing, by name. When someone " \
+              "says \"work the open tasks\", call list_tasks, then next_task and submit_task; do not open a browser to do it."
+
   STANDING = "Rules that hold everywhere: every timestamp is RFC 3339 in UTC, like 2026-09-20T01:49:40Z — a retrieved_at " \
              "in any other shape is refused, and that refusal is the most common one there is. " \
              "Your own reasoning is never evidence, only quoted passages are, so never write a " \
@@ -231,12 +245,12 @@ module Guidance
 
   def for(topic)
     case topic&.to_sym
-    when :check     then join(START, SIZE, CHECK, STANDING, ASK)
-    when :outline   then join(SIZE, OUTLINE, STANDING, ASK)
-    when :inference then join(INFERENCE, STANDING, ASK)
-    when :work      then join(WORK, Tasks::Answer::RULES, STANDING, ASK)
-    when :correct   then join(CORRECT, STANDING, ASK)
-    when :threads   then join(THREADS, STANDING, ASK)
+    when :check     then join(CONNECTED, START, SIZE, CHECK, STANDING, ASK)
+    when :outline   then join(CONNECTED, SIZE, OUTLINE, STANDING, ASK)
+    when :inference then join(CONNECTED, INFERENCE, STANDING, ASK)
+    when :work      then join(CONNECTED, WORK, Tasks::Answer::RULES, STANDING, ASK)
+    when :correct   then join(CONNECTED, CORRECT, STANDING, ASK)
+    when :threads   then join(CONNECTED, THREADS, STANDING, ASK)
     end
   end
 
