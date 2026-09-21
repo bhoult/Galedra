@@ -399,5 +399,10 @@ bundle list` names none of `stackprof`, `memory_profiler`, `rack-mini-profiler` 
 - **`bench:cpu` still has no quiesced host.** The sampling profile of `/weaknesses` at this
   corpus — which would say where the 25 seconds actually goes — needs `ollama` stopped, and
   that is the owner's call, not something to do to someone's running work.
-- **`GET /contributors` is 208 ms**, of which `Contributors::Tally.top` is 193 ms. Outside
-  acceptance 2, but the slowest ordinary page at this corpus.
+- ~~**`GET /contributors` is 208 ms**, of which `Contributors::Tally.top` is 193 ms.~~
+  **Closed.** It is not the defect class the rest of this was — no N+1, no over-fetch, one
+  aggregate over the whole `contributions` table, which is what a leaderboard over a million
+  rows costs. So the thing to stop doing is repeating it: the tally is cached per head seq
+  and window, the same key the weaknesses report uses, because the answer is a function of
+  the log and the log does not move between appends. Measured at 1,019,834 contributions:
+  **234.8 ms cold, 0.2 ms on every view until the next append.**

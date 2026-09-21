@@ -222,8 +222,10 @@ not before it.
   finding 1 (`Contributions::Standing.accepted_at?` getting slower as the log grows) is on
   this path.
 - **`GET /contributors` is 208 ms and `Contributors::Tally.top` is 193 ms of it. Status:
-  OPEN.** Not named in acceptance 2, but it is the slowest ordinary page here, and it is
-  one query doing the work, so it is an index or a materialised tally rather than an N+1.
+  FIXED by caching.** Not named in acceptance 2, but the slowest ordinary page here. It is
+  one aggregate over the whole `contributions` table — no N+1, no over-fetch, nothing to
+  batch — so it was cached per head seq and window rather than rewritten: **234.8 ms cold,
+  0.2 ms thereafter**. A leaderboard over a million rows has to read them once.
 - **A recorded investigation of ten claims is 3.5 s. Status: MEETS ACCEPTANCE 2** (under
   5 s), with eleven appends against a million-contribution log. The advisory lock and the
   per-append work are the cost, as Stage 26 predicted; it is the acceptance figure with the

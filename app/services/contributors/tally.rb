@@ -46,7 +46,21 @@ module Contributors
     # Each anonymous connection mints its own key, so listing them separately
     # would be a page of identical "Anonymous" lines standing for nobody. The
     # work is still counted; it is simply not attributed to a person.
+    # Cached per (head seq, window): the answer is a function of the log, and the
+    # log does not move between appends. Measured at 1,019,834 contributions it
+    # is 193 ms of the contributors page's 208 ms, and it is one aggregate over
+    # the whole table rather than a query per row — nothing to batch, so the
+    # thing to stop doing is repeating it. The same trick, and the same key, as
+    # the weaknesses report.
+    CACHE_FOR = 1.hour
+
     def top(limit: 100, since: nil)
+      Rails.cache.fetch([ "contributor-tally", Contribution.maximum(:seq), since, limit ], expires_in: CACHE_FOR) do
+        compute_top(limit: limit, since: since)
+      end
+    end
+
+    def compute_top(limit:, since:)
       all = counts(since: since)
       contributors = Contributor.where(id: all.keys).where.not(kind: Contributor::SYSTEM).index_by(&:id)
       named, anonymous = all.filter_map { |id, c| contributors[id] && [ contributors[id], c ] }
