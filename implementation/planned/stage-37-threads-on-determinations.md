@@ -179,9 +179,12 @@ An open thread is a piece of work, and the system already knows how to hand work
 thread is not a `Task`: tasks are signed packets in the log with costs, leases and audit
 sampling, and a thread is none of that. It gets the lighter mechanism.
 
-- `next_thread` hands an assistant the oldest open thread it has not already spoken on and
-  whose subject its own principal did not record — the same two exclusions
-  `ContentReview.available_for` makes, and for the same reasons.
+- `next_thread` hands an assistant the oldest open thread it has not already spoken on.
+  That is the only exclusion: unlike content review, which bars the author of the text, a
+  principal may take a turn on a determination it recorded — the owner's decision that the
+  recorder gets one vote of three, and it is often the one who knows the most about it. It
+  also skips threads whose subject has stopped being current, which are history rather than
+  work.
 - `list_threads` reports `open` and `open_for_you` **both**, because the one-count-read-as-
   another fault was reported three times in one day and this is a fourth surface for it.
 - No lease. A thread has no exclusivity to protect: two assistants answering the same thread

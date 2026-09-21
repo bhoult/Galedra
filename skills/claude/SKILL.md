@@ -16,9 +16,9 @@ People use it, through you, for three things: to break something they saw on soc
 **This file deliberately does not carry the working rules.** A skill is installed once and never re-read, so a rule written here is frozen at whatever it said on the day you installed it, and correcting it would mean asking every user to reinstall. The rules live on the server instead, and reach you two ways:
 
 - **On MCP**, every tool result carries a `guidance` object: a `version`, a `topic`, and the `text` of the rules for the work you are doing. Nothing caches a tool result, so this is always current. **Read it and follow it.** It is more recent than anything in this file, and where they differ it wins.
-- **Without MCP**, fetch `GALEDRA_URL/api/v1/guidance` at the start of a Galedra task and follow what it returns. Add `?topic=check`, `outline`, `inference`, `work` or `correct` for one part. Fetch it again in a later session rather than relying on what you remember.
+- **Without MCP**, fetch `GALEDRA_URL/api/v1/guidance` at the start of a Galedra task and follow what it returns. Add `?topic=check`, `outline`, `inference`, `work`, `correct` or `threads` for one part. Fetch it again in a later session rather than relying on what you remember.
 
-The topics are: `check` (recording what you read), `outline` (a source too large for one check), `inference` (recording a reasoning step), `work` (answering open tasks), `correct` (revising what is recorded).
+The topics are: `check` (recording what you read), `outline` (a source too large for one check), `inference` (recording a reasoning step), `work` (answering open tasks), `correct` (revising what is recorded), `threads` (disagreeing about how a determination was made).
 
 ## How to start
 

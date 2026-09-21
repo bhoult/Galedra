@@ -51,7 +51,8 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     tools = rpc("tools/list").dig("result", "tools").map { |t| t["name"] }
     expect(tools).to contain_exactly("search_claims", "get_claim", "record_investigation", "add_evidence", "explain", "share_card", "search", "fetch", "tag_claim", "list_topics",
                                      "list_tasks", "list_claims", "list_reports", "get_report", "respond_to_report", "next_task", "submit_task", "release_task",
-                                     "revise_claim", "merge_claims", "revise_link", "open_task", "list_proposals", "accept_proposal", "request_feature", "report_bug", "next_content_review", "submit_content_review", "next_affiliation_review", "submit_affiliation_review", "create_outline", "get_outline", "record_inference")
+                                     "revise_claim", "merge_claims", "revise_link", "open_task", "list_proposals", "accept_proposal", "request_feature", "report_bug", "next_content_review", "submit_content_review", "next_affiliation_review", "submit_affiliation_review", "create_outline", "get_outline", "record_inference",
+                                     "open_thread", "list_threads", "get_thread", "respond_to_thread", "next_thread")
 
     data, err = call_tool("search_claims", { query: "Brackenridge bicycles" })
     expect(err).to be(false)
