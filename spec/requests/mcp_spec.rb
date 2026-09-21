@@ -29,6 +29,31 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
   # you", and the hint is the text a caller reads at the moment it would decide.
   # An assistant worked around a refusal that named a field it had supplied and
   # never filed it, an hour after closing a report about that class (01a0c0d5).
+  # One message for three faults: an assistant passed its excerpt handles where
+  # evidence handles belong — reasonable, since both are handles it named in the
+  # same bundle — sent exactly two of them, and was told "expected at least two".
+  it "names which handle is wrong in a group rather than blaming the count" do
+    Investigations::Record
+    errs = []
+    add = ->(path, detail) { errs << detail }
+    handles = { "q1" => "excerpts", "q2" => "excerpts", "e1" => "evidence", "e2" => "evidence" }
+
+    Investigations::Validate.check_groups({ "members" => %w[q1 q2] }, "$.groups[0]", handles, add, nil)
+    expect(errs.last).to include("members are evidence handles")
+    expect(errs.last).to include("q1 is a handle in excerpts")
+    expect(errs.last).not_to include("at least two"), "it sent two; the count was never the problem"
+
+    Investigations::Validate.check_groups({ "members" => %w[e1] }, "$.groups[1]", handles, add, nil)
+    expect(errs.last).to include("at least two"), "and when the count IS the problem, it says so"
+
+    Investigations::Validate.check_groups({ "members" => %w[e1 zz] }, "$.groups[2]", handles, add, nil)
+    expect(errs.last).to include("zz is not a handle in this bundle")
+
+    errs.clear
+    Investigations::Validate.check_groups({ "members" => %w[e1 e2] }, "$.groups[3]", handles, add, nil)
+    expect(errs).to be_empty
+  end
+
   # get_claim names a near miss when an id is one or two characters off; this
   # path said only "no such accepted claim", which is the same fault fixed in one
   # place and not in its class. The second case matters more than it looks: these

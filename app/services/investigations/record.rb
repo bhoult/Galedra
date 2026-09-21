@@ -288,9 +288,21 @@ module Investigations
       add.call("#{path}.rule", "at most #{Inference::MAX_RULE} characters") if inf["rule"].is_a?(String) && inf["rule"].length > Inference::MAX_RULE
     end
 
+    # One message for three different faults made a caller that sent two members
+    # read "expected at least two". An assistant passed its excerpt handles where
+    # evidence handles belong — a reasonable mistake, since both are handles it
+    # named in the same bundle — and was told the count was wrong.
     def check_groups(g, path, handles, add, _bundle)
       members = g.fetch("members", [])
-      add.call("#{path}.members", "expected at least two evidence handles") unless members.is_a?(Array) && members.size >= 2 && members.all? { |m| handles[m] == "evidence" }
+      return add.call("#{path}.members", "expected an array of evidence handles") unless members.is_a?(Array)
+
+      wrong = members.reject { |m| handles[m] == "evidence" }
+      if wrong.any?
+        named = wrong.map { |m| "#{m} is #{handles[m] ? "a handle in #{handles[m]}" : 'not a handle in this bundle'}" }
+        add.call("#{path}.members", "members are evidence handles, the ones you named under \"evidence\": #{named.join('; ')}")
+      elsif members.size < 2
+        add.call("#{path}.members", "a group needs at least two evidence handles; one source cannot be grouped with itself")
+      end
       add.call("#{path}.type", "expected one of #{IndependenceGroup::TYPES.join(', ')}") unless IndependenceGroup::TYPES.include?(g.fetch("type", "OTHER"))
     end
   end
