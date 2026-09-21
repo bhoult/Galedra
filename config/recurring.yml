@@ -24,6 +24,12 @@ production:
   # row-set behind per seq: 413 distinct snapshot seqs against 258 rows useful at
   # head, on a dev node with one outline
   # (docs/experiments/2026-09-20-second-connector-run.md, finding 6).
+  # Silence, not a conclusion. A thread nobody has touched leaves the work list
+  # so it does not clog next_thread; any turn revives it with its turns and
+  # votes intact (Stage 37).
+  retire_silent_threads:
+    class: RetireSilentThreadsJob
+    schedule: every day at 4:10am
   prune_claim_scores:
     class: PruneClaimScoresJob
     schedule: every day at 3:20am
@@ -40,6 +46,12 @@ development:
   settle_answered_reports:
     class: SettleAnsweredReportsJob
     schedule: every half hour
+  # Silence, not a conclusion. A thread nobody has touched leaves the work list
+  # so it does not clog next_thread; any turn revives it with its turns and
+  # votes intact (Stage 37).
+  retire_silent_threads:
+    class: RetireSilentThreadsJob
+    schedule: every day at 4:10am
   prune_claim_scores:
     class: PruneClaimScoresJob
     schedule: every day at 3:20am

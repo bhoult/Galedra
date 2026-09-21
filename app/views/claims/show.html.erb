@@ -157,6 +157,37 @@
   <% end %>
   <p class="meta"><%= @inferences[:note] %></p>
 
+  <%# Threads (Stage 37): what someone has said about how this was recorded. Not
+      about whether the claim is true — that is what the evidence above is for —
+      and never an input to the number. %>
+  <% threads = DeterminationThread.where(subject_type: "Claim", subject_id: @claim.id).newest_first.to_a %>
+  <h2 id="threads">Threads</h2>
+  <% if threads.any? %>
+    <ul class="triage-list">
+      <% threads.each do |t| %>
+        <li class="<%= "closed" unless t.open? %>">
+          <% key, mark, word, full = t.state_badge %>
+          <span class="state state-<%= key %>" title="<%= full %>"><span aria-hidden="true"><%= mark %></span> <%= word %></span>
+          <%= link_to truncate(t.concern.to_s.squish, length: 110), thread_path(t) %>
+        </li>
+      <% end %>
+    </ul>
+    <p class="meta">A thread is about how this was recorded, not about whether it is true. Settling one opens work or closes work and moves no probability.</p>
+  <% else %>
+    <p class="muted">None. <%= link_to "Threads", threads_path %> are for disagreements about how a determination was made — a statement whose figures are not in the passage it rests on, two sources that may share an origin. Something about the world belongs in the evidence above.</p>
+  <% end %>
+  <% if authenticated? %>
+    <div class="card">
+      <%= form_with url: threads_path, method: :post, class: "triage-form" do |f| %>
+        <%= f.hidden_field :subject_type, value: "Claim" %>
+        <%= f.hidden_field :subject_id, value: @claim.id %>
+        <%= f.label :concern, "Raise how this was recorded", class: "meta" %>
+        <%= f.text_area :concern, rows: 3, placeholder: "What is wrong with how this was made, and how you know. Not whether the claim is true: record evidence for that." %>
+        <p class="triage-actions"><%= f.submit "Open a thread", class: "secondary small" %></p>
+      <% end %>
+    </div>
+  <% end %>
+
   <h2>Claim edges</h2>
   <% edges = @claim.outgoing_edges.counted_at(@seq).to_a + @claim.incoming_edges.counted_at(@seq).to_a %>
   <% if edges.any? %>

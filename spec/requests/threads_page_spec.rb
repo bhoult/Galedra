@@ -58,6 +58,21 @@ RSpec.describe "Threads in the interface (Stage 37)", type: :request do
     expect(response.body).to include("Settled as no further work")
   end
 
+  it "shows a claim's threads on the claim, and lets a signed-in person open one there" do
+    thread
+    get "/claims/#{claim.id}"
+    expect(response.body).to include("The figures are not in the passage")
+    expect(response.body).to include("moves no probability")
+
+    user = sign_up("me@example.com")
+    post "/session", params: { email_address: user.email_address, password: password }
+    post "/threads", params: { subject_type: "Claim", subject_id: claim.id, concern: "These two items answer different survey questions and the card does not say so." }
+    opened = DeterminationThread.newest_first.first
+    expect(opened.subject_id).to eq(claim.id)
+    expect(opened.user_id).to eq(user.id)
+    expect(response).to redirect_to(thread_path(opened))
+  end
+
   it "refuses a settle from someone who is not an admin" do
     user = sign_up("first@example.com", admin: true)
     delete "/session"

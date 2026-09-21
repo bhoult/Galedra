@@ -95,6 +95,31 @@ RSpec.describe "Threads on determinations over MCP (Stage 37)", type: :request d
     expect(none["reason"]).to include("different principal")
   end
 
+  # A feature an assistant learns about only in a guidance block read some calls
+  # ago is the day's own mistake in miniature: the narrower text wins when it is
+  # the one being read at the moment of deciding.
+  it "says an open thread exists where the assistant is actually looking" do
+    thread = open_thread["thread_id"]
+    data, = call_tool("get_claim", { claim_id: claim.id })
+    expect(data["threads"]).to include("open" => 1)
+    expect(data.dig("threads", "items").first).to include("thread_id" => thread)
+    expect(data.dig("threads", "note")).to include("not whether it is true")
+
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim,
+                       required_assignments: Audits::Policy.independent_checks)
+    packet, err = call_tool("next_task", { claim_id: claim.id, types: [ "OPPOSING_EVIDENCE_SEARCH" ] }, bob)
+    expect(err).to be(false), packet.inspect
+    carried = packet.dig("context", "threads")
+    expect(carried["count"]).to eq(1)
+    expect(carried["untrusted_concerns"].first).to include("figures are not in the passage")
+    expect(carried["note"]).to include("never as a finding")
+  end
+
+  it "says nothing about threads on a claim that has none" do
+    data, = call_tool("get_claim", { claim_id: claim.id })
+    expect(data).not_to have_key("threads")
+  end
+
   it "refuses a subject it does not carry threads for, naming what it takes" do
     data, err = call_tool("open_thread", { subject_type: "Source", subject_id: claim.id, concern: "x" })
     expect(err).to be(true)

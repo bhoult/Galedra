@@ -442,6 +442,24 @@ module Mcp
         sections: Sections::Tree.placements_for(claim, seq).map { |s| { id: s.id, path: s.path(seq), url: "#{@base_url}/sections/#{s.id}" } },
         inferences: Inferences::View.for_claim(claim, seq, model),
         provisional_note: "Everything here stays open to audit; treat it as provisional." }
+        .then { |out| (note = threads_note(claim)) ? out.merge(threads: note) : out }
+    end
+
+    # Where the assistant is actually looking. A feature learned about only in a
+    # guidance block read some calls ago is the mistake this project made today
+    # in miniature: a refusal hint said "if this stopped you" while Guidance said
+    # "equally when the way through was wasteful", and the narrower text won
+    # because it was the one being read at the moment of deciding.
+    def threads_note(claim)
+      open = DeterminationThread.where(subject_type: "Claim", subject_id: claim.id, status: "OPEN").to_a.select(&:workable?)
+      settled = DeterminationThread.where(subject_type: "Claim", subject_id: claim.id, status: "SETTLED").count
+      return nil if open.empty? && settled.zero?
+
+      { open: open.size, settled: settled,
+        items: open.first(3).map { |t| { thread_id: t.id, concern: t.concern.to_s[0, 160], votes: t.tally, url: "#{@base_url}/threads/#{t.id}" } },
+        note: "Somebody has raised how this was recorded, not whether it is true. Read it with get_thread before adding to this claim; " \
+              "take a turn with respond_to_thread if you can settle or sharpen it. #{DeterminationThread::REQUIRED} distinct principals " \
+              "naming the same verdict settle one, and settling opens or closes work without moving any score." }.compact
     end
 
     def tool_create_outline(args)
