@@ -1,6 +1,6 @@
 # Stage 37 — A thread on a determination
 
-**Status:** planned · tag will be `stage-37-determination-threads`
+**Status:** implemented 2026-09-20 · tag `stage-37-determination-threads`
 
 **Tag:** `stage-37-determination-threads` · **Spec:** 02 §1.1 and §3 (contributions and
 projections), 05 §9 (audits), 06 §4 (display rules), Articles V (contradiction is
@@ -613,3 +613,46 @@ the question.
 9. **Can it be audited and reversed?** Threads are append-only in practice — turns are never
    edited — and content review can redact a turn the way it redacts any other free text.
 10. **Is anything invented?** No.
+
+## Decision Log (2026-09-20)
+
+Built on the owner's instruction the same evening it was planned, after a connected
+assistant's three findings about claim `16fb6733` all went into the bug register because the
+middle case had nowhere else to go.
+
+- **One turn table, as the plan required.** `report_messages` became `thread_turns` with a
+  polymorphic parent and a `verdict` column beside `satisfied`. Two columns rather than one
+  overloaded one: a reporter saying an answer satisfied them and a principal naming an
+  outcome are different questions.
+- **The seam turned out to be smaller than the plan drew it.** The plan said `respond!` and
+  `answer!` would be shared. They should not be, and the code found the better line: what
+  they share is `add_turn!` — the row, the clipping, and saying that it clipped — while
+  `respond!` differs because the operations differ. `held?` and `settles_at` moved behind the
+  settlement object as planned, so the concern has no register-shaped methods in it.
+  `spec/models/threadable_spec.rb` asserts ownership through `instance_method(...).owner`, so
+  a second implementation fails the suite.
+- **A turn always lands, even when its vote cannot count.** Not in the plan and found by
+  using it: the first version rolled the turn back with a duplicate vote, which punished
+  saying more. The reply now says which of `counted`, `already_voted`, `already_settled` or
+  `unattributable` happened.
+- **An anonymous token may speak and not count.** It has a contributor but nobody behind it,
+  so it has nobody to be one of the three.
+- **A defect in the register, found by a thread spec.** `users` has a bigint primary key and
+  `user_id` on the turn table was `uuid`, so every maintainer turn since the register gained
+  an exchange recorded no author: 62 rows, nil every time, nothing raised, because an integer
+  cast to uuid goes quietly. Fixed in `20260920240000`, and both the register's spec and the
+  thread's now assert the author. The register's own specs had never asserted it.
+- **`Tasks::Create` gained `extra_context`**, merged into the packet before it is signed, so
+  the dissent task carries the turns that argued for it. A worker reads why the task exists
+  rather than finding an unexplained check on a settled question.
+- **Retirement is scheduled in the same commit that adds it.** Stage 26 built a retention job
+  and scheduled it nowhere, so it only ran when somebody typed the rake task.
+- **The fixture is real.** The three findings are threads on the dev node now: one on the
+  Ipsos evidence item, two on the claim. They were raised as bug report `01a0c0ec`, which is
+  the wrong kind of object for all three, and the thread text says so.
+
+What the plan asked for and this did not build: `/threads` carries no per-subject filter
+beyond `subject_id`, and the source and task pages do not yet show threads beside the
+passage — only the claim page does, plus the index and both APIs. Neither is load-bearing and
+both are one view each.
+
