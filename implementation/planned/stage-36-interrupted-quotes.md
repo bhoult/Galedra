@@ -109,6 +109,20 @@ passage is faithful to what a reader reads*, because the interruption is an arte
 extraction and not a property of the source — which is the filer's position, and it is right
 for its reason rather than for convenience.
 
+## A caveat on the evidence for this stage (2026-09-20)
+
+Every markup judgement made while working this outline — including the three research passes
+on chapter 12 — came from **converted markdown rather than raw HTML**, because `curl` egress
+was blocked in the connected assistant's environment and its research ran through a
+converting fetcher. Markup interrupting a sentence is exactly what a converter normalises
+away, so those passes could not have seen the failure this stage exists to fix.
+
+The one passage anyone has read as raw bytes is the qz.com anchor in `01a0c01e`, confirmed
+against `Sources::Retrieve.extract_text` on this side. That is a sound single case and it is
+still a single case. Before the `INTERRUPTED` verdict ships, at least one more instance should
+be confirmed from raw HTML, or acceptance 1's fixture should be understood as the whole of the
+evidence rather than a sample of it.
+
 ## Deliverables
 
 1. `SourceRetrieval::FINDINGS` gains `INTERRUPTED`; the column is a validated string against

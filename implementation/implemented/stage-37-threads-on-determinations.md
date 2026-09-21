@@ -706,3 +706,34 @@ The review is the reason this entry exists in this shape. Two specs passing for 
 reason is the finding worth keeping: both asserted that something happened without
 establishing that it could have.
 
+## Found by using it, the same night (2026-09-20)
+
+The first real turn in a thread produced a gap the plan did not consider, and it came from
+the assistant rather than from us.
+
+**Two threads on one determination cannot see each other.** Claim `16fb6733` carries two:
+one saying its counted contradictions may share a pollster, another saying the two items
+answer different survey questions. Settling the first as a grouping would conceal exactly
+the difference the second exists to surface — *"whoever does the grouping should hold both
+threads open at once"*. Nothing carries that. A `SOURCE_INDEPENDENCE_CHECK` packet shows the
+counted evidence and the thread that asked for it, and not the sibling thread that changes
+what the right answer is.
+
+Two shapes this could take, neither built:
+
+- A thread **cites** another the way it already cites a settled one, and the packet of any
+  task a settlement opens carries both.
+- Or threads on one subject are shown together wherever one is shown, and the task packet
+  carries every open thread on that determination rather than the one that opened it.
+
+The second is closer to what the point-of-contact work already does for `get_claim`, which
+lists every open thread on the claim rather than one. The task packet does the same for the
+claim, so the narrower case — a thread on an evidence item, a task opened from a thread — is
+where it is missing.
+
+**Also recorded, because it weakens an evidence base rather than a feature:** every markup
+judgement in this round was made from converted markdown, not raw HTML, because `curl` egress
+was blocked in the assistant's environment. That is precisely the surface Stage 36 is about.
+The excerpts verified, but the one passage anyone has read as raw bytes is still the single
+qz.com anchor.
+
