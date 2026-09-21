@@ -195,54 +195,75 @@ Keying first, because a cache hit costs nothing however slow a miss is.
 
 ## Whether the scorer should be compiled (owner, 2026-09-21)
 
-To consider, and worth writing down with the numbers beside it rather than as a standing
-intention: doing the heavy computation in a compiled language — C, Rust or Go, as an
-extension or a separate process — rather than in Ruby.
+Recorded with the numbers beside it, and with two corrections the owner made to an earlier
+draft of this section — both of which change the answer rather than soften it.
 
-**What the measurement says about today.** The arithmetic is not where the time is.
-`Registry.score` is 0.69 ms per claim, 4% of a cold pass; `BuildInput` is 17.63 ms, 96%. And
-`BuildInput` is mostly ActiveRecord materialising rows it asked for one at a time, which a
-faster language does not fix — the same N+1 in Rust is the same N+1. Rewriting the scorer
-today would address 4% of a problem.
+**Correction 1: nothing here is in production, so the scorer is not sacred.** The earlier
+draft treated a new model version as close to disqualifying, on the grounds that it would
+invalidate every score already recorded. There is no published corpus to protect: a dev node
+and a seeded benchmark. Releasing a new model, regenerating goldens and rescoring is a cost
+that can simply be paid. What determinism still buys is real and unchanged — a trace that
+reproduces is the product — but "we would have to re-release the model" is a task, not an
+objection.
 
-**Where it would matter.** Once keying and batching have removed the avoidable work, the
-arithmetic is the floor, and the floor is what a whole-corpus pass runs into. At the seeded
-100,024-claim corpus, 0.69 ms per claim is about **69 seconds of pure scoring** for one pass
-over everything, before a single query. That is squarely in the way of Stage 26's acceptance
-— the timings on a still corpus — and of any future whole-graph report or re-score after a
-model release. If the floor is what blocks those, a compiled core is justified; if it is not,
-this is an optimisation looking for a problem.
+**Correction 2: a precompiled artefact, not a toolchain.** The proposal is an executable
+shipped ready-built, or inline compiled code — spoken to over stdin and stdout if that is
+simplest. The earlier draft argued against putting a compiler in the production image and
+tying deployment to a target triple. That was answering something nobody proposed. One
+binary, one platform in this container, fed a request and returning a response, adds no build
+step to the image.
 
-**The hard constraint, and it is the whole difficulty.** Invariant 4: same seq and same model
-give a byte-identical trace. The scorer is `BigDecimal` with half-even rounding at six places
-for weights, four for probability, two for coverage, and the trace serialises decimals as
-fixed-place strings. A compiled implementation must reproduce that exactly, including every
-boundary case, or it is a different scorer and needs a new model version — which would
-invalidate every score already recorded under the old one.
+**What the measurement says, unchanged by either correction.** `Registry.score` is 0.69 ms per
+claim; `BuildInput` is 17.63 ms. So a compiled *scorer* alone still addresses the smaller
+half, and the N+1 is still the first thing to fix, because a faster language issues the same
+357 queries.
 
-There is already a second implementation: `reference/reference_scorer.py`, which must print
-`ALL PASS` against every golden. A compiled core would be a **third**, and that cuts both
-ways:
+### The version worth building, if it is built
 
-- **As an asset:** three independent implementations agreeing on every golden is strong
-  evidence that the spec says what it means, which is more than most of this project can
-  currently claim.
-- **As a hazard:** two agreeing and one drifting on a rounding boundary is a crisis, and the
-  drift would show up as a probability changing on a claim nobody touched.
+Once the scorer need not stay in Ruby, the obvious shape is not "replace the arithmetic". It
+is **move the boundary**: Ruby does queries and IO, the binary does assembly and scoring.
 
-So the acceptance for any such work is not "it is faster". It is: the goldens pass under all
-three, `bin/demo` passes, the reference scorer prints `ALL PASS`, and a differential run over
-the whole seeded corpus produces byte-identical traces between the Ruby and the compiled
-path. Anything less and the speed is not worth having.
+- Ruby issues the handful of batched queries a page of claims needs — links, evidence,
+  locations, sources, placements, groups, audit status, task results — as **rows**, not
+  objects.
+- Those rows go to the binary as one request.
+- The binary builds each claim's input, scores it, and returns probabilities, states and
+  traces.
 
-**Also worth weighing:** a native extension puts a build toolchain in the production image and
-ties deployment to a target triple, against a stack chosen for having two services and no
-external dependencies (11 §5). A separate process avoids that and adds an interface. Neither
-is free, and neither should be paid for 4%.
+That removes both halves at once: the arithmetic *and* the ActiveRecord materialisation that
+is most of the 75% Ruby share, since nothing is ever instantiated as a model object. It also
+makes the expensive path explicit rather than emergent — one request, one response, easy to
+time and to cache.
 
-**Recommendation:** measure again after keying and batching land. If the arithmetic floor is
-what stops Stage 26's acceptance or a full re-score, this becomes justified and should get its
-own stage with the differential acceptance above. Not before.
+The cost is that `BuildInput`'s rules move across the boundary: what counts as effective at a
+seq, what quarantine and audit status do, how `own_origins` decides provenance. Those are
+spec, not implementation detail, and they would then live in the compiled side with Ruby
+holding only the queries. That is a real architectural commitment and the reason this is its
+own stage and not a paragraph here.
+
+### What must be true before it ships
+
+Not "it is faster". The scorer is the one thing in this system whose output is meant to be
+reproducible by a stranger, so:
+
+- The goldens in `08 §8` and Watchers `§7` pass under it, and
+  `reference/reference_scorer.py` still prints `ALL PASS`. Keeping the Python reference is the
+  point: it is the independent check that stops Ruby and the binary agreeing on a shared
+  mistake.
+- A **differential run over the whole seeded corpus** — 100,024 claims — produces
+  byte-identical traces between the Ruby path and the compiled one, before the Ruby path is
+  removed or demoted.
+- Decimal semantics reproduce exactly: half-even at six places for weights, four for
+  probability, two for coverage, with decimals serialised as fixed-place strings. This is the
+  part that fails quietly if it fails, and a boundary case that rounds differently shows up as
+  a probability changing on a claim nobody touched.
+- `bin/demo` prints PASS for every golden row and the replay check, and exits 0.
+
+**Order of work.** Keying first, then batching `BuildInput`, then measure again. If the
+arithmetic floor is what stands between this node and Stage 26's acceptance — about 69
+seconds of pure scoring for one pass over the seeded corpus, before any query — the compiled
+path is justified and should be built in the shape above. That measurement is cheap and has
+not been taken.
 
 ## Deliverables
 
