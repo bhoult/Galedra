@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_230100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -333,6 +333,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_220000) do
     t.index ["slug"], name: "index_custom_affiliations_on_slug", unique: true
   end
 
+  create_table "determination_threads", id: :uuid, default: nil, force: :cascade do |t|
+    t.boolean "anonymous", default: false, null: false
+    t.uuid "assistant_token_id"
+    t.uuid "cites_thread_id"
+    t.text "concern", null: false
+    t.integer "count", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.string "digest", null: false
+    t.datetime "last_turn_at"
+    t.uuid "opener_principal_id"
+    t.string "outcome"
+    t.datetime "settled_at"
+    t.string "status", default: "OPEN", null: false
+    t.uuid "subject_id", null: false
+    t.string "subject_type", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id"
+    t.index ["digest"], name: "index_determination_threads_on_digest"
+    t.index ["status"], name: "index_determination_threads_on_status"
+    t.index ["subject_type", "subject_id", "status"], name: "idx_on_subject_type_subject_id_status_318c001d2e"
+  end
+
   create_table "evidence_claim_links", id: :uuid, default: nil, force: :cascade do |t|
     t.bigint "accepted_seq"
     t.uuid "claim_id", null: false
@@ -549,19 +571,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_220000) do
     t.index ["contribution_id"], name: "index_quarantines_on_contribution_id"
     t.index ["released_seq"], name: "index_quarantines_on_released_seq"
     t.index ["target_type", "target_id"], name: "index_quarantines_on_target_type_and_target_id"
-  end
-
-  create_table "report_messages", id: :uuid, default: nil, force: :cascade do |t|
-    t.uuid "assistant_token_id"
-    t.string "author_kind", null: false
-    t.text "body", null: false
-    t.datetime "created_at", null: false
-    t.uuid "report_id", null: false
-    t.string "report_type", null: false
-    t.boolean "satisfied"
-    t.boolean "settles", default: true, null: false
-    t.uuid "user_id"
-    t.index ["report_type", "report_id", "created_at"], name: "idx_on_report_type_report_id_created_at_19f2c6bd15"
   end
 
   create_table "reputation_events", id: :uuid, default: nil, force: :cascade do |t|
@@ -918,6 +927,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_220000) do
     t.index ["status", "priority"], name: "index_tasks_on_status_and_priority", order: { priority: :desc }
     t.index ["target_type", "target_id"], name: "index_tasks_on_target_type_and_target_id"
     t.index ["task_type"], name: "index_tasks_on_task_type"
+  end
+
+  create_table "thread_turns", id: :uuid, default: nil, force: :cascade do |t|
+    t.uuid "assistant_token_id"
+    t.string "author_kind", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.boolean "satisfied"
+    t.boolean "settles", default: true, null: false
+    t.uuid "thread_id", null: false
+    t.string "thread_type", null: false
+    t.uuid "user_id"
+    t.string "verdict"
+    t.index ["thread_type", "thread_id", "created_at"], name: "index_thread_turns_on_thread_type_and_thread_id_and_created_at"
   end
 
   create_table "user_affiliations", force: :cascade do |t|

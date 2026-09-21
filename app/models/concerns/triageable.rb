@@ -31,14 +31,14 @@ module Triageable
 
   included do
     validates :status, inclusion: { in: STATUSES }
-    has_many :messages, class_name: "ReportMessage", as: :report, dependent: :destroy, inverse_of: :report
+    has_many :messages, class_name: "ThreadTurn", as: :thread, dependent: :destroy, inverse_of: :thread
 
     # ANSWERED, with the last maintainer turn marked as not settling.
     scope :held, -> {
       where(status: "ANSWERED").where(
-        "EXISTS (SELECT 1 FROM report_messages m WHERE m.report_type = :t AND m.report_id = #{table_name}.id " \
+        "EXISTS (SELECT 1 FROM thread_turns m WHERE m.thread_type = :t AND m.thread_id = #{table_name}.id " \
         "AND m.author_kind = 'maintainer' AND m.settles = FALSE AND m.created_at = " \
-        "(SELECT MAX(m2.created_at) FROM report_messages m2 WHERE m2.report_type = :t AND m2.report_id = #{table_name}.id AND m2.author_kind = 'maintainer'))", t: name
+        "(SELECT MAX(m2.created_at) FROM thread_turns m2 WHERE m2.thread_type = :t AND m2.thread_id = #{table_name}.id AND m2.author_kind = 'maintainer'))", t: name
       )
     }
     scope :with_status, lambda { |value|
@@ -147,10 +147,10 @@ module Triageable
   # a shorter reply would land.
   def respond!(body:, satisfied:, token: nil, user: nil)
     text = body.to_s.strip
-    clipped = text.length > ReportMessage::MAX_CHARS
+    clipped = text.length > ThreadTurn::MAX_CHARS
     transaction do
       messages.create!(author_kind: "assistant", assistant_token: token, user: user,
-                       body: text[0, ReportMessage::MAX_CHARS], satisfied: satisfied, created_at: Time.current)
+                       body: text[0, ThreadTurn::MAX_CHARS], satisfied: satisfied, created_at: Time.current)
       update!(status: satisfied ? "CLOSED" : "OPEN")
     end
     clipped

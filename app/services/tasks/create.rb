@@ -24,7 +24,12 @@ module Tasks
     # check is how someone finds it was mistyped; it should simply be last rather than
     # first.
     NOT_APPLICABLE_FACTOR = "0.1"
-    def call(task_type:, target:, domain: Audits::Policy.default_domain, required_assignments: 1, location: nil, snapshot_seq: nil, created_by: nil, priority_factor: "1", section_id: nil, blind_requested: false)
+    # `extra_context` is merged into the packet's context before it is signed, so
+    # a task can carry why it exists. Stage 37's dissent task uses it: the turns
+    # that argued for a check travel with the check, and a worker reads them
+    # rather than finding an unexplained task on a settled question.
+    def call(task_type:, target:, domain: Audits::Policy.default_domain, required_assignments: 1, location: nil, snapshot_seq: nil, created_by: nil,
+             priority_factor: "1", section_id: nil, blind_requested: false, extra_context: nil)
       seq = snapshot_seq || Contribution.maximum(:seq) || 0
       spec = Types.spec(task_type)
       raise ArgumentError, "#{task_type} targets a #{spec[:target_type]}" unless target.class.name.upcase == spec[:target_type]
@@ -33,6 +38,7 @@ module Tasks
       task_id = SecureRandom.uuid_v7
       packet = BuildContext.call(task_type: task_type, target_id: target.id, snapshot_seq: seq, location_id: location&.id, domain: domain)
       packet = packet.merge("task_id" => task_id, "issued_at" => Time.now.utc.iso8601)
+      packet = packet.merge("context" => packet.fetch("context", {}).merge(extra_context)) if extra_context.present?
       packet = Packet.sign(packet)
       Task.create!(
         id: task_id, task_type: task_type, target_type: spec[:target_type], target_id: target.id, domain: domain,

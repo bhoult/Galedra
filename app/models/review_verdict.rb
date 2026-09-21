@@ -1,7 +1,7 @@
 # One principal's verdict on a review item (a content review by id, or an
 # affiliation request by its normalized text). Reviews::Consensus reads them.
 class ReviewVerdict < ApplicationRecord
-  SUBJECTS = %w[ContentReview AffiliationRequest].freeze
+  SUBJECTS = %w[ContentReview AffiliationRequest DeterminationThread].freeze
 
   validates :subject_type, inclusion: { in: SUBJECTS }
   validates :verdict, presence: true
