@@ -340,6 +340,7 @@ module Mcp
                      "create_outline" => :outline, "get_outline" => :outline,
                      "record_inference" => :inference,
                      "list_tasks" => :work, "list_claims" => :work, "list_reports" => :work, "get_report" => :work, "respond_to_report" => :work, "next_task" => :work, "submit_task" => :work, "next_content_review" => :work, "submit_content_review" => :work, "next_affiliation_review" => :work, "submit_affiliation_review" => :work,
+                     "open_thread" => :threads, "list_threads" => :threads, "get_thread" => :threads, "respond_to_thread" => :threads, "next_thread" => :threads,
                      "list_proposals" => :correct, "revise_claim" => :correct, "merge_claims" => :correct, "revise_link" => :correct, "open_task" => :correct, "accept_proposal" => :correct }.freeze
 
     # The rules ride on every result because that is the only channel nothing
@@ -635,6 +636,7 @@ module Mcp
     # was made; a defect in Galedra is a report, and a statement about the world
     # is a contribution. All three findings about one claim went into the bug
     # register on 2026-09-20 because the middle case had nowhere else to go.
+    #
     def tool_open_thread(args)
       require_token!
       subject = thread_subject(args)
@@ -681,7 +683,10 @@ module Mcp
     end
 
     def tool_next_thread(args)
-      require_token!
+      # Advertised readOnlyHint, so it must not refuse a read-only connection the
+      # way require_token! does. Reading a thread is reading; only respond_to_thread
+      # writes.
+      raise Ledger::Rejected.new([ { code: "NOT_AUTHORIZED", path: "$", detail: "volunteering for a thread needs a connected assistant" } ]) if @token.nil?
       scope = DeterminationThread.open_threads.order(:created_at)
       scope = scope.where(subject_type: args["subject_type"]) if args["subject_type"].present?
       thread = scope.to_a.find { |t| t.workable? && !spoken_in?(t) }
@@ -690,10 +695,14 @@ module Mcp
       thread_detail(thread).merge(available: true)
     end
 
+    # What settling did, read off the settlement rather than assumed. The first
+    # version said "work is now open on it" whether or not any had opened, and
+    # none had: the path it used skips a claim that already has a task of that
+    # type, which every recorded claim does.
     def settled_note(thread)
       agreed, against = thread.split
-      moved = thread.outcome == "INVESTIGATE" ? "work is now open on it" : "its open checks are stood down"
-      " That settled it #{agreed}–#{against} as #{thread.outcome.downcase.tr('_', ' ')}, so #{moved}. " \
+      did = thread.settlement_effect&.fetch(:note, nil) || "nothing further"
+      " That settled it #{agreed}–#{against} as #{thread.outcome.downcase.tr('_', ' ')}, and #{did}. " \
         "No score moved: a thread guides evidence gathering and does not determine it."
     end
 

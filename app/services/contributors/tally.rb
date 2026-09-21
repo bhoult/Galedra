@@ -78,8 +78,13 @@ module Contributors
       SQL
     end
 
+    # Content and affiliation review only. A thread vote is a verdict row too,
+    # and counting it here would let "argues a lot" read as "reviews a lot" on a
+    # public leaderboard — the same confusion Invariant 8 keeps out of scoring.
+    REVIEWED_SUBJECTS = %w[ContentReview AffiliationRequest].freeze
+
     def review_counts(principal_ids:, since:)
-      scope = ReviewVerdict.all
+      scope = ReviewVerdict.where(subject_type: REVIEWED_SUBJECTS)
       scope = scope.where(principal_contributor_id: principal_ids) if principal_ids
       scope = scope.where("created_at >= ?", since) if since
       scope.group(:principal_contributor_id).count.transform_keys(&:to_s)

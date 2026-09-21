@@ -95,10 +95,49 @@ RSpec.describe Threads::Settle do
     expect { Tasks::OpenVerification.call([ claim ]) }.not_to change { Task.where(target_id: claim.id, status: "OPEN").count }
   end
 
-  it "opens work when it settles the other way" do
+  # The example that passed for the wrong reason. Routing INVESTIGATE through
+  # Tasks::OpenVerification opened nothing at all on any claim recorded normally,
+  # because its guard is status-blind and Investigations::Record already creates
+  # one of each routine type — while the reply said "work is now open on it".
+  # This example never called OpenVerification first, so it never saw that.
+  it "opens work when it settles the other way, even where the routine checks already exist" do
+    Tasks::OpenVerification.call([ claim ])
+    existing = Task.where(target_id: claim.id, status: "OPEN").count
+    expect(existing).to be_positive, "the routine checks are already there, which is the case that mattered"
+
     voters.first(3).each { |t| vote(thread, t, "INVESTIGATE") }
     expect(thread.reload.outcome).to eq("INVESTIGATE")
-    expect(Task.where(target_id: claim.id, status: "OPEN")).to be_any
+    expect(Task.where(target_id: claim.id, status: "OPEN").count).to eq(existing + 1)
+    expect(thread.settlement_effect[:opened]).to eq(1)
+
+    opened = Task.where(target_id: claim.id, status: "OPEN").order(:created_at).last
+    expect(opened.packet.dig("context", "from_thread", "thread_id")).to eq(thread.id)
     expect(EvidenceClaimLink.count).to eq(0), "raising a check is not recording evidence"
+  end
+
+  # A thread on one quoted passage must not wipe out the claim's unrelated
+  # checks, which per the guard in OpenVerification could never be re-opened.
+  it "stands down only the checks the thread was about" do
+    location = create_location(curator, create_source(curator, content: "Output rose in the trial. #{'word ' * 20}"), start: 0, finish: 25)
+    link_evidence(curator, create_evidence(curator, location, statement: "Output rose."), claim)
+    Tasks::OpenVerification.call([ claim ], location_for: ->(_c) { location })
+    narrow = DeterminationThread.record!(subject: location, concern: "This excerpt stops one clause short of the sentence.").first
+    voters.first(3).each { |t| narrow.respond!(body: "Agreed.", token: t, verdict: "NO_FURTHER_WORK") }
+
+    cancelled = Task.where(target_id: claim.id, status: "CANCELLED").to_a
+    expect(cancelled.map(&:task_type)).to eq([ "EVIDENCE_VERIFICATION" ]), "only the check that names this passage"
+    expect(Task.where(target_id: claim.id, task_type: "QUALIFIER_CHECK", status: "OPEN")).to be_any
+  end
+
+  it "does not settle twice, however often it is told to" do
+    Tasks::OpenVerification.call([ claim ])
+    voters.first(3).each { |t| vote(thread, t, "NO_FURTHER_WORK") }
+    cancelled = Task.where(target_id: claim.id, status: "CANCELLED").count
+    opened = Task.where(target_id: claim.id, status: "OPEN").count
+
+    thread.settle!("INVESTIGATE")
+    expect(thread.reload.outcome).to eq("NO_FURTHER_WORK")
+    expect(Task.where(target_id: claim.id, status: "CANCELLED").count).to eq(cancelled)
+    expect(Task.where(target_id: claim.id, status: "OPEN").count).to eq(opened)
   end
 end

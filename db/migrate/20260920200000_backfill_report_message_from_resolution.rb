@@ -7,13 +7,23 @@
 # diagnoses.
 #
 # Dated at updated_at, which is the closest thing to when the answer was given.
+# Bound to the tables as they stood at this point in history, not to the
+# application's models. `ReportMessage` was renamed to `ThreadTurn` the same
+# evening, and a migration that names a model is a migration that breaks the
+# moment the model moves: `db:migrate` from empty died on an uninitialized
+# constant, which `db:prepare` hid because a fresh database loads schema.rb.
 class BackfillReportMessageFromResolution < ActiveRecord::Migration[8.1]
-  def up
-    [ BugReport, FeatureRequest ].each do |model|
-      model.where.not(resolution: [ nil, "" ]).find_each do |row|
-        next if ReportMessage.exists?(report: row, author_kind: "maintainer")
+  class Message < ActiveRecord::Base
+    self.table_name = "report_messages"
+  end
 
-        ReportMessage.create!(report: row, author_kind: "maintainer", body: row.resolution, created_at: row.updated_at)
+  def up
+    { "BugReport" => "bug_reports", "FeatureRequest" => "feature_requests" }.each do |type, table|
+      select_all("SELECT id, resolution, updated_at FROM #{table} WHERE resolution IS NOT NULL AND resolution <> ''").each do |row|
+        next if Message.exists?(report_type: type, report_id: row["id"], author_kind: "maintainer")
+
+        Message.create!(id: SecureRandom.uuid_v7, report_type: type, report_id: row["id"], author_kind: "maintainer",
+                        body: row["resolution"], created_at: row["updated_at"], updated_at: row["updated_at"])
       end
     end
   end

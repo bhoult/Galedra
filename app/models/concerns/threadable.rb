@@ -30,8 +30,13 @@ module Threadable
   # prose, which cost an assistant half an answer before this was true.
   def add_turn!(body:, author_kind:, token: nil, user: nil, **attrs)
     text = body.to_s.strip
-    turns.create!(author_kind: author_kind, assistant_token: token, user: user,
-                  body: text[0, ThreadTurn::MAX_CHARS], created_at: Time.current, **attrs)
+    turn = turns.create!(author_kind: author_kind, assistant_token: token, user: user,
+                         body: text[0, ThreadTurn::MAX_CHARS], created_at: Time.current, **attrs)
+    # Untrusted text that renders publicly, so it goes through the same screen as
+    # every other piece of free text here. ContentReview::SUBJECTS named it
+    # reviewable and nothing enqueued it, which is worse than not offering the
+    # screen at all: the list implied a moderation path that did not run.
+    ContentReview.enqueue!(turn)
     text.length > ThreadTurn::MAX_CHARS
   end
 

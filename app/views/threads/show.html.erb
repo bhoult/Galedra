@@ -22,11 +22,10 @@
   <p><%= DeterminationThread::REQUIRED %> distinct principals naming the same outcome settle it. Three sessions of one person are one principal. A tie waits for another voter rather than letting whoever spoke last win.</p>
   <% if @row.settled? %>
     <p><strong>Settled as <%= @row.outcome.downcase.tr("_", " ") %>.</strong>
-      <%= @row.outcome == "INVESTIGATE" ? "Work is open on it." : "Its open checks were stood down." %>
       <% if @row.dissenters.any? %>
-        <%= pluralize(@row.dissenters.size, "principal") %> disagreed, so one check was opened carrying their words: the argument ended and the concern still gets looked at.
+        <%= pluralize(@row.dissenters.size, "principal") %> disagreed, so a check was opened carrying their words: the argument ended and the concern still gets looked at.
       <% end %>
-      No score moved.</p>
+      No score moved: settling opens work or closes work and never touches the evidence chain.</p>
   <% end %>
 </div>
 

@@ -6,6 +6,17 @@ module Api
     # MCP. The same objects the MCP tools return, and the same rule: a thread is
     # about how a determination was made, never about whether a claim is true.
     class ThreadsController < BaseController
+      include AssistantAuth
+
+      # Taking a turn is a write, so it gets the gate every other write here has:
+      # a usable token, the galedra scope, and a rate limit. Checking only that a
+      # token existed let a revoked one, or one granted read-only, cast the votes
+      # that open and close work.
+      before_action :authenticate_assistant!, only: :respond
+      before_action(only: :respond) { insufficient_scope if read_only_assistant? }
+      rate_limit to: 60, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests },
+                 store: Assistants::RateLimitStore, only: :respond
+
       def index
         scope = DeterminationThread.with_status(params[:status]).newest_first
         scope = scope.where(subject_id: params[:subject_id]) if params[:subject_id].present?
@@ -21,12 +32,11 @@ module Api
 
       def respond
         thread = DeterminationThread.find(params[:id])
-        token = AssistantToken.find_by_token(request.headers["Authorization"].to_s.delete_prefix("Bearer "))
-        return render json: { errors: [ { code: "TOKEN_INVALID", path: "$", detail: "a turn needs a connected assistant" } ] }, status: :unauthorized if token.nil?
-
-        result = thread.respond!(body: params[:body].to_s, token: token, verdict: params[:verdict].presence)
+        result = thread.respond!(body: params[:body].to_s, token: current_assistant_token, verdict: params[:verdict].presence)
         render json: { thread: serialize(thread.reload, turns: true), vote: result[:vote], clipped: result[:clipped],
                        note: DeterminationThread::VOTE_NOTES[result[:vote]] }
+      rescue Ledger::Rejected => e
+        render json: { errors: e.errors }, status: :unprocessable_content
       end
 
       private

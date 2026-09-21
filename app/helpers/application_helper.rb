@@ -54,8 +54,11 @@ module ApplicationHelper
   def open_report_counts
     @open_report_counts ||= { bugs: BugReport.where(status: "OPEN").count, features: FeatureRequest.where(status: "OPEN").count,
                               held_bugs: BugReport.held.count, held_features: FeatureRequest.held.count,
-                              # Threads that can still be moved along. A thread on a merged
-                              # claim is history rather than work and is not counted.
-                              threads: DeterminationThread.open_threads.to_a.count(&:workable?) }
+                              # Threads that can still be moved along. A thread on a claim that
+                              # is no longer current is history rather than work, and that is
+                              # expressible in SQL — the header renders on every page including
+                              # the signed-out home page, so it must not walk every thread and
+                              # query each one's subject.
+                              threads: DeterminationThread.workable.count }
   end
 end

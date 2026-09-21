@@ -104,6 +104,21 @@ RSpec.describe DeterminationThread do
     expect(third.count).to eq(3)
   end
 
+  # The scope exists because the header badge counts these on every page render,
+  # including the signed-out home page, and walking every thread to query its
+  # subject is 1 + N there. The two readings have to agree.
+  it "counts workable threads in SQL the same way the predicate does one at a time" do
+    thread
+    other = create_claim(curator, "A second claim.", type: "CAUSAL")
+    described_class.record!(subject: other, concern: "Another concern entirely, about this one.")
+    expect(described_class.workable.count).to eq(described_class.open_threads.to_a.count(&:workable?))
+
+    append(action_type: "MERGE_CLAIMS", key_pair: curator,
+           payload: { "from_claim_id" => other.id, "into_claim_id" => claim.id, "reason" => "same proposition" })
+    expect(described_class.workable.count).to eq(1)
+    expect(described_class.workable.count).to eq(described_class.open_threads.to_a.count(&:workable?))
+  end
+
   it "stays as history when its subject stops being current, and stops being work" do
     vote(thread, alice, "INVESTIGATE")
     other = create_claim(curator, "A claim to merge into.", type: "CAUSAL")

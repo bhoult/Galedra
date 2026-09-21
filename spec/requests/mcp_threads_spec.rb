@@ -56,7 +56,9 @@ RSpec.describe "Threads on determinations over MCP (Stage 37)", type: :request d
     expect(err).to be(false), last.inspect
     expect(last["status"]).to eq("SETTLED")
     expect(last["outcome"]).to eq("INVESTIGATE")
-    expect(last["note"]).to include("3–0").and include("work is now open")
+    # The note says what settling did, rather than asserting it did something.
+    expect(last["note"]).to include("3–0")
+    expect(last["note"]).to include("one check is open carrying the thread's own words")
     expect(last["note"]).to include("does not determine it")
   end
 

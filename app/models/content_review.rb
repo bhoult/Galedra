@@ -43,6 +43,8 @@ class ContentReview < ApplicationRecord
 
   # The principal whose words these are, so it never reviews them.
   def self.author_principal_for(record)
+    return record.principal_id if record.respond_to?(:principal_id)
+
     token = record.respond_to?(:assistant_token) ? record.assistant_token : nil
     return token.principal_contributor_id if token
 

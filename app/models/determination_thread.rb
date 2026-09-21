@@ -44,6 +44,13 @@ class DeterminationThread < ApplicationRecord
 
   scope :newest_first, -> { order(created_at: :desc) }
   scope :open_threads, -> { where(status: "OPEN") }
+  # Open, and hanging on something still current. In SQL because the header
+  # badge counts these on every page render; the Ruby predicate below stays for
+  # the single-row case and the two agree, which a spec pins.
+  scope :workable, -> {
+    open_threads.where("determination_threads.subject_type <> 'Claim' OR EXISTS " \
+                       "(SELECT 1 FROM claims c WHERE c.id = determination_threads.subject_id AND c.status = 'ACTIVE')")
+  }
   scope :with_status, ->(value) { STATUSES.include?(value.to_s) ? where(status: value.to_s) : all }
 
   def open? = status == "OPEN"
@@ -65,7 +72,13 @@ class DeterminationThread < ApplicationRecord
 
     digest = digest_for(subject.class.name, subject.id, concern)
     if (existing = where(digest: digest).where("created_at >= ?", WINDOW.ago).order(:created_at).first)
-      existing.update!(count: existing.count + 1)
+      # Raising it again is activity. A retired thread comes back — it was
+      # dormant, not concluded — and an open one stops aging toward retirement,
+      # which it did not before: the count went up while the thread went nowhere
+      # and the reply said it had been counted.
+      existing.update!(count: existing.count + 1,
+                       status: existing.retired? ? "OPEN" : existing.status,
+                       last_turn_at: (Time.current unless existing.settled?) || existing.last_turn_at)
       return [ existing, false ]
     end
     text = concern.to_s.strip
@@ -90,9 +103,15 @@ class DeterminationThread < ApplicationRecord
     text = body.to_s.strip
     raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.verdict", detail: "expected one of #{OUTCOMES.join(', ')}" } ]) if verdict.present? && !OUTCOMES.include?(verdict)
 
-    vote = verdict.present? ? record_vote(token: token, user: user, verdict: verdict) : :none
+    # The turn is validated before the vote is cast. A blank body used to leave a
+    # permanent, invisible vote behind and then raise: one vote per principal, so
+    # the caller could never correct it.
+    raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.body", detail: "say something: a turn is the thing being recorded" } ]) if text.empty?
+
+    vote = :none
     clipped = false
     transaction do
+      vote = verdict.present? ? record_vote(token: token, user: user, verdict: verdict) : :none
       clipped = add_turn!(body: text, author_kind: user ? "maintainer" : "assistant", token: token, user: user,
                           verdict: (verdict if vote == :counted))
       # A retired thread is dormant, not concluded: any turn revives it with its
@@ -115,8 +134,14 @@ class DeterminationThread < ApplicationRecord
     return :unattributable if principal.nil?
     return :already_settled if settled?
 
-    ReviewVerdict.create!(id: SecureRandom.uuid_v7, subject_type: self.class.name, subject_key: id, principal_contributor_id: principal,
-                          assistant_token_id: token&.id, verdict: verdict, created_at: Time.current)
+    # A savepoint, because a unique violation aborts the enclosing Postgres
+    # transaction and the turn is recorded in it. Without this, a second vote
+    # from one principal took its own turn down with it — which is precisely the
+    # behaviour this method exists to avoid.
+    transaction(requires_new: true) do
+      ReviewVerdict.create!(id: SecureRandom.uuid_v7, subject_type: self.class.name, subject_key: id, principal_contributor_id: principal,
+                            assistant_token_id: token&.id, verdict: verdict, created_at: Time.current)
+    end
     :counted
   rescue ActiveRecord::RecordNotUnique
     :already_voted
@@ -149,12 +174,21 @@ class DeterminationThread < ApplicationRecord
   def settle!(chosen, by_admin: false)
     raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.outcome", detail: "expected one of #{OUTCOMES.join(', ')}" } ]) unless OUTCOMES.include?(chosen)
 
-    transaction do
+    # Already settled is not an error and not a second settlement: re-running
+    # would sweep the tasks again and open a second check.
+    return self if settled?
+
+    with_lock do
+      return self if reload.settled?
+
       update!(status: "SETTLED", outcome: chosen, settled_at: Time.current)
-      Threads::Settle.call(self, by_admin: by_admin)
+      @settlement_effect = Threads::Settle.call(self, by_admin: by_admin)
     end
     self
   end
+
+  # What settling actually did, so a caller can say it rather than assert it.
+  def settlement_effect = @settlement_effect
 
   # The split, because three agreeing when two disagreed is a different fact from
   # three agreeing unopposed, and a reader weighing a settlement should see which.

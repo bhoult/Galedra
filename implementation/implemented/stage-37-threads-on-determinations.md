@@ -656,3 +656,53 @@ beyond `subject_id`, and the source and task pages do not yet show threads besid
 passage — only the claim page does, plus the index and both APIs. Neither is load-bearing and
 both are one view each.
 
+## What a code review found, the same evening (2026-09-20)
+
+A `/code-review high` over the whole stage returned fourteen findings. Two of them meant the
+feature did not do what it said, and both had passing specs beside them.
+
+- **`INVESTIGATE` opened no work at all, while the reply said it had.** It routed through
+  `Tasks::OpenVerification`, whose guard asks whether a task of that type exists *at any
+  status*; `Investigations::Record` opens one of each routine type for every claim it
+  records, so the guard always fired and nothing opened. Worse after a `NO_FURTHER_WORK`
+  settlement, whose CANCELLED rows block re-creation permanently. The spec passed because it
+  was the one example that never called `OpenVerification` first — a test passing for the
+  wrong reason, which is the shape this project keeps meeting.
+  Settling now opens a task carrying the thread's own words, for either outcome, and
+  `Threads::Settle` returns what it did so the note and the page **say** it rather than
+  assert it.
+- **`Guidance::THREADS` never rode on a result.** The five tools were missing from
+  `GUIDANCE_FOR`, so the text whose whole job is teaching the bug-versus-thread-versus-
+  contribution distinction reached nobody through the one channel this project spent the day
+  establishing as the only one that works. There is a comment eight lines above the table
+  stating that rule.
+- **The REST write path checked only that a token existed**, not that it was usable or
+  write-scoped, and sat outside the rate limit. A revoked token could cast settlement votes.
+  It now uses `AssistantAuth` like every other write here.
+- **A blank body left a phantom vote and a 500.** The vote was cast outside the turn's
+  transaction, and one vote per principal meant the caller could never correct it. The turn
+  is validated first, and the vote is cast in a savepoint — without which a duplicate vote
+  aborted the enclosing transaction and took its own turn down with it, the exact behaviour
+  the vote states exist to avoid.
+- **Standing work down cancelled every open task on the claim**, not the ones the thread was
+  about, and those could never be re-opened. Now a thread on a narrower subject reaches only
+  the checks that name it.
+- **The backfill migration named `ReportMessage`**, a model this stage deleted, so
+  `db:migrate` from empty died on an uninitialized constant — hidden because `db:prepare`
+  loads `schema.rb`. It binds to the table as it stood at that point in history now, and a
+  from-scratch migrate was run to prove it.
+- **Thread votes inflated the contributor leaderboard's review column**, because
+  `Contributors::Tally` read `ReviewVerdict.all` unscoped. "Argues a lot" is not "reviews
+  well", which is the same distinction Invariant 8 keeps out of scoring.
+- **`ThreadTurn` was declared reviewable and nothing enqueued it**, which is worse than not
+  offering the screen: the list implied a moderation path that did not run.
+- Smaller: re-raising a concern on a retired thread bumped its count without reviving it;
+  `settle!` could run twice; `next_thread` was advertised read-only while demanding a write
+  scope; the badge counted threads with 1 + N queries on every page render, now one SQL scope
+  with a spec pinning it against the Ruby predicate; and an inserted comment block had been
+  split in half, leaving two comments describing the wrong methods.
+
+The review is the reason this entry exists in this shape. Two specs passing for the wrong
+reason is the finding worth keeping: both asserted that something happened without
+establishing that it could have.
+
