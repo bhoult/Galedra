@@ -24,6 +24,14 @@ Query counts off the live stack, cached queries excluded:
 | `/contributions` | 49 (38 cached) | 21 ms |
 | `/threads`, `/topics`, `/tasks`, `/contributors` | 3–14 | under 20 ms |
 
+The MCP read tools were measured the same way and are **healthy**: `list_tasks` 15,
+`list_claims` 5, `get_claim` 53, `get_outline` 9, `search_claims` 3, `list_threads` 15,
+`list_reports` 3 — all warm. `list_claims`' cold 2.4 s is the score-cache miss of Stage 38,
+not a query count. The scheduled jobs are also clean with nothing to do: `SettleLoneVerdicts`
+2, `SettleAnsweredReports` 5, `RetireSilentThreads` 1, `PruneClaimScores` 5, `ExpireLeases` 1.
+Those numbers are the empty case, and their loop bodies query per row, so they are worth
+re-measuring once there is a backlog rather than trusted from this.
+
 The outline page is the one the whole workflow centres on: it is what a person is given a
 link to, and what an assistant is pointed at when someone says *work the open tasks*.
 
@@ -104,6 +112,36 @@ acceptance as a second witness.
 141 single-id `source_locations` loads on the outline page, from `sections/text.rb:26`. Small
 beside the rest, and it is the same fix: the section already knows which locations it needs.
 
+### 5. A whole-corpus rescore builds the same input four times per claim
+
+`RecomputeAllScoresJob` — reachable from an admin button, `POST /admin/recompute` — is:
+
+```ruby
+Claim.where(...).find_each do |claim|
+  models.each { |model| Scoring::Score.call(claim, seq, model) }
+end
+```
+
+Two things about that loop:
+
+- It uses the **single-claim path**, so it inherits every N+1 above, once per claim rather
+  than once per page.
+- `Scoring::BuildInput.call(claim, seq)` **takes no model**. The input is identical for all of
+  them, and there are **four released models**, so three-quarters of the input assembly — the
+  96% — is rebuilt and thrown away.
+
+At the seeded corpus that is 100,024 claims × 4 models ≈ 400,000 scorings at roughly 18 ms
+each, or **about two hours**, of which about three-quarters is recomputing inputs that were
+already built. Hoisting `BuildInput` out of the model loop is a four-line change that removes
+most of it before any batching.
+
+That corpus has no tasks, which is why `Standing` does not appear in this estimate. On a node
+whose claims carry task results — the dev node, where most claims have three tasks — finding 1
+applies here too, and at that log length a full rescore does not finish.
+
+A rescore is what happens after a model release, so this is the path that decides whether
+releasing a model is an afternoon or a weekend.
+
 ## What must not change
 
 Nothing here may alter a value. Every page above must render byte-identical content before
@@ -123,6 +161,9 @@ the existing spec that catches a stale memo there must keep passing.
    three callers moved to it.
 3. The four loop call sites moved to `Task.open_slots_for`.
 4. `Sections::Text` loading its locations in one query.
+5. `RecomputeAllScoresJob` building each claim's input once rather than once per model, and
+   using the batched path. Its Constitutional position is unchanged: same inputs, same
+   scorer, same trace.
 5. Statement-count specs for `/sections/:id`, `/sections` and `/weaknesses`, each with a
    budget and a comment saying what it was when the budget was set.
 
@@ -140,6 +181,9 @@ the existing spec that catches a stale memo there must keep passing.
    when rows are fetched and never what is computed.
 6. The statement-count specs fail against the current code, checked by running them against it
    before the fix lands.
+7. `RecomputeAllScoresJob` calls `BuildInput` once per claim rather than once per claim per
+   model, asserted by counting calls, and produces byte-identical scores and traces for every
+   claim under every released model.
 
 ## The Constitutional Test
 
