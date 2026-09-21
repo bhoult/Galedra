@@ -230,9 +230,30 @@ module Investigations
       add.call("#{path}.kind", "expected QUOTE or TRANSCRIPTION") unless %w[QUOTE TRANSCRIPTION].include?(e.fetch("kind", "QUOTE"))
     end
 
+    # get_claim names a near miss when an id is one or two characters off; this
+    # path said only "no such accepted claim", which is the same fault the
+    # register had — a correct refusal the caller cannot act on — fixed in one
+    # place and not in its class.
+    #
+    # The second sentence exists because of what these ids are. They are UUIDv7,
+    # so the leading run is a millisecond clock and everything recorded in the
+    # same minute shares it: a wrong id that "looks close" at the front is not a
+    # near miss, it is a different claim made at the same moment, and a caller
+    # comparing the first characters will conclude the opposite.
+    def attach_to_detail(given)
+      near = Claim.live.accepted.where("id::text LIKE ?", "#{given[0, 8]}%").limit(4).pluck(:id).reject { |c| c.to_s == given }
+      exact = near.find { |c| c.to_s.length == given.length && c.to_s.chars.zip(given.chars).count { |x, y| x != y }.between?(1, 2) }
+      return "no such accepted claim. Did you mean #{exact}?" if exact
+      return "no such accepted claim. #{near.size} claim(s) share its leading characters, but those are a timestamp every " \
+             "claim recorded in the same minute shares — they are not near misses. Use the whole id from search_claims or " \
+             "list_claims." if near.any?
+
+      "no such accepted claim; attach_to takes the whole id, from search_claims or list_claims"
+    end
+
     def check_claims(c, path, _handles, add, _bundle)
       if c["attach_to"]
-        add.call("#{path}.attach_to", "no such accepted claim") unless Claim.live.accepted.exists?(id: c["attach_to"].to_s)
+        add.call("#{path}.attach_to", attach_to_detail(c["attach_to"].to_s)) unless Claim.live.accepted.exists?(id: c["attach_to"].to_s)
       else
         add.call("#{path}.text", "required: one atomic assertion") unless c["text"].is_a?(String) && c["text"].present?
         add.call("#{path}.type", "expected one of #{Claim::TYPES.join(', ')}") unless Claim::TYPES.include?(c["type"])

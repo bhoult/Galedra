@@ -29,6 +29,30 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
   # you", and the hint is the text a caller reads at the moment it would decide.
   # An assistant worked around a refusal that named a field it had supplied and
   # never filed it, an hour after closing a report about that class (01a0c0d5).
+  # get_claim names a near miss when an id is one or two characters off; this
+  # path said only "no such accepted claim", which is the same fault fixed in one
+  # place and not in its class. The second case matters more than it looks: these
+  # ids are UUIDv7, so the leading run is a millisecond clock and every claim
+  # recorded in the same minute shares it — a wrong id that looks close at the
+  # front is a different claim made at the same moment, not a near miss, and a
+  # caller comparing leading characters concludes the opposite.
+  it "says what to do about an attach_to that does not resolve" do
+    Investigations::Record
+    real = create_claim(register_key(display_name: "C").first, "A claim already here.", type: "TEXTUAL")
+    same_minute = "#{real.id[0, 8]}#{SecureRandom.uuid[8..]}"
+
+    detail = Investigations::Validate.attach_to_detail(same_minute)
+    expect(detail).to include("timestamp every claim recorded in the same minute shares")
+    expect(detail).to include("whole id")
+    expect(detail).not_to include("Did you mean"), "a shared leading run is not a near miss"
+
+    off_by_one = real.id.sub(/.\z/) { |ch| ch == "a" ? "b" : "a" }
+    expect(Investigations::Validate.attach_to_detail(off_by_one)).to include("Did you mean #{real.id}?")
+
+    expect(Investigations::Validate.attach_to_detail("00000000-0000-0000-0000-000000000000"))
+      .to include("from search_claims or list_claims")
+  end
+
   # Two assistants, the same outline, byte-identical guidance: one worked
   # eighteen leases and moved five claims, the other chose claims itself and
   # moved about twenty. Asked why, the first said the queue arrived as an
