@@ -418,12 +418,19 @@ head means "assume everything moved", costs one recomputation per claim, and can
   at the head with the cache cleared, and aborts on any disagreement.
 
   The first two runs of it were close to vacuous: every mark sat at the head, so scoring
-  "through the mark" and "at the head" were the same thing and agreement proved nothing. The
-  run that counts was taken on **2026-09-21 against a corpus seeded from empty with the
-  stamping live** — 8,026 claims and **8,026 distinct watermarks**, one per claim, scattered
-  across 82,320 contributions, which is the state a real node is in. Every claim scored the
-  same through its mark as it did at the head. That is the differential this stage rests on,
-  and it is clean.
+  "through the mark" and "at the head" were the same thing and agreement proved nothing. Two
+  runs on 2026-09-21 count, both against corpora seeded from empty with the stamping live,
+  which is the only way to get marks scattered across history the way a real node has them:
+
+  - **8,026 claims, 8,026 distinct watermarks**, 82,320 contributions. Clean.
+  - **3,025 claims, 3,025 distinct watermarks**, with **2,973 verification tasks of which
+    476 were answered** — the seeder opens and answers them since `e80f03e`. Clean **under
+    every released model**, not only the default: a mark that is right for one config and
+    wrong for another would be a mark that is wrong.
+
+  The second run is the one that matters for completeness, because a `TASK_RESULT` raises
+  `review_coverage` without writing any row that names the claim, and until the seeder opened
+  tasks that branch of the mapping was covered by a single spec and by nothing at scale.
 - `Scoring::Affected` was deliberately **not** widened, because the scorer itself reads it
   through `Audits::Status.downstream_count`; widening it would have changed a score. The
   watermark's extra reach lives in `Scoring::Watermark`, and the goldens are unchanged.
@@ -497,11 +504,10 @@ claim served from cache at 100,024 claims: **0.6 ms**, against 13 ms cold.
 - **`Watermark.marks` costs one extra query on a miss**, where fifteen others are already
   happening. Deliberate: the alternative was an extra round trip on every *hit*, which is
   the common case.
-- **What the differential does not cover, stated rather than glossed.** It ran under the
-  default model only, at 8,026 claims rather than a hundred thousand, and against a corpus
-  with **no tasks in it** — `Bench::Seed` opens none, so the TASK_RESULT branch of the
-  mapping is covered by a spec and by nothing at scale. Seeding tasks is on Stage 26's list
-  for the same reason.
+- **What the differential still does not cover.** It ran at 8,026 and 3,025 claims, not at a
+  hundred thousand: the 100k corpus cannot help, because its marks were all forced to the
+  head and the comparison would be vacuous there. Reproducing it at that scale means seeding
+  100k afresh, which is hours, and the shape being checked does not change with corpus size.
 - **The compiled-scorer question is untouched and unmeasured.** The section above says what
   would have to be true before it ships, and the cheap measurement it waits on — where
   Ruby's 34× over the Python reference actually goes — has still not been taken.

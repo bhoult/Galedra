@@ -385,11 +385,17 @@ bundle list` names none of `stackprof`, `memory_profiler`, `rack-mini-profiler` 
   runnable here.** There is no droplet; `script/loadtest.js` and `script/loadtest.sh` are
   built and waiting for a target. This is the one criterion that needs infrastructure rather
   than work.
-- **The corpus has no tasks.** `Bench::Seed` opens no verification tasks, so nothing in this
-  run exercised the task queue, the lease path, `Tasks::Checks` inside scoring, or `/tasks`
-  under load. `GET /tasks` at 2.7 ms is an empty page, not a fast one. Any capacity claim
-  about the work queue is still unmeasured, and the seeder should open tasks before the next
-  run.
+- **The corpus this run used has no tasks; the seeder now makes them.** `Bench::Seed` opened
+  no verification tasks, so nothing in the 100,024-claim run exercised the queue, the lease
+  path, `Tasks::Checks` inside scoring, or `/tasks` under load — `GET /tasks` at 2.7 ms above
+  is an empty page, not a fast one, and every figure in this run should be read that way.
+  **Fixed in `e80f03e`**: one investigation in three now opens the three verification tasks a
+  recorded claim gets, and one claim in two of those has a routine check leased and answered
+  by a separate principal (Invariant 9). Measured on a 3,000-claim corpus: 2,973 tasks
+  opened, 476 answered, and the answered checks reach scoring — `review_coverage` 0.50 with
+  `qualifiers_reviewed` ticked. **What remains is to re-seed at 100,000 and re-run
+  `bench:report`**, which is hours of seeding and the reason the numbers above still stand as
+  the record.
 - **`bench:cpu` still has no quiesced host.** The sampling profile of `/weaknesses` at this
   corpus — which would say where the 25 seconds actually goes — needs `ollama` stopped, and
   that is the owner's call, not something to do to someone's running work.

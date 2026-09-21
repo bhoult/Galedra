@@ -28,23 +28,28 @@ namespace :scores do
     # watermark and again at the head with the cache emptied, and compare the
     # traces. A disagreement means the mark of that claim missed an input, which
     # is the one failure that would serve a stale score as current.
-    model = Scoring::Registry.default_model
     wrong = []
-    Claim.order(:created_seq).find_in_batches(batch_size: 200) do |batch|
-      keyed = Scoring::Score.call_many(batch, head, model)
-      ClaimScore.where(claim_id: batch.map(&:id), scoring_model_id: model.id).delete_all
-      Ledger::DatabaseRole.as_owner { Claim.where(id: batch.map(&:id)).update_all(scored_inputs_seq: head) }
-      fresh = Scoring::Score.call_many(Claim.where(id: batch.map(&:id)).to_a, head, model)
-      batch.each do |claim|
-        a = keyed[claim.id]
-        b = fresh[claim.id]
-        wrong << claim.id unless a && b && a.assessment_state == b.assessment_state && a.probability == b.probability &&
-                                 a.trace.except("snapshot_seq") == b.trace.except("snapshot_seq")
+    # Every released model, not only the default: a mark that is right for one
+    # config and wrong for another would be a mark that is wrong.
+    Scoring::Registry.released.each do |model|
+      print "#{model.full_name} "
+      Claim.order(:created_seq).find_in_batches(batch_size: 200) do |batch|
+        keyed = Scoring::Score.call_many(batch, head, model)
+        ClaimScore.where(claim_id: batch.map(&:id), scoring_model_id: model.id).delete_all
+        Ledger::DatabaseRole.as_owner { Claim.where(id: batch.map(&:id)).update_all(scored_inputs_seq: head) }
+        fresh = Scoring::Score.call_many(Claim.where(id: batch.map(&:id)).to_a, head, model)
+        batch.each do |claim|
+          a = keyed[claim.id]
+          b = fresh[claim.id]
+          wrong << [ model.full_name, claim.id ] unless a && b && a.assessment_state == b.assessment_state &&
+                                                       a.probability == b.probability &&
+                                                       a.trace.except("snapshot_seq") == b.trace.except("snapshot_seq")
+        end
+        print "."
       end
-      print "."
+      puts ""
     end
-    puts ""
-    puts wrong.empty? ? "every claim scores the same through its watermark as it does at the head" : "#{wrong.size} DISAGREE: #{wrong.first(10).join(', ')}"
+    puts wrong.empty? ? "every claim scores the same through its watermark as it does at the head, under every released model" : "#{wrong.size} DISAGREE: #{wrong.first(10).inspect}"
     abort "watermark verification failed" if wrong.any?
   end
 end

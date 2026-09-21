@@ -233,11 +233,15 @@ not before it.
   rescored byte-identically. Status: MEETS ACCEPTANCE 3.** What it kept is each claim's
   current score under each model — the rows reads actually ask for — rather than the head
   seq's, which is the Stage 38 change.
-- **The corpus has no tasks at all (`tasks 0`). Status: OPEN, and it limits this run.**
-  `Bench::Seed` opens no verification tasks, so nothing here exercises the task queue, the
-  lease path, `Tasks::Checks` inside scoring, or `/tasks` under load — `GET /tasks` at
-  2.7 ms is an empty page, not a fast one. Any capacity claim about the work queue is
-  still unmeasured.
+- **The corpus has no tasks at all (`tasks 0`). Status: FIXED in the seeder (`e80f03e`),
+  not yet in this corpus.** `Bench::Seed` opened no verification tasks, so nothing here
+  exercises the queue, the lease path, `Tasks::Checks` inside scoring, or `/tasks` under
+  load — `GET /tasks` at 2.7 ms is an empty page, not a fast one, and every figure above
+  should be read knowing the work queue was absent. The seeder now opens the three tasks a
+  recorded claim gets for one investigation in three, and answers a routine check on one
+  claim in two of those from a separate principal: 2,973 tasks and 476 answers on a
+  3,000-claim corpus, with the answers reaching `review_coverage`. Re-seeding 100,000 to
+  re-take these numbers is hours of work and has not been done.
 
 ## What changed as a result
 
