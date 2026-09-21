@@ -35,10 +35,15 @@ module Tasks
       tasks = Task.where(target_type: "CLAIM", target_id: claim_id).pluck(:id)
       return [] if tasks.empty?
 
-      TaskAssignment.where(task_id: tasks).where.not(result_contribution_id: nil).includes(:task).select do |a|
-        result = Contribution.find_by(id: a.result_contribution_id)
-        result && result.seq <= seq && Contributions::Standing.accepted_at?(result, seq)
-      end
+      assignments = TaskAssignment.where(task_id: tasks).where.not(result_contribution_id: nil).includes(:task).to_a
+      return [] if assignments.empty?
+
+      # One load and one standing question for the whole set (Stage 39): this
+      # was two queries per assignment, each unindexed until
+      # `index_contributions_on_acceptance_target`.
+      results = Contribution.where(id: assignments.map(&:result_contribution_id)).index_by(&:id)
+      standing = Contributions::Standing.accepted_set(results.values, seq)
+      assignments.select { |a| standing.include?(a.result_contribution_id) }
     end
 
     def self_performed?(result)
@@ -54,12 +59,15 @@ module Tasks
 
     # [task, result_contribution] pairs accepted at seq and not invalidated by seq.
     def accepted_results(claim_id, seq)
-      tasks = Task.where(target_type: "CLAIM", target_id: claim_id, task_type: CHECK_FOR.keys)
-      tasks.flat_map do |task|
-        Contribution.where(action_type: "TASK_RESULT", task_id: task.id).where("seq <= ?", seq).filter_map do |result|
-          Contributions::Standing.accepted_at?(result, seq) ? [ task, result ] : nil
-        end
-      end
+      tasks = Task.where(target_type: "CLAIM", target_id: claim_id, task_type: CHECK_FOR.keys).index_by(&:id)
+      return [] if tasks.empty?
+
+      # One query for every result of every check task on the claim, and one for
+      # their standing, rather than a pair per task and a pair per result
+      # (Stage 39).
+      results = Contribution.where(action_type: "TASK_RESULT", task_id: tasks.keys).where("seq <= ?", seq).to_a
+      standing = Contributions::Standing.accepted_set(results, seq)
+      results.filter_map { |r| [ tasks[r.task_id], r ] if standing.include?(r.id) }
     end
   end
 end

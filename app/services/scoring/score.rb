@@ -89,6 +89,33 @@ module Scoring
       end
     end
 
+    # A whole-corpus rescore: every claim under every released model, building
+    # each claim's scorer input **once** (Stage 39, finding 5).
+    #
+    # `BuildInput.call(claim, seq)` takes no model — the input is identical for
+    # all of them — and the job scored claim by claim and model by model, so
+    # with four released models three-quarters of the input assembly was rebuilt
+    # and thrown away. Input assembly is 96% of a cold score, so that is most of
+    # the run. Same inputs, same scorer, same traces (Invariant 4); what changes
+    # is how many times the database is asked for them.
+    def rescore(claims, seq, models)
+      claims = claims.reject { |c| c.created_seq > seq }
+      return if claims.empty? || models.empty?
+
+      marks = Watermark.marks(claims.map(&:id))
+      at = claims.to_h { |c| [ c.id, Watermark.bound(marks[c.id], seq) ] }
+      Audits::Status.memoized do
+        claims.each_slice(SCORE_BATCH) do |slice|
+          Pass.over(slice, seq, down_to: slice.map { |c| at[c.id] }.min) do
+            inputs = slice.to_h { |c| [ c.id, BuildInput.call(c, at[c.id]) ] }
+            models.each do |model|
+              store_all(slice.to_h { |c| [ c.id, Registry.score(inputs[c.id], model) ] }, at, model)
+            end
+          end
+        end
+      end
+    end
+
     def recompute(claim, seq, model)
       ClaimScore.where(claim_id: claim.id, snapshot_seq: [ seq, Watermark.at(claim, seq) ].uniq, scoring_model_id: model.id).delete_all
       call(claim, seq, model)

@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-21.2"
+  VERSION = "2026-09-21.3"
 
   PURPOSE = "Galedra is a public, signed record of claims and the evidence behind them, not a source of truth. " \
             "What a person does with it, through you: (1) before sharing something seen on social media, have it broken into " \
@@ -53,7 +53,16 @@ module Guidance
           "Recording a check: record the whole statement in one record_investigation call, every claim it makes, new ones " \
           "with text and type, ones Galedra already holds by attach_to; the check page and share line cover only the claims " \
           "in that call. Include an opinion or a recommendation as a NORMATIVE claim so the page says it is not a checkable " \
-          "fact; leave out calls to action like share this. Quote the exact passage with its link and the time you read it; " \
+          "fact; leave out calls to action like share this. " \
+          "A quotation is two jobs and you owe both. Whether the person said it, said it in that order and in that " \
+          "context is one set of claims. What they asserted inside it is another, and it is usually the part a reader " \
+          "wanted checked: break the contents out too, one assertion per claim, each typed and checkable on its own. " \
+          "A recorded check of a quote that lists only who said it has verified the packaging and left the contents " \
+          "unopened. Where the speaker states a fact about the world, record it as a claim about the world and check " \
+          "it. Where the speaker gives an opinion, a prediction or a judgement, record it as ATTRIBUTED_BELIEF, " \
+          "NORMATIVE or FORECAST so the page says what kind of thing it is; that is not licence to skip the facts " \
+          "stated alongside it. " \
+          "Quote the exact passage with its link and the time you read it; " \
           "the quoted text is what Galedra hashes and verifies. Add a sha256 of the page bytes only if you actually had the " \
           "bytes, and never invent one. One assertion per claim, typed. File each claim under one or two topics from the " \
           "vocabulary (list_topics); never invent a topic. Report Galedra's plain headline and its say_instead sentence " \

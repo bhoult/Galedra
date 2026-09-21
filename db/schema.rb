@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -296,6 +296,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
     t.string "task_packet_hash"
     t.string "visibility", default: "PUBLIC", null: false
     t.index "((envelope ->> 'delegation_id'::text))", name: "index_contributions_on_envelope_delegation_id"
+    t.index "((payload ->> 'contribution_id'::text)), seq", name: "index_contributions_on_acceptance_target", where: "((action_type)::text = ANY ((ARRAY['ACCEPT'::character varying, 'INVALIDATE'::character varying])::text[]))"
     t.index ["action_type"], name: "index_contributions_on_action_type"
     t.index ["contributor_id", "seq"], name: "index_contributions_on_contributor_id_and_seq"
     t.index ["entry_hash"], name: "index_contributions_on_entry_hash", unique: true

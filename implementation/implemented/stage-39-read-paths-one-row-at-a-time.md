@@ -1,6 +1,6 @@
 # Stage 39 — The read paths ask one row at a time
 
-**Status:** planned · tag will be `stage-39-read-path-batching`
+**Status:** built 2026-09-21 · tagged `stage-39-read-path-batching`
 
 **Tag:** `stage-39-read-path-batching` · **Spec:** 06 §4 (display rules), 11 §5 (layout),
 14 §25 (readiness), Invariants 2 (projections are read-only outside `Ledger::Apply`), 4
@@ -190,3 +190,68 @@ the existing spec that catches a stale memo there must keep passing.
 Not required — no Article is touched, nothing is scored, displayed differently, moderated or
 attributed differently. Recorded as considered: the only invariant in reach is 4, and
 acceptance 5 is its guard.
+
+
+## How this stage closed (2026-09-21)
+
+### What was resolved
+
+The outline page — the link a person is handed, and what an assistant is pointed at to work
+open tasks. Measured on the dev node at 304 claims, by the request metrics Stage 40 added
+the same morning, two warm calls each after `metrics:clear`:
+
+| Page | Statements before | Statements after | Time after |
+|---|---|---|---|
+| `sections#show` — the outline page | **5,343** | **79** | 172 ms |
+| `sections#index` | 1,870 | **21** | 73 ms |
+| `claims#index` | 825 | **105** | 95 ms |
+| `weaknesses#index` | 1,872 | 1,330 | 1,278 ms |
+
+The outline page went from 2.8–3.3 s to 172 ms. `/weaknesses` is the one still expensive,
+and deliberately so — see what remains.
+
+### How
+
+- **Finding 1, the one that was linear in the log.** `index_contributions_on_acceptance_target`
+  — a partial expression index on `(payload->>'contribution_id'), seq` for `ACCEPT` and
+  `INVALIDATE`. The `EXPLAIN` is in the migration: a filter over 5,001 rows and 4,997 buffers
+  became an index lookup, **73.7 ms → 0.026 ms**, 5 buffers. And `Contributions::Standing`
+  gained `accepted_set`, which answers for a whole collection in **one** statement; its three
+  callers — `Sections::Progress` twice, `Tasks::Checks` twice — were moved to it. Both fixes,
+  as the plan said, because the index alone still leaves a query per row.
+- **Finding 2.** The four loops calling `Task#open_slots` per task now go through
+  `Tasks::Status.open_among`, which wraps the `Task.open_slots_for` that had existed since
+  2026-09-20 with only one caller. `Tasks::Status.refresh!` deliberately still asks one task
+  at a time: it runs inside the lease transaction, where a batched answer would be stale by
+  the time it is read, and the spec that catches exactly that still passes.
+- **Finding 3** was Stage 38's, and was fixed there.
+- **Finding 4.** `Sections::Text` loads its reading locations in one query.
+- **Finding 5.** `Scoring::Score.rescore` builds each claim's scorer input **once** and scores
+  it under every released model, in slices; `RecomputeAllScoresJob` uses it. The input takes
+  no model, so with four models three-quarters of the assembly — 96% of a cold score — was
+  being rebuilt and thrown away. A spec counts `BuildInput` calls and compares every trace
+  hash against the one-at-a-time path.
+- `spec/requests/read_path_cost_spec.rb` holds all of it to a budget, and **four of its five
+  examples fail against the code as it stood**, which was checked by stashing the change and
+  running them.
+
+### What remains
+
+- **`/weaknesses` is 1,330 statements and 1.3 s on a 304-claim node.** It is no longer paying
+  for the corpus — doubling the claims leaves the count flat, which is what the spec asserts —
+  but it pays about seven statements for **each row it shows**, and it shows 25 rows of each
+  of seven kinds. The per-row cost is `Cards::Why.most_moving_addition` rebuilding one claim's
+  scorer input, which is genuinely per-claim work. **Batching `Scoring::BuildInput` is the
+  half of Stage 38 that was deferred, and it is now the only thing left on this page.** The
+  page also takes `?limit=` since this stage, so a reader who wants it cheap can ask for less.
+- **Acceptance 1's "under 60 queries" is met on the spec's fixture (26) and not on the live
+  outline (79).** The difference is rows shown, not corpus size: that outline has more
+  sections and more placed claims than the fixture. The number to hold to is the budget in
+  the spec; 60 was written in the plan before anything had been measured.
+- **Acceptance 3 was verified on the dev node, not at the seeded corpus.** The 6,853 ms
+  figure came from `bench:seed` at 900,001 contributions; the after figure is from the dev
+  node at 5,165. The index turns a scan into a lookup either way — that is what the plan
+  changed — but the 900,001-row after number has not been taken.
+- **Nothing here touched `Graph::Presenter`**, which is ~6 ms a claim on
+  `/api/v1/claims?limit=50` (320 ms at 100,024 claims). It is bounded by page size rather
+  than corpus, so it was out of scope, and it is the obvious next one.

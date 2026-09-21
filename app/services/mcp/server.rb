@@ -1160,7 +1160,7 @@ module Mcp
       allowed_domains = Array(perms["domains"])
       scope = Task.where(status: %w[OPEN LEASED], task_type: (types.presence || allowed_types) & allowed_types, domain: (domains.presence || allowed_domains) & allowed_domains)
       scope = scope.where(target_id: target_id) if target_id
-      open = scope.to_a.select { |t| t.open_slots.positive? }
+      open = Tasks::Status.open_among(scope)
       # Most specific first. Asking about one claim and being told a general
       # truth about the queue is the fault this whole field exists to avoid, and
       # the own-work branch used to fire on claims Stage 34 expressly allows a

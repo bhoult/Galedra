@@ -57,6 +57,13 @@ module Weaknesses
 
       claims = Claim.where(id: entries.map { |e| e[:claim_id] }).index_by(&:id)
       results = Scoring::Score.call_many(claims.values, seq, model)
+      # Each row rebuilds its claim's scorer input, which is per-claim work and
+      # stays; what does not have to be per-claim are the quarantine, audit and
+      # revocation questions inside it, which one pass answers for the set.
+      Audits::Status.memoized { Scoring::Pass.over(claims.values, seq) { with_next_step(entries, claims, results, seq, model) } }
+    end
+
+    def with_next_step(entries, claims, results, seq, model)
       entries.map do |e|
         claim = claims[e[:claim_id]]
         result = results[e[:claim_id]]

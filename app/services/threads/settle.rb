@@ -74,8 +74,9 @@ module Threads
     # Never a task already leased or submitted: a worker mid-lease is not
     # overruled by a conversation it was not in.
     def cancellable(thread, claim)
-      scope = Task.where(target_type: "CLAIM", target_id: claim.id, status: "OPEN").to_a
-                  .select { |t| t.open_slots == t.required_assignments }
+      tasks = Task.where(target_type: "CLAIM", target_id: claim.id, status: "OPEN").to_a
+      slots = Task.open_slots_for(tasks)
+      scope = tasks.select { |t| slots.fetch(t.id, 0) == t.required_assignments }
       return scope if thread.subject_type == "Claim"
 
       # A narrower subject reaches only the checks that name it.

@@ -18,7 +18,9 @@ module Sections
       settled = Task.where(task_type: "CLAIM_EXTRACTION", section_id: leaves.map(&:id), status: %w[COMPLETE CANCELLED]).distinct.pluck(:section_id).to_set
       extracted = leaves.count { |l| with_claims.include?(l.id) || settled.include?(l.id) }
       checked = EvidenceClaimLink.counted_at(seq).where(claim_id: counted_claims).distinct.count(:claim_id)
-      open = Task.where(section_id: sections.map(&:id), status: %w[OPEN LEASED]).to_a.count { |t| t.open_slots.positive? }
+      # One question for the whole set: this was two COUNTs per task, 1,460
+      # queries on the outline index (Stage 39).
+      open = Tasks::Status.open_among(Task.where(section_id: sections.map(&:id), status: %w[OPEN LEASED])).size
       { leaves: leaves.size, leaves_extracted: extracted, claims: counted_claims.size, checked: checked, open_tasks: open }
         .merge(check_split(counted_claims, seq))
     end
@@ -37,8 +39,10 @@ module Sections
       claim_for_task = Task.where(target_type: "CLAIM", target_id: claim_ids).pluck(:id, :target_id).to_h
       return blank if claim_for_task.empty?
 
-      results = Contribution.where(action_type: "TASK_RESULT", task_id: claim_for_task.keys).where("seq <= ?", seq)
-                            .select { |r| Contributions::Standing.accepted_at?(r, seq) }
+      # One question for the whole set, not one per result (Stage 39).
+      all = Contribution.where(action_type: "TASK_RESULT", task_id: claim_for_task.keys).where("seq <= ?", seq).to_a
+      standing = Contributions::Standing.accepted_set(all, seq)
+      results = all.select { |r| standing.include?(r.id) }
       return blank if results.empty?
 
       own_results = TaskAssignment.where(result_contribution_id: results.map(&:id), self_performed: true).pluck(:result_contribution_id).to_set

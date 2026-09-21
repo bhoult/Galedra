@@ -22,8 +22,12 @@ module Sections
 
     # [Part] in document order, one per section that holds text.
     def call(section, seq)
-      descendants(section, seq).filter_map do |node|
-        reading = node.reading_location
+      nodes = descendants(section, seq)
+      # The sections already know which locations they need; asking one at a
+      # time was 141 single-id loads on the outline page (Stage 39).
+      readings = SourceLocation.where(id: nodes.filter_map(&:reading_location_id).uniq).index_by(&:id)
+      nodes.filter_map do |node|
+        reading = readings[node.reading_location_id]
         next if reading.nil? || reading.excerpt.blank?
         next unless reading.active_at?(seq)
 
