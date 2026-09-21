@@ -218,6 +218,32 @@ claim; `BuildInput` is 17.63 ms. So a compiled *scorer* alone still addresses th
 half, and the N+1 is still the first thing to fix, because a faster language issues the same
 357 queries.
 
+**And a measurement that should be taken before a language is chosen.** The same algorithm on
+the same three-link input, 3,000 iterations each:
+
+| | per claim |
+|---|---|
+| `reference_scorer.py` | **0.0169 ms** |
+| `Scoring::Registry.score` | **0.5769 ms** |
+
+Thirty-four times slower in Ruby than in Python — and Python is interpreted too. A gap that
+size is not the cost of not being compiled; something in the Ruby path is expensive.
+
+The honest caveat, because it is load-bearing: **the two are not doing the same amount of
+work.** Ruby builds a trace document averaging 1,872 bytes per claim — every link with its
+magnitude, reason, effective weight, provenance and audit state, plus config and code hashes
+— and the reference scorer returns a compact result and builds no trace. The trace is the
+product here, so Ruby is right to build it; the question is what fraction of 0.577 ms is the
+trace and what fraction is the arithmetic around it.
+
+**So the first question is not which language.** It is: why is this 34× slower than a
+stdlib-only Python script at the same maths? Candidates worth timing before anything is
+rewritten — trace construction and hash allocation, `Scoring::Decimal.fixed` string
+formatting per value, repeated `BigDecimal` construction from strings. If most of it turns out
+to be trace building, a compiled implementation inherits that cost and the gain is smaller
+than 34× suggests. If most of it is avoidable, the cheapest fix is in Ruby and no boundary
+moves at all.
+
 ### The version worth building, if it is built
 
 Once the scorer need not stay in Ruby, the obvious shape is not "replace the arithmetic". It
@@ -259,7 +285,8 @@ reproducible by a stranger, so:
   a probability changing on a claim nobody touched.
 - `bin/demo` prints PASS for every golden row and the replay check, and exits 0.
 
-**Order of work.** Keying first, then batching `BuildInput`, then measure again. If the
+**Order of work.** Keying first, then batching `BuildInput`, then find out where Ruby's 34×
+goes, then measure again. If the
 arithmetic floor is what stands between this node and Stage 26's acceptance — about 69
 seconds of pure scoring for one pass over the seeded corpus, before any query — the compiled
 path is justified and should be built in the shape above. That measurement is cheap and has
