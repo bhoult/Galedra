@@ -55,6 +55,8 @@ header.site .report-badge a { color: var(--accent-ink, #8a3324); border-bottom: 
 header.site .report-badge svg { display: block; flex: 0 0 auto; }
 header.site .report-badge a:hover { text-decoration: underline; border-bottom: 0; }
 header.site .report-badge .sep { color: var(--muted, #666); }
+header.site .report-badge .kind { display: inline-flex; align-items: center; gap: 0.15rem; }
+header.site .report-badge .plus { color: var(--muted, #666); font-size: 0.85em; }
 header.site .report-badge a.held { color: var(--muted, #666); }
 header.site .report-badge.none a { color: var(--muted, #666); }
 /* Drop-down menus (Stage 24): details/summary, styled like the old links. */

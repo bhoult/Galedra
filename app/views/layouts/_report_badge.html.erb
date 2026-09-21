@@ -2,10 +2,11 @@
     Two counts rather than one total: they are answered in different frames of
     mind, and each links to its own list.
 
-    Held rides beside the type it belongs to rather than as a third total, and
-    only when there is one. It is not work waiting on you — it is work you have
-    agreed to and not done — so it is kept out of the number you are trying to
-    clear, and out of the muted-at-zero test for the same reason.
+    Held rides beside the type it belongs to rather than as a segment of its own,
+    and only when there is one. It is not work waiting on you — it is work you
+    have agreed to and not done — so it is kept out of the number you are trying
+    to clear, and out of the muted-at-zero test for the same reason. It carries
+    no icon: one icon per kind, or the same open hand appears twice.
 
     Which segments exist is decided here, from the counts, and never by asking
     whether a rendered partial came back blank: development annotates every
@@ -15,16 +16,16 @@
 <% held_note = "answered and held open: work has been agreed and not done, so silence will not close it" %>
 <% segments = [
      { icon: "bug", n: counts[:bugs], path: bug_reports_path(status: "OPEN"),
-       tip: "#{pluralize(counts[:bugs], 'bug report')} waiting on a maintainer" },
-     { icon: "held", n: counts[:held_bugs], path: bug_reports_path(status: "HELD"), klass: "held",
-       tip: "#{pluralize(counts[:held_bugs], 'bug report')} #{held_note}" },
+       tip: "#{pluralize(counts[:bugs], 'bug report')} waiting on a maintainer",
+       held: { n: counts[:held_bugs], path: bug_reports_path(status: "HELD"),
+               tip: "#{pluralize(counts[:held_bugs], 'bug report')} #{held_note}" } },
      { icon: "feature", n: counts[:features], path: feature_requests_path(status: "OPEN"),
-       tip: "#{pluralize(counts[:features], 'feature request')} waiting on a maintainer" },
-     { icon: "held", n: counts[:held_features], path: feature_requests_path(status: "HELD"), klass: "held",
-       tip: "#{pluralize(counts[:held_features], 'feature request')} #{held_note}" },
+       tip: "#{pluralize(counts[:features], 'feature request')} waiting on a maintainer",
+       held: { n: counts[:held_features], path: feature_requests_path(status: "HELD"),
+               tip: "#{pluralize(counts[:held_features], 'feature request')} #{held_note}" } },
      { icon: "thread", n: counts[:threads], path: threads_path(status: "OPEN"),
        tip: "#{pluralize(counts[:threads], 'open thread')} on determinations: disagreements about how something was recorded, waiting on principals to agree" }
-   ].reject { |s| s[:icon] == "held" && s[:n].zero? } %>
+   ] %>
 <span class="report-badge<%= " none" if (counts[:bugs] + counts[:features] + counts[:threads]).zero? %>" aria-label="Open reports and threads">
   <%= safe_join(segments.map { |s| render("layouts/report_count", **s) }, tag.span("/", class: "sep", aria: { hidden: true })) %>
 </span>

@@ -61,9 +61,15 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     # The pill ends at its last link; anything past that is the account block.
     badge = badge[0, badge.rindex("</a>") + 4]
     expect(badge).to include("status=HELD")
-    segments = badge.scan("<a ").size
+    # A segment is a kind, not a link: a held count rides inside its kind's
+    # segment, so it has a link of its own and no separator of its own.
+    segments = badge.scan('class="kind"').size
+    expect(segments).to eq(3), "one segment each for bug reports, feature requests and threads"
     expect(badge.scan('class="sep"').size).to eq(segments - 1), "#{segments} segments want #{segments - 1} separators, and no trailing one"
     expect(badge[badge.rindex("</a>")..]).not_to include('class="sep"'), "nothing separates the last segment from the end"
+    # One icon per kind. Held used to carry its own, so the same open hand
+    # appeared twice and every number read as belonging to the icon after it.
+    expect(badge.scan("<svg").size).to eq(3), "#{badge.scan('<svg').size} icons for three kinds"
   end
 
   # Templates are compiled once per process and the annotation is baked in at

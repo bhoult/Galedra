@@ -1,4 +1,9 @@
-<%# One icon and the number it counts, linked to the list that holds them. It
-    always renders: whether a segment belongs in the badge is decided before it
-    gets here. %>
-<%= link_to path, class: local_assigns[:klass], title: tip, data: { tip: tip } do %><%= render "layouts/icon_#{icon}" %><%= n %><% end %>
+<%# One kind: its icon, the number waiting on a maintainer, and — beside it, only
+    when there is one — the number answered and held open.
+
+    Held has no icon of its own. It used to, and the same open-hand appeared
+    twice in a five-segment badge, once for bug reports and once for feature
+    requests, which read as two unrelated things and left every number looking
+    as though it belonged to the icon after it (owner, 2026-09-21). One icon per
+    kind, and both of that kind's numbers beside it. %>
+<span class="kind"><%= link_to path, title: tip, data: { tip: tip } do %><%= render "layouts/icon_#{icon}" %><%= n %><% end %><% if local_assigns[:held] && local_assigns[:held][:n].positive? %><span class="plus" aria-hidden="true">+</span><%= link_to local_assigns[:held][:n], local_assigns[:held][:path], class: "held", title: local_assigns[:held][:tip], data: { tip: local_assigns[:held][:tip] } %><% end %></span>
