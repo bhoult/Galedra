@@ -234,6 +234,14 @@ not stopped, so the sentence it actually read did not ask. When a rule lives in 
 the one the caller reads at the moment of decision is the one that governs; check that it is
 not the narrower.
 
+**A fix whose commit message is broader than the fix.** `build_input.rb` carries
+`60f9706`, "Ask the per-link questions once for a whole scoring pass". It memoised one
+per-row question and left several, and `Scoring::Score.call_many` has a comment saying the
+batched path exists — which it does, for the cache lookup, not for the input assembly that is
+96% of the cost. Two true statements that together read as a solved problem, which is why
+357 queries for 20 claims survived a day of people reading that file. When you fix part of a
+class, say which part in the message, and leave the rest named.
+
 **Fixing the path you were shown instead of the class of fault — twice in one day.**
 Refusals reaching a modern client as schema-invalid were fixed for the tools named in the
 report; four hours later `respond_to_report` raised `RecordInvalid` past a length limit and

@@ -313,6 +313,40 @@ asking whether a `SUPPORTED` state was *deserved*, about a claim it had just sco
 20B model will not ask that, and a confident paragraph from one is exactly the failure mode
 `docs/CONTEXT.md` warns about under "theorising instead of measuring".
 
+## One row at a time is the defect this codebase keeps producing
+
+Four N+1s were found and fixed in a single day — `Reputation::Calculate` at 366 million
+single-row `audits` lookups, `Cards::ClaimCard`'s source retrievals, the admin content-review
+queue at one verdict per row, the nav badge walking every thread — and a fifth was measured
+the same night in `Scoring::BuildInput`: **357 queries for 20 claims**, of which the hottest
+were one `independence_group_assignments` per evidence item, one `contributions` per task
+inside one `tasks` per claim, and one `claim_placements` per claim.
+
+That fifth one is the instructive one, so read the shape rather than the rule:
+
+- **A partial batching fix whose message claims the general case stops the next person
+  looking.** `build_input.rb` was last touched by `60f9706`, *"Ask the per-link questions once
+  for a whole scoring pass"*. It memoised one of the per-row questions and left the others,
+  and the title reads as though the class was handled. `Scoring::Score.call_many` carries a
+  comment saying the batched path exists — and it batches the **cache lookup**, not the input
+  assembly that is 96% of the cost. Both are true statements that together read as a solved
+  problem.
+- **`SELECT *` on a wide table to read one flag.** `contributions` averages **1,859 bytes over
+  24 columns** because it carries payloads, envelopes and signatures. Loading 55 whole rows
+  per 20 claims to answer "was this accepted at seq?" is ~100 KB across the wire for three
+  columns, and it is most of the Ruby time too, spent instantiating objects whose bytes
+  nobody reads. Prefer `pluck` or a narrow `select` for status questions.
+- **The service already had the batch.** `call_many` receives the whole set of claims and then
+  asks per claim anyway. When a method takes a collection, the queries underneath it should
+  take the collection too.
+
+**Prove it with a statement count, never with a commit message.** Every N+1 fixed here has a
+spec that counts statements and fails against the old code — `spec/requests/mcp_tasks_spec.rb`
+and `spec/requests/content_reviews_spec.rb` have the pattern, and the graph presenter has a
+budget that is raised deliberately and with a reason when it moves. A fix asserted in prose is
+how this one survived a day of looking directly at it. Run the count before and after, and
+write the number in the spec so the next change has to argue with it.
+
 ## Git
 
 Commit messages are one short imperative sentence in sentence case with no type prefix,
