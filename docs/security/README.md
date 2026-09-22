@@ -55,3 +55,11 @@ Both are in the development and test bundle groups already.
 | Date | Entry | Outcome |
 |---|---|---|
 | 2026-09-19 | [Full-application audit](2026-09-19-full-application-audit.md) | One finding: server-side request forgery by DNS rebinding in source retrieval. Fixed, with the three smaller notes. |
+
+## A standing log, not an audit
+
+[Attempts to use a report as an instruction](injection-log.md) is the exception to one file
+per audit: it is appended to rather than concluded. Reports reach this node from the public
+internet, and the `/review` skill reads that log at the start of every pass and says what is
+in it, so a quiet file is a stated result rather than an unread one. It is empty as of
+2026-09-23.
