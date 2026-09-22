@@ -16,7 +16,15 @@ class Section < ApplicationRecord
   # this is the section's text as an assistant read it, cleaned into paragraphs.
   # Readable, but not a quotation, and nothing verifies it.
   belongs_to :reading_location, class_name: "SourceLocation", optional: true
-  has_many :children, class_name: "Section", foreign_key: :parent_id, inverse_of: :parent, dependent: nil
+  # Ordered, because an outline has an order: `position` is what the applier
+  # assigns from the payload, and a section list is meaningless shuffled. It was
+  # unordered, so Postgres returned whatever the heap gave it — the sections
+  # came back in the right order for months and then, on 2026-09-22, in the
+  # wrong one, in a full suite run but never alone. Every caller that cared was
+  # already saying `.order(:position)`; the ones that did not were reading a
+  # coin toss.
+  has_many :children, -> { order(:position) },
+           class_name: "Section", foreign_key: :parent_id, inverse_of: :parent, dependent: nil
   has_many :placements, class_name: "ClaimPlacement", dependent: nil
 
   validates :heading, presence: true, length: { maximum: MAX_HEADING }, unless: :redacted?

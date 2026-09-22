@@ -393,3 +393,7 @@ button.small, .button.small { padding: 0.2rem 0.6rem; font-size: 0.85rem; }
 .triage-form label { display: block; }
 .resolution { border-left: 3px solid var(--rule, #e5e5e5); padding-left: 0.7rem; margin: 0.6rem 0; }
 .resolution p { margin: 0.2rem 0; }
+
+/* The working behind a number (claim page, "show calculation"). */
+table.working td { font-variant-numeric: tabular-nums; }
+p.working-sum { font-variant-numeric: tabular-nums; }

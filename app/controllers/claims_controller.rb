@@ -94,6 +94,9 @@ class ClaimsController < ApplicationController
     @topics = ClaimTopic.current_at(@seq).where(claim_id: @claim.id).includes(:contribution).order(:created_seq)
     # Rule 1: the number and the trace are rendered only when asked for.
     @show_calculation = params[:calculation].present?
+    # The working, not just the answer: read off the trace and the model's
+    # config, computed nowhere (Cards::Calculation).
+    @calculation = @show_calculation && @result && @model ? Cards::Calculation.call(@result.trace, @model.config) : nil
   end
 
   # A topic suggestion is a signed TAG_CLAIM by the signed-in person (Stage 15).

@@ -80,6 +80,43 @@
         <% if @assessment[:unchanged_since] %>
           <p class="meta">Last changed at entry <%= seq_link(@assessment[:unchanged_since]) %>; nothing logged since has borne on this claim.</p>
         <% end %>
+        <%# The arithmetic itself. "Show calculation" used to show the result and
+            the trace hash, which is the inputs and the answer with the working
+            left out (owner, 2026-09-22). Every number below is read from the
+            trace and the model's config; none of it is computed here. %>
+        <% if @calculation %>
+          <h3>How the number was reached</h3>
+          <% if @calculation[:links].any? %>
+            <p class="meta">Each counted link is weighed by multiplying the factors the model declares. A factor the model does not declare is not shown.</p>
+            <table class="working">
+              <tr><th>Link</th><th>Working</th><th>Weight</th><th>Counted as</th></tr>
+              <% @calculation[:links].each do |row| %>
+                <tr>
+                  <td><%= link_to short_id(row[:link]["link"]), evidence_path(row[:link]["evidence"]) %> <span class="muted"><%= row[:link]["direction"].downcase %></span></td>
+                  <td class="muted">
+                    <% row[:factors].each_with_index do |f, i| %><%= " × " if i.positive? %><span title="<%= f.name %>: <%= f.label %>"><%= f.value %></span><% end %>
+                  </td>
+                  <td><%= row[:magnitude] %></td>
+                  <td>
+                    <%= row[:effective_weight] || "—" %>
+                    <% if row[:reason] %><span class="muted">(<%= row[:reason].tr("_", " ") %><% if row[:kept] %>, kept <%= short_id(row[:kept]) %><% end %>)</span><% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </table>
+          <% end %>
+          <p class="working-sum">
+            prior <%= @calculation[:prior] || "—" %>
+            → log-odds <%= @calculation[:prior_log_odds] || "—" %>
+            <% if @calculation[:evidence_sum] %>+ <%= @calculation[:evidence_sum] %> (the counted weights)<% end %>
+            <% if @calculation[:posterior_log_odds] %>= <%= @calculation[:posterior_log_odds] %><% end %>
+            <% if @calculation[:probability] %>→ probability <strong><%= @calculation[:probability] %></strong><% end %>
+          </p>
+          <% if @calculation[:variants] %>
+            <p class="meta">Under neighbouring settings of the same model: <%= @calculation[:variants]["conservative"] %> to <%= @calculation[:variants]["permissive"] %>, a spread of <%= @calculation[:variants]["spread"] %><%= ". The result sits on a rounding boundary" if @calculation[:boundary] %>.</p>
+          <% end %>
+          <p class="meta">Half-even rounding, six places for weights and four for the probability. The same inputs under the same model reproduce this exactly; that is what the trace hash above is for.</p>
+        <% end %>
       </div>
     <% else %>
       <p><%= link_to "Show calculation", claim_path(@claim, model: params[:model], snapshot_seq: params[:snapshot_seq], calculation: 1) %></p>

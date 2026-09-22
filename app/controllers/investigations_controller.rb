@@ -17,8 +17,16 @@ class InvestigationsController < ApplicationController
     @page = params[:page].to_i.clamp(1, 500)
     @seq = Contribution.maximum(:seq)
     @model = Scoring::Registry.default_model
-    @total = Investigation.count
-    @investigations = Investigation.order(created_at: :desc).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
+    # Short checks only. An outline is a long source worked through section by
+    # section — a speech, a transcript, a podcast — and it has its own list, its
+    # own page and its own way of being read. Its investigation row existed here
+    # too, so a quarter of this page was entries that bounced the reader into
+    # /sections the moment they clicked one (owner, 2026-09-22). They are
+    # different kinds of question and they are not usefully ranked against each
+    # other: 25 of 128 rows here were the wrong kind.
+    checks = Investigation.where(section_id: nil)
+    @total = checks.count
+    @investigations = checks.order(created_at: :desc).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
 
     # One scoring pass for the whole page rather than one per check.
     @claims_for = @investigations.to_h { |i| [ i.id, i.claims.reject { |c| Governance::Quarantines.live_for("CLAIM", c.id) } ] }
