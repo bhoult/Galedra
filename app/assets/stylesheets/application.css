@@ -101,6 +101,12 @@ aside.outline { position: sticky; top: 3.6rem; font-size: 0.82rem; background: v
        the counts sit at 0.5rem and are 2.1rem wide, so anything under about
        2.8rem crops them. */
     position: relative;
+    /* And top back to auto. `top: 3.6rem` is the sticky offset that clears the
+       header on a wide screen; on a relative box it shifts the panel down
+       without moving the space reserved for it, which is a blank band above the
+       menu and a menu drawn over the content below it (owner, 2026-09-22).
+       Changing `position` without changing `top` is the whole bug. */
+    top: auto;
     max-height: 45vh;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
