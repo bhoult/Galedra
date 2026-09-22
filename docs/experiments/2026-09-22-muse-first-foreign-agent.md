@@ -148,16 +148,24 @@ task type cannot move a claim under either outcome.
   decimal string" for a field whose values are five words. Validating at the
   boundary retires the class and needs no translation table, because the schema
   **is** the caller's vocabulary.
-- **An opposing-evidence search that never opposes. — OPEN, and the only
-  epistemic finding here.** 42 `OPPOSING_EVIDENCE_SEARCH` tasks came back
-  `FOUND` and recorded **50 SUPPORT links, 8 QUALIFY, and no CONTRADICT at
-  all**. Whether the fault is the worker's or the packet's is not yet
-  established — the task's objective says "search for evidence in the stated
-  direction" and it is not confirmed that the packet states one. It matters more
-  than any of the plumbing above: a contradiction-seeking task that returns no
-  contradictions biases the record upward silently, and the run's own state
-  distribution is SUPPORTED 54 against CONTRADICTED 6. Article XXII depends on
-  this task type working.
+- **An opposing-evidence search that never opposes. — NO ACTION NEEDED. The
+  watcher was wrong.** I recorded, in this file, that `OPPOSING_EVIDENCE_SEARCH`
+  tasks were returning `FOUND` while recording only SUPPORT links, called it the
+  run's one epistemic finding, and said it mattered more than any of the
+  plumbing. It was none of those things.
+
+  The packet states its direction in `context.search_direction`, and the name
+  means *opposing the claim's current lean*, not *contradicting the claim*. For a
+  claim reading `LEANS_CONTRADICTED` the opposing direction is SUPPORT. Matched
+  against what was actually asked: **131 results, every one of them asked for
+  SUPPORT and every one recording SUPPORT** (78 SUPPORT links, 27 QUALIFY, 26
+  `NONE_FOUND`). The worker was right each time. The queue is not one-sided
+  either — its 363 open tasks of this type split CONTRADICT 70 to SUPPORT 293.
+
+  What survives is much smaller: a task type named `OPPOSING_EVIDENCE_SEARCH`
+  that asks for supporting evidence is read wrong by someone holding the source,
+  twice, which is worth a sentence in its objective even though nothing is
+  broken.
 - **A crash reached the caller as an HTML page. — FIXED** (`f6b9ae1`).
   `links[].steps` given an array raised NoMethodError out of
   `Investigations::Steps.for_link` and escaped to the controller, so a client
@@ -208,6 +216,13 @@ stood at **14 of 21 `NONE_FOUND` results** by the end of the run, against 0 of
   the rotating identity), and it said it had settled `01a0ca28` "from my side"
   when it had recorded no turn at all and could not have. The report was closed
   by hand, saying so.
+- **I filed a finding that was not one, and committed it.** I reported
+  `OPPOSING_EVIDENCE_SEARCH` returning no contradicting links as an epistemic
+  defect biasing the record upward, without having read a packet. The packet
+  names its own direction and the behaviour was correct 131 times out of 131. I
+  had said I would not report it until I could attribute the results, then
+  reported it once I could attribute them — having still not checked the one
+  thing that decided it. Attribution is not verification.
 - **The first monitor queried tables that do not exist** — `report_messages`
   rather than `thread_turns`, `bug_reports.summary` rather than `happened` — with
   errors going to `/dev/null`, so report activity would have been silently
