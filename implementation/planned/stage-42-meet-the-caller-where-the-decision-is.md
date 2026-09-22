@@ -171,10 +171,31 @@ into the column `for_source` searches would hand the next anonymous caller from 
 somebody else's credential. `spec/requests/introduce_yourself_spec.rb` holds all of it,
 including that the minted token remains `anonymous?` and is still refused at `next_task`.
 
-**The half not done, and it is the owner's:** whether a self-minted token may work the
-queue. That removes the person from the chain for task results entirely, and unlike the
-above it cannot be walked back, because tokens minted with authority keep it. Today it is one
-line in `require_delegation!` and it stays unwritten.
+**Owner decision, taken the same evening: a self-minted token may work the queue.** The rule
+was never that a human must be in the loop for each answer — it was that an answer has to be
+answerable to somebody, and an address-keyed token is not somebody: it is everyone behind
+that address today, so a result recorded under it names nobody who could be asked about it. A
+self-minted token is a stable identity that keeps its own history and can be adopted, queried
+and revoked. Invariant 9 is untouched; a principal still cannot accept its own work.
+
+Two things had to come with it.
+
+**Where a token came from is now said outright, not inferred.** `self_minted?` first read
+`mint_source_key`, which exists to bound how many tokens one address may take — deciding what
+a token may do from a side effect of how we count them is how a privilege ends up somewhere
+nobody intended. `origin` is its own column, set once at the mint: `ADDRESS` (everyone behind
+one address that day), `CONNECTOR` (an OAuth grant or API mint with nobody signed in),
+`AGENT` (took its own token), `USER` (a person's). Only the first two are refused the queue,
+and `CONNECTOR` is refused because letting it through is a **separate decision that has not
+been taken** — it was previously lumped in with the address-keyed token and is not the same
+thing.
+
+**Five tokens from one address were five principals.** A task wants three independent
+answers from three principals, and `introduce_yourself` gives each token a fresh anonymous
+principal — so one actor could have been a quorum for its own work, which Article XII exists
+to prevent. `Tasks::Lease.kin_principal_ids` now counts every principal sharing a
+`mint_source_key` as one, for leasing and for "has this principal already answered". Adopted
+and account-held tokens carry no mint source and are unaffected.
 
 ### 5a. What remains of the identity question
 

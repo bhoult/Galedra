@@ -46,15 +46,56 @@ RSpec.describe "An assistant naming itself", type: :request do
     expect(AssistantToken.find_by(token_digest: AssistantToken.digest(token))).to be_present
   end
 
-  # It grants identity, never authority. A caller with no token at all could
-  # already do everything this token can do.
-  it "still cannot work the task queue" do
+  # Owner decision, 2026-09-22: a token an assistant minted for itself may work
+  # the queue. It is still anonymous — nobody has vouched for it — but it is a
+  # stable identity that answers for its own work, which an address-keyed token
+  # is not.
+  it "may work the task queue, while staying anonymous" do
     token = introduce["token"]
-    data = call_tool("next_task", {}, token: token)
+    record = AssistantToken.find_by(token_digest: AssistantToken.digest(token))
+
+    expect(record).to be_anonymous
+    expect(record).to be_self_minted
+    expect(call_tool("next_task", {}, token: token)["errors"]).to be_nil
+  end
+
+  # And the token everyone behind one address shares still may not: a result
+  # recorded under it names nobody who could be asked about it.
+  it "is not the same as the token an address is given" do
+    data = call_tool("next_task", {})
 
     expect(data["errors"].map { |e| e["code"] }).to include("TOKEN_INVALID")
     expect(data["errors"].first["detail"]).to include("a person behind it")
-    expect(AssistantToken.order(:created_at).last).to be_anonymous
+    expect(AssistantToken.order(:created_at).last).to be_address_keyed
+  end
+
+  # Where a token came from is said outright, not read off the column that
+  # bounds how many an address may take. A privilege inferred from a
+  # rate-limiting detail is a privilege in the wrong place.
+  it "says where it came from, and does not infer it" do
+    agent = AssistantToken.find_by(token_digest: AssistantToken.digest(introduce["token"]))
+    user = User.create!(email_address: "someone@example.com", password: "correct horse battery staple")
+    minted, = Assistants::Connect.call(user: user, name: "Claude", provider: "anthropic")
+    flow, = Assistants::Connect.call(name: "A connector", provider: "other")
+
+    expect(agent.origin).to eq("AGENT")
+    expect(minted.origin).to eq("USER")
+    expect(flow.origin).to eq("CONNECTOR")
+    expect(minted).not_to be_self_minted
+    expect(flow).not_to be_self_minted
+    expect(flow.mint_source_key).to be_nil
+  end
+
+  # Five tokens from one address are five principals, and a task wanting three
+  # independent answers would take three of them. The mint records where it came
+  # from so this can be asked (Article XII).
+  it "counts tokens from one source as one principal for independence" do
+    first = AssistantToken.find_by(token_digest: AssistantToken.digest(introduce(name: "One")["token"]))
+    second = AssistantToken.find_by(token_digest: AssistantToken.digest(introduce(name: "Two")["token"]))
+
+    expect(first.mint_source_key).to eq(second.mint_source_key)
+    kin = Tasks::Lease.send(:kin_principal_ids, first.delegation.principal)
+    expect(kin).to include(first.principal_contributor_id, second.principal_contributor_id)
   end
 
   it "reads and contributes exactly as an unnamed caller does" do

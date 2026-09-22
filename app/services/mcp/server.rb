@@ -1283,6 +1283,20 @@ module Mcp
     def require_delegation!
       require_token!
       return unless @token.anonymous?
+      # Owner decision, 2026-09-22: a token an assistant minted for itself may
+      # work the queue. The rule was never "a human must be in the loop for each
+      # answer" — it was that an answer has to be answerable to somebody, and an
+      # address-keyed token is not somebody: it is everyone behind that address
+      # today, so a result recorded under it names nobody who could be asked
+      # about it. A self-minted token is a stable identity that keeps its own
+      # history and can be adopted, queried, and revoked.
+      #
+      # What this does not relax: Invariant 9 still forbids a principal
+      # accepting its own work, and a task still wants three answers from three
+      # principals — with tokens sharing a mint source counted as one, or five
+      # tokens from one address would be three independent verifiers
+      # (Tasks::Lease.kin_principal_ids, Article XII).
+      return if @token.self_minted?
 
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: anonymous_remedy } ])
     end

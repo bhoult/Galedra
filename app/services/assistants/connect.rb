@@ -17,7 +17,11 @@ module Assistants
 
     module_function
 
-    def call(user: nil, name:, provider:, model: nil, hourly_cap: nil)
+    # `origin` says where the token came from and decides what it may do, so it
+    # is named at every mint rather than inferred later. The default is the
+    # honest reading of this method's own arguments: with a person, USER;
+    # without, ADDRESS, until a caller says otherwise.
+    def call(user: nil, name:, provider:, model: nil, hourly_cap: nil, origin: nil)
       hourly_cap ||= user ? NAMED_HOURLY_CAP : DEFAULT_HOURLY_CAP
       name = name.to_s.strip
       raise ArgumentError, "assistant name is required" if name.empty?
@@ -33,7 +37,8 @@ module Assistants
       plaintext = "gal_#{SecureRandom.urlsafe_base64(32)}"
       record = AssistantToken.create!(
         id: SecureRandom.uuid_v7, token_digest: AssistantToken.digest(plaintext), agent: agent, principal: principal,
-        delegation: delegation, user: user, software: software, hourly_cap: hourly_cap
+        delegation: delegation, user: user, software: software, hourly_cap: hourly_cap,
+        origin: origin || (user ? "USER" : "CONNECTOR")
       )
       [ record, plaintext ]
     end
@@ -46,7 +51,7 @@ module Assistants
       existing = AssistantToken.find_by(source_key: key)
       return existing if existing&.usable?
 
-      record, = call(name: name, provider: "other", model: "unknown")
+      record, = call(name: name, provider: "other", model: "unknown", origin: "ADDRESS")
       record.update!(source_key: key)
       record
     rescue ActiveRecord::RecordNotUnique

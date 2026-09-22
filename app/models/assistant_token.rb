@@ -28,6 +28,30 @@ class AssistantToken < ApplicationRecord
   def revoked? = revoked_at.present?
   def anonymous? = principal.identity_tier == "ANONYMOUS"
 
+  # Where this token came from, set once at the mint and never changed.
+  #
+  #   ADDRESS    keyed by sha256(address|date): everyone behind one address that
+  #              day. Not an identity, and nothing it records answers for itself.
+  #   CONNECTOR  minted through a flow — an OAuth grant, the API, the form while
+  #              signed out — with no person behind it. Stable per grant.
+  #   AGENT      an assistant named itself and took its own token through
+  #              `introduce_yourself`. Still anonymous, because nobody has
+  #              vouched for it, but a stable identity that keeps its own
+  #              history and can be adopted, queried and revoked.
+  #   USER       a signed-in person minted it, or a connector completed OAuth
+  #              as them.
+  #
+  # Only ADDRESS and CONNECTOR are refused the task queue. ADDRESS because it is
+  # a bucket rather than a somebody; CONNECTOR because letting it through is a
+  # separate decision from the one taken for AGENT on 2026-09-22 and has not
+  # been taken.
+  ORIGINS = %w[ADDRESS CONNECTOR AGENT USER].freeze
+  validates :origin, inclusion: { in: ORIGINS }
+
+  def self_minted? = origin == "AGENT"
+  def user_minted? = origin == "USER"
+  def address_keyed? = origin == "ADDRESS"
+
   # Every token this filer has held. A reinstall issues a new token for the same
   # person, and anything scoped to the token alone vanishes with it: fourteen
   # filed reports became invisible to the assistant that filed them, along with

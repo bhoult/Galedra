@@ -27,7 +27,10 @@ module Assistants
                        "and send it as Authorization: Bearer, or ask the person to adopt it"
       end
 
-      record, secret = Connect.call(name: name, provider: provider, model: model)
+      record, secret = Connect.call(name: name, provider: provider, model: model, origin: "AGENT")
+      # The bound only. What the token may do is decided by `origin`, never by
+      # this — a privilege read off a rate-limiting detail is a privilege in the
+      # wrong place.
       record.update!(mint_source_key: key) if key
       [ record, secret ]
     end

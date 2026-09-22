@@ -85,7 +85,9 @@ module Tasks
       types = types.presence || allowed_types
       domains = domains.presence || allowed_domains
       scope = scope.where(task_type: types & allowed_types, domain: domains & allowed_domains)
-      taken = TaskAssignment.where(status: %w[LEASED SUBMITTED]).where("contributor_id = :c OR principal_contributor_id = :p", c: contributor.id, p: principal.id).select(:task_id)
+      kin = kin_principal_ids(principal)
+      taken = TaskAssignment.where(status: %w[LEASED SUBMITTED])
+                            .where("contributor_id = :c OR principal_contributor_id IN (:p)", c: contributor.id, p: kin).select(:task_id)
       scope.where.not(id: taken).limit(50)
     end
 
@@ -99,6 +101,22 @@ module Tasks
     end
 
     # Stage 21: a section means its whole subtree.
+    # A principal, plus every principal that took its token from the same place.
+    #
+    # `introduce_yourself` gives each self-minted token a fresh anonymous
+    # principal, so five tokens taken from one address are five principals — and
+    # the three independent answers a task wants would be three of them, making
+    # one actor into a quorum. The mint records where it came from precisely so
+    # this can be asked (Article XII: resist capture). Adopted and account-held
+    # tokens carry no mint source and are unaffected.
+    def kin_principal_ids(principal)
+      keys = AssistantToken.where(principal_contributor_id: principal.id)
+                           .where.not(mint_source_key: nil).distinct.pluck(:mint_source_key)
+      return [ principal.id ] if keys.empty?
+
+      ([ principal.id ] + AssistantToken.where(mint_source_key: keys).distinct.pluck(:principal_contributor_id)).uniq
+    end
+
     def subtree_ids(section_id)
       section = Section.find_by(id: section_id)
       return [] if section.nil?
@@ -123,7 +141,7 @@ module Tasks
       return false if principal.nil?
 
       TaskAssignment.where(task_id: task.id, status: "SUBMITTED")
-                    .where("contributor_id = :p OR principal_contributor_id = :p", p: principal.id).exists?
+                    .where("contributor_id = :c OR principal_contributor_id IN (:p)", c: principal.id, p: kin_principal_ids(principal)).exists?
     end
 
     def own_target?(task, principal)
