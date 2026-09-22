@@ -66,4 +66,69 @@ RSpec.describe "What an agent finds when it is handed only the address", type: :
     expect(response.body).to include('href="/api/v1/openapi"')
     expect(response.body).to include('href="/api/v1/guidance"')
   end
+  # The pointers in <head> are belt and braces. On 2026-09-22 this page was
+  # fetched the way an agent fetches it and the reply was explicit: no <link
+  # rel> tags, no HTML comments, only the rendered prose. Whatever an agent is
+  # told here has to survive a markdown conversion, which means visible text.
+  describe "an agent that was handed the URL and fetched the page" do
+    it "is told in visible text to call tools, and given the endpoint" do
+      get "/"
+      text = response.body.gsub(/<script.*?<\/script>|<style.*?<\/style>/m, "").gsub(/<!--.*?-->/m, "")
+                          .gsub(/<[^>]+>/, " ").gsub(/\s+/, " ")
+
+      expect(text).to include("If you are an AI assistant reading this page")
+      expect(text).to include("never by fetching the page")
+      expect(text).to include("#{Ledger::Node.url}/mcp")
+      expect(text).to include("llms.txt")
+      expect(text).to include("list_tasks")
+    end
+
+    # Near the top, because what reaches an agent's reasoning is whatever
+    # survives someone else's summary of the page.
+    it "says it early enough to survive a summary" do
+      get "/"
+      text = response.body.gsub(/<script.*?<\/script>|<style.*?<\/style>/m, "").gsub(/<[^>]+>/, " ").gsub(/\s+/, " ")
+
+      expect(text.index("If you are an AI assistant")).to be < (text.length * 0.35),
+        "the agent notice has drifted down the page; a summary will drop it"
+    end
+  end
+
+  # The page between "give your assistant one address", which never named the
+  # address, and /assistants/new, which mints a token for somebody who already
+  # knows what to do with one.
+  describe "how a person connects their assistant" do
+    it "names the address, in this node's own terms" do
+      allow(Ledger::Node).to receive(:url).and_return("https://somewhere-else.example")
+      get "/connect"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("https://somewhere-else.example/mcp")
+      expect(response.body).not_to include("local.galedra.org")
+    end
+
+    it "covers all three ways a client may ask for the credential" do
+      get "/connect"
+
+      expect(response.body).to include("Authorization: Bearer")
+      expect(response.body).to include("/mcp/gal_"), "the URL form is the one a connector screen with no headers needs"
+      expect(response.body).to include("/mcp/connect")
+    end
+
+    # The only channel this node cannot speak on for itself: a directory-style
+    # client decides a connector is relevant from the operator's description,
+    # before it ever reads a tool list.
+    it "hands the operator the words for a connector directory" do
+      get "/connect"
+
+      expect(response.body).to include("never by opening a browser")
+      expect(response.body).to include("list_tasks")
+      expect(response.body).to include("open_for_you")
+    end
+
+    it "is reachable from the landing page" do
+      get "/"
+      expect(response.body).to include('href="/connect"')
+    end
+  end
 end

@@ -67,6 +67,15 @@ class HelpController < ApplicationController
     @policy_html = Governance::Licenses.policy_html
   end
 
+  # How a person connects their own assistant, in one place. The landing page
+  # said "give your assistant one address" and never named the address, and
+  # /assistants/new mints a token for somebody who already knows what to do with
+  # one. This is the page between those two (Stage 42 §4, and the owner's third
+  # path: through the chat as a skill or connector).
+  def connect
+    @node = Ledger::Node.url
+  end
+
   def about
     @software = Governance::Software.to_h
     @node = Ledger::Node.to_h

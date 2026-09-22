@@ -211,6 +211,26 @@ matters — that it **points at the guidance instead of copying it**, failing if
 text starts appearing there. A second copy of the rules is the one that goes stale, which is
 why `Guidance` exists at all (Stage 31).
 
+**Also done** (2026-09-22): the owner's three paths — a person in the browser, an agent
+handed a URL, a connector in a chat client — were served by one page and two of them badly.
+The landing page said "give your assistant one address" and **never named the address**, and
+`/assistants/new` mints a token for somebody who already knows what to do with one. There is
+now a visible card on the landing page telling an assistant it is reading a rendering,
+naming the endpoint and pointing at `/llms.txt`; and `/connect`, which tells a person how to
+connect theirs, covering all three credential forms and carrying the paste-ready connector
+description §4 asked for.
+
+**It has to be visible text, and that is measured rather than assumed.** This page was
+fetched the way an agent fetches it, before the change: *"I did not receive actual HTML
+markup or `<link rel>` tags… No HTML comments were visible."* A markdown conversion drops
+`<head>` and comments mechanically. Fetched again afterwards, the card came back verbatim
+with its URLs intact. One caveat worth carrying: a general question about the page produced a
+summary that omitted the card, and a pointed one reproduced it exactly — **delivery is
+reliable, salience is not**, which is why `/llms.txt` is the real target and the card only
+has to be a signpost to it. `spec/requests/discovery_spec.rb` asserts the card survives tag
+stripping and sits in the first third of the page's text, on the reasoning that what reaches
+an agent is whatever survives somebody else's summary.
+
 **Remaining:** `/.well-known/mcp.json` or whatever shape the MCP discovery manifest settles
 into. No ratified spec yet, so serving one now is a guess — but a cheap one, next to the
 OAuth documents that already work, and worth revisiting when the shape is fixed.

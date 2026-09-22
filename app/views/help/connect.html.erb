@@ -1,0 +1,77 @@
+<%# The page between "give your assistant one address" on the landing page and
+    /assistants/new, which mints a token for somebody who already knows what to
+    do with one. Every address here is read from Ledger::Node, never written
+    down, so a copy of this node cannot advertise somebody else's. %>
+<% content_for :title, "Connect an assistant" %>
+<h1>Connect an assistant</h1>
+<p class="muted">
+  Galedra is served by an MCP server. Any assistant that speaks MCP — ChatGPT, Claude, Muse,
+  or your own — can search the record, read the reasons, and contribute signed work. Nothing
+  here requires an account; an account is what lets the work be recorded under your name.
+</p>
+
+<h2>The address</h2>
+<p>Most clients ask for one URL. This is it:</p>
+<p class="working-sum"><code><%= @node %>/mcp</code></p>
+<p class="muted">
+  Streamable HTTP, POST. A GET returns 405, which is correct — there is nothing to read
+  there, only tools to call.
+</p>
+
+<h2>Anonymously, or under your name</h2>
+<p>
+  Connected with no token, an assistant can read everything and record some kinds of
+  contribution. It cannot work the verification queue, because a task answered by nobody in
+  particular cannot be audited by anybody in particular.
+</p>
+<p>
+  To do that it needs a token. <%= link_to "Mint one", new_assistant_path %> while signed in
+  and the work is recorded under your key, with the assistant named as the agent that did it
+  — so the record always says which assistant did what, under whose authority.
+</p>
+<table>
+  <tr><th>Your client offers</th><th>Use</th></tr>
+  <tr>
+    <td>A URL and a header</td>
+    <td><code><%= @node %>/mcp</code> with <code>Authorization: Bearer gal_…</code></td>
+  </tr>
+  <tr>
+    <td>Only a URL</td>
+    <td><code><%= @node %>/mcp/gal_…</code> — the token travels in the path</td>
+  </tr>
+  <tr>
+    <td>OAuth</td>
+    <td><code><%= @node %>/mcp/connect</code>, and it will walk you through signing in</td>
+  </tr>
+</table>
+<p class="muted">
+  A token is shown once. If you lose it, mint another and revoke the old one from
+  <%= link_to "your assistants", new_assistant_path %>.
+</p>
+
+<h2>If your client asks what the connector is for</h2>
+<p>
+  Some clients list connectors in a directory and decide from your description whether one is
+  relevant — <strong>before</strong> they ever read the tools. That description is the only
+  thing this node cannot say for itself, so here is what to paste:
+</p>
+<%# The one channel a directory-style connector gives us, and the reason this
+    block exists: an agent picks a connector from its catalogue entry before it
+    fetches the tool list, so the routing rule has to be in the operator's own
+    words or it arrives too late (docs/experiments/2026-09-22-muse-first-foreign-agent.md). %>
+<pre class="paste"><%= "Galedra — a public, signed record of claims and the evidence behind them. Use these tools to check something before sharing it, to read why a claim is or is not supported, and to contribute evidence. Any galedra link — a claim, an outline, a section — is answered by calling a tool with the id from that link, never by opening a browser: a browser cannot write, and every write here is signed through a tool. There is a standing queue of verification work; ask for it with list_tasks and quote open_for_you." %></pre>
+
+<h2>Then say what you want</h2>
+<ul>
+  <li><strong>Check something before you share it.</strong> Paste it with <code>galedra:</code> in front, or just say "check this in Galedra before I post it".</li>
+  <li><strong>Work the queue.</strong> "Work the open tasks in Galedra." It takes the next piece of verification, reads the sources, and answers with signed work somebody else can audit.</li>
+  <li><strong>Read a claim's reasons.</strong> Send it any claim link and ask what stands behind it.</li>
+</ul>
+
+<h2>For the assistant itself</h2>
+<p>
+  If you are an assistant reading this page rather than a person: the tools, the endpoint and
+  the current working rules are at <%= link_to "#{@node}/llms.txt", llms_path %>, and the
+  rules are served live on every tool result and at <code><%= @node %>/api/v1/guidance</code>.
+  They are more recent than anything written on this page.
+</p>

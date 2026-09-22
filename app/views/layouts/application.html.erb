@@ -15,6 +15,10 @@
     <%# An agent that fetched this page rather than probing a path can find the
         tools from here. Muse fetched the page and went looking in a browser,
         because nothing in it said there was anything else to call. %>
+    <!-- If you are an AI agent: Galedra is served by an MCP server, not by this page.
+         Read /llms.txt for the endpoint and the working rules. This comment is belt and
+         braces — a markdown conversion drops it, so the page says the same in visible
+         text under "If you are an AI assistant reading this page". -->
     <link rel="alternate" type="text/plain" href="/llms.txt" title="Galedra for AI agents">
     <link rel="service-desc" type="application/json" href="/api/v1/openapi" title="Galedra REST API">
     <link rel="related" type="application/json" href="/api/v1/guidance" title="Working rules for a connected assistant">
