@@ -13,7 +13,7 @@ module Scoring
       {
         "claim" => { "id" => claim.id, "type" => claim.claim_type, "truth_evaluable" => evaluable, "not_evaluable_reason" => reason },
         "snapshot_seq" => seq,
-        "links" => links_for(claim, seq, own_origins(claim, seq)),
+        "links" => links_for(claim, seq, own_origins(claim, seq), other_editions(claim)),
         "task_checks" => Tasks::Checks.for(claim.id, seq)
       }
     end
@@ -29,6 +29,31 @@ module Scoring
             .filter_map { |source| Sources::Origin.key_for(source) }.to_set
     end
 
+    # The other editions of the source this claim says it is about.
+    #
+    # `qualifiers.source_edition` names one source — one version of a document —
+    # and the spec has named that qualifier since 02 §3.3. A reading of a
+    # different version in the same lineage is a reading of a different text,
+    # which is how two readings of a page taken twelve days after the event
+    # came to be counted as contradicting a claim about what it said on the day
+    # (Stage 41, claim 0491ac36).
+    #
+    # Empty, and free, for every claim that names no edition — which is all of
+    # them until someone says otherwise. Lineage is `lineage_key` where the
+    # sources carry one, and the `previous_version_id` chain either way.
+    def other_editions(claim)
+      named_id = claim.qualifiers.is_a?(Hash) ? claim.qualifiers["source_edition"] : nil
+      return Set.new if named_id.blank?
+
+      named = Source.find_by(id: named_id)
+      return Set.new if named.nil?
+
+      ids = Source.where(previous_version_id: named.id).pluck(:id)
+      ids << named.previous_version_id if named.previous_version_id
+      ids += Source.where(lineage_key: named.lineage_key).where.not(id: named.id).pluck(:id) if named.lineage_key.present?
+      (ids.compact - [ named.id ]).to_set
+    end
+
     # In a scoring pass the live quarantines for the whole set were loaded once
     # (Scoring::Pass); outside one this is the same existence check as before.
     # Membership of a set, so there is no ordering for batching to change.
@@ -39,7 +64,7 @@ module Scoring
       Governance::Quarantines.quarantined_at?("SOURCE", source_id, seq)
     end
 
-    def links_for(claim, seq, own_origins = Set.new)
+    def links_for(claim, seq, own_origins = Set.new, other_editions = Set.new)
       # :contribution too, because the audit checks below ask every link for it
       # and loading them one at a time was the single largest source of queries
       # in a whole-graph pass (Stage 26).
@@ -56,6 +81,9 @@ module Scoring
         {
           "id" => link.id, "evidence_id" => item.id, "direction" => link.direction,
           "self_referential" => own_origins.include?(origin),
+          # A reading of a different version of the document this claim names.
+          # Inert unless the model says what to do with it (Scoring::Calculate).
+          "different_edition" => other_editions.include?(location.source_id),
           "relevance_strength" => link.relevance_strength, "interpretive_steps" => link.interpretive_steps,
           "created_seq" => link.created_seq,
           "audit_confirmed" => Audits::Status.confirmed?(link.contribution_id, seq),

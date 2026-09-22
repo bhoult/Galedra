@@ -28,6 +28,10 @@ module Scoring
 
     NON_DIRECTIONAL = "non_directional"
     DEPENDENT = "dependent_strongest_only"
+    # A reading of a different version of the document the claim names
+    # (0.3.0). Recorded as a reason rather than a silent zero, because a reader
+    # looking at a contradiction that does not count is owed the word "why".
+    OTHER_EDITION = "other_edition"
 
     def self.call(input, config:, model:, code_hash: Registry.code_hash)
       new(input, config, model, code_hash).call
@@ -64,7 +68,9 @@ module Scoring
       kept = select_strongest(weighted)
       kept_ids = kept.values.map { |w| w[:link]["id"] }
       links_trace = weighted.map do |w|
-        if w[:sign].zero?
+        if w[:other_edition]
+          link_trace(w, effective: BigDecimal(0), reason: OTHER_EDITION)
+        elsif w[:sign].zero?
           link_trace(w, effective: BigDecimal(0), reason: NON_DIRECTIONAL)
         elsif kept_ids.include?(w[:link]["id"])
           link_trace(w, effective: w[:magnitude], reason: nil)
@@ -141,7 +147,13 @@ module Scoring
         magnitude = Decimal.round(relevance * observation * interpretation * authenticity * extraction * provenance, @places[:weights])
         sign = @config.fetch("direction_sign").fetch(link.fetch("direction"))
         group = evidence["independence_group_id"].presence || fallback_group(link, evidence)
-        { link: link, magnitude: magnitude, sign: sign, group: group }
+        # 0.3.0. A reading of a different version of the document the claim
+        # names is a reading of a different text, so it weighs nothing here. It
+        # is still recorded, still shown, and still says why in the trace — the
+        # link is not deleted and nobody's work is discarded, it simply stops
+        # being evidence about this claim. A model without the key never asks.
+        other = other_edition?(link)
+        { link: link, magnitude: other ? BigDecimal(0) : magnitude, sign: sign, group: group, other_edition: other }
       end
     end
 
@@ -166,6 +178,15 @@ module Scoring
 
     def tie_key(link)
       [ link.dig("evidence", "created_seq") || 0, link["evidence_id"].to_s, link["created_seq"] || 0, link["id"].to_s ]
+    end
+
+    # Declared by the model, like every other rule that changes a number: a
+    # config without `edition_rule` scores exactly as it did, so 0.1.0 and
+    # 0.2.0 stay reproducible byte for byte.
+    def other_edition?(link)
+      return false unless @config["edition_rule"] == "named_edition_only"
+
+      link["different_edition"] == true
     end
 
     def provenance_factor(link)
@@ -201,6 +222,7 @@ module Scoring
         "source_type" => evidence["source_type"], "audit_confirmed" => link["audit_confirmed"] != false,
         "magnitude" => Decimal.fixed(w[:magnitude], @places[:weights]),
         **(@config["provenance_factor"] ? { "provenance" => link["self_referential"] ? "SELF" : "INDEPENDENT" } : {}),
+        **(@config["edition_rule"] ? { "edition" => link["different_edition"] ? "OTHER" : "NAMED_OR_UNRELATED" } : {}),
         "effective_weight" => effective.nil? ? nil : Decimal.fixed(effective, @places[:weights])
       }
       entry["reason"] = reason if reason

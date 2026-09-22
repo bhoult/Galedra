@@ -16,6 +16,11 @@ MODELS = {
     # and passage so one page entered twice cannot count twice.
     "default@0.2.0": json.load(open(os.path.join(HERE, "..", "scoring-config-v0.2.json"))),
     "strict@0.2.0": json.load(open(os.path.join(HERE, "..", "scoring-config-strict-v0.2.json"))),
+    # 0.3.0 (Stage 41): a claim may name the edition of a source it is about,
+    # in qualifiers.source_edition. A reading of a different version in the
+    # same lineage is a reading of a different text and weighs nothing.
+    "default@0.3.0": json.load(open(os.path.join(HERE, "..", "scoring-config-v0.3.json"))),
+    "strict@0.3.0": json.load(open(os.path.join(HERE, "..", "scoring-config-strict-v0.3.json"))),
 }
 
 def q(x, places):
@@ -63,6 +68,11 @@ def score(claim, links, evidence, sources, checks, model="default"):
                * Decimal(CFG["observation_weight"][e["obs"]])
                * max(Decimal(0), 1 - pen * l.get("steps", 0))
                * prov)
+        # 0.3.0: a reading of a different edition of the document the claim
+        # names weighs nothing. A model without the key never asks, so 0.1.0
+        # and 0.2.0 are unchanged.
+        if CFG.get("edition_rule") == "named_edition_only" and l.get("other_edition"):
+            mag = Decimal(0)
         if e.get("group"):
             grp = e["group"]
         elif fallback == "origin" and e.get("origin"):
@@ -160,6 +170,54 @@ PROV_LINKS = {
     "L_dup1": {"id": "L_dup1", "evidence": "E_dup1", "dir": "SUPPORT", "rel": "DIRECT", "steps": 0},
     "L_dup2": {"id": "L_dup2", "evidence": "E_dup2", "dir": "SUPPORT", "rel": "DIRECT", "steps": 0},
 }
+# ---------------- Editions (Stage 41): what 0.3.0 changes and 0.2.0 must not ----------------
+#
+# The case that produced the rule: a claim about what a page said on the 8th,
+# with a contemporaneous account supporting it and two readings of the same page
+# taken after it was revised counted against it. Under 0.2.0 the claim reads
+# contradicted; under 0.3.0 the later readings weigh nothing and the
+# contemporaneous account stands.
+EDITION_EVIDENCE = {
+    "E_then": {"source": "S_then", "obs": "DIRECT_TEXT", "group": "G_then"},
+    "E_now1": {"source": "S_now", "obs": "DIRECT_TEXT", "group": "G_now1"},
+    "E_now2": {"source": "S_now", "obs": "DIRECT_TEXT", "group": "G_now2"},
+}
+EDITION_SOURCES = {"S_then": "SECONDARY_TEXT", "S_now": "WEBSITE"}
+EDITION_LINKS = {
+    "L_then": {"id": "L_then", "evidence": "E_then", "dir": "SUPPORT", "rel": "STRONG", "steps": 0},
+    "L_now1": {"id": "L_now1", "evidence": "E_now1", "dir": "CONTRADICT", "rel": "DIRECT", "steps": 0,
+               "other_edition": True},
+    "L_now2": {"id": "L_now2", "evidence": "E_now2", "dir": "CONTRADICT", "rel": "STRONG", "steps": 0,
+               "other_edition": True},
+}
+EDITION_CASES = [
+    ("A", "later readings of a revised page", ["L_then", "L_now1", "L_now2"]),
+]
+
+def run_editions():
+    bad = 0
+    print("== Editions (Stage 41)")
+    for name, title, lids in EDITION_CASES:
+        results = {}
+        for model in ("default@0.2.0", "default@0.3.0"):
+            r = score(claim("TEXTUAL"), [EDITION_LINKS[i] for i in lids], EDITION_EVIDENCE,
+                      EDITION_SOURCES, set(), model)
+            results[model] = (r["state"], r["p"], r["sg"], r["cg"])
+        old, new = results["default@0.2.0"], results["default@0.3.0"]
+        # Not a fixed tuple: what the rule promises is a change of direction,
+        # and pinning the exact numbers here would duplicate the golden tables.
+        checks = [
+            ("0.2.0 counts the later readings against it", old[3] == 2),
+            ("0.3.0 counts neither of them", new[3] == 0),
+            ("0.3.0 keeps the contemporaneous support", new[2] == 1),
+            ("0.2.0 and 0.3.0 disagree about the claim", old[0] != new[0]),
+        ]
+        for label, ok in checks:
+            bad += not ok
+            print(f"{'PASS' if ok else 'FAIL'} {name} {title}: {label}  {old} -> {new}")
+    return bad
+
+
 PROV_CASES = [
     ("A", "own-origin support", ["L_self"],
      ("SUPPORTED", "0.8581", "MEDIUM", "0.00", 1, 0, 1, None),
@@ -282,5 +340,6 @@ if __name__ == "__main__":
     bad = run("public demo (08)", PUB_CASES, PUB_SOURCES, pub_ev, PL)
     bad += run("watchers stress test", W_CASES, W_SOURCES, w_ev, WL)
     bad += run_provenance()
+    bad += run_editions()
     print("ALL PASS" if not bad else f"{bad} FAILURES")
     raise SystemExit(1 if bad else 0)

@@ -162,6 +162,39 @@ Each is a candidate for a later model version, not a patch to v0.1.
 
 ---
 
+## 7a. Rules a later model declares
+
+A model version may declare a rule that v0.1 does not have. Every such rule is **read from
+the config**, so a model that does not declare it scores exactly as it always did and every
+trace it produced stays reproducible byte for byte (Invariant 4). A declared rule also adds
+its own field to each link in the trace, and only when declared, so the trace of an older
+model is unchanged.
+
+| Key | Declared by | What it does |
+|---|---|---|
+| `provenance_factor` | 0.2.0 | Evidence drawn from an origin the claim was extracted from shows the quotation is faithful, not that the speaker was right. `SELF` multiplies the magnitude by 0; `INDEPENDENT` by 1. Trace: `provenance`. |
+| `independence_fallback: "origin"` | 0.2.0 | Ungrouped evidence falls back to a group keyed by origin **and passage**, so one URL recorded as two sources cannot count twice, while two different passages of one document stay distinct. |
+| `edition_rule: "named_edition_only"` | 0.3.0 | A claim may name the edition of a source it is about, in `qualifiers.source_edition` (02 §3.3). A counted link whose evidence comes from a **different version in the same lineage** — by `previous_version_id` or a shared `lineage_key` — weighs nothing. The link is not removed and not hidden: it appears in the trace with `effective_weight` 0 and `reason: "other_edition"`. Trace: `edition`. |
+
+**Why 0.3.0 exists.** A living web page is not one document. An announcement published on one
+day, revised two days later and read ten days after that, produces evidence about the revised
+text; counted against a claim about what it said when published, it contradicts something it
+was never about. That happened on this project's own node, and the claim read `CONTRADICTED`
+at 0.1419 on the strength of two readings of a page that had been edited, against one
+contemporaneous account that supported it.
+
+The rule is deliberately narrow. It fires only when a claim **says** which edition it means,
+so it can never quietly discount evidence nobody asked it to; and it does nothing for a claim
+where only the later version was ever recorded, because there is then no lineage to compare.
+Whether a reading later than the claim's subject should be discounted on the date alone was
+considered and rejected: a filing or a PDF read last week still says what it said, and a
+scorer acting on a retrieval date would be discounting good evidence to catch bad.
+
+`reference/reference_scorer.py` carries the case under "Editions (Stage 41)" and must print
+`ALL PASS`.
+
+---
+
 ## 8. Review Coverage
 
 The previous draft defined coverage as "reviewed evidence surface / estimated evidence surface" — a quantity nobody can estimate — and listed components with no data source. v0.1 replaces it with a **checklist derived entirely from the log**, so it is deterministic and never invented.
