@@ -13,7 +13,15 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
     expect(body).not_to match(/<summary[^>]*data-tip/)
     expect(body).to include(">FAQ<").and include(">Docs<").and include(">Constitution<").and include(">About<")
     help = body[body.index("<summary>Help</summary>")..]
-    expect(help).to include(">Connect an assistant<")
+    # Two entries where there was one: "Connect an assistant" pointed at the
+    # page that mints a token, which is the second step. The first — the
+    # address, and which credential form a client wants — had no page at all
+    # until /connect (2026-09-22).
+    expect(help).to include(">How to connect an assistant<")
+    expect(help).to include(">Mint an assistant token<")
+    # Signed in, the home page is the dashboard, so the introduction is
+    # otherwise unreachable without signing out.
+    expect(help).to include(">What Galedra is<")
     expect(body).not_to include("Analyze text")
   end
 

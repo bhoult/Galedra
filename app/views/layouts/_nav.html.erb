@@ -49,7 +49,12 @@
       <%= nav_link "FAQ", faq_path %>
       <%= nav_link "Glossary", glossary_path %>
       <%= nav_link "How a score is worked out", scoring_path, "Every factor in a score, what it means and why it is there, with the numbers read from the released model." %>
-      <%= nav_link "Connect an assistant", new_assistant_path, "A connected assistant holds a token and signs contributions for you, under your name or anonymously." %>
+      <%= nav_link "How to connect an assistant", connect_path, "The address, the three ways a client may ask for a credential, and the words to paste into a connector directory." %>
+      <%= nav_link "Mint an assistant token", new_assistant_path, "A connected assistant holds a token and signs contributions for you, under your name or anonymously." %>
+      <%# Signed in, the home page is the dashboard, so the signed-out page —
+          what Galedra is for, and the notice addressed to an agent that fetched
+          it — is unreachable without signing out (owner, 2026-09-22). %>
+      <%= nav_link "What Galedra is", root_path(intro: 1), "The introduction the signed-out home page shows: what this is for, and the notice an AI assistant reads if it was handed the address." %>
       <%= nav_link "Docs", docs_path %>
       <%= nav_link "API reference", api_docs_path %>
       <%= nav_link "Constitution", constitution_path, "The twenty-five articles the project is bound by. They outrank the specification and the code." %>

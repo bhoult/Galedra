@@ -12,7 +12,10 @@ class HomeController < ApplicationController
     @constitution = Governance::Constitution.new
     @head = Contribution.in_order.last
     @claim_count = Claim.counted_at(head_seq).count
-    if authenticated?
+    # Signed in, this is the dashboard, which means the introduction — and the
+    # notice addressed to an agent that was handed this address — is unreachable
+    # without signing out. ?intro=1 shows it, linked from Help.
+    if authenticated? && params[:intro].blank?
       @recent_audits = Audit.order(created_seq: :desc).limit(5)
       render :dashboard
     else

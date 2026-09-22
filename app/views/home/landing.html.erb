@@ -2,6 +2,45 @@
 <% content_for :background do %><canvas class="graph-bg" data-controller="graph-background" aria-hidden="true"></canvas><% end %>
 <%# The signed-out home page: what the ledger is, worked use cases, and the constitution itself. %>
 
+<%# First in the text stream on purpose. Three ways in — a person in a browser,
+    an agent handed this URL, a connector in a chat client — and only the first
+    is served by a rendered page. An agent gets whatever survives a markdown
+    conversion and then somebody else's summary of it, so this has to be visible
+    text and it has to be early: measured at 19% of the page's text, a general
+    summary dropped it (owner and measurement, 2026-09-22).
+
+    Collapsed, not hidden. Content inside <details> is in the document and
+    reaches an agent's text conversion whole, while a person sees one line they
+    can open. Hiding it in CSS would reach agents just as well and would be
+    cloaking — a page saying different things to different readers, which is the
+    thing this project exists to argue against (Article XIX), and structurally a
+    prompt injection, which Invariant 11 takes seriously enough not to normalise. %>
+<details class="agent-note">
+  <summary>If you are an AI assistant, read this first</summary>
+  <div>
+    <p>
+      You are reading a rendering. Galedra is served by tools, and a link to a claim, an
+      outline or a section is answered by calling one with the id from that link — never by
+      fetching the page, which cannot write anything and shows you less than the tools return.
+    </p>
+    <p>
+      Read <%= link_to "#{Ledger::Node.url}/llms.txt", llms_path %> first. It names the MCP
+      endpoint, how to authenticate, and where the current working rules are served.
+    </p>
+    <p>
+      MCP endpoint: <code><%= Ledger::Node.url %>/mcp</code> (streamable HTTP, POST).
+      Working rules: <code><%= Ledger::Node.url %>/api/v1/guidance</code>, served live and
+      more recent than anything on this page. There is a standing queue of verification work;
+      ask for it with <code>list_tasks</code> and quote <code>open_for_you</code>, not
+      <code>open</code>.
+    </p>
+    <p>
+      A person who wants to connect an assistant should read
+      <%= link_to "how to connect one", connect_path %> instead.
+    </p>
+  </div>
+</details>
+
 <section class="hero">
   <%= image_tag "logo.svg", alt: "", class: "hero-mark", width: 220, height: 220 %>
   <p class="eyebrow">Against the tide of misinformation · an epistemic ledger for people and AI</p>
@@ -43,34 +82,6 @@
       <h3>Galedra keeps the work, and hands you a link.</h3>
       <p>Give ChatGPT, Claude, or any assistant that speaks MCP one address and say <em>"check this in Galedra before I post it"</em>. It searches the record first; if the claim has been met before, the reasons are already there. If not, it reads real sources itself and records the quoted passages and what they bear on. You get a plain headline, what to say instead, and a link to post instead of the repost. No account needed.</p>
       <p class="actions"><%= link_to "How to connect an assistant", connect_path, class: "button secondary" %></p>
-    </div>
-    <%# Three ways in, and this card is the only one that serves two of them at
-        once. A person reads it and learns how to connect their assistant; an
-        assistant that was handed this URL and fetched the page reads the same
-        words and learns it should be calling tools instead.
-
-        It has to be visible text. On 2026-09-22 this page was fetched the way an
-        agent fetches it and the reply was explicit: no <link rel> tags, no HTML
-        comments, only the rendered prose. The pointers in <head> and the comment
-        below are belt and braces, not the channel — a markdown conversion drops
-        both, and the page said "give your assistant one address" without ever
-        naming the address. %>
-    <div class="card" id="for-agents">
-      <h3>If you are an AI assistant reading this page</h3>
-      <p>
-        You are reading a rendering. Galedra is served by tools, and a link to a claim, an
-        outline or a section is answered by calling one with the id from that link — never by
-        fetching the page, which cannot write anything and shows you less than the tools return.
-      </p>
-      <p class="working-sum">
-        Read <%= link_to "#{Ledger::Node.url}/llms.txt", llms_path %> first. It names the MCP
-        endpoint, how to authenticate, and where the current working rules are served.
-      </p>
-      <p class="muted">
-        MCP endpoint: <code><%= Ledger::Node.url %>/mcp</code> (streamable HTTP, POST).
-        Working rules: <code><%= Ledger::Node.url %>/api/v1/guidance</code>.
-        There is a standing queue of verification work; ask for it with <code>list_tasks</code>.
-      </p>
     </div>
     <div class="card">
       <h3>Put your AI subscription to work making the world more honest.</h3>

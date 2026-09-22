@@ -76,11 +76,24 @@ RSpec.describe "What an agent finds when it is handed only the address", type: :
       text = response.body.gsub(/<script.*?<\/script>|<style.*?<\/style>/m, "").gsub(/<!--.*?-->/m, "")
                           .gsub(/<[^>]+>/, " ").gsub(/\s+/, " ")
 
-      expect(text).to include("If you are an AI assistant reading this page")
+      expect(text).to include("If you are an AI assistant, read this first")
       expect(text).to include("never by fetching the page")
       expect(text).to include("#{Ledger::Node.url}/mcp")
       expect(text).to include("llms.txt")
       expect(text).to include("list_tasks")
+    end
+
+    # Collapsed for a person, whole in the document for an agent. The guard is
+    # that it must never become display:none — that reaches agents just as well
+    # and is cloaking, which is the thing this project argues against.
+    it "is collapsed rather than hidden" do
+      get "/"
+
+      expect(response.body).to include('<details class="agent-note">')
+      css = File.read(Rails.root.join("app/assets/stylesheets/application.css"))
+      rule = css[/\.agent-note[^{]*\{[^}]*\}/]
+      expect(rule).not_to include("display: none"), "an instruction block a person cannot see is cloaking"
+      expect(css).not_to match(/\.agent-note[^{]*\{[^}]*visibility:\s*hidden/)
     end
 
     # Near the top, because what reaches an agent's reasoning is whatever
@@ -89,7 +102,7 @@ RSpec.describe "What an agent finds when it is handed only the address", type: :
       get "/"
       text = response.body.gsub(/<script.*?<\/script>|<style.*?<\/style>/m, "").gsub(/<[^>]+>/, " ").gsub(/\s+/, " ")
 
-      expect(text.index("If you are an AI assistant")).to be < (text.length * 0.35),
+      expect(text.index("If you are an AI assistant")).to be < (text.length * 0.08),
         "the agent notice has drifted down the page; a summary will drop it"
     end
   end

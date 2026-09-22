@@ -220,6 +220,20 @@ naming the endpoint and pointing at `/llms.txt`; and `/connect`, which tells a p
 connect theirs, covering all three credential forms and carrying the paste-ready connector
 description §4 asked for.
 
+The notice is a collapsed `<details>` at the top of the landing page, and the Help menu now
+carries three entries where it carried one: how to connect an assistant, mint a token, and
+"What Galedra is" — because signed in the home page is the dashboard, so the introduction
+and the agent notice were unreachable without signing out.
+
+**Collapsed, never hidden.** A `display:none` block would reach agents just as well, and was
+considered and rejected: it is cloaking, a page saying different things to different readers,
+which is the thing this project exists to argue against (Article XIX); and it is
+structurally a prompt injection, which Invariant 11 takes seriously enough that we should
+not be teaching agents such blocks are legitimate. Content inside `<details>` is in the
+document and converts to text whole, so a person sees one line and an agent sees all of it.
+`spec/requests/discovery_spec.rb` fails if the rule ever becomes `display: none` or
+`visibility: hidden`.
+
 **It has to be visible text, and that is measured rather than assumed.** This page was
 fetched the way an agent fetches it, before the change: *"I did not receive actual HTML
 markup or `<link rel>` tags… No HTML comments were visible."* A markdown conversion drops
@@ -227,9 +241,9 @@ markup or `<link rel>` tags… No HTML comments were visible."* A markdown conve
 with its URLs intact. One caveat worth carrying: a general question about the page produced a
 summary that omitted the card, and a pointed one reproduced it exactly — **delivery is
 reliable, salience is not**, which is why `/llms.txt` is the real target and the card only
-has to be a signpost to it. `spec/requests/discovery_spec.rb` asserts the card survives tag
-stripping and sits in the first third of the page's text, on the reasoning that what reaches
-an agent is whatever survives somebody else's summary.
+has to be a signpost to it. The spec asserts the notice survives tag stripping
+and sits in the first 8% of the page's text — it is at 3.8%, immediately after the nav — on
+the reasoning that what reaches an agent is whatever survives somebody else's summary.
 
 **Remaining:** `/.well-known/mcp.json` or whatever shape the MCP discovery manifest settles
 into. No ratified spec yet, so serving one now is a guess — but a cheap one, next to the
