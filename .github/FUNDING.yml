@@ -1,0 +1,24 @@
+# One person pays for the server, the domain and the time. There is no company
+# behind Galedra, no funding, and nothing to sell.
+#
+# What money does not buy is the point, and galedra.org/contact states it: no
+# sponsor gets a say in what is recorded, how anything is scored, which tasks
+# are opened, what an audit finds, or what a moderator does. Sponsorship is
+# public or it does not happen. That is proposed amendment P-6 — money buys no
+# part of the record — and it is why the contact page is listed here beside the
+# ways to give: somebody deciding whether to give should read the terms first.
+#
+# The keys GitHub renders are a fixed list, and PayPal and Cash App are not on
+# it, so both are `custom`. `github:` is left out deliberately: it renders a
+# validation warning unless GitHub Sponsors is enabled on the account, and it
+# is not. Enable it there, then add `github: bhoult` above the custom list.
+
+custom:
+  - https://paypal.me/bhoult1
+  - https://cash.app/$bhoult
+  # Uncomment once galedra.org resolves. It does not yet — only the tunnel does —
+  # and GitHub renders each of these as a button, so shipping it now would put a
+  # dead link in front of the one person in a hundred who clicks it. This is the
+  # link that matters most of the three, because it is where the terms are
+  # stated, so it is worth turning on the day the domain is live.
+  # - https://galedra.org/contact
