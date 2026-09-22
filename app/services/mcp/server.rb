@@ -1171,7 +1171,25 @@ module Mcp
       require_token!
       return unless @token.anonymous?
 
-      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "working tasks needs a connected assistant with a person behind it; connect under a name at #{@base_url}/assistants/new (OAuth or a token), then try again" } ])
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: anonymous_remedy } ])
+    end
+
+    # The rule is right and the old remedy was wrong. An anonymous token already
+    # carries an adoption code — `AssistantToken` mints one before every create —
+    # so the person who is already here can put this session's work under their
+    # key in one step, and it keeps the identity it has been writing under.
+    # Sending it to /assistants/new instead tells it to abandon the session and
+    # come back as somebody else, which from a background worker is no remedy at
+    # all. On 2026-09-22 an external agent (Meta's Muse) hit this wall and filed
+    # `01a0ca28` asking for a worker token type, because nothing at the point of
+    # refusal said that adoption existed. A refusal that names the rule and not
+    # the remedy leaves a worker to invent one.
+    def anonymous_remedy
+      adopt = Assistants::Adopt.adopt_url(@token, @base_url)
+      [ "working tasks needs a connected assistant with a person behind it.",
+        ("Ask the person to open #{adopt} while signed in: that adopts this session's work under their key, " \
+         "and you keep the token you are already using — nothing is re-minted and nothing you have recorded is orphaned." if adopt),
+        "Or connect under a name at #{@base_url}/assistants/new (OAuth or a token) and try again." ].compact.join(" ")
     end
 
     def nothing_available(types, domains, target_id)

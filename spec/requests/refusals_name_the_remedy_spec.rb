@@ -126,4 +126,54 @@ RSpec.describe "A refusal says what to do instead", type: :request do
       expect(detail).to include("record this against that claim instead")
     }
   end
+  # The auth refusals were outside this spec until 2026-09-22, which is how the
+  # anonymous `next_task` wall shipped naming a remedy that meant abandoning the
+  # session. An external agent hit it and filed `01a0ca28` asking for a token
+  # type that mostly existed. The rule is right; the remedy has to be the one
+  # that keeps the identity the work was recorded under.
+  describe "the wall an anonymous assistant hits at the task queue" do
+    def rpc_tool(name, arguments)
+      post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "tools/call",
+                             params: { name: name, arguments: arguments } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json" }
+      response.parsed_body.dig("result", "structuredContent")
+    end
+
+    it "names the adoption link that keeps this session's identity" do
+      data = rpc_tool("next_task", {})
+
+      expect(data["errors"].map { |e| e["code"] }).to include("TOKEN_INVALID")
+      detail = data["errors"].map { |e| e["detail"] }.join(" ")
+      token = AssistantToken.order(:created_at).last
+      expect(token).to be_anonymous
+      expect(detail).to include(Assistants::Adopt.adopt_url(token, "http://www.example.com")),
+                        "the refusal must name the adoption link for the token in hand"
+      expect(detail).to include("keep the token you are already using")
+    end
+
+    # A remedy is worth what its link is worth: /adopt/:code has to be routed,
+    # or the advice sends a worker to a 404 and it files a feature request
+    # instead.
+    it "names a link this node actually serves" do
+      rpc_tool("next_task", {})
+      token = AssistantToken.order(:created_at).last
+
+      expect(Rails.application.routes.recognize_path("/adopt/#{token.adoption_code}"))
+        .to include(controller: "adoptions", action: "show")
+    end
+
+    # Adoption is only a remedy while there is a token to adopt. With none at
+    # all there is nothing to keep, and the refusal correctly says where to get
+    # an identity rather than inventing an adoption link for a token that does
+    # not exist.
+    it "does not offer adoption when there is no token to adopt" do
+      server = Mcp::Server.new(token: nil, base_url: "http://www.example.com", read_only: false)
+
+      expect { server.send(:require_delegation!) }.to raise_error(Ledger::Rejected) { |e|
+        detail = e.errors.map { |x| x[:detail] }.join(" ")
+        expect(detail).to include("/assistants/new")
+        expect(detail).not_to include("/adopt/")
+      }
+    end
+  end
 end
