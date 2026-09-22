@@ -234,6 +234,26 @@ RSpec.describe "A refusal says what to do instead", type: :request do
   # unknown. A refusal that blocks the behaviour you are trying to encourage is
   # worse than no refusal (Muse, 2026-09-22, after 319 results with no coverage).
   describe "an argument put inside the answer instead of beside it" do
+    # Four times in one evening, across context resets and dozens of correct
+    # submissions in between. That is a shape a worker regresses to, not a worker
+    # failing to learn, so the place three sessions reached for is now accepted.
+    it "accepts searched where it keeps being put, and keeps it out of the ops" do
+      answer, inside = Tasks::Answer.send(:lift_searched, { "searched" => "tried X, Y, Z", "links" => [] })
+
+      expect(inside).to eq("tried X, Y, Z")
+      expect(answer).not_to have_key("searched")
+      expect(answer).to have_key("links"), "lifting the field must not disturb the rest of the answer"
+      expect { Tasks::Answer.send(:ops_for, Task.new(task_type: "QUALIFIER_CHECK", packet: {}), answer) }
+        .not_to raise_error
+    end
+
+    it "leaves an answer without it exactly as it was" do
+      answer = { "links" => [] }
+
+      expect(Tasks::Answer.send(:lift_searched, answer)).to eq([ answer, nil ])
+      expect(Tasks::Answer.send(:lift_searched, nil)).to eq([ nil, nil ])
+    end
+
     it "says where searched actually goes" do
       message = Tasks::Answer.send(:unknown_sections, [ "searched" ])
 

@@ -138,10 +138,26 @@ module Tasks
     MISPLACED = %w[searched task_id outcome].freeze
 
     def submit(token, task, outcome:, answer:, searched: nil)
+      answer, inside = lift_searched(answer)
       ops = ops_for(task, answer)
-      note = searched.to_s.strip.presence
+      note = (searched.presence || inside).to_s.strip.presence
       result = Assistants::Write.result(token, task, outcome: outcome.to_s, ops: ops, searched: note&.slice(0, SEARCH_NOTE_MAX))
       [ result, note.to_s.length > SEARCH_NOTE_MAX ]
+    end
+
+    # Coverage belongs to the answer in every sense except the schema's, where it
+    # sits beside it. Muse put it inside `answer` four times across one evening,
+    # separated by context resets and by dozens of submissions that got it right
+    # — so this is not a worker failing to learn, it is a shape that a worker
+    # regresses to whenever it stops remembering. Accept it in the place three
+    # different sessions reached for, and keep the refusal for anything else.
+    #
+    # The explicit argument still wins: a caller that sends both meant the one it
+    # put where the schema asked for it.
+    def lift_searched(answer)
+      return [ answer, nil ] unless answer.is_a?(Hash) && answer.key?("searched")
+
+      [ answer.except("searched"), answer["searched"] ]
     end
 
     def unknown_sections(unknown)

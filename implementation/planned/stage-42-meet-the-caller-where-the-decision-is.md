@@ -107,9 +107,11 @@ refusal named the field's real home (`593732d`), coverage appeared within minute
 changed message. The change is therefore not one that refuses work a worker
 was happy to skip; it meets a worker already reaching for it.
 
-Accept `answer.searched` as an alias while you are there. Muse put it inside `answer` twice,
-an hour apart, across a context reset. Two independent attempts at the same wrong place is
-the schema telling us where the field belongs.
+Accepting `answer.searched` as an alias is **done** (2026-09-22): Muse put it there four
+times across the evening, separated by context resets and by dozens of submissions that got
+it right, so it is a shape a worker regresses to rather than one it fails to learn. The
+explicit argument still wins when both are sent. What remains here is the requirement
+itself.
 
 ### 3. Names that cannot be misread as a count of your own work
 
