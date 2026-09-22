@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   get "docs/api", to: "help#api", as: :api_docs
   get "about", to: "help#about"
   get "connect", to: "help#connect"
+  get "contribute", to: "help#contribute"
   get "licenses", to: "help#licenses"
   get "glossary", to: "help#glossary"
   # What every number in a calculation means, read from the released model, and

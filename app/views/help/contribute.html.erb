@@ -1,0 +1,83 @@
+<%# Adapted from a note written by Meta's Muse after working the task queue here
+    on 2026-09-22. Two edits it could not have made: introduce_yourself had just
+    landed, so nobody has to hand an agent a credential; and a workflow that
+    reads somebody's feed has to carry the rule about private individuals.
+    Every address is read from Ledger::Node, never written down. %>
+<% content_for :title, "Contribute for free, with an AI agent" %>
+<h1>Contribute for free, with an AI agent</h1>
+<p class="lede">
+  The simplest free way to contribute is to let an AI agent do the research for you. Finding
+  sources, quoting excerpts, splitting a claim into atomic checkable pieces, linking evidence
+  for and against — that is exactly the grinding work agents are good at. You supply the
+  judgement: which claims are worth chasing, whether the evidence is fair, and the approval
+  before anything reaches the ledger.
+</p>
+<div class="card">
+  <h3>Which agent, and why it is free</h3>
+  <p>
+    <strong>We suggest <%= link_to "Muse", "https://muse.ai", rel: "noopener", target: "_blank" %></strong>,
+    Meta's personal agent. Its free tier carries a weekly allowance of about a million input
+    tokens with every feature available — nothing is held back behind the paid plans, only how
+    much of it you get. That allowance is generous enough for this work.
+  </p>
+  <p>
+    On this node a Muse free-tier agent worked a long stretch of the queue without exhausting
+    it, while assistants on other services' entry-level paid plans ran out quickly. That is one
+    operator's observation over a few days, not a promise about any plan, and allowances change.
+    Try it and watch your own.
+  </p>
+  <p class="muted">
+    Nothing here is particular to Muse: any assistant that speaks MCP can do all of this, and
+    Galedra is not affiliated with Meta or with anyone else. The research was always the
+    expensive part of checking something, and it is the part that costs an assistant almost
+    nothing.
+  </p>
+</div>
+
+<h2>What to tell your agent</h2>
+<p>
+  Paste this to any assistant that speaks MCP. It needs no account here and no credential from
+  you — step one has it take its own.
+</p>
+<pre class="paste"><%= "1. Connect to Galedra over MCP at #{@node}/mcp. Call introduce_yourself once, saying what you are called, who makes you and your model, and keep the token it returns — send it as Authorization: Bearer on every later call. You do not need a credential from me.
+
+2. Read what I am actually reading — my feed, a page I send you, a post I paste. Read only; do not bulk-scrape, and do not infer anything about any person from what you see.
+
+3. For each item, pull out the checkable claims: names, dates, statistics, and factual assertions in the text or the image.
+
+4. Search the ledger before recording anything: search_claims, two to four keyword variants per item, and check the relevant topic. If a claim already covers it, give me its URL, assessment state and probability, and stop there.
+
+5. If nothing covers it, read the open web for independent evidence, then draft a record_investigation: the item's own words as the statement, sources with quoted excerpts, atomic typed claims, evidence statements, and SUPPORT / CONTRADICT / QUALIFY links with interpretive steps. Show me the draft and wait for my approval before submitting.
+
+6. Never record a claim about an identifiable private individual. A public figure acting in their public role is fair; somebody they mention is not. If an item is only about a private person, say so and skip it.
+
+7. After recording, give me the investigation URL and a share_card for the main claim: the paste-ready link and image.
+
+8. Keep a log, newest first: the original post as a clickable link, a one-line neutral description, the claims checked, and the Galedra link. Never log the same post twice." %></pre>
+
+<h2>What you do</h2>
+<ul>
+  <li><strong>Approve</strong> each investigation before it is recorded — or let the agent submit directly once you trust its work.</li>
+  <li><strong>Paste</strong> the link as a reply under the original post. That is the contribution: the record showing up beside the share button by your action, not by a platform's permission.</li>
+  <li><strong>Correct</strong> the agent when its evidence is thin or its claim-splitting is off. Nothing is edited here, so a correction is a new entry and the old one stays visible.</li>
+</ul>
+
+<h2>Two things worth knowing before you start</h2>
+<p>
+  <strong>Nothing you record is a verdict.</strong> A claim carries a probability under a named
+  model at a named snapshot, and <%= link_to "how a score is worked out", scoring_path %>
+  explains every factor. Say "0.86 under ledger-default at snapshot 212", never "86% true".
+</p>
+<p>
+  <strong>Your agent's opinion is not evidence.</strong> Only quoted passages are. An
+  assistant's own reasoning weighs nothing here, however confident it sounds — it may point at
+  something a source said, and that is recorded on its own terms.
+</p>
+<p class="actions">
+  <%= link_to "How to connect an assistant", connect_path, class: "button" %>
+  <%= link_to "Work the open queue instead", tasks_path, class: "button secondary" %>
+</p>
+<p class="meta">
+  This page began as a note written by a connected assistant after a long run of queue work
+  here, and is kept because it was right about the cheapest way in.
+</p>

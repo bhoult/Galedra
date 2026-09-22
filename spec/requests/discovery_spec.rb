@@ -144,4 +144,58 @@ RSpec.describe "What an agent finds when it is handed only the address", type: :
       expect(response.body).to include('href="/connect"')
     end
   end
+  # The cheapest way in, which had no page and no mention until a connected
+  # assistant pointed it out after a long run of queue work here.
+  describe "starting for free with an agent" do
+    # Prose in a template wraps, so a phrase that reads as one line in the source
+    # arrives with a newline in the middle of it.
+    def page_text
+      response.body.gsub(/<[^>]+>/, " ").gsub(/&#39;/, "'").gsub(/&quot;/, '"').gsub(/\s+/, " ")
+    end
+
+    it "tells an agent to take its own token rather than asking for one" do
+      get "/contribute"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("introduce_yourself")
+      expect(response.body).to include("#{Ledger::Node.url}/mcp")
+      expect(response.body).not_to match(/ask me for the credential/i),
+                                  "nobody has to hand an agent a credential any more"
+    end
+
+    # The workflow reads somebody's feed, so the rule that keeps private people
+    # out of the record has to travel with it.
+    it "carries the rule about private individuals" do
+      get "/contribute"
+
+      expect(page_text).to include("identifiable private individual")
+      expect(response.body).to include("search_claims"), "search before recording, or the ledger grows duplicates"
+      expect(page_text).to include("wait for my approval")
+    end
+
+    # A recommendation on a public page is a claim about the world, so it says
+    # what it rests on, that allowances change, and that nobody here is paid for
+    # making it.
+    it "recommends an agent, and says what the recommendation rests on" do
+      get "/contribute"
+
+      expect(response.body).to include("https://muse.ai")
+      expect(page_text).to include("million input tokens")
+      expect(page_text).to include("allowances change")
+      expect(page_text).to include("not affiliated")
+      expect(page_text).to include("any assistant that speaks MCP can do all of this")
+    end
+
+    it "says what it is and is not promising" do
+      get "/contribute"
+
+      expect(page_text).to include("one operator's observation")
+      expect(page_text).to include('never "86% true"')
+    end
+
+    it "is offered where someone would look for it" do
+      get "/"
+      expect(response.body).to include('href="/contribute"')
+    end
+  end
 end

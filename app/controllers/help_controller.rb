@@ -76,6 +76,15 @@ class HelpController < ApplicationController
     @node = Ledger::Node.url
   end
 
+  # The cheapest way in, and the one nobody was told about. Written by Meta's
+  # Muse on 2026-09-22 after a long queue run, edited here for two things it
+  # could not have known: `introduce_yourself` had just landed, so an agent no
+  # longer needs a credential handed to it, and a workflow that reads somebody's
+  # social feed has to carry the rule about private individuals.
+  def contribute
+    @node = Ledger::Node.url
+  end
+
   def about
     @software = Governance::Software.to_h
     @node = Ledger::Node.to_h
