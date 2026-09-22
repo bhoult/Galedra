@@ -87,14 +87,17 @@
         <% if @calculation %>
           <h3>How the number was reached</h3>
           <% if @calculation[:links].any? %>
-            <p class="meta">Each counted link is weighed by multiplying the factors the model declares. A factor the model does not declare is not shown.</p>
+            <p class="meta">Each counted link is weighed by multiplying the factors the model declares; a factor it does not declare is not shown. Every factor name below links to <%= link_to "what that number means", scoring_path(model: @assessment[:model]) %>.</p>
             <table class="working">
               <tr><th>Link</th><th>Working</th><th>Weight</th><th>Counted as</th></tr>
               <% @calculation[:links].each do |row| %>
                 <tr>
                   <td><%= link_to short_id(row[:link]["link"]), evidence_path(row[:link]["evidence"]) %> <span class="muted"><%= row[:link]["direction"].downcase %></span></td>
-                  <td class="muted">
-                    <% row[:factors].each_with_index do |f, i| %><%= " × " if i.positive? %><span title="<%= f.name %>: <%= f.label %>"><%= f.value %></span><% end %>
+                  <%# Named, not just hovered: a tooltip is invisible on a phone
+                      and undiscoverable everywhere else, and "0.6 × 0.9" with no
+                      words is a number nobody can check (owner, 2026-09-22). %>
+                  <td class="factors">
+                    <% row[:factors].each_with_index do |f, i| %><%= tag.span(" × ", class: "muted") if i.positive? %><span class="factor"><%= link_to f.name, scoring_path(model: @assessment[:model], anchor: f.name) %> <span class="muted"><%= f.label %></span> <strong><%= f.value %></strong></span><% end %>
                   </td>
                   <td><%= row[:magnitude] %></td>
                   <td>
@@ -115,7 +118,7 @@
           <% if @calculation[:variants] %>
             <p class="meta">Under neighbouring settings of the same model: <%= @calculation[:variants]["conservative"] %> to <%= @calculation[:variants]["permissive"] %>, a spread of <%= @calculation[:variants]["spread"] %><%= ". The result sits on a rounding boundary" if @calculation[:boundary] %>.</p>
           <% end %>
-          <p class="meta">Half-even rounding, six places for weights and four for the probability. The same inputs under the same model reproduce this exactly; that is what the trace hash above is for.</p>
+          <p class="meta">Half-even rounding, six places for weights and four for the probability. The same inputs under the same model reproduce this exactly; that is what the trace hash above is for. <%= link_to "How a score is worked out", scoring_path(model: @assessment[:model]) %> explains every factor, why it is there, and what the model sets it to.</p>
         <% end %>
       </div>
     <% else %>

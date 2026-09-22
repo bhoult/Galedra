@@ -7,6 +7,8 @@ Rails.application.routes.draw do
   get "about", to: "help#about"
   get "licenses", to: "help#licenses"
   get "glossary", to: "help#glossary"
+  # What every number in a calculation means, read from the released model.
+  get "scoring", to: "help#scoring"
   get "contact", to: "help#contact"
   # Admin (Stage 24): a website role, never a ledger one.
   namespace :admin do

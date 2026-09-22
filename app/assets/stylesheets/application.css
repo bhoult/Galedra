@@ -395,5 +395,7 @@ button.small, .button.small { padding: 0.2rem 0.6rem; font-size: 0.85rem; }
 .resolution p { margin: 0.2rem 0; }
 
 /* The working behind a number (claim page, "show calculation"). */
-table.working td { font-variant-numeric: tabular-nums; }
+table.working td { font-variant-numeric: tabular-nums; vertical-align: top; }
+table.working td.factors { line-height: 1.7; }
+table.working .factor { white-space: nowrap; }
 p.working-sum { font-variant-numeric: tabular-nums; }

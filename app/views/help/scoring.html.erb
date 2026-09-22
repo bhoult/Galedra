@@ -1,0 +1,211 @@
+<%# Every number in a calculation, explained, with the values read from the
+    released model rather than written out here. A page that restated the
+    weights in prose would be a second copy of the config, and the second copy
+    is the one that goes stale.
+
+    Anchors are load-bearing: the working on a claim page links each factor to
+    its section here, which is how a reader gets from "0.6 × 0.9" to what those
+    numbers are (owner, 2026-09-22). %>
+<% content_for :title, "How a score is worked out" %>
+<h1>How a score is worked out</h1>
+<p class="muted">
+  Every figure below is read from <strong><%= @model&.full_name || "no released model" %></strong> as it
+  was released, not written down on this page. A different model is a different set of numbers and a
+  different answer, which is the point of saying which one produced a score.
+  <% if @models.size > 1 %>
+    Other released models:
+    <%= safe_join(@models.reject { |m| m == @model }.map { |m| link_to m.full_name, scoring_path(model: m.full_name) }, ", ") %>.
+  <% end %>
+</p>
+<div class="card">
+  <p><strong>A score is not a measure of truth.</strong> It is what one stated set of rules makes of the
+  evidence recorded so far. Change the rules and the number changes; that is why every number here is
+  quoted with its model and its snapshot, and why the working is on the page at all. Nothing here is a
+  verdict, and none of it is settled until somebody independent has audited the work behind it.</p>
+</div>
+
+<h2>The shape of it</h2>
+<p>
+  Each piece of evidence linked to a claim is weighed on its own, by multiplying a handful of factors.
+  The strongest weight in each independent group is kept and the rest are set aside. Those kept weights
+  are added to the claim's starting position, and the total is turned into a probability.
+</p>
+<p class="working-sum">
+  <a href="#relevance">relevance</a> × <a href="#observation">observation</a> ×
+  <a href="#interpretation">interpretation</a> × <a href="#authenticity">authenticity</a> ×
+  <a href="#extraction">extraction</a><% if @config["provenance_factor"] %> × <a href="#provenance">provenance</a><% end %><% if @config["edition_rule"] %> × <a href="#edition">edition</a><% end %>
+  = one link's weight
+</p>
+<p class="working-sum">
+  <a href="#prior">prior</a> as log-odds + the <a href="#independence">kept</a> weights =
+  posterior log-odds → <a href="#combining">probability</a> → <a href="#states">state</a>
+</p>
+
+<h2 id="relevance">Relevance: how directly the passage bears on the claim</h2>
+<p>
+  Set by whoever recorded the link, and audited like anything else. A passage that states the claim
+  outright is worth many times one that merely touches the subject, and context-only evidence is worth
+  nothing at all — it is kept because it is worth reading, not because it moves a number.
+</p>
+<table><tr><th>Relevance</th><th>Factor</th></tr>
+  <% (@config["relevance_weight"] || {}).each do |name, value| %>
+    <tr><td><%= name %></td><td><%= value %></td></tr>
+  <% end %>
+</table>
+
+<h2 id="observation">Observation: what kind of thing the evidence is</h2>
+<p>
+  A measurement and a rumour are not the same evidence, however relevant each is. This factor is where
+  that difference lives. <strong>A model's output weighs nothing</strong> — an assistant's opinion is
+  never evidence by itself here, however confident it sounds; it may only point at something a person
+  or a source said, which is then recorded on its own terms.
+</p>
+<table><tr><th>Observation</th><th>Factor</th></tr>
+  <% (@config["observation_weight"] || {}).each do |name, value| %>
+    <tr><td><%= name.tr("_", " ").downcase %></td><td><%= value %><%= " — never evidence on its own" if value.to_f.zero? %></td></tr>
+  <% end %>
+</table>
+
+<h2 id="interpretation">Interpretation: how many steps of reasoning stand between</h2>
+<p>
+  A passage that says the thing is worth more than one the reader had to reason from. Each step of
+  interpretation costs <strong><%= @config["interpretive_step_penalty"] %></strong>, and the factor
+  never goes below nought:
+</p>
+<p class="working-sum">1 − <%= @config["interpretive_step_penalty"] %> × (number of steps)</p>
+<p class="muted">
+  So two steps of reasoning on a link is
+  1 − <%= @config["interpretive_step_penalty"] %> × 2 =
+  <%= format("%.2f", 1 - (@config["interpretive_step_penalty"].to_f * 2)) %>.
+</p>
+
+<h2 id="authenticity">Authenticity: whether the passage is really in the source</h2>
+<p>
+  Whether anyone has checked that the quoted words are actually there, and are really from where they
+  are said to be. Unverified is not penalised — most evidence starts that way and penalising it would
+  punish recording work honestly — but evidence somebody has looked at and doubted is.
+</p>
+<table><tr><th>Authenticity</th><th>Factor</th></tr>
+  <% (@config["authenticity_factor"] || {}).each do |name, value| %><tr><td><%= name.downcase %></td><td><%= value %></td></tr><% end %>
+</table>
+
+<h2 id="extraction">Extraction: whether the reading of the passage is faithful</h2>
+<p>
+  Whether the evidence says what the passage says, as opposed to what somebody hoped it said. Same
+  principle as authenticity: unverified is neutral, and a checked-and-doubtful reading is not.
+</p>
+<table><tr><th>Extraction</th><th>Factor</th></tr>
+  <% (@config["extraction_factor"] || {}).each do |name, value| %><tr><td><%= name.downcase %></td><td><%= value %></td></tr><% end %>
+</table>
+
+<% if @config["provenance_factor"] %>
+  <h2 id="provenance">Provenance: evidence from the claim's own source</h2>
+  <p>
+    When a claim was taken out of a document, a passage from <em>that</em> document shows the claim
+    quotes its source faithfully. It says nothing about whether the source was right. Treating it as
+    support would let any statement corroborate itself simply by being written down.
+  </p>
+  <table><tr><th>Provenance</th><th>Factor</th></tr>
+    <% @config["provenance_factor"].each do |name, value| %>
+      <tr><td><%= name.downcase %></td><td><%= value %><%= " — counts for nothing towards the claim being true" if value.to_f.zero? %></td></tr>
+    <% end %>
+  </table>
+<% end %>
+
+<% if @config["edition_rule"] %>
+  <h2 id="edition">Edition: which version of the document the claim is about</h2>
+  <p>
+    A living web page is not one document. If a claim says which edition of a source it is about, a
+    reading of a <em>different</em> version of that source weighs nothing against it — an announcement
+    revised two days after publication says something the original did not, and counting the revision
+    against a claim about the original contradicts something the claim never said. The link is kept and
+    shown, marked <code>other edition</code>; it is simply not evidence about this claim.
+  </p>
+<% end %>
+
+<h2 id="independence">Independence: the same fact, told twice, counts once</h2>
+<p>
+  Ten outlets repeating one wire report are one piece of evidence, not ten. Evidence is grouped by where
+  it independently came from, and in each group, for each direction, <strong>only the strongest weight
+  is kept</strong>. The rest appear in the working at nought, marked <code>dependent strongest only</code>,
+  with the link that was kept named beside them. Nothing is deleted; it is counted once.
+</p>
+<p class="muted">Strategy: <%= (@config["independence_strategy"] || "").tr("_", " ") %>.
+  <% if @config["independence_fallback"] == "origin" %>
+    Evidence nobody has grouped falls back to a group keyed by its origin and the passage itself, so one
+    page recorded twice as two sources cannot count twice, while two different passages of one document
+    stay distinct.
+  <% end %>
+</p>
+
+<h2 id="prior">The prior: where a claim starts before any evidence</h2>
+<p>
+  A claim with no evidence is not true and not false; it starts at even odds, and the arithmetic is done
+  in log-odds so that evidence adds rather than multiplies. Causal claims start lower, because "A caused
+  B" is a harder thing to establish than "A happened".
+</p>
+<table><tr><th>Claim type</th><th>Prior</th></tr>
+  <% (@config["prior"] || {}).each do |name, value| %><tr><td><%= name.tr("_", " ").downcase %></td><td><%= value %></td></tr><% end %>
+</table>
+<p class="muted">
+  Types not listed are not scored at all: they carry no probability and say why instead — a value
+  judgement, a prediction not yet resolved, a rhetorical question. That is a refusal to score, not a
+  score of nought.
+</p>
+
+<h2 id="combining">Combining: from weights to a probability</h2>
+<p>The prior becomes log-odds, the kept weights are added to it, and the total becomes a probability:</p>
+<p class="working-sum">probability = 1 ÷ (1 + e<sup>−(prior log-odds + kept weights)</sup>)</p>
+<p class="muted">
+  Rounding is half-even, at <%= @config.dig("rounding", "weights") %> places for weights,
+  <%= @config.dig("rounding", "probability") %> for the probability and
+  <%= @config.dig("rounding", "coverage") %> for review coverage. Half-even rather than half-up because
+  it does not drift upwards over many roundings.
+</p>
+
+<h2 id="states">The state, and when a number is not shown</h2>
+<p>A probability becomes a state at these thresholds:</p>
+<table><tr><th>From</th><th>State</th></tr>
+  <% (@config["state_thresholds"] || {}).each do |name, value| %>
+    <tr><td><%= value %></td><td><%= name.sub("_ABOVE", "").tr("_", " ").downcase %></td></tr>
+  <% end %>
+</table>
+<p>
+  Two states carry no number at all. <strong>Insufficient evidence</strong> means nothing counted has
+  borne on the claim — not that it is doubtful, that nobody has checked. <strong>Not applicable</strong>
+  means this model does not score claims of that kind. Both are honest answers, and showing a
+  probability for either would be inventing one.
+</p>
+
+<h2 id="stability">Stability, and how much the number depends on the settings</h2>
+<p>
+  The same evidence is scored again with the weights turned down to
+  <%= @config.dig("stability", "variants", "conservative") %> and up to
+  <%= @config.dig("stability", "variants", "permissive") %> of themselves. The spread between those two
+  answers is how much the number is an artefact of the settings rather than of the evidence. A spread
+  within <%= @config.dig("stability", "spread_high_max") %> is high stability, within
+  <%= @config.dig("stability", "spread_medium_max") %> medium, wider than that low — and fewer than
+  <%= @config.dig("stability", "min_groups_for_high") %> independent groups caps it below high however
+  narrow the spread.
+</p>
+
+<h2 id="coverage">Review coverage: how much of the checking has been done</h2>
+<p>
+  Always a count of checks, never a percentage of truth. The checks this model declares:
+</p>
+<ul>
+  <% (@config["review_checklist"] || []).each do |check| %><li><%= check.tr("_", " ") %></li><% end %>
+</ul>
+<p class="muted">
+  A check performed by the author of the claim is recorded and shown, and never raises this figure:
+  coverage means somebody <em>else</em> has looked.
+</p>
+
+<h2>Reading it yourself</h2>
+<p>
+  Every score carries a trace — the full working, the model, the config hash and the code hash — and the
+  same inputs under the same model reproduce it exactly. The
+  <%= link_to "specification", docs_path %> sets out the algorithm in full, and a reference
+  implementation in Python reproduces every published example, so this node's answers can be checked
+  without running this node's code.
+</p>
