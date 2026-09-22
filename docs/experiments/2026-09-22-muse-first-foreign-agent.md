@@ -196,8 +196,7 @@ the schema's, and it had put the field inside `answer` rather than beside it. Th
 refusal said only "unknown answer sections: searched". So guidance changed
 behaviour exactly once in 319 turns, and we rejected it. Once the refusal named
 the field's real home (`593732d`), coverage started landing within minutes and
-stood at **14 of 21 `NONE_FOUND` results** by the end of the run, against 0 of
-319 before.
+reached **19 of 19 absences** in the final window, against 0 of 319 before.
 
 ## 4. What was wrong in the watching
 

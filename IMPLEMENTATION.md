@@ -101,6 +101,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 39 | The read paths ask one row at a time | built | [implementation/implemented/stage-39-read-paths-one-row-at-a-time.md](implementation/implemented/stage-39-read-paths-one-row-at-a-time.md) |
 | 40 | The node records how long it took, and how often it was asked | built | [implementation/implemented/stage-40-request-timings.md](implementation/implemented/stage-40-request-timings.md) |
 | 41 | What a worker finds and cannot record | mostly built; one owner decision | [implementation/planned/stage-41-what-a-worker-cannot-record.md](implementation/planned/stage-41-what-a-worker-cannot-record.md) |
+| 42 | Meet the caller where the decision is made | planned | [implementation/planned/stage-42-meet-the-caller-where-the-decision-is.md](implementation/planned/stage-42-meet-the-caller-where-the-decision-is.md) |
 
 Work done between stages, each with its own dated entry:
 
