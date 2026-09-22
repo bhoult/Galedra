@@ -318,6 +318,45 @@ OAuth documents that already work, and worth revisiting when the shape is fixed.
   learns a queue exists, however many calls it makes. `waiting_on_you` rides on every
   result for reports; the same shape would serve here.
 
+### 9. The loop itself: three parties and no shared workspace
+
+Muse reviewed this node's own instructions on 2026-09-22 and made four proposals about the
+loop it sits in — agent, node, maintainer. Two are already this project's rules and were not
+being applied everywhere; two are gaps.
+
+**Results are read by a skimmer.** Every miscommunication in that run was the agent not
+seeing what the server meant. `record_investigation` returned the investigation URL eighth,
+nested inside `share`, behind an array of cards; the agent truncated the result, never
+reached it, and reported that it had not been given one. **Fixed** (2026-09-22): `url` and
+`share_line` lead the result, `RECORD_OUTPUT_SCHEMA` declares every key it returns — five
+were undeclared, including those two — and `spec/requests/result_leads_with_the_link_spec.rb`
+fails if the link drifts past the first 200 characters of the text block a model actually
+reads. The general rule is §1 and the refusals family: the thing the call was for goes
+first, and a rejection names the corrective action. Extend the audit to every applier.
+
+**A fix should be checkable without a checkout. — OPEN, and the sharpest of the four.** When
+a report is answered "fixed", the filer had to clone the repository to confirm it. An answer
+should carry the commit or tag and a repro — the exact call that failed — so the agent that
+filed it can re-run the thing and watch it pass. `01a0cab9` was answered in prose with
+neither. Give `Triageable#answer!` a `fixed_in` and a `repro`, surface both through
+`get_report`, and the filer confirms its own bug.
+
+**Agent confusion is a defect class. — OPEN.** Token churn, investigation-versus-claim,
+contradictory answers about what shipped: none were code bugs, all were communication
+failures, and they cost more of the agent's time than the real bugs did. They already arrive
+through `report_bug` — what is missing is that they are triaged as documentation and
+tool-description defects with the same lifecycle, and that `Guidance::VERSION` is the
+delivery vehicle, so a fix reaches a live session on its next call.
+
+**The report id is the join key. — PARTLY DONE.** It already appears in code comments and
+commit messages here. What would close the loop is the report thread carrying the commit
+too, so any of the three parties can trace the arc without the maintainer routing it. This
+is the same change as the second point and should be built with it.
+
+The through-line, in the reviewer's words and worth keeping: *stop relying on the agent
+reading carefully, and stop relying on the owner remembering context — put the context in
+the protocol.*
+
 ## Acceptance
 
 1. Every one of the 28 tools declaring an `inputSchema` refuses a call that violates it,

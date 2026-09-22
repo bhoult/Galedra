@@ -43,8 +43,15 @@ module Investigations
       end
       share = share_for(token, bundle, claims, seq, base_url)
       ClaimReference.count!(claims.map { |c| c[:id] }, "CHECKED")
-      { recorded: true, snapshot_seq: seq, contributions: count, tasks_opened: tasks, ids: ids, claims: claims, existing: with_urls(existing, base_url),
-        attribution: attribution(token, base_url), share: share, share_line: share[:line] }
+      # The one thing the caller is meant to do with this result comes first. It
+      # used to sit eighth, nested inside `share`, behind an array of cards —
+      # and a connected assistant truncated the result and never saw it, then
+      # reported that it had not been given a URL (Muse, 2026-09-22). An agent
+      # skims; that is the medium, not a failing, so the thing that matters
+      # leads.
+      { url: share[:url], share_line: share[:line], recorded: true, snapshot_seq: seq,
+        contributions: count, tasks_opened: tasks, ids: ids, claims: claims,
+        existing: with_urls(existing, base_url), attribution: attribution(token, base_url), share: share }
     end
 
     # The page that answers what was asked, and the one line to paste (after Stage 19).
