@@ -162,6 +162,14 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(leased["answer_with"]).to include("searched"), "the packet has to name the field it asks you to fill"
 
     covered = "Searched \"fiduciary wedge\" against Ismail and Shelton by name, the concept phrasing, and the OpenExO material. Only unrelated legal commentary came back."
+    # An absence has to carry its coverage: guidance asked for it on every result
+    # and decided nothing, and 319 results were recorded without one
+    # (docs/experiments/2026-09-22-muse-first-foreign-agent.md).
+    bare, bare_err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_FOUND", answer: {} })
+    expect(bare_err).to be(true)
+    expect(errors_of(bare)).to include("SCHEMA_INVALID")
+    expect(bare["errors"].first["detail"]).to include("say what you covered")
+
     data, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_FOUND", answer: {}, searched: covered })
     expect(err).to be(false), data.inspect
     expect(data["items"]).to eq(0), "a null still records no ops; the coverage is what was missing"
@@ -272,7 +280,8 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
 
     leased, err = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
     expect(err).to be(false)
-    _, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_MATERIAL", answer: {} })
+    _, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_MATERIAL", answer: {},
+                                        searched: "Read the whole section for qualifiers; none bear on this claim." })
     expect(err).to be(false)
 
     data, = call_tool("list_tasks", {})
@@ -446,7 +455,8 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(errors_of(data)).to include("OP_NOT_ALLOWED")
 
     task.assignments.first.update_column(:lease_expires_at, 1.minute.ago)
-    data, err = call_tool("submit_task", { task_id: task.id, outcome: "CANNOT_DETERMINE", answer: {} })
+    data, err = call_tool("submit_task", { task_id: task.id, outcome: "CANNOT_DETERMINE", answer: {},
+                                           searched: "Checked the cited pages; nothing settles it either way." })
     expect(err).to be(true)
     expect(errors_of(data)).to include("LEASE_EXPIRED").or include("LEASE_NOT_ACTIVE")
     expect(Contribution.where(action_type: "TASK_RESULT")).to be_empty
@@ -501,7 +511,8 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(Tasks::Lease::SELF_CHECKABLE).to include(task.task_type)
 
     outcome = task.task_type == "OPPOSING_EVIDENCE_SEARCH" ? "NONE_FOUND" : "NONE_MATERIAL"
-    _, err = call_tool("submit_task", { task_id: task.id, outcome: outcome, answer: {} })
+    _, err = call_tool("submit_task", { task_id: task.id, outcome: outcome, answer: {},
+                                        searched: "Searched the cited source and two others; nothing found." })
     expect(err).to be(false)
 
     assignment = TaskAssignment.find_by!(task_id: task.id)

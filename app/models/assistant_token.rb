@@ -49,6 +49,12 @@ class AssistantToken < ApplicationRecord
   validates :origin, inclusion: { in: ORIGINS }
 
   def self_minted? = origin == "AGENT"
+
+  # Can be told apart from everyone else holding a token, and grouped with the
+  # tokens that came from the same place. Owner's condition for letting a
+  # connector work the queue: a result has to be attributable, and answers that
+  # share a source must not count as independent of one another.
+  def identified? = kin_key.present?
   def user_minted? = origin == "USER"
   def address_keyed? = origin == "ADDRESS"
 

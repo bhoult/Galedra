@@ -22,16 +22,16 @@ module Assistants
     # abuser. Rate limiting the endpoint is McpController's job.
     def call(name:, provider:, model: nil, token: nil, address: nil)
       key = source_key(token, address)
-      if key && AssistantToken.where(mint_source_key: key).where(created_at: Time.current.all_day).count >= PER_SOURCE_PER_DAY
+      if key && AssistantToken.where(kin_key: key).where(created_at: Time.current.all_day).count >= PER_SOURCE_PER_DAY
         raise CapReached, "this address has taken #{PER_SOURCE_PER_DAY} assistant tokens today; keep the one you were given " \
                        "and send it as Authorization: Bearer, or ask the person to adopt it"
       end
 
       record, secret = Connect.call(name: name, provider: provider, model: model, origin: "AGENT")
-      # The bound only. What the token may do is decided by `origin`, never by
-      # this — a privilege read off a rate-limiting detail is a privilege in the
-      # wrong place.
-      record.update!(mint_source_key: key) if key
+      # Two jobs, and the second is the important one: it bounds how many
+      # tokens one address may take, and it is how several tokens held by one
+      # actor are counted as one principal for independence.
+      record.update!(kin_key: key) if key
       [ record, secret ]
     end
 

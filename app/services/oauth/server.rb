@@ -158,7 +158,11 @@ module Oauth
 
     # An anonymous grant: a fresh anonymous key per grant, adoptable later.
     def anonymous_assistant_for(client)
-      record, = Assistants::Connect.call(name: client.name, provider: client.provider, model: "oauth")
+      # Identified by the client that was granted it, which is what lets it work
+      # the queue (owner, 2026-09-22) and what stops one client's many grants
+      # counting as independent answers to the same task.
+      record, = Assistants::Connect.call(name: client.name, provider: client.provider, model: "oauth",
+                                         kin_key: "oauth:#{client.client_id}")
       record.update!(software: record.software.merge("oauth_client_id" => client.client_id))
       record
     end

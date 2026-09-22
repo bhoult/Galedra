@@ -137,6 +137,12 @@ module Tasks
     # are trying to encourage is worse than no refusal at all.
     MISPLACED = %w[searched task_id outcome].freeze
 
+    # Outcomes that say a search came up empty. A positive finding carries its
+    # own source and anyone can check it; a null is worth exactly what its
+    # coverage is worth, and coverage described only in chat is gone the moment
+    # the conversation ends.
+    ABSENCES = %w[NONE_FOUND NONE_MATERIAL CANNOT_DETERMINE NO_CLAIMS INDEPENDENT].freeze
+
     def submit(token, task, outcome:, answer:, searched: nil)
       answer, inside = lift_searched(answer)
       ops = ops_for(task, answer)

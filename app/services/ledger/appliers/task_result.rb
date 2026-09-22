@@ -68,6 +68,24 @@ module Ledger
           reject("SCHEMA_INVALID", path("searched"), "expected a string") unless p["searched"].is_a?(String)
           reject("SCHEMA_INVALID", path("searched"), "at most #{Tasks::Answer::SEARCH_NOTE_MAX} characters") if p["searched"].length > Tasks::Answer::SEARCH_NOTE_MAX
         end
+        # An absence with no coverage is a permanent record a reader cannot
+        # judge, and guidance asking for it decided nothing: one assistant gave
+        # it eleven times unprompted and then nobody did for months, and another
+        # recorded 319 results without one — then supplied it on its very next
+        # attempt once a refusal named the field, and on every absence after
+        # that. Whether a null is worth anything should not depend on which
+        # assistant happens to be connected
+        # (docs/experiments/2026-09-22-muse-first-foreign-agent.md).
+        #
+        # Checked here rather than where the answer is composed, so that a
+        # caller holding no lease is told that first: the deeper refusal comes
+        # before the lesser one.
+        if Tasks::Answer::ABSENCES.include?(p["outcome"].to_s) && p["searched"].to_s.strip.empty?
+          reject("SCHEMA_INVALID", path("searched"),
+                 "#{p['outcome']} says you looked and found nothing, so say what you covered: the terms you tried, " \
+                 "where you looked, and why you concluded absence. A null is worth what its coverage is worth, and a " \
+                 "reader cannot tell a thorough search from a glance. searched is an argument of submit_task, beside answer.")
+        end
         ops = p["ops"]
         reject("SCHEMA_INVALID", path("ops"), "expected an array") unless ops.is_a?(Array)
         limit = [ spec[:max_ops], Tasks::Types::MAX_OPS ].min

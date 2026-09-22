@@ -103,18 +103,19 @@ module Tasks
     # Stage 21: a section means its whole subtree.
     # A principal, plus every principal that took its token from the same place.
     #
-    # `introduce_yourself` gives each self-minted token a fresh anonymous
-    # principal, so five tokens taken from one address are five principals — and
+    # Every token minted without a person gets a fresh anonymous principal, so
+    # several taken from one address, or granted to one OAuth client, are several
+    # principals — and
     # the three independent answers a task wants would be three of them, making
     # one actor into a quorum. The mint records where it came from precisely so
     # this can be asked (Article XII: resist capture). Adopted and account-held
     # tokens carry no mint source and are unaffected.
     def kin_principal_ids(principal)
       keys = AssistantToken.where(principal_contributor_id: principal.id)
-                           .where.not(mint_source_key: nil).distinct.pluck(:mint_source_key)
+                           .where.not(kin_key: nil).distinct.pluck(:kin_key)
       return [ principal.id ] if keys.empty?
 
-      ([ principal.id ] + AssistantToken.where(mint_source_key: keys).distinct.pluck(:principal_contributor_id)).uniq
+      ([ principal.id ] + AssistantToken.where(kin_key: keys).distinct.pluck(:principal_contributor_id)).uniq
     end
 
     def subtree_ids(section_id)

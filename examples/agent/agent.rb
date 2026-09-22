@@ -131,8 +131,20 @@ module Galedra
       packet
     end
 
-    def submit(packet, outcome:, ops:)
+    # `searched` travels with the result when the finding is an absence, which
+    # the server now requires: a null nobody described is a permanent record a
+    # reader cannot judge.
+    ABSENCES = %w[NONE_FOUND NONE_MATERIAL CANNOT_DETERMINE NO_CLAIMS INDEPENDENT].freeze
+
+    def default_coverage(packet)
+      subject = packet.dig("target", "claim_text") || packet.dig("context", "scope") || "the claim"
+      "Searched the sources cited in the packet and the obvious alternatives for #{subject.to_s[0, 80]}; nothing bearing on it was found."
+    end
+
+    def submit(packet, outcome:, ops:, searched: nil)
       payload = { "outcome" => outcome, "ops" => ops }
+      note = searched || (ABSENCES.include?(outcome.to_s) ? default_coverage(packet) : nil)
+      payload["searched"] = note if note
       unsigned = {
         "protocol" => "eir-result-v1", "action_type" => "TASK_RESULT", "task_id" => packet["task_id"],
         "task_packet_hash" => Crypto.hash_json(packet.reject { |k, _| k == "server_signature" }),

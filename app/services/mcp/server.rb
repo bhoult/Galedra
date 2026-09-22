@@ -131,7 +131,7 @@ module Mcp
       { name: "submit_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Answer a task you leased with next_task: task_id, outcome (one of the task's outcomes), and answer in the record_investigation vocabulary with handles: sources, excerpts, claims, edges, evidence, links, groups, supersede. Use claim: \"target\" for the task's claim, and excerpt: \"packet\" for the task's own passage where it has one (EVIDENCE_VERIFICATION does; QUALIFIER_CHECK and OPPOSING_EVIDENCE_SEARCH do not, so cite a source_location_id from the claim's counted evidence instead). An empty answer with NONE_FOUND, NONE_MATERIAL, INDEPENDENT, NO_CLAIMS, or CANNOT_DETERMINE is a valid result. ",
         inputSchema: { type: "object", properties: { task_id: { type: "string" }, outcome: { type: "string" },
-                                                     searched: { type: "string", description: "What the search covered: the terms tried, where you looked, and why you concluded what you did. Say it here whenever the finding is an absence — NONE_FOUND, NONE_MATERIAL, CANNOT_DETERMINE — because a null is worth exactly what its coverage is worth, and a reader cannot see coverage you only described in chat. Signed with the result, shown on the task, never read by scoring." },
+                                                     searched: { type: "string", description: "Required when the outcome says you found nothing — NONE_FOUND, NONE_MATERIAL, CANNOT_DETERMINE, NO_CLAIMS, INDEPENDENT. What the search covered: the terms tried, where you looked, and why you concluded what you did. Say it here whenever the finding is an absence — NONE_FOUND, NONE_MATERIAL, CANNOT_DETERMINE — because a null is worth exactly what its coverage is worth, and a reader cannot see coverage you only described in chat. Signed with the result, shown on the task, never read by scoring." },
                                                      answer: { type: "object", properties: {
                                                        sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: RETRIEVED_AT, publisher: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." } }, required: %w[handle type title url retrieved_at] } },
                                                        excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, text: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" } }, required: %w[handle source text] } },
@@ -1297,6 +1297,12 @@ module Mcp
       # tokens from one address would be three independent verifiers
       # (Tasks::Lease.kin_principal_ids, Article XII).
       return if @token.self_minted?
+      # And a connector's grant, on the owner's condition that it can be
+      # identified for scoring: `kin_key` is what makes a result attributable and
+      # what stops one client's several grants counting as independent answers to
+      # the same task. A grant without one cannot be told from any other, so it
+      # is refused rather than quietly counted.
+      return if @token.origin == "CONNECTOR" && @token.identified?
 
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: anonymous_remedy } ])
     end

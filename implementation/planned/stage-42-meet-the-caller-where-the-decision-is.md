@@ -89,15 +89,19 @@ numeric string and must keep doing so (`f6b9ae1`); the same care applies to ever
 **the schema is what changes**, not the caller's experience. This needs a pass over all 28
 tools before any refusal is switched on, and the acceptance test below exists for it.
 
-### 2. Require coverage on an absence
+### 2. Require coverage on an absence — done
 
 `submit_task`'s `searched` is optional. Across Muse's first 319 results, not one carried
 it; `ChatGPT for bhoult` supplied it 11 times unprompted at seq 4801–4833 and nobody has
 since. So the field is usable, has been used well, and whether it is used depends entirely
 on which assistant turns up.
 
-Make it required when the outcome is an absence — `NONE_FOUND`, `NONE_MATERIAL`,
-`CANNOT_DETERMINE`, `NO_CLAIMS`, `INDEPENDENT` — refusing with what it is for.
+**Done** (2026-09-22): required when the outcome is an absence — `NONE_FOUND`,
+`NONE_MATERIAL`, `CANNOT_DETERMINE`, `NO_CLAIMS`, `INDEPENDENT` — refused with what it is
+for. Checked in `Ledger::Appliers::TaskResult` rather than where the answer is composed, so
+a caller holding no lease is told *that* first: the deeper refusal comes before the lesser
+one. The example agent and the spec fixtures supply it by default, so a worker that has
+just done the search writes a sentence rather than meeting a wall.
 
 This was an owner decision through most of the run and the run weakened it into an easy
 one. On its 320th result Muse reached for `searched` unprompted and **the server refused
@@ -185,10 +189,16 @@ Two things had to come with it.
 a token may do from a side effect of how we count them is how a privilege ends up somewhere
 nobody intended. `origin` is its own column, set once at the mint: `ADDRESS` (everyone behind
 one address that day), `CONNECTOR` (an OAuth grant or API mint with nobody signed in),
-`AGENT` (took its own token), `USER` (a person's). Only the first two are refused the queue,
-and `CONNECTOR` is refused because letting it through is a **separate decision that has not
-been taken** — it was previously lumped in with the address-keyed token and is not the same
-thing.
+`AGENT` (took its own token), `USER` (a person's).
+
+**Owner decision, same evening: a connector may work the queue so long as it can be
+identified for scoring.** That condition is now a checkable property rather than a hope.
+`kin_key` — renamed from `mint_source_key`, because a column named for its first use is one
+the next reader misjudges — records where a token came from: the address digest for a
+self-mint, `oauth:<client_id>` for a grant. A token with one can be told apart and grouped;
+a token without one cannot, so it is refused rather than quietly counted. `ADDRESS` is
+refused always: it is a bucket, not a somebody, and nothing recorded under it answers for
+itself.
 
 **Five tokens from one address were five principals.** A task wants three independent
 answers from three principals, and `introduce_yourself` gives each token a fresh anonymous

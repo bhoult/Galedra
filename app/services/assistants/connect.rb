@@ -21,7 +21,7 @@ module Assistants
     # is named at every mint rather than inferred later. The default is the
     # honest reading of this method's own arguments: with a person, USER;
     # without, ADDRESS, until a caller says otherwise.
-    def call(user: nil, name:, provider:, model: nil, hourly_cap: nil, origin: nil)
+    def call(user: nil, name:, provider:, model: nil, hourly_cap: nil, origin: nil, kin_key: nil)
       hourly_cap ||= user ? NAMED_HOURLY_CAP : DEFAULT_HOURLY_CAP
       name = name.to_s.strip
       raise ArgumentError, "assistant name is required" if name.empty?
@@ -38,7 +38,7 @@ module Assistants
       record = AssistantToken.create!(
         id: SecureRandom.uuid_v7, token_digest: AssistantToken.digest(plaintext), agent: agent, principal: principal,
         delegation: delegation, user: user, software: software, hourly_cap: hourly_cap,
-        origin: origin || (user ? "USER" : "CONNECTOR")
+        origin: origin || (user ? "USER" : "CONNECTOR"), kin_key: kin_key
       )
       [ record, plaintext ]
     end
@@ -51,6 +51,8 @@ module Assistants
       existing = AssistantToken.find_by(source_key: key)
       return existing if existing&.usable?
 
+      # No kin key: an address-keyed token is not an identity, so there is
+      # nothing to group it with and nothing it may work.
       record, = call(name: name, provider: "other", model: "unknown", origin: "ADDRESS")
       record.update!(source_key: key)
       record

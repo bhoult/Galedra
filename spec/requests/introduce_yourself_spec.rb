@@ -83,7 +83,13 @@ RSpec.describe "An assistant naming itself", type: :request do
     expect(flow.origin).to eq("CONNECTOR")
     expect(minted).not_to be_self_minted
     expect(flow).not_to be_self_minted
-    expect(flow.mint_source_key).to be_nil
+    # The owner's condition: a connector may work the queue when it can be told
+    # apart and grouped. A bare one cannot, so it is refused rather than counted.
+    expect(flow).not_to be_identified
+    granted, = Assistants::Connect.call(name: "A client", provider: "other", kin_key: "oauth:abc")
+    expect(granted.origin).to eq("CONNECTOR")
+    expect(granted).to be_identified
+    expect(flow.kin_key).to be_nil
   end
 
   # Five tokens from one address are five principals, and a task wanting three
@@ -93,7 +99,7 @@ RSpec.describe "An assistant naming itself", type: :request do
     first = AssistantToken.find_by(token_digest: AssistantToken.digest(introduce(name: "One")["token"]))
     second = AssistantToken.find_by(token_digest: AssistantToken.digest(introduce(name: "Two")["token"]))
 
-    expect(first.mint_source_key).to eq(second.mint_source_key)
+    expect(first.kin_key).to eq(second.kin_key)
     kin = Tasks::Lease.send(:kin_principal_ids, first.delegation.principal)
     expect(kin).to include(first.principal_contributor_id, second.principal_contributor_id)
   end
@@ -140,7 +146,7 @@ RSpec.describe "An assistant naming itself", type: :request do
     record = AssistantToken.find_by(token_digest: AssistantToken.digest(token))
 
     expect(record.source_key).to be_blank
-    expect(record.mint_source_key).to be_present
-    expect(AssistantToken.where(source_key: record.mint_source_key)).not_to include(record)
+    expect(record.kin_key).to be_present
+    expect(AssistantToken.where(source_key: record.kin_key)).not_to include(record)
   end
 end

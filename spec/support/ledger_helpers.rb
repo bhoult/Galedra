@@ -132,7 +132,11 @@ module GraphHelpers
   end
 
   # Leases (if needed) and submits a TASK_RESULT for a task. Returns the Append result.
-  def submit_result(pair, task, outcome:, ops:, delegation: nil, software: nil)
+  # `searched` defaults to a sentence for the absence outcomes, which now
+  # require one: a null nobody described is a permanent record a reader cannot
+  # judge. A fixture that wants to test the refusal passes searched: nil.
+  def submit_result(pair, task, outcome:, ops:, delegation: nil, software: nil, searched: :default)
+    searched = default_coverage(outcome) if searched == :default
     contributor = Contributor.find_by!(key_id: pair.key_id)
     # Lease this task, not whichever of its type comes next. A claim can have
     # more than one open task of a kind now that verification opens with the
@@ -144,8 +148,15 @@ module GraphHelpers
       break if Tasks::Lease.next(contributor: contributor, delegation: delegation, types: [ task.task_type ],
                                  domains: [ task.domain ], target_id: task.target_id).nil?
     end
-    envelope = Contributions::Envelope.build_result(task: task, key_pair: pair, outcome: outcome, ops: ops, delegation_id: delegation&.id, software: software)
+    envelope = Contributions::Envelope.build_result(task: task, key_pair: pair, outcome: outcome, ops: ops, searched: searched,
+                                                    delegation_id: delegation&.id, software: software)
     Ledger::Append.call(envelope)
+  end
+
+  def default_coverage(outcome)
+    return nil unless Tasks::Answer::ABSENCES.include?(outcome.to_s)
+
+    "Searched the cited sources and the obvious alternatives; nothing bearing on this was found."
   end
 
   def result_rows(result, model)
