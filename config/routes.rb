@@ -1,5 +1,9 @@
 Rails.application.routes.draw do
   root "home#index"
+  # What an agent finds when it is handed nothing but the address
+  # (DiscoveryController). The HTML layout points at the same places with
+  # <link rel>, for an agent that fetched a page rather than probing a path.
+  get "llms.txt", to: "discovery#llms", as: :llms, defaults: { format: "text" }
   get "constitution", to: "home#constitution"
   get "faq", to: "home#faq"
   get "docs", to: "help#docs"

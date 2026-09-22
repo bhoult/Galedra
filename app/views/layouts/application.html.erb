@@ -12,6 +12,12 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
     <meta name="theme-color" content="#2c5a86">
+    <%# An agent that fetched this page rather than probing a path can find the
+        tools from here. Muse fetched the page and went looking in a browser,
+        because nothing in it said there was anything else to call. %>
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="Galedra for AI agents">
+    <link rel="service-desc" type="application/json" href="/api/v1/openapi" title="Galedra REST API">
+    <link rel="related" type="application/json" href="/api/v1/guidance" title="Working rules for a connected assistant">
     <%= yield :head %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>

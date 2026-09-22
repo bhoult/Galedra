@@ -191,7 +191,31 @@ schema fragment, or the relevant guidance topic, lets a caller re-read what it b
 another round trip. This overlaps §1 and should be built with it: once refusals are
 generated from the schema, the fragment is already in hand.
 
-### 7. Small things this run turned up
+### 7. Discovery — partly done
+
+A probe of every path an agent might try unprompted found almost nothing. `/mcp` answers
+405, which is a real signal to something already looking, and the OAuth documents name the
+endpoint as "Galedra MCP" — but `/.well-known/oauth-protected-resource` is a path you check
+*after* a 401 from a resource you have already found, so it confirms rather than discovers.
+`/llms.txt`, an MCP manifest, an agent card, `/.well-known/ai-plugin.json`: all absent. And
+the HTML root carried no machine-readable pointer at all — no `<link rel>` to the API, the
+guidance or the tools — so an agent that fetched the page, which is exactly what Muse did,
+found nothing in it suggesting there was anything else to call.
+
+**Done** (2026-09-22): `/llms.txt` is served, generated from `Ledger::Node.url` and
+`Guidance::VERSION` so it cannot name a stale address or version, and the layout carries
+`<link rel>` pointers to `/llms.txt`, `/api/v1/openapi` and `/api/v1/guidance`.
+`spec/requests/discovery_spec.rb` asserts every path it names is routed, that it answers
+with this node's own address rather than one written down in the file, and — the guard that
+matters — that it **points at the guidance instead of copying it**, failing if any topic's
+text starts appearing there. A second copy of the rules is the one that goes stale, which is
+why `Guidance` exists at all (Stage 31).
+
+**Remaining:** `/.well-known/mcp.json` or whatever shape the MCP discovery manifest settles
+into. No ratified spec yet, so serving one now is a guess — but a cheap one, next to the
+OAuth documents that already work, and worth revisiting when the shape is fixed.
+
+### 8. Small things this run turned up
 
 - `TOO_MANY_OPS` says "at most 12 ops" without saying how many were sent, and counts ops
   where the caller composed sources and links. An opposing-evidence find costs four ops, so
