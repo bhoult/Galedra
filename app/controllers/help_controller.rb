@@ -21,7 +21,10 @@ class HelpController < ApplicationController
     @model = (params[:model].present? && Scoring::Registry.find(params[:model])) || Scoring::Registry.default_model
     @config = @model&.config || {}
     @default = Scoring::Registry.default_model
-    @notes = @models.to_h { |m| [ m.full_name, Scoring::ModelNotes.for(m, @models) ] }
+    # One line each. The full comparison for a model is on its own page: at a
+    # hundred released models, building every one of those diffs to render a
+    # list would be a hundred config comparisons nobody asked for.
+    @summaries = @models.to_h { |m| [ m.full_name, Scoring::ModelNotes.summary(m) ] }
   end
 
   # One released model, on a page of its own: what it is, what its version

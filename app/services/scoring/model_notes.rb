@@ -47,7 +47,35 @@ module Scoring
       "edition_rule" => "editions of a source"
     }.freeze
 
+    # One line for a list of models. Prose where we have it; derived from the
+    # config where we do not, because at a hundred released models most will
+    # never have had a sentence written about them and "no description" is worse
+    # than a true one nobody wrote.
+    SHORT = {
+      "ledger-default" => "Scores every claim type that can be scored, and marks the ones where models reasonably differ.",
+      "ledger-strict" => "Declines to score the types where models differ most, rather than hedge a number."
+    }.freeze
+
+    VERSION_SHORT = {
+      "0.1.0" => "the algorithm as first specified",
+      "0.2.0" => "a source cannot corroborate itself",
+      "0.3.0" => "a claim may name the edition it is about"
+    }.freeze
+
     module_function
+
+    # [what it is, what its version changed] — both one line, both safe to show
+    # a hundred times.
+    def summary(model)
+      [ SHORT[model.name] || derived(model), VERSION_SHORT[model.semantic_version] ]
+    end
+
+    def derived(model)
+      scored = Array(model.config["scored_types"]).size
+      declared = [ ("weighs a source's own evidence at nothing" if model.config["provenance_factor"]),
+                   ("honours the edition a claim names" if model.config["edition_rule"]) ].compact
+      [ "Scores #{scored} claim #{'type'.pluralize(scored)}", declared.to_sentence.presence ].compact.join("; ") + "."
+    end
 
     def for(model, others)
       previous = others.select { |m| m.name == model.name && m.semantic_version < model.semantic_version }

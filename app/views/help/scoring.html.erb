@@ -29,40 +29,27 @@
   disagree; that is the point of naming which one produced a number. Releasing a new version never
   changes an old one, so a score recorded under an earlier model stays reproducible exactly as it was.
 </p>
-<% @models.each do |m| %>
-  <% note = @notes[m.full_name] %>
-  <div class="card" id="model-<%= m.full_name.parameterize %>">
-    <p>
-      <strong><%= model_name(m.full_name) %></strong>
-      <%= tag.span("the default here", class: "badge") if m == @default %>
-      <%= tag.span("shown above", class: "badge") if m == @model %>
-      · <%= link_to "its own page", scoring_model_path(name: m.full_name) %><% unless m == @model %> · <%= link_to "show its numbers here", scoring_path(model: m.full_name) %><% end %>
-    </p>
-    <% if note[:purpose] %><p><%= note[:purpose] %></p><% end %>
-    <% if note[:version] %><p><strong>Version <%= m.semantic_version %>.</strong> <%= note[:version] %></p><% end %>
-    <% if note[:since]&.any? %>
-      <p class="meta">What changed from the version before it:</p>
-      <table><tr><th>Setting</th><th>Was</th><th>Now</th></tr>
-        <% note[:since].each do |what, before, after| %>
-          <tr><td><%= what %></td><td class="muted"><%= before %></td><td><%= after %></td></tr>
-        <% end %>
-      </table>
-    <% end %>
-    <% if note[:from_sibling] && note[:from_sibling][:differences].any? %>
-      <p class="meta">Where it differs from <%= link_to model_name(note[:from_sibling][:model].full_name), scoring_path(model: note[:from_sibling][:model].full_name) %>, released alongside it:</p>
-      <table><tr><th>Setting</th><th><%= model_name(note[:from_sibling][:model].full_name) %></th><th><%= model_name(m.full_name) %></th></tr>
-        <% note[:from_sibling][:differences].each do |what, theirs, ours| %>
-          <tr><td><%= what %></td><td class="muted"><%= theirs %></td><td><%= ours %></td></tr>
-        <% end %>
-      </table>
-    <% end %>
-    <p class="meta">Released at entry <%= seq_link(m.released_seq) %> · config <code><%= short_id(m.config_hash.to_s.delete_prefix("sha256:")) %></code> · code <code><%= short_id(m.code_hash.to_s.delete_prefix("sha256:")) %></code></p>
-  </div>
-<% end %>
+<%# One line each, and the rest on the model's own page. A list that printed
+    every model's settings was fine at four and would be unreadable at a hundred
+    (owner, 2026-09-22). %>
+<table class="models">
+  <tr><th>Model</th><th>What it is</th><th>This version</th></tr>
+  <% @models.sort_by { |m| [ m.name, m.semantic_version ] }.each do |m| %>
+    <% what, version = @summaries[m.full_name] %>
+    <tr>
+      <td>
+        <%= link_to model_name(m.full_name), scoring_model_path(name: m.full_name) %>
+        <%= tag.span("default", class: "badge") if m == @default %>
+      </td>
+      <td class="muted"><%= what %></td>
+      <td class="muted"><%= version || "—" %></td>
+    </tr>
+  <% end %>
+</table>
 <p class="meta">
-  Every difference in those tables is read from the configs themselves, so it cannot describe a model
-  that does not exist. What each one is <em>for</em> is written down, because no config says why anyone
-  wanted it.
+  Each name opens that model in full: what it changed, where it differs from the one released beside it,
+  and every number it declares. The numbers shown further down this page are
+  <%= model_name(@model&.full_name.to_s) %>'s<% unless @model == @default %> — <%= link_to "show the default instead", scoring_path %><% end %>.
 </p>
 
 <h2>The shape of it</h2>

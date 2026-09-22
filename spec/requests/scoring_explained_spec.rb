@@ -27,20 +27,43 @@ RSpec.describe "How a score is worked out", type: :request do
     expect(body).to include(model.config["prior"]["CAUSAL"])
   end
 
-  it "describes every released model, and what each version changed" do
+  # A line each, and the rest on the model's own page. A list that printed every
+  # model's settings was fine at four and unreadable at a hundred.
+  it "lists every released model in one line, and links each to its own page" do
     get "/scoring"
     body = response.body
     models = Scoring::Registry.released.to_a
     expect(models.size).to be >= 2
 
     models.each do |m|
-      expect(body).to include(%(id="model-#{m.full_name.parameterize}")), "#{m.full_name} is not described"
-      expect(body).to include(m.released_seq.to_s)
+      expect(body).to include(scoring_model_path(name: m.full_name)), "#{m.full_name} is not linked"
     end
-    # What a model is for is prose; what differs is computed from the configs.
-    expect(body).to include("The everyday model")
-    expect(body).to include("The cautious counterpart")
-    expect(body).to include("claim types it scores")
+    expect(body).to include("Scores every claim type that can be scored")
+    expect(body).to include("Declines to score the types where models differ most")
+    # And not the full settings of every model, which is what the page had.
+    expect(body).not_to include("Where it differs from")
+    expect(body).not_to include("config sha256:")
+  end
+
+  # Most models will never have a sentence written about them. A true derived
+  # line is better than a blank.
+  it "describes a model nobody has written prose for" do
+    released = Scoring::Registry.released.first
+    unknown = ScoringModel.new(name: "ledger-experimental", semantic_version: "1.4.2",
+                               config: released.config.merge("scored_types" => %w[OBSERVATIONAL QUANTITATIVE]))
+    what, version = Scoring::ModelNotes.summary(unknown)
+
+    expect(what).to include("Scores 2 claim types")
+    expect(version).to be_nil
+  end
+
+  it "gives a model's own page the detail the list leaves out" do
+    model = Scoring::Registry.default_model
+    get "/scoring/models/#{model.full_name}"
+
+    expect(response.body).to include(model.config_hash)
+    expect(response.body).to include(model.released_seq.to_s)
+    expect(response.body).to include("claim types it scores").or include("What it scores")
   end
 
   # A weight table that differs in one entry is reported as that one entry.
