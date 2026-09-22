@@ -145,10 +145,13 @@ module Ledger
       # leaves a caller knowing it must retry and not against what, so it either
       # guesses or gives up; both were observed
       # (docs/experiments/2026-09-20-second-connector-run.md).
+      # Names the claim the work belongs to now, and says to use it: a refusal
+      # that stops at the rule leaves the caller to find the successor itself
+      # (Stage 41).
       def not_current_reason(claim)
         case claim.status
-        when "MERGED" then "claim is merged#{" into #{claim.merged_into_id}" if claim.merged_into_id}"
-        when "SUPERSEDED" then "claim is superseded#{" by #{claim.superseded_by_id}" if claim.superseded_by_id}"
+        when "MERGED" then "claim is merged#{" into #{claim.merged_into_id}; record this against that claim instead" if claim.merged_into_id}"
+        when "SUPERSEDED" then "claim is superseded#{" by #{claim.superseded_by_id}; record this against that claim instead" if claim.superseded_by_id}"
         else "claim is #{claim.status.downcase}"
         end
       end

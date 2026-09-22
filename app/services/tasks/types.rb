@@ -39,7 +39,14 @@ module Tasks
         objective: "Decide whether the conclusion follows from the premises as stated. Name a missing premise as a new claim, or a corrected step as a new inference. Do not evaluate the premises' truth; their evidence is their own."
       },
       "QUALIFIER_CHECK" => {
-        target_type: "CLAIM", allowed_ops: %w[CREATE_EVIDENCE LINK_EVIDENCE CREATE_CLAIM CREATE_CLAIM_EDGE SUPERSEDE_LINK], outcomes: %w[QUALIFIERS_FOUND NONE_MATERIAL CANNOT_DETERMINE], max_ops: 20,
+        # CREATE_SOURCE and CREATE_SOURCE_LOCATION for the same reason
+        # OPPOSING_EVIDENCE_SEARCH has them: evidence of an omission is rarely
+        # already on the node. If the missing baseline, date range or
+        # jurisdiction were already quoted here it would not be an omission, and
+        # a check that can create evidence but not the passage the evidence
+        # points at can only be answered from what somebody else happened to
+        # record first (feature request 131d8cda, Stage 41).
+        target_type: "CLAIM", allowed_ops: %w[CREATE_SOURCE CREATE_SOURCE_LOCATION CREATE_EVIDENCE LINK_EVIDENCE CREATE_CLAIM CREATE_CLAIM_EDGE SUPERSEDE_LINK], outcomes: %w[QUALIFIERS_FOUND NONE_MATERIAL CANNOT_DETERMINE], max_ops: 20,
         lease_hours: 4, auto_accept: true, cost: "2",
         objective: "Look for omitted time ranges, populations, denominators, baselines, sampling limits, jurisdictions, and translations in the counted evidence. Record material qualifiers as QUALIFY or CONTRADICT links, narrower claims with edges, and revised links by supersession."
       }

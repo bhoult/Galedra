@@ -91,6 +91,24 @@ RSpec.describe "Recording what the node was asked for", type: :request do
     expect(counted - sample.statements).to be <= 8, "the recorder should account for all but its own writes"
   end
 
+  # Stage 41: every MCP tool arrives at one controller action, so `mcp#create`
+  # averaged list_claims with record_investigation and neither could be blamed
+  # for the 259 statements a call it recorded on 2026-09-22.
+  it "files an MCP call under the tool that was called, not the action they share" do
+    plaintext = Assistants::Connect.call(user: User.create!(email_address: "tool@example.com", password: "correct horse battery staple"),
+                                         name: "Worker", provider: "other").last
+
+    with_metrics("on") do
+      post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "tools/call",
+                             params: { name: "list_topics", arguments: {} } }.to_json,
+                   headers: { "CONTENT_TYPE" => "application/json", "Authorization" => "Bearer #{plaintext}" }
+    end
+
+    expect(response).to have_http_status(:ok)
+    expect(RequestTally.pluck(:action)).to eq([ "mcp#list_topics" ])
+    expect(RequestTally.pluck(:action)).not_to include("mcp#create")
+  end
+
   describe "retention" do
     before do
       RequestTally.create!(id: SecureRandom.uuid_v7, action: "claims#show", hour: 40.days.ago.beginning_of_hour,

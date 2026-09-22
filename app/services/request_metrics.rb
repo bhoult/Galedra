@@ -37,8 +37,20 @@ module RequestMetrics
     %w[1 true on yes].include?(value)
   end
 
+  LABEL = :galedra_request_label
+
   def start_request
     Thread.current[COUNTER] = 0
+    Thread.current[LABEL] = nil
+  end
+
+  # What to file this request under, when the controller action is not the
+  # useful name. Every MCP tool arrives at one action, so `mcp#create` averaged
+  # `list_claims` with `record_investigation` and neither could be blamed for
+  # the 259 statements a call it recorded on 2026-09-22 (Stage 41). The tool
+  # knows its own name; it says so here.
+  def label(name)
+    Thread.current[LABEL] = name.to_s.presence
   end
 
   def count_statement
@@ -56,7 +68,9 @@ module RequestMetrics
     return unless enabled?
 
     statements = self.statements.to_i
+    action = Thread.current[LABEL] || action
     Thread.current[COUNTER] = nil
+    Thread.current[LABEL] = nil
     tally!(action, duration_ms, statements)
     sample!(action, method, status, duration_ms, db_ms, view_ms, statements, request_id) if slow?(duration_ms, statements)
   rescue StandardError => e

@@ -89,7 +89,7 @@ module Mcp
                                                       content_reviews_for_you: { type: "integer", description: "Of those, the ones you may take: never your own principal's words, never one you have already voted on." },
                                                       how: { type: "string" } } } },
       { name: "list_claims", annotations: { readOnlyHint: true, openWorldHint: false },
-        description: "The claims under an outline or section, as id, text, type and state only, filtered and paginated. Use state: \"INSUFFICIENT_EVIDENCE\" with checkable: true to find the claims an outside source would actually move — the ones worth researching. get_outline returns whole trees and full text and will not fit a large outline in one reply; this will.",
+        description: "The claims under an outline or section, as id, text, type and state only, filtered and paginated. Current claims only: one that has been merged or superseded is left out, because the write path refuses it and the work belongs to the claim it became. Use state: \"INSUFFICIENT_EVIDENCE\" with checkable: true to find the claims an outside source would actually move — the ones worth researching. get_outline returns whole trees and full text and will not fit a large outline in one reply; this will.",
         inputSchema: { type: "object", properties: { section_id: { type: "string", description: "An outline root or any section under it; its whole subtree is included" },
                                                      state: { type: "string", enum: Sections::Tree::STATES, description: "Only claims in this assessment state" },
                                                      checkable: { type: "boolean", description: "Leave out claims no model scores: forecasts, opinions and the like" },
@@ -890,6 +890,9 @@ module Mcp
 
     # One structured line per tool call: shapes and outcomes, never claim text or excerpts.
     def log_call(name, args, started, outcome:, codes: [], detail: nil)
+      # So the request metrics can name the tool rather than the controller
+      # action every tool shares (Stage 40, Stage 41).
+      RequestMetrics.label("mcp##{name}")
       ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
       keys = args.is_a?(Hash) ? args.keys.map(&:to_s).sort.join(",") : "-"
       who = @token.nil? ? "none" : (@token.anonymous? ? "anonymous" : "named")
@@ -1000,7 +1003,13 @@ module Mcp
       seq = Contribution.maximum(:seq)
       model = Scoring::Registry.default_model
       ids = ClaimPlacement.active_at(seq).where(section_id: Tasks::Lease.subtree_ids(section.id)).pluck(:claim_id).uniq
-      claims = Claim.where(id: ids).order(:created_seq).to_a
+      # Current claims only (Stage 41, bug 6cc5282e). A merged or superseded
+      # claim was offered like any other and the write path then refused it with
+      # CLAIM_NOT_CURRENT: 8 of the 254 placed in one outline, so about one pick
+      # in thirty was a wasted round trip. Nothing is lost by leaving them out —
+      # the work belongs to the claim the old one merged into, which appears
+      # here on its own account if it still needs evidence.
+      claims = Claim.where(id: ids, status: "ACTIVE").order(:created_seq).to_a
       scored = model ? Scoring::Score.call_many(claims, seq, model) : {}
 
       rows = claims.filter_map do |c|

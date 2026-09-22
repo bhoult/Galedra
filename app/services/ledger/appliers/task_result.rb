@@ -10,6 +10,25 @@ module Ledger
     module TaskResult
       extend Epistemic
 
+      # A refusal that names the rule and not the remedy leaves a worker to
+      # invent one. On 2026-09-22 an assistant hit the two below, and filed a
+      # feature request asking for a tool that already exists — because nothing
+      # at the point of refusal said so (feature request 62372ecd, Stage 41).
+      #
+      # The packet boundary itself is right and stays: a task answer may touch
+      # what the packet names, or a worker could rewrite graph nobody asked it
+      # to look at. What was missing is the way forward.
+      REMEDY_FOR_LINK = "If a counted link outside this packet is wrong, revise_link takes any link_id from " \
+                        "get_claim's evidence and records your reason; NEUTRAL is a direction, so a link that " \
+                        "should not count at all can be neutralised rather than argued with, and on somebody " \
+                        "else's link it becomes a proposal. If the disagreement is about how the determination " \
+                        "was made rather than about one link, open_thread records it where a reader of the claim " \
+                        "will see it."
+      REMEDY_FOR_OP = "Ops outside the list belong outside the task: record_investigation for new sources and " \
+                      "claims, add_evidence for a passage on an existing claim, revise_link for a link that is " \
+                      "wrong, open_thread if the determination itself is what you disagree with. Submitting what " \
+                      "the packet allows and doing the rest afterwards is the ordinary way through."
+
       OpValidated = Struct.new(:payload, :contributor, :delegation, :action_type, :envelope, :in_task, :created_ids, keyword_init: true)
       ID_KEYS = %w[source_id source_location_id evidence_item_id claim_id independence_group_id link_id from_claim_id to_claim_id].freeze
       REF_FORMAT = /\A[A-Za-z][A-Za-z0-9_-]{0,63}\z/
@@ -56,7 +75,8 @@ module Ledger
         refs = []
         ops.each_with_index do |op, i|
           reject("SCHEMA_INVALID", "#{path('ops')}[#{i}]", "expected an object with op") unless op.is_a?(Hash) && op["op"].is_a?(String)
-          reject("OP_NOT_ALLOWED", "#{path('ops')}[#{i}].op", "#{op['op']} is not in allowed_ops #{spec[:allowed_ops].join(', ')}") unless spec[:allowed_ops].include?(op["op"])
+          reject("OP_NOT_ALLOWED", "#{path('ops')}[#{i}].op",
+                 "#{op['op']} is not in allowed_ops #{spec[:allowed_ops].join(', ')}. #{REMEDY_FOR_OP}") unless spec[:allowed_ops].include?(op["op"])
           if op.key?("ref")
             reject("SCHEMA_INVALID", "#{path('ops')}[#{i}].ref", "refs are short identifiers, unique within the result") unless op["ref"].is_a?(String) && REF_FORMAT.match?(op["ref"]) && !refs.include?(op["ref"])
             reject("SCHEMA_INVALID", "#{path('ops')}[#{i}].ref", "only ops that create an object may declare a ref") unless op["op"].start_with?("CREATE_") || op["op"] == "SUPERSEDE_LINK"
@@ -111,7 +131,8 @@ module Ledger
           end
           if op["op"] == "SUPERSEDE_LINK"
             counted = task.packet.dig("context", "counted_links").to_a.map { |l| l["link_id"] }
-            reject("TARGET_MISMATCH", "#{at}.link_id", "only the packet's counted links can be superseded") unless counted.include?(op["link_id"])
+            reject("TARGET_MISMATCH", "#{at}.link_id",
+                   "only the packet's counted links can be superseded. #{REMEDY_FOR_LINK}") unless counted.include?(op["link_id"])
           end
         end
       end
