@@ -18,6 +18,7 @@ module Mcp
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
     INVALID_PARAMS = -32602
+    INTERNAL_ERROR = -32603
     TOKEN_REQUIRED = -32001
 
     CARD_SCHEMA = { type: "object", description: "The answer card; no probability here.",
@@ -296,6 +297,22 @@ module Mcp
       [ 200, tool_error(id, [ { code: "SCHEMA_INVALID", path: "$", detail: e.record.errors.full_messages.join("; ") } ], era) ]
     rescue ArgumentError => e
       [ 200, error(id, INVALID_PARAMS, e.message) ]
+    rescue StandardError => e
+      # A tool that raises something nobody anticipated must still answer in the
+      # protocol. Until 2026-09-22 it did not: `links[].steps` given an array
+      # raised NoMethodError out of `Investigations::Steps.for_link`, escaped to
+      # the controller, and the caller — an MCP client expecting JSON-RPC — was
+      # handed Rails' HTML error page. Muse reported it (`01a0cab9`) and said the
+      # schema was "only discoverable by reading the stack trace", which is the
+      # accidental part: a 500 page leaks the inside of the process to whoever
+      # called the tool.
+      #
+      # The operator gets the class, the message and the backtrace in the log;
+      # the caller gets a refusal it can act on and nothing about our internals.
+      # Broad on purpose, and loud on purpose — this rescue exists to keep the
+      # envelope intact, never to make a crash quiet.
+      Rails.logger.error("mcp_crash tool=#{params.is_a?(Hash) ? params['name'] : nil} #{e.class}: #{e.message}\n#{Array(e.backtrace).first(8).join("\n")}")
+      [ 200, tool_error(id, [ { code: "INTERNAL_ERROR", path: "$", detail: "this call failed inside the server and nothing was recorded; it has been logged. Check the arguments against the tool's schema — a field given the wrong type is the usual cause — and report it with report_bug if they match." } ], era) ]
     end
 
     # Modern results carry resultType and identify the server per response,

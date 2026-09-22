@@ -275,4 +275,52 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     stale = body.dig("result", "structuredContent", "guidance")
     expect(stale["text"]).to be_present, "a stale version must still be corrected"
   end
+  # A tool that raises something nobody anticipated must still answer in the
+  # protocol. `links[].steps` given an array raised NoMethodError out of
+  # `Investigations::Steps.for_link`, escaped the server, and handed an MCP
+  # client Rails' HTML error page — which is also how the filer found the right
+  # shape, by reading the stack trace it had been given (Muse, `01a0cab9`).
+  describe "a tool that fails unexpectedly" do
+    it "answers in JSON-RPC rather than escaping to the controller" do
+      allow(Mcp::Server).to receive(:new).and_wrap_original do |original, **kwargs|
+        original.call(**kwargs).tap do |server|
+          allow(server).to receive(:tool_list_topics).and_raise(NoMethodError, "undefined method 'to_i' for an instance of Array")
+        end
+      end
+
+      expect { rpc("tools/call", { name: "list_topics", arguments: {} }) }.not_to raise_error
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("application/json")
+    end
+
+    it "tells the caller to check the argument types, and nothing about the server" do
+      allow(Mcp::Server).to receive(:new).and_wrap_original do |original, **kwargs|
+        original.call(**kwargs).tap { |s| allow(s).to receive(:tool_list_topics).and_raise(NoMethodError, "undefined method 'to_i' for an instance of Array") }
+      end
+
+      body = rpc("tools/call", { name: "list_topics", arguments: {} })
+      detail = body.dig("result", "structuredContent", "errors")&.map { |e| e["detail"] }.to_a.join(" ")
+      expect(body.dig("result", "structuredContent", "errors")&.map { |e| e["code"] }).to eq([ "INTERNAL_ERROR" ])
+      expect(detail).to include("report_bug")
+      expect(detail).not_to include("NoMethodError"), "an exception class is the inside of the process, not the caller's business"
+      expect(detail).not_to include("to_i")
+    end
+  end
+
+  # The narrow half of the same report: the field that caused it now refuses
+  # with a message naming itself, rather than reaching `to_i` and raising.
+  describe "links[].steps given the wrong type" do
+    it "is a refusal that names the field" do
+      expect { Investigations::Steps.for_link({ "steps" => [ "a" ] }, {}) }
+        .to raise_error(ArgumentError, /links\[\]\.steps must be a whole number/)
+      expect { Investigations::Steps.for_link({ "steps" => { "x" => 1 } }, {}) }
+        .to raise_error(ArgumentError, /not hash/)
+    end
+
+    it "still accepts what it always accepted" do
+      expect(Investigations::Steps.for_link({ "steps" => 2 }, {})).to eq(2)
+      expect(Investigations::Steps.for_link({ "steps" => "3" }, {})).to eq(3)
+      expect(Investigations::Steps.for_link({}, {})).to eq(0)
+    end
+  end
 end
