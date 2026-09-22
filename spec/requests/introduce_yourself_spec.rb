@@ -36,14 +36,41 @@ RSpec.describe "An assistant naming itself", type: :request do
     expect(software["model_id"]).to eq("muse-1")
   end
 
-  # The whole point: the same identity on every later call, whatever address it
-  # arrives from. Without this the token is no better than the address-keyed one.
-  it "is the same identity on a later call from anywhere" do
+  # The whole point, and the one thing a cloud agent cannot test for itself: it
+  # cannot make its own egress rotate on demand. Here the address is ours to set,
+  # so the rotation it lived through is reproduced directly — three calls, three
+  # addresses, one token, and it has to be the same contributor every time.
+  # Without this the token is no better than the address-keyed one it replaces.
+  it "is the same identity from every address it calls from" do
     token = introduce["token"]
+    # The introduce call is itself tokenless, so it keys one address token on the
+    # way in. What must not happen is another appearing behind a token-bearing call.
+    address_tokens = AssistantToken.where(origin: "ADDRESS").count
+    seen = [ "203.0.113.7", "198.51.100.42", "192.0.2.9" ].map do |address|
+      post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "tools/call",
+                             params: { name: "list_topics", arguments: {} } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json", "Authorization" => "Bearer #{token}",
+                      "REMOTE_ADDR" => address }
+      expect(response.parsed_body.dig("result", "structuredContent", "errors")).to be_nil
+      AssistantToken.find_by(token_digest: AssistantToken.digest(token)).principal_contributor_id
+    end
 
-    first = call_tool("list_topics", {}, token: token)
-    expect(first["errors"]).to be_nil
-    expect(AssistantToken.find_by(token_digest: AssistantToken.digest(token))).to be_present
+    expect(seen.uniq.size).to eq(1), "a rotating egress must not change who the caller is"
+    expect(AssistantToken.where(origin: "ADDRESS").count).to eq(address_tokens),
+           "presenting a token must not mint an address-keyed one behind it"
+  end
+
+  # And the converse, which is the failure a connected assistant actually lived:
+  # with no token, each address is a different contributor.
+  it "shows what it is replacing: without a token, each address is a stranger" do
+    principals = [ "203.0.113.7", "198.51.100.42" ].map do |address|
+      post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "tools/call",
+                             params: { name: "list_topics", arguments: {} } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json", "REMOTE_ADDR" => address }
+      AssistantToken.where(origin: "ADDRESS").order(:created_at).last.principal_contributor_id
+    end
+
+    expect(principals.uniq.size).to eq(2)
   end
 
   # Owner decision, 2026-09-22: a token an assistant minted for itself may work
