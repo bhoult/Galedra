@@ -92,9 +92,16 @@ aside.outline { position: sticky; top: 3.6rem; font-size: 0.82rem; background: v
    phone — where there is very little of it — gets a short menu too. */
 @media (max-width: 56rem) {
   aside.outline {
-    position: static;
+    /* Relative, not static. The counts beside each item are absolutely
+       positioned into the left gutter, so this element is their containing
+       block; making it static handed them to the page and they drifted away
+       from the items they count (owner, 2026-09-22). Relative drops the
+       stickiness, which is what a single column does not want, and keeps the
+       gutter they live in. That gutter is why the left padding is what it is:
+       the counts sit at 0.5rem and are 2.1rem wide, so anything under about
+       2.8rem crops them. */
+    position: relative;
     max-height: 45vh;
-    padding-left: 1.4rem;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }

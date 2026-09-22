@@ -1,6 +1,6 @@
 # Stage 41 — What a worker finds and cannot record
 
-**Status:** planned · tag will be `stage-41-what-a-worker-cannot-record`
+**Status:** mostly built 2026-09-22 · one deliverable waits on an owner decision · tag will be `stage-41-what-a-worker-cannot-record`
 
 **Tag:** `stage-41-what-a-worker-cannot-record` · **Spec:** 03 §4 (counted links), 04 §3–§6
 (agent protocol, task packets), 06 §2 (reads), 02 §3.2 (sources and versions), Invariants 4
@@ -214,3 +214,62 @@ write.
    signed contribution; `revise_link` on someone else's link is a proposal, not a change.
 10. **Is anything invented?** No. Finding 5 is a mis-weighting of real readings of a real
     page, and the fix is to record what the node already knows about when they were read.
+
+
+## How this stage stands (2026-09-22)
+
+### What was resolved
+
+Five of six deliverables, in `b8aea27` and what followed.
+
+- **The worklist no longer offers work the write path refuses.** `list_claims` returns
+  current claims only; a spec merges a claim mid-example and asserts it drops out.
+- **A qualifier check may quote the source that shows the omission.** `CREATE_SOURCE` and
+  `CREATE_SOURCE_LOCATION` are in `QUALIFIER_CHECK`'s allowed ops, with the reasoning written
+  against `Tasks::Types` so the next reader does not have to rediscover why the two task
+  types differed.
+- **Refusals name the remedy.** `TARGET_MISMATCH` points at `revise_link` and `open_thread`;
+  `OP_NOT_ALLOWED` names what belongs outside the task; `CLAIM_NOT_CURRENT` names the claim
+  the work moved to. `spec/requests/refusals_name_the_remedy_spec.rb` fails if a remedy ever
+  names a tool that is not in the registry.
+- **Metrics are per tool.** `mcp#list_topics`, not `mcp#create`, so the 259 statements a call
+  can be pinned on something.
+- **A claim page shows when each passage was read.** Display only; nothing here reaches
+  scoring. It is the first of deliverable 4's three options and the only one that needed no
+  decision.
+
+**The mechanism then proved itself, which is worth recording because it is the whole point of
+the loop.** Within seven minutes of being told that `revise_link` existed, the assistant used
+it on both contradicting links and corrected the determination itself:
+
+| | Before | After |
+|---|---|---|
+| Claim `…0491ac36` | CONTRADICTED 0.1419 | **LEANS_SUPPORTED 0.7146** |
+| The two readings of the revised page | CONTRADICT DIRECT, CONTRADICT STRONG | NEUTRAL, CONTEXT_ONLY |
+
+With its reasons in the log: *"I attached the September 10 updated page as contradiction of
+what the announcement said on September 8. That was my mistake."* It then asked for the
+feature request to be held until the rest ships, which is the correct reading of what is
+outstanding.
+
+**Deliverable 6 is therefore withdrawn rather than done.** It called for a thread recording
+that the determination was disputed. The dispute was resolved directly, by signed
+supersessions carrying their own reasons, so a thread saying "this was once wrong" would add
+a second account of a settled thing. If the versioned-page decision reopens it, it can be
+opened then.
+
+### What remains
+
+- **Deliverable 4, beyond the display: an owner decision.** Whether a revision should be a
+  distinct source through `previous_version_id` and `lineage_key`, or a claim should be able
+  to name the version it is about. The first is projection work; the second is schema and
+  **changes what is scored**, which means a new model version and regenerated goldens, not a
+  patch. The date on the page is a reader's aid, not a fix: nothing stops the same
+  mis-attachment happening again, and the next one may not have somebody watching.
+- **The correction was made by one principal, unaudited.** Revising your own principal's link
+  is allowed and is not self-certification, but no second party has looked at the reasoning,
+  and `review_coverage` on that claim is unchanged. That is ordinary for any contribution and
+  is said here only so nobody reads the corrected score as more settled than it is.
+- **A wrong id went into the record.** The filer's turn names claim `c15d1a20`, which matches
+  nothing; the claim is `234ec42c…0491ac36`. Answered on the report. Worth noticing because a
+  wrong id in a record misleads whoever reads it next, and nothing checks them.

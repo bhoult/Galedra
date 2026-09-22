@@ -1,9 +1,20 @@
+<%# "Read" is when the passage was taken from the source, and it is here because
+    of what happened on 2026-09-22: two readings of a web page, taken on the
+    20th, were counted as contradicting a claim about what that page said on the
+    8th — the page having been revised on the 10th. The scorer did as the links
+    told it; nothing on the page let a reader see that the contradiction was
+    younger than the thing it contradicted (Stage 41).
+
+    It is display only. Nothing here reaches scoring, and a date beside a link
+    decides nothing; it lets a reader ask the question. %>
 <% if links.any? %>
-  <table><tr><th>Evidence</th><th>Source</th><th>Relevance</th><th>Steps</th><th>Note</th><th>Counted</th></tr>
+  <table><tr><th>Evidence</th><th>Source</th><th>Read</th><th>Relevance</th><th>Steps</th><th>Note</th><th>Counted</th></tr>
   <% links.each do |l| %>
+    <% read_at = l.dig(:evidence, :source, :retrieved_at) %>
     <tr>
       <td><%= link_to l[:evidence][:statement] || "[withheld]", evidence_path(l[:evidence_item_id]) %></td>
       <td><%= link_to l[:evidence][:source][:title] || "[withheld]", source_path(l[:evidence][:source][:id]) %></td>
+      <td class="muted" title="When this passage was taken from the source. A reading later than the thing a claim is about may be a different version of it."><%= read_at ? read_at.to_date.iso8601 : "—" %></td>
       <td><%= l[:relevance_strength] %></td>
       <td><%= l[:interpretive_steps] %></td>
       <td class="muted"><%= l[:note] %></td>
