@@ -176,4 +176,56 @@ RSpec.describe "A refusal says what to do instead", type: :request do
       }
     end
   end
+  # A refusal has to describe the caller's request. `get_outline` with no
+  # arguments answered "no such section" — an assertion about a section nobody
+  # named — and a live worker called it twice with the wrong argument name
+  # because the refusal never said the argument was missing (2026-09-22).
+  describe "a required argument that was not sent" do
+    def rpc_tool(name, arguments)
+      post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "tools/call",
+                             params: { name: name, arguments: arguments } }.to_json,
+           headers: { "CONTENT_TYPE" => "application/json" }
+      response.parsed_body.dig("result", "structuredContent")
+    end
+
+    it "says the argument is missing, and names what the call did carry" do
+      data = rpc_tool("get_outline", { "task_id" => "not-a-section" })
+
+      expect(data["errors"].map { |e| e["code"] }).to eq([ "SCHEMA_INVALID" ])
+      detail = data["errors"].first["detail"]
+      expect(detail).to include("section_id is required and was not sent")
+      expect(detail).to include("task_id"), "a caller who sent the wrong name must be told which name they sent"
+      expect(detail).not_to include("no such section"), "nothing may be asserted about a section the caller never named"
+    end
+
+    it "says so even when nothing at all was sent" do
+      data = rpc_tool("get_outline", {})
+
+      expect(data["errors"].first["detail"]).to include("this call carried no arguments")
+    end
+
+    # The check must not swallow the genuine case: an id that was sent and does
+    # not resolve is still NOT_FOUND, and that message was never wrong.
+    it "still reports a not-found id as not found" do
+      data = rpc_tool("get_outline", { "section_id" => "01a00000-0000-7000-8000-000000000000" })
+
+      expect(data["errors"].map { |e| e["code"] }).to eq([ "NOT_FOUND" ])
+      expect(data["errors"].first["detail"]).to eq("no such section")
+    end
+
+    # Driven by each tool's own declared `required`, so a tool added later is
+    # covered without anybody remembering to add it here.
+    it "covers every tool that declares a required argument" do
+      declared = Mcp::Server::TOOLS.select { |t| Array(t.dig(:inputSchema, :required)).any? }
+      expect(declared.size).to be > 20
+
+      declared.each do |tool|
+        data = rpc_tool(tool[:name], {})
+        next if data.nil? || data["errors"].nil?
+
+        expect(data["errors"].first["detail"]).to include("is required and was not sent"),
+                                                  "#{tool[:name]} refused an empty call without saying what was missing"
+      end
+    end
+  end
 end

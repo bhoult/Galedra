@@ -23,6 +23,14 @@ module Mcp
     CARD_SCHEMA = { type: "object", description: "The answer card; no probability here.",
                     properties: { headline: { type: "string" }, plain: { type: "object", properties: { headline: { type: "string" }, say_instead: { type: [ "string", "null" ] } } },
                                   review_checks: { type: "string" }, labels: { type: "array", items: { type: "string" } }, model: { type: "string" }, snapshot_seq: { type: "integer" } } }.freeze
+    # One description, four schemas. `submit_task` and `add_evidence` declared
+    # this field bare while `record_investigation` described it, so a worker that
+    # only ever used the task queue was told the field was required and never
+    # what shape it takes. On 2026-09-22 Meta's Muse looped on one task doing
+    # exactly that, discovering one requirement per refusal. "RFC 3339" alone was
+    # evidently thin too, so it carries an example now.
+    RETRIEVED_AT = { type: "string", description: "RFC 3339, e.g. 2026-09-22T19:30:00Z — when you read the source." }.freeze
+
     RECORD_OUTPUT_SCHEMA = { type: "object", properties: {
       recorded: { type: "boolean" }, contributions: { type: "integer" }, tasks_opened: { type: "integer" }, snapshot_seq: { type: "integer" },
       claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, id: { type: "string" }, created: { type: "boolean" }, url: { type: "string" }, card: CARD_SCHEMA } } },
@@ -39,7 +47,7 @@ module Mcp
       { name: "record_investigation", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Record what you found, all at once: sources by link, quoted excerpts, atomic typed claims, evidence statements, and links (SUPPORT, CONTRADICT, QUALIFY, NEUTRAL) with interpretive steps. For one statement, or a source under about 3,000 words. A longer source (a transcript, a speech, a long article) goes through create_outline first, whatever number of claims you think it makes: measure the input, not your answer, because a handful of claims off two hours of talk summarises it instead of checking it. No token is needed: without one the work is recorded under an anonymous key; a connected assistant token attributes it to the user. If similar accepted claims exist the call returns them under existing and records nothing; resubmit with attach_to on those claims, or on_duplicate: create. ",
         inputSchema: { type: "object", properties: {
           statement: { type: "string", description: "The exact text the person wanted checked, as they would post it (the meme's words, the sentence they were about to share). Shown at the top of the shareable page." },
-          sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had the bytes. If your host gave you rendered text, omit it; never invent one." }, retrieved_at: { type: "string", description: "RFC 3339" }, edition_of: { type: "string", description: "Another source in this call, by handle, or a recorded source id: this one is a later version of that document. Record both when a page has been revised and a claim is about what it said before" }, publisher: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." } }, required: %w[handle type title url retrieved_at] } },
+          sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had the bytes. If your host gave you rendered text, omit it; never invent one." }, retrieved_at: RETRIEVED_AT, edition_of: { type: "string", description: "Another source in this call, by handle, or a recorded source id: this one is a later version of that document. Record both when a page has been revised and a claim is about what it said before" }, publisher: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." } }, required: %w[handle type title url retrieved_at] } },
           excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION] }, text: { type: "string" } }, required: %w[handle source text] } },
           claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES }, topics: { type: "array", description: "One or two subjects from the vocabulary, e.g. science/neuroscience", items: { type: "string", enum: Topics.all } }, attach_to: { type: "string", description: "An existing claim id instead of text and type. Every claim the statement makes goes in this one call: ones Galedra already holds (from search_claims) go in by attach_to, with or without new evidence, so the check page and share line cover the whole statement" }, section: { type: "string", description: "A section id from create_outline: the claim is filed there. Use it when recording one leaf of a large source; the share line then covers the whole outline" }, qualifiers: { type: "object", description: "What narrows this claim: time_range, location, population, denominator, translation, and source_edition. Use source_edition — a source handle from this call, or a recorded source id — when the claim is about what a document said at one moment and that document can change, such as a web page that was later revised. A reading of a different version then stops counting against it", properties: { source_edition: { type: "string" }, time_range: { type: "string" }, location: { type: "string" }, population: { type: "string" }, denominator: { type: "string" }, translation: { type: "string" } } } }, required: [ "handle" ] } },
           evidence: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, excerpt: { type: "string" }, statement: { type: "string", description: "One plain sentence, at most 25 words, that a stranger could read aloud; it may become the card's say-instead line" }, observation_type: { type: "string", enum: EvidenceItem::OBSERVATION_TYPES } }, required: %w[handle excerpt statement] } },
@@ -52,7 +60,7 @@ module Mcp
         description: "For any source over about 3,000 words (a podcast transcript, a speech, a sermon, a long article), however few claims you think it makes, and whether or not you already hold its whole text. Record the structure first: the source by link, an outline of sections nested like a table of contents (leaves of two to eight minutes or 300 to 800 words). Every leaf carries a locator and two pieces of text over that same span: an anchor, its first words quoted exactly, at most 300 characters, which is hashed and checked against the source; and a reading, the leaf's whole text as you read it, cleaned into paragraphs with plain transcription errors corrected, which is what a person reads here. A reading is your transcription, not a quotation, and Galedra shows it as yours. One extraction task opens per leaf so other volunteers can take the work in pieces. Then ask the person whether you should start on the research yourself; if yes, do the first pass: record leaf by leaf with record_investigation, giving each claim its section and the evidence for it, so the claims are scored at once and the person can post the link without waiting. A speech or an episode never gets a verdict, only counts by state.",
         inputSchema: { type: "object", properties: {
           statement: { type: "string", description: "The title and link of what is being checked, as the person gave it (not the text)" },
-          source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string", description: "RFC 3339" }, publisher: { type: "string" }, creator: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." }, content_hash: { type: "string" } }, required: %w[type title url retrieved_at] },
+          source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: RETRIEVED_AT, publisher: { type: "string" }, creator: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." }, content_hash: { type: "string" } }, required: %w[type title url retrieved_at] },
           parent_section_id: { type: "string", description: "Instead of source: extend an existing outline under this section" },
           sections: { type: "array", description: "One root for a new outline, with nested sections: {handle, heading, locator?, anchor?, reading?, sections?}", items: { type: "object", properties: { handle: { type: "string" }, heading: { type: "string" }, locator: { type: "object", description: "{type: TIME_RANGE|CHAR_RANGE|PAGE|LINE_RANGE|SECTION, ...} e.g. {type: TIME_RANGE, start: \"00:41:10\", end: \"00:47:30\"}" }, anchor: { type: "string", description: "The first words of the leaf, quoted EXACTLY as the source has them, at most 300 characters. This is hashed and checked against the source, so never clean it" }, reading: { type: "string", description: "The leaf's whole text as you read it. Break it into paragraphs where the subject changes or another speaker begins, correct plain transcription errors (misheard words, mangled names, punctuation), write [unclear] for a word you cannot make out, and change nothing else: no tidying grammar, no cutting repetition, no summarising. A speaker who misspeaks stays misspoken. Leave it out rather than reconstruct it from memory" }, sections: { type: "array" } }, required: %w[handle heading] } },
           open_tasks: { type: "boolean", default: true } }, required: %w[sections] },
@@ -66,7 +74,7 @@ module Mcp
         description: "Answer a Galedra outline or section URL here rather than in a browser: the id in the link is the section_id. An outline (or one section of it) as a tree with the claims filed under each section and counts by assessment state. Counts only; a section never has a probability.",
         inputSchema: { type: "object", properties: { section_id: { type: "string" }, depth: { type: "integer", default: 2 } }, required: %w[section_id] } },
       { name: "add_evidence", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "Attach one quoted passage to an existing claim as evidence for, against, or qualifying it. No token needed; anonymous without one. ",
-        inputSchema: { type: "object", properties: { claim_id: { type: "string" }, source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had them" }, retrieved_at: { type: "string" }, publisher: { type: "string" } }, required: %w[type title url retrieved_at] }, excerpt: { type: "string" }, excerpt_kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" }, statement: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS, default: "DIRECT" }, steps: { type: "integer", default: 0 }, note: { type: "string" } }, required: %w[claim_id source excerpt statement direction] },
+        inputSchema: { type: "object", properties: { claim_id: { type: "string" }, source: { type: "object", properties: { type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, content_hash: { type: "string", description: "Optional: sha256:<hex> of the page bytes, only if you had them" }, retrieved_at: RETRIEVED_AT, publisher: { type: "string" } }, required: %w[type title url retrieved_at] }, excerpt: { type: "string" }, excerpt_kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" }, statement: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS, default: "DIRECT" }, steps: { type: "integer", default: 0 }, note: { type: "string" } }, required: %w[claim_id source excerpt statement direction] },
         outputSchema: RECORD_OUTPUT_SCHEMA },
       { name: "explain", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Why a claim stands where it does: strongest counted support and contradiction, suppressed dependents, review gaps, and what would most change it. With calculation: true, also the probability, always stated with its model and snapshot; never present it as a percentage true.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" }, calculation: { type: "boolean", default: false } }, required: [ "claim_id" ] },
@@ -107,7 +115,7 @@ module Mcp
         inputSchema: { type: "object", properties: { task_id: { type: "string" }, outcome: { type: "string" },
                                                      searched: { type: "string", description: "What the search covered: the terms tried, where you looked, and why you concluded what you did. Say it here whenever the finding is an absence — NONE_FOUND, NONE_MATERIAL, CANNOT_DETERMINE — because a null is worth exactly what its coverage is worth, and a reader cannot see coverage you only described in chat. Signed with the result, shown on the task, never read by scoring." },
                                                      answer: { type: "object", properties: {
-                                                       sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: { type: "string" }, publisher: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." } }, required: %w[handle type title url retrieved_at] } },
+                                                       sources: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, type: { type: "string", enum: Source::TYPES }, title: { type: "string" }, url: { type: "string" }, retrieved_at: RETRIEVED_AT, publisher: { type: "string" }, publication_date: { type: "string", description: "YYYY-MM-DD, the whole date. Omit it if you only know the year or the month: a day invented to fill the field is a fact this record did not have." } }, required: %w[handle type title url retrieved_at] } },
                                                        excerpts: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, source: { type: "string" }, text: { type: "string" }, kind: { type: "string", enum: %w[QUOTE TRANSCRIPTION], default: "QUOTE" } }, required: %w[handle source text] } },
                                                        claims: { type: "array", items: { type: "object", properties: { handle: { type: "string" }, text: { type: "string" }, type: { type: "string", enum: Claim::TYPES } }, required: %w[handle text type] } },
                                                        edges: { type: "array", items: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, type: { type: "string", enum: ClaimEdge::TYPES, default: "NARROWS" } }, required: %w[from to] } },
@@ -379,12 +387,14 @@ module Mcp
       name = params["name"].to_s
       args = params["arguments"].is_a?(Hash) ? params["arguments"] : {}
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      unless TOOLS.any? { |t| t[:name] == name }
+      tool = TOOLS.find { |t| t[:name] == name }
+      unless tool
         log_call(name, args, started, outcome: "unknown_tool")
         raise ArgumentError, "unknown tool #{name}"
       end
 
       begin
+        require_arguments!(tool, args)
         data = send(:"tool_#{name}", args)
       rescue Ledger::Rejected => e
         # The path and detail are carried on the error and were being dropped, so
@@ -889,6 +899,30 @@ module Mcp
     end
 
     # One structured line per tool call: shapes and outcomes, never claim text or excerpts.
+    # A refusal must describe the caller's request, never the server's internals.
+    # `get_outline` with no arguments at all answered "$.section_id no such
+    # section" — an assertion about a section the caller had not named, because a
+    # nil id was looked up and missed. A worker reads that and goes hunting for a
+    # bad id. On 2026-09-22 Meta's Muse called it twice with a `task_id` and once
+    # with nothing, and was told the same untrue thing each time.
+    #
+    # Checked against the tool's own declared `required`, so it cannot drift from
+    # the schema the caller was handed and it covers every tool as the list
+    # grows. The keys the call did carry are named too: that is what tells a
+    # caller who sent the wrong name that they sent the wrong name. Values are
+    # never echoed — a caller's argument may be untrusted text (Invariant 11).
+    def require_arguments!(tool, args)
+      required = Array(tool[:inputSchema] && (tool[:inputSchema][:required] || tool[:inputSchema]["required"])).map(&:to_s)
+      missing = required.reject { |k| args.key?(k) && args[k].to_s.strip.present? }
+      return if missing.empty?
+
+      sent = args.keys.map(&:to_s).sort
+      carried = sent.empty? ? "this call carried no arguments" : "this call carried #{sent.join(', ')}"
+      raise Ledger::Rejected.new(missing.map { |k|
+        { code: "SCHEMA_INVALID", path: "$.#{k}", detail: "#{k} is required and was not sent; #{carried}" }
+      })
+    end
+
     def log_call(name, args, started, outcome:, codes: [], detail: nil)
       # So the request metrics can name the tool rather than the controller
       # action every tool shares (Stage 40, Stage 41).
