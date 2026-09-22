@@ -403,6 +403,11 @@ module Mcp
       log_call(name, args, started, outcome: outcome_of(name, data))
       note = guidance(name, args)
       data = data.merge(guidance: note) if data.is_a?(Hash) && note
+      # A session ends and the next one starts knowing nothing, so the node says
+      # what this connection has left hanging rather than waiting to be asked.
+      # Absent entirely when there is nothing (Assistants::Waiting).
+      waiting = Assistants::Waiting.for(@token)
+      data = data.merge(waiting_on_you: waiting) if data.is_a?(Hash) && waiting
       { content: [ { type: "text", text: JSON.pretty_generate(data) } ], structuredContent: data, isError: false }
     end
 
