@@ -15,7 +15,7 @@
   <%# Only this reloads when a section is chosen. The outline beside it stays in
       the page, which is what lets it animate and what stops a menu click from
       fetching a whole document. %>
-  <%= turbo_frame_tag outline_frame, data: { turbo_action: "advance" } do %>
+  <%= turbo_frame_tag outline_frame, data: { turbo_action: "advance", controller: "reading-pane" } do %>
 <p class="meta"><%= link_to "Outlines", sections_path, data: { turbo_frame: "_top" } %><% @ancestors.each do |a| %> › <%= link_to a.heading, section_path(a), data: { turbo_frame: outline_frame } %><% end %> › <%= @section.heading %></p>
 <h1><%= @section.heading %></h1>
 <div class="card">

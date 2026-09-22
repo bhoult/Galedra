@@ -82,6 +82,28 @@ header.site nav .menu-panel a:hover { background: var(--panel-2); }
 .with-outline { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1.5rem; align-items: start; }
 @media (max-width: 56rem) { .with-outline { grid-template-columns: 1fr; } }
 aside.outline { position: sticky; top: 3.6rem; font-size: 0.82rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.7rem 0.9rem 0.7rem 3.1rem; max-height: calc(100vh - 5rem); overflow: auto; }
+/* On a narrow screen the two columns stack, and an outline the height of the
+   viewport is then the whole screen: you choose a section, the frame below
+   reloads, and the thing you chose is off the bottom with nothing to take you
+   there. Capped so the reading pane is always in sight, scrolling on its own so
+   a swipe inside it moves it rather than the page, and not sticky, because a
+   sticky panel in a single column is just a panel that will not go away.
+   A fraction of the viewport rather than a fixed height, so landscape on a
+   phone — where there is very little of it — gets a short menu too. */
+@media (max-width: 56rem) {
+  aside.outline {
+    position: static;
+    max-height: 45vh;
+    padding-left: 1.4rem;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Room for the sticky header when the reading pane is scrolled to. */
+  #outline-content { scroll-margin-top: 4.5rem; }
+  /* A heading with no spaces in it would otherwise push the page sideways, and
+     a page that scrolls sideways on a phone is the other way this is unusable. */
+  .tree a, .tree summary { overflow-wrap: anywhere; }
+}
 aside.outline h2, .tree h2 { font-size: 1rem; border: 0; margin: 0 0 0.4rem; }
 .tree ul { list-style: none; margin: 0; padding-left: 0.9rem; border-left: 1px dotted var(--line-strong); }
 .tree > ul { padding-left: 0; border-left: 0; }
