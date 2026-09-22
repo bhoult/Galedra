@@ -128,6 +128,15 @@ module Tasks
     # prose was too long by an exception has lost the prose.
     SEARCH_NOTE_MAX = 2_000
 
+    # `submit_task`'s own arguments, which sit beside `answer` rather than inside
+    # it. `searched` is the one a worker gets wrong, because coverage belongs to
+    # the answer in every sense except the schema's. On 2026-09-22 Meta's Muse
+    # put it there on its first attempt to supply a null's coverage — after 319
+    # results with none — and was told only that the section was unknown, which
+    # names the mistake and not the fix. A refusal that blocks the behaviour you
+    # are trying to encourage is worse than no refusal at all.
+    MISPLACED = %w[searched task_id outcome].freeze
+
     def submit(token, task, outcome:, answer:, searched: nil)
       ops = ops_for(task, answer)
       note = searched.to_s.strip.presence
@@ -135,11 +144,21 @@ module Tasks
       [ result, note.to_s.length > SEARCH_NOTE_MAX ]
     end
 
+    def unknown_sections(unknown)
+      message = "unknown answer sections: #{unknown.join(', ')}"
+      misplaced = unknown & MISPLACED
+      return "#{message}. The answer takes #{SECTIONS.join(', ')}." if misplaced.empty?
+
+      one = misplaced.one?
+      "#{message}. #{misplaced.to_sentence} #{one ? 'is an argument' : 'are arguments'} of submit_task itself, " \
+        "beside answer and not inside it: submit_task(task_id:, outcome:, #{misplaced.first}: \"...\", answer: { ... })."
+    end
+
     def ops_for(task, answer)
       answer = {} if answer.nil?
       raise ArgumentError, "answer must be an object with any of #{SECTIONS.join(', ')}" unless answer.is_a?(Hash)
       unknown = answer.keys.map(&:to_s) - SECTIONS
-      raise ArgumentError, "unknown answer sections: #{unknown.join(', ')}" if unknown.any?
+      raise ArgumentError, unknown_sections(unknown) if unknown.any?
 
       target = task.target_type == "CLAIM" ? task.target_id : nil
       location = task.packet.dig("context", "source_location_id")

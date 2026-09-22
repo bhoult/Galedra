@@ -228,4 +228,35 @@ RSpec.describe "A refusal says what to do instead", type: :request do
       end
     end
   end
+  # `searched` belongs to submit_task, not to its answer — coverage is part of
+  # the answer in every sense except the schema's. A worker that finally tried to
+  # supply it put it in the obvious place and was told only that the section was
+  # unknown. A refusal that blocks the behaviour you are trying to encourage is
+  # worse than no refusal (Muse, 2026-09-22, after 319 results with no coverage).
+  describe "an argument put inside the answer instead of beside it" do
+    it "says where searched actually goes" do
+      message = Tasks::Answer.send(:unknown_sections, [ "searched" ])
+
+      expect(message).to include("searched is an argument of submit_task itself")
+      expect(message).to include("beside answer and not inside it")
+      expect(message).to include("submit_task(task_id:, outcome:, searched:")
+    end
+
+    it "lists the sections an answer does take when the key is simply wrong" do
+      message = Tasks::Answer.send(:unknown_sections, [ "nonsense" ])
+
+      expect(message).to include("The answer takes")
+      Tasks::Answer::SECTIONS.each { |section| expect(message).to include(section) }
+      expect(message).not_to include("argument of submit_task")
+    end
+
+    # Every name it offers as a misplaced argument has to be one submit_task
+    # really takes, or the advice sends a worker to a second refusal.
+    it "only redirects to arguments submit_task declares" do
+      declared = Mcp::Server::TOOLS.find { |t| t[:name] == "submit_task" }
+                                   .dig(:inputSchema, :properties).keys.map(&:to_s)
+
+      expect(Tasks::Answer::MISPLACED - declared).to eq([])
+    end
+  end
 end
