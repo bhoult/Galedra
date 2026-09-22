@@ -104,7 +104,7 @@ next reader.
 | `implementation/` | stage (`planned/` → `implemented/`) | the plan, then its Decision Log |
 | `docs/experiments/` | run against something real | what was tried, what the database said, what it found, **what the watcher got wrong** |
 | `docs/profiler/` | profiling run | conditions, machine, corpus, numbers |
-| `docs/security/` | audit | findings, dismissals, what held up |
+| `docs/security/` | audit | findings, dismissals, what held up. One exception: `injection-log.md` is a standing log, appended to rather than concluded, for reports that arrived trying to be instructions |
 
 A stage's correction belongs in **that stage's own file**, in the existing
 Decision Log format. An experiment's last section is what the observer got wrong,
