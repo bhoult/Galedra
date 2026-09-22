@@ -20,6 +20,21 @@ class HelpController < ApplicationController
     @models = Scoring::Registry.released.to_a
     @model = (params[:model].present? && Scoring::Registry.find(params[:model])) || Scoring::Registry.default_model
     @config = @model&.config || {}
+    @default = Scoring::Registry.default_model
+    @notes = @models.to_h { |m| [ m.full_name, Scoring::ModelNotes.for(m, @models) ] }
+  end
+
+  # One released model, on a page of its own: what it is, what its version
+  # changed, how it differs from the one beside it, and every number it declares.
+  # There may be many of these in time, which is why they are not all one page.
+  def model
+    @models = Scoring::Registry.released.to_a
+    @model = @models.find { |m| m.full_name == params[:name] }
+    return redirect_to scoring_path, alert: "No released model by that name." if @model.nil?
+
+    @config = @model.config
+    @default = Scoring::Registry.default_model
+    @note = Scoring::ModelNotes.for(@model, @models)
   end
 
   # The OpenAPI description rendered by Swagger UI, the reference renderer. The

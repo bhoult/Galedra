@@ -9,12 +9,11 @@
 <% content_for :title, "How a score is worked out" %>
 <h1>How a score is worked out</h1>
 <p class="muted">
-  Every figure below is read from <strong><%= @model&.full_name || "no released model" %></strong> as it
+  Every figure below is read from <strong><%= @model ? model_name(@model.full_name) : "no released model" %></strong> as it
   was released, not written down on this page. A different model is a different set of numbers and a
   different answer, which is the point of saying which one produced a score.
   <% if @models.size > 1 %>
-    Other released models:
-    <%= safe_join(@models.reject { |m| m == @model }.map { |m| link_to m.full_name, scoring_path(model: m.full_name) }, ", ") %>.
+    <%= link_to "#{@models.size} models are released here", "#models" %>, and they do not always agree.
   <% end %>
 </p>
 <div class="card">
@@ -23,6 +22,48 @@
   quoted with its model and its snapshot, and why the working is on the page at all. Nothing here is a
   verdict, and none of it is settled until somebody independent has audited the work behind it.</p>
 </div>
+
+<h2 id="models">The models, and what each one is</h2>
+<p>
+  A model is a stated set of rules with a version. More than one may be released at a time, and they may
+  disagree; that is the point of naming which one produced a number. Releasing a new version never
+  changes an old one, so a score recorded under an earlier model stays reproducible exactly as it was.
+</p>
+<% @models.each do |m| %>
+  <% note = @notes[m.full_name] %>
+  <div class="card" id="model-<%= m.full_name.parameterize %>">
+    <p>
+      <strong><%= model_name(m.full_name) %></strong>
+      <%= tag.span("the default here", class: "badge") if m == @default %>
+      <%= tag.span("shown above", class: "badge") if m == @model %>
+      · <%= link_to "its own page", scoring_model_path(name: m.full_name) %><% unless m == @model %> · <%= link_to "show its numbers here", scoring_path(model: m.full_name) %><% end %>
+    </p>
+    <% if note[:purpose] %><p><%= note[:purpose] %></p><% end %>
+    <% if note[:version] %><p><strong>Version <%= m.semantic_version %>.</strong> <%= note[:version] %></p><% end %>
+    <% if note[:since]&.any? %>
+      <p class="meta">What changed from the version before it:</p>
+      <table><tr><th>Setting</th><th>Was</th><th>Now</th></tr>
+        <% note[:since].each do |what, before, after| %>
+          <tr><td><%= what %></td><td class="muted"><%= before %></td><td><%= after %></td></tr>
+        <% end %>
+      </table>
+    <% end %>
+    <% if note[:from_sibling] && note[:from_sibling][:differences].any? %>
+      <p class="meta">Where it differs from <%= link_to model_name(note[:from_sibling][:model].full_name), scoring_path(model: note[:from_sibling][:model].full_name) %>, released alongside it:</p>
+      <table><tr><th>Setting</th><th><%= model_name(note[:from_sibling][:model].full_name) %></th><th><%= model_name(m.full_name) %></th></tr>
+        <% note[:from_sibling][:differences].each do |what, theirs, ours| %>
+          <tr><td><%= what %></td><td class="muted"><%= theirs %></td><td><%= ours %></td></tr>
+        <% end %>
+      </table>
+    <% end %>
+    <p class="meta">Released at entry <%= seq_link(m.released_seq) %> · config <code><%= short_id(m.config_hash.to_s.delete_prefix("sha256:")) %></code> · code <code><%= short_id(m.code_hash.to_s.delete_prefix("sha256:")) %></code></p>
+  </div>
+<% end %>
+<p class="meta">
+  Every difference in those tables is read from the configs themselves, so it cannot describe a model
+  that does not exist. What each one is <em>for</em> is written down, because no config says why anyone
+  wanted it.
+</p>
 
 <h2>The shape of it</h2>
 <p>

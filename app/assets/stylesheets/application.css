@@ -399,3 +399,10 @@ table.working td { font-variant-numeric: tabular-nums; vertical-align: top; }
 table.working td.factors { line-height: 1.7; }
 table.working .factor { white-space: nowrap; }
 p.working-sum { font-variant-numeric: tabular-nums; }
+
+/* Which model's answer this reader sees (header). Small, quiet, and out of the
+   way: it is a preference, not a control anyone needs to find. */
+header.site .model-picker { display: inline-flex; align-items: center; margin: 0; }
+header.site .model-picker select { font-size: 0.8rem; padding: 0.1rem 0.3rem; max-width: 12rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 40rem) { header.site .model-picker select { max-width: 8rem; } }

@@ -27,6 +27,46 @@ RSpec.describe "How a score is worked out", type: :request do
     expect(body).to include(model.config["prior"]["CAUSAL"])
   end
 
+  it "describes every released model, and what each version changed" do
+    get "/scoring"
+    body = response.body
+    models = Scoring::Registry.released.to_a
+    expect(models.size).to be >= 2
+
+    models.each do |m|
+      expect(body).to include(%(id="model-#{m.full_name.parameterize}")), "#{m.full_name} is not described"
+      expect(body).to include(m.released_seq.to_s)
+    end
+    # What a model is for is prose; what differs is computed from the configs.
+    expect(body).to include("The everyday model")
+    expect(body).to include("The cautious counterpart")
+    expect(body).to include("claim types it scores")
+  end
+
+  # A weight table that differs in one entry is reported as that one entry.
+  # Printing both tables whole is how a difference hides inside forty numbers
+  # that are the same.
+  it "reports a difference inside a table as the entry that differs" do
+    default = Scoring::Registry.find("ledger-default@0.1.0")
+    strict = Scoring::Registry.find("ledger-strict@0.1.0")
+    notes = Scoring::ModelNotes.for(default, [ default, strict ])
+
+    differing = notes[:from_sibling][:differences]
+    expect(differing.map(&:first)).to include("observation weight: expert analysis")
+    expect(differing.find { |what,| what == "observation weight: expert analysis" }).to eq([ "observation weight: expert analysis", "0.0", "0.3" ])
+    # And not the whole table.
+    expect(differing.map(&:last).join).not_to include("measurement 1.0")
+  end
+
+  # `ledger-default@0.1.0` looks enough like an email address that Cloudflare
+  # rewrote it to "[email protected]" in the tunnel, while the app served it
+  # correctly. Every model name on this page carries the opt-out.
+  it "keeps a model name from being mistaken for an email address" do
+    get "/scoring"
+    expect(response.body).to include("<!--email_off-->")
+    expect(response.body).to include("ledger-default@")
+  end
+
   it "says what a score is not, before saying what it is" do
     get "/scoring"
     expect(response.body).to include("not a measure of truth")

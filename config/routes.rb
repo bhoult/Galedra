@@ -7,8 +7,12 @@ Rails.application.routes.draw do
   get "about", to: "help#about"
   get "licenses", to: "help#licenses"
   get "glossary", to: "help#glossary"
-  # What every number in a calculation means, read from the released model.
+  # What every number in a calculation means, read from the released model, and
+  # a page of its own for each released model — there may be many.
   get "scoring", to: "help#scoring"
+  get "scoring/models/:name", to: "help#model", as: :scoring_model, constraints: { name: %r{[^/]+} }
+  # A reader's preferred model, remembered. A preference, not a claim.
+  post "preferences/model", to: "preferences#model", as: :model_preference
   get "contact", to: "help#contact"
   # Admin (Stage 24): a website role, never a ledger one.
   namespace :admin do

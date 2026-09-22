@@ -1,0 +1,87 @@
+<%# One model, in full. The general explanation of what each factor means lives
+    on /scoring and is not repeated here; this page is what *this* model says. %>
+<% content_for :title, @model.full_name %>
+<p class="meta"><%= link_to "How a score is worked out", scoring_path %> › <%= model_name(@model.full_name) %></p>
+<h1><%= model_name(@model.full_name) %></h1>
+<p class="muted">
+  <%= @note[:purpose] %>
+  <% if @model == @default %><strong>This is the model this node answers with when a link names none.</strong><% end %>
+</p>
+<div class="card">
+  <p><strong>Version <%= @model.semantic_version %>.</strong> <%= @note[:version] %></p>
+  <p class="meta">
+    Released at entry <%= seq_link(@model.released_seq) %> ·
+    config <code><%= @model.config_hash %></code> ·
+    code <code><%= @model.code_hash %></code>
+  </p>
+  <p class="meta">
+    A released model never changes. Those two hashes are recorded in every score it produced, so any
+    number it has ever given can be reproduced exactly, by this node or by anyone else.
+  </p>
+</div>
+
+<% if @note[:since]&.any? %>
+  <h2>What this version changed</h2>
+  <table><tr><th>Setting</th><th>Was</th><th>Now</th></tr>
+    <% @note[:since].each do |what, before, after| %>
+      <tr><td><%= what %></td><td class="muted"><%= before %></td><td><%= after %></td></tr>
+    <% end %>
+  </table>
+<% end %>
+
+<% if @note[:from_sibling] && @note[:from_sibling][:differences].any? %>
+  <h2>Where it differs from <%= link_to model_name(@note[:from_sibling][:model].full_name), scoring_model_path(name: @note[:from_sibling][:model].full_name) %></h2>
+  <p class="muted">Released alongside it, from the same code, with different settings.</p>
+  <table><tr><th>Setting</th><th><%= model_name(@note[:from_sibling][:model].full_name) %></th><th><%= model_name(@model.full_name) %></th></tr>
+    <% @note[:from_sibling][:differences].each do |what, theirs, ours| %>
+      <tr><td><%= what %></td><td class="muted"><%= theirs %></td><td><%= ours %></td></tr>
+    <% end %>
+  </table>
+<% end %>
+
+<h2>What it scores, and what it declines to</h2>
+<p>
+  Scored: <%= (@config["scored_types"] || []).map { |t| t.tr("_", " ").downcase }.to_sentence %>.
+</p>
+<p>
+  Every other claim type gets <strong>not applicable</strong> from this model and no probability at all —
+  a refusal to score, not a score of nought.
+  <% if (@config["model_dependent_types"] || []).any? %>
+    It marks <%= @config["model_dependent_types"].map { |t| t.tr("_", " ").downcase }.to_sentence %> as
+    model-dependent, which says on the page that another model may reasonably disagree.
+  <% end %>
+</p>
+
+<h2>Every number it declares</h2>
+<p class="muted">
+  What each of these means, and why it is there, is on
+  <%= link_to "how a score is worked out", scoring_path(model: @model.full_name) %>.
+</p>
+<% { "prior" => "Prior by claim type", "relevance_weight" => "Relevance", "observation_weight" => "Observation",
+     "authenticity_factor" => "Authenticity", "extraction_factor" => "Extraction",
+     "provenance_factor" => "Provenance", "state_thresholds" => "State thresholds" }.each do |key, title| %>
+  <% values = @config[key] %>
+  <% next if values.blank? %>
+  <h3><%= title %></h3>
+  <table><tr><th>Setting</th><th>Value</th></tr>
+    <% values.each do |name, value| %>
+      <tr><td><%= name.to_s.tr("_", " ").downcase %></td><td><%= value %></td></tr>
+    <% end %>
+  </table>
+<% end %>
+<h3>The rest</h3>
+<table><tr><th>Setting</th><th>Value</th></tr>
+  <tr><td>interpretive step penalty</td><td><%= @config["interpretive_step_penalty"] %></td></tr>
+  <tr><td>independence</td><td><%= @config["independence_strategy"].to_s.tr("_", " ") %><%= ", ungrouped evidence keyed by #{@config['independence_fallback']}" if @config["independence_fallback"] %></td></tr>
+  <% if @config["edition_rule"] %><tr><td>editions of a source</td><td><%= @config["edition_rule"].tr("_", " ") %></td></tr><% end %>
+  <tr><td>rounding</td><td><%= (@config["rounding"] || {}).map { |k, v| "#{k.tr('_', ' ')} #{v}" }.join(", ") %></td></tr>
+  <tr><td>review checks</td><td><%= (@config["review_checklist"] || []).map { |c| c.tr("_", " ") }.join(", ") %></td></tr>
+  <tr><td>primary source types</td><td><%= (@config["primary_source_types"] || []).map { |t| t.tr("_", " ").downcase }.join(", ") %></td></tr>
+</table>
+
+<h2>Other released models</h2>
+<ul>
+  <% @models.reject { |m| m == @model }.each do |m| %>
+    <li><%= link_to model_name(m.full_name), scoring_model_path(name: m.full_name) %><%= tag.span(" the default here", class: "muted") if m == @default %></li>
+  <% end %>
+</ul>

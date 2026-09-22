@@ -30,6 +30,17 @@ module DisplayHelper
     Cards::Headline.reason_text(reason)
   end
 
+  # `ledger-default@0.1.0` looks enough like an email address that Cloudflare's
+  # obfuscation rewrites it to "[email protected]" in the tunnel, which makes
+  # every model name on the page unreadable while the app serves it correctly.
+  # The markers below are Cloudflare's own opt-out and are an ordinary HTML
+  # comment to everything else.
+  def model_name(name)
+    return "" if name.blank?
+
+    safe_join([ raw("<!--email_off-->"), name.to_s, raw("<!--/email_off-->") ]) # rubocop:disable Rails/OutputSafety
+  end
+
   def seq_link(seq)
     link_to "seq #{seq}", contributions_path(after_seq: seq - 1, limit: 1)
   end

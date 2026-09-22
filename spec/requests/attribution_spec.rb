@@ -87,7 +87,13 @@ RSpec.describe "Who initiated a piece of work", type: :request do
 
   # The gather asks each table once for the whole set. One query per claim is the
   # defect this codebase keeps producing (CLAUDE.md), so the number is pinned
-  # here: 18 statements for 24 claims, and the same 18 for eight of them.
+  # here: 20 statements for 24 claims, and the same 20 for eight of them.
+  #
+  # Raised from 18 on 2026-09-22, deliberately: the header now carries a model
+  # picker on every page, which costs one statement for the released models and
+  # one for the node's default. Two for a control on every page is a real price
+  # and it is recorded here rather than absorbed — if it grows again, something
+  # is wrong with the header, not with this page.
   it "counts the whole set in a bounded number of statements" do
     pair, = register_key(display_name: "Curator")
     source = create_source(pair, title: "A report")
@@ -101,7 +107,7 @@ RSpec.describe "Who initiated a piece of work", type: :request do
     counter = ->(*, payload) { n += 1 unless payload[:name].to_s == "SCHEMA" || payload[:sql].to_s.start_with?("BEGIN", "COMMIT") }
     ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get "/investigations/#{investigation.id}/contributors" }
     expect(response).to have_http_status(:ok)
-    expect(n).to be <= 18, "#{n} statements for #{claims.size} claims"
+    expect(n).to be <= 20, "#{n} statements for #{claims.size} claims"
   end
 
   # One partial, so the two pages cannot drift into saying different things about

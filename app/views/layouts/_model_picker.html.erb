@@ -1,0 +1,24 @@
+<%# Which model's answer this reader sees, chosen once rather than appended to
+    every link (owner, 2026-09-22).
+
+    A preference and nothing more: it changes which stated set of rules a page
+    reports, never what is recorded. `?model=` on a link still wins, so a shared
+    link shows the same answer to whoever opens it — a preference that rewrote
+    somebody else's link would have two readers of one URL seeing two numbers
+    with nothing saying why.
+
+    A plain form that submits on change, so it works without JavaScript. %>
+<% models = released_models.to_a %>
+<% if models.size > 1 %>
+  <%= form_with url: model_preference_path, method: :post, class: "model-picker", data: { turbo: false } do |f| %>
+    <label>
+      <span class="visually-hidden">Your preferred scoring model</span>
+      <%= f.select :preferred_model,
+                   options_for_select(models.map { |m| [ m.full_name, m.full_name ] }, selected_model&.full_name),
+                   { include_blank: "the node's default" },
+                   onchange: "this.form.requestSubmit()",
+                   title: "Your preferred model: which one answers when a link does not name one. A link that names a model still wins." %>
+    </label>
+    <noscript><%= f.submit "Use", class: "secondary small" %></noscript>
+  <% end %>
+<% end %>
