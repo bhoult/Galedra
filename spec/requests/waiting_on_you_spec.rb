@@ -70,6 +70,22 @@ RSpec.describe "Telling a connection what it left hanging", type: :request do
     expect(response.parsed_body.dig("result", "structuredContent", "waiting_on_you", "answered")).to eq([ report.id ])
   end
 
+  # An anonymous token is keyed by address and date, so it is shared by everyone
+  # behind one address that day. Pushing report ids at it would hand one caller
+  # another's filings unasked.
+  it "tells an anonymous caller nothing, because its token is not a person" do
+    anonymous = Assistants::Connect.for_source("198.51.100.7")
+    report = BugReport.record!(happened: "Filed anonymously", expected: "otherwise", token: anonymous).first
+    report.answer!(body: "Answered.", user: maintainer)
+
+    post "/mcp", params: { jsonrpc: "2.0", id: 3, method: "tools/call",
+                           params: { name: "list_topics", arguments: {} } }.to_json,
+                 headers: { "CONTENT_TYPE" => "application/json" }
+
+    expect(response.parsed_body.dig("result", "structuredContent")).not_to have_key("waiting_on_you")
+    expect(Assistants::Waiting.for(anonymous)).to be_nil
+  end
+
   it "never shows one filer another's reports" do
     mine = BugReport.record!(happened: "Mine", expected: "otherwise", token: token).first
     other_user = User.create!(email_address: "other@example.com", password: "correct horse battery staple")

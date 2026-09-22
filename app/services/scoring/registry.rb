@@ -4,6 +4,26 @@ module Scoring
   # Released scoring models (spec 02 §3.5, 05 §14): config validation, the
   # code hash over the scorer source, and lookup of released models.
   module Registry
+    # The files that decide a number. `code_hash` is recorded in every trace as
+    # a statement about what produced it, so a file that cannot change a score
+    # must not change the hash: today's diff added cache keying (`watermark.rb`)
+    # and help-page prose (`model_notes.rb`) under this glob, either of which
+    # would have forked one released model's identity between a node that
+    # released it before the commit and one that released it after — same
+    # config hash, different code hash, both publishing it over the API
+    # (code review, 2026-09-22).
+    #
+    # Named rather than globbed for that reason: adding a file here is now a
+    # decision about model identity, which is what it always was.
+    CODE_FILES = %w[
+      app/services/scoring/calculate.rb
+      app/services/scoring/build_input.rb
+      app/services/scoring/decimal.rb
+      app/services/scoring/trace.rb
+      app/services/scoring/checklist.rb
+      app/services/scoring/stability.rb
+      app/services/scoring/affected.rb
+    ].freeze
     CODE_GLOB = "app/services/scoring/**/*.rb"
     CONFIG_DIR = "config/scoring"
     P0_TASK_TYPES = %w[CLAIM_EXTRACTION EVIDENCE_VERIFICATION OPPOSING_EVIDENCE_SEARCH SOURCE_INDEPENDENCE_CHECK QUALIFIER_CHECK].freeze
@@ -19,8 +39,8 @@ module Scoring
     module_function
 
     def code_hash
-      files = Dir.glob(Rails.root.join(CODE_GLOB)).sort
-      Crypto::Hashing.bytes(files.map { |f| "#{Pathname(f).relative_path_from(Rails.root)}\n#{File.read(f)}" }.join("\n"))
+      files = CODE_FILES.select { |f| File.exist?(Rails.root.join(f)) }.sort
+      Crypto::Hashing.bytes(files.map { |f| "#{f}\n#{File.read(Rails.root.join(f))}" }.join("\n"))
     end
 
     def config_files

@@ -42,7 +42,7 @@ RSpec.describe "A claim that names the edition it is about" do
       location = create_location(pair, now_version, start: from, finish: to)
       link_evidence(pair, create_evidence(pair, location), claim, direction: "CONTRADICT", strength: strength)
     end
-    { claim: claim, then_version: then_version, now_version: now_version, later: later }
+    { claim: claim, pair: pair, then_version: then_version, now_version: now_version, later: later }
   end
 
   it "counts the later readings under 0.2.0 and not under 0.3.0" do
@@ -74,6 +74,23 @@ RSpec.describe "A claim that names the edition it is about" do
     expect(result.trace["links"].size).to eq(3)
   end
 
+  # A qualifier weighs nothing because of its direction, whatever edition it
+  # came from, and two readers downstream match on that exact reason.
+  it "calls a qualifier non-directional, not another edition" do
+    g = graph
+    pair = g[:pair]
+    location = create_location(pair, g[:now_version], start: 5, finish: 25)
+    link_evidence(pair, create_evidence(pair, location, statement: "A qualifying reading."), g[:claim],
+                  direction: "QUALIFY", strength: "STRONG")
+    seq = Contribution.maximum(:seq)
+
+    trace = Scoring::Score.call(Claim.find(g[:claim].id), seq, v3).trace
+    qualifier = trace["links"].find { |l| l["direction"] == "QUALIFY" }
+
+    expect(qualifier["reason"]).to eq(Scoring::Calculate::NON_DIRECTIONAL)
+    expect(qualifier["edition"]).to eq("OTHER"), "it is still recorded as another edition"
+  end
+
   it "leaves a claim that names no edition exactly as it was" do
     pair, = register_key
     source = create_source(pair, title: "A source", type: "WEBSITE")
@@ -98,6 +115,49 @@ RSpec.describe "A claim that names the edition it is about" do
 
     expect(trace["links"].map { |l| l["edition"] }.compact).to be_empty
     expect(trace["links"].map { |l| l["reason"] }).not_to include(Scoring::Calculate::OTHER_EDITION)
+  end
+
+  # The rule was released and could not fire: `qualifiers` was stored verbatim,
+  # so a bundle naming a source by handle saved the handle where an id belongs;
+  # no MCP tool exposed the field at all; and nothing set a lineage. The spec
+  # above built its sources by calling create_source directly, which no
+  # production path does — a green test that did not imply a working feature
+  # (code review, 2026-09-22). This one goes through the write path a person
+  # actually uses.
+  it "fires for a check recorded the ordinary way" do
+    user = User.create!(email_address: "recorder@example.com", password: "correct horse battery staple")
+    token = AssistantToken.find_by_token(Assistants::Connect.call(user: user, name: "Claude", provider: "anthropic").last)
+    read_at = Time.now.utc.iso8601
+
+    out = Investigations::Record.call(token, {
+      "statement" => "What the announcement said when it was published.",
+      "sources" => [
+        { "handle" => "then", "type" => "WEBSITE", "title" => "The announcement, as published",
+          "url" => "https://example.invalid/announcement", "retrieved_at" => read_at },
+        { "handle" => "now", "type" => "WEBSITE", "title" => "The announcement, revised",
+          "url" => "https://example.invalid/announcement", "retrieved_at" => read_at, "edition_of" => "then" }
+      ],
+      "excerpts" => [ { "handle" => "x", "source" => "now", "text" => "The revised wording, read later." } ],
+      "claims" => [ { "handle" => "c", "text" => "The announcement carried a disclaimer when it was published.",
+                      "type" => "TEXTUAL", "qualifiers" => { "source_edition" => "then" } } ],
+      "evidence" => [ { "handle" => "e", "excerpt" => "x", "statement" => "The revised page does not carry it.",
+                        "observation_type" => "DIRECT_TEXT" } ],
+      "links" => [ { "evidence" => "e", "claim" => "c", "direction" => "CONTRADICT", "strength" => "DIRECT", "steps" => 0 } ]
+    }, base_url: "http://www.example.com")
+    expect(out[:recorded]).to be(true)
+
+    claim = Claim.order(:created_seq).last
+    # The handle became an id, and the id is a source that exists.
+    edition = claim.qualifiers["source_edition"]
+    expect(edition).to match(/\A\h{8}-/), "the handle was stored instead of an id"
+    expect(Source.find_by(id: edition)).to be_present
+    # The later reading is a version of it, so the rule has a lineage to find.
+    later = Source.find_by(previous_version_id: edition)
+    expect(later).to be_present
+
+    seq = Contribution.maximum(:seq)
+    expect(Scoring::Score.call(Claim.find(claim.id), seq, v3).contradict_groups).to be_zero
+    expect(Scoring::Score.call(Claim.find(claim.id), seq, v2).contradict_groups).to eq(1)
   end
 
   it "ships byte-identical copies of the spec's 0.3.0 configs" do

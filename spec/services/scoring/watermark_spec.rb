@@ -6,7 +6,10 @@ require "rails_helper"
 # can change a score without moving the mark would serve a stale score as
 # current, silently and for as long as nobody wrote to the claim again.
 #
-# So every member is mutated here in turn, and the mark has to move. Where a
+# So every member is mutated here in turn, and the mark has to move. "Every
+# member" is a claim this file has to keep earning: it once said so while never
+# exercising an ACCEPT, an audit, or the evidence-item path, and four gaps
+# shipped behind it. Where a
 # spec would pass by accident if the mark simply never moved, the score is
 # compared against the same claim scored with the cache emptied at the head,
 # which is what the old code did.
@@ -122,6 +125,54 @@ RSpec.describe Scoring::Watermark do
       before = mark(s[:claim])
       create_edge(s[:pair], s[:claim], other)
       expect_moved(s[:claim], before, "drawing an edge")
+    end
+
+    # The accept, not just the write. Every epistemic entry is followed by an
+    # ACCEPT, and it is the accept that makes a placement or a link count — the
+    # code names accepting a placement as "what caught this", and no example
+    # here exercised an ACCEPT at all until the review said so (2026-09-22).
+    it "moves when the entry that makes something count is accepted" do
+      s = scaffold
+      # An agent without direct_work proposes; nothing counts until a principal
+      # accepts, and it is the accept that changes the score.
+      accepter, = register_reviewer(display_name: "Somebody else")
+      _principal_pair, agent_pair, agent, delegation = principal_with_agent(permissions: {
+        "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains, "direct_work" => false
+      })
+      expect(agent).to be_agent
+      evidence = create_evidence(agent_pair, s[:location], statement: "A reading proposed, not yet accepted.", delegation: delegation)
+      link = link_evidence(agent_pair, evidence, s[:claim], delegation: delegation)
+      before = mark(s[:claim])
+
+      # By somebody else: a principal may not accept its own work (Invariant 9).
+      accept(accepter, link.contribution)
+      expect_moved(s[:claim], before, "accepting a proposed link")
+    end
+
+    # An audit is not a projection row — `projection_rows` on an AUDIT
+    # contribution is empty — so anything that reaches a claim only through an
+    # audit row has to be resolved deliberately (code review, 2026-09-22).
+    it "moves when an audit of its evidence is overturned by a later one" do
+      s = scaffold
+      auditor, = register_reviewer
+      second, = register_reviewer(display_name: "Second reviewer")
+      audit(auditor, s[:link].contribution, result: "CONFIRMED")
+      before = mark(s[:claim])
+
+      audit(second, s[:link].contribution, result: "UNRESOLVED")
+      expect_moved(s[:claim], before, "overturning an audit")
+    end
+
+    # Two claims linked through one evidence item share an audit's fate, so what
+    # confirms it for one confirms it for the other.
+    it "moves a claim entangled through a shared evidence item" do
+      s = scaffold
+      neighbour = create_claim(s[:pair], "Another claim resting on the same evidence.")
+      link_evidence(s[:pair], s[:evidence], neighbour)
+      before = mark(neighbour)
+
+      create_edge(s[:pair], s[:claim], create_claim(s[:pair], "Something the first claim narrows."))
+      expect(mark(neighbour)).to be > before, "an edge changing an audit's requirements left the neighbour unmarked"
     end
 
     # A revocation can challenge any link the key signed, and there is no row to

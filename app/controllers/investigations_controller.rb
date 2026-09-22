@@ -84,10 +84,15 @@ class InvestigationsController < ApplicationController
     @investigation = Investigation.find(params[:id])
     return redirect_to contributors_section_path(@investigation.section_id) if @investigation.outline?
 
+    # Quarantined claims are excluded here as they are everywhere else. Without
+    # it this page walked a withheld claim's whole evidence chain and published,
+    # to anonymous visitors, every key that wrote it — a stub at the claim's own
+    # URL and a side door here (Invariant 12, spec 05 §13; code review).
     @subject = @investigation.title
     @back = investigation_path(@investigation)
     @back_label = "the check"
-    @parties = Attribution::Participants.for_claims(@investigation.claim_ids)
+    visible = @investigation.claim_ids - Governance::Quarantines.quarantined_claim_ids
+    @parties = Attribution::Participants.for_claims(visible)
     render "shared/participants"
   end
 

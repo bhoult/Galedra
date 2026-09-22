@@ -48,6 +48,28 @@ filed 65 minutes earlier, in a session that no longer existed, and closed it:
 not proven** — the reasoning is not visible from this side, and it may have gone back on its
 own. The sequence fits, and it is the behaviour this was built to produce.
 
+## How it closed
+
+**What was resolved.** A connected assistant now learns, unprompted, what it has left
+hanging: which of its reports have been answered and want a reply, which are held against
+work a maintainer agreed to, and how many are filed and still unanswered. Before this, a
+session that ended took its filings with it — the node always knew who it was talking to,
+and never said.
+
+**How.** `Assistants::Waiting.for(token)` builds the notice and `Mcp::Server` attaches it to
+every result as `waiting_on_you`, beside `Guidance`, so it reaches a live session on its next
+call rather than at the next reconnection. It follows `AssistantToken#filer_token_ids` to the
+principal, which is why a later session finds an earlier one's reports; it returns `nil` for
+an anonymous token, because `Assistants::Connect.for_source` keys one by
+`sha256(address|date)` and everybody behind an address shares it for the day. Two statements
+per call, both on an indexed column, and only when there is something to say.
+
+**Where the guard lives.** `spec/requests/waiting_on_you_spec.rb`, six examples: nothing when
+there is nothing; answered reports named wherever the answer was given; held work separated
+from an answer wanting a reply; the principal followed across sessions; **an anonymous caller
+told nothing**; and one filer never shown another's reports. The last two fail against a
+version that scopes by token alone.
+
 ## What remains
 
 - **Threads are not included.** A determination thread waiting on this principal's vote is

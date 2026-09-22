@@ -68,10 +68,17 @@ module Scoring
       kept = select_strongest(weighted)
       kept_ids = kept.values.map { |w| w[:link]["id"] }
       links_trace = weighted.map do |w|
-        if w[:other_edition]
-          link_trace(w, effective: BigDecimal(0), reason: OTHER_EDITION)
-        elsif w[:sign].zero?
+        # Direction first. A QUALIFY or NEUTRAL link weighs nothing because of
+        # its direction, whatever edition it came from, and `non_directional` is
+        # the reason two readers downstream match on — `Summaries::Input` picks
+        # the summary's qualifier list by it, and `Cards::Why` its suppressed
+        # list. Stamping such a link `other_edition` dropped a material
+        # qualifier out of the summary entirely, with nothing in its place
+        # (code review, 2026-09-22).
+        if w[:sign].zero?
           link_trace(w, effective: BigDecimal(0), reason: NON_DIRECTIONAL)
+        elsif w[:other_edition]
+          link_trace(w, effective: BigDecimal(0), reason: OTHER_EDITION)
         elsif kept_ids.include?(w[:link]["id"])
           link_trace(w, effective: w[:magnitude], reason: nil)
         else

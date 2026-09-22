@@ -7,6 +7,30 @@ RSpec.describe Scoring::Registry do
     expect(File.binread(Rails.root.join("config/scoring/ledger-strict-0.1.0.json"))).to eq(File.binread(spec_dir.join("scoring-config-strict-v0.1.json")))
   end
 
+  # `code_hash` is a statement, recorded in every trace, about what produced it.
+  # A file that cannot change a number must not change it: when it was globbed
+  # over the whole directory, adding cache keying or help-page prose forked one
+  # released model's identity between a node that released it before the change
+  # and one that released it after — matching config hash, differing code hash,
+  # both publishing it over the API (code review, 2026-09-22).
+  it "hashes only the files that decide a number" do
+    listed = Scoring::Registry::CODE_FILES
+    expect(listed).to include("app/services/scoring/calculate.rb", "app/services/scoring/build_input.rb")
+    listed.each { |f| expect(Rails.root.join(f)).to exist, "#{f} is hashed and does not exist" }
+
+    # The ones that decide nothing, and why each is out: keying, retention,
+    # caching, prose, orchestration, display, loading.
+    %w[watermark prune pass model_notes score compare registry].each do |name|
+      expect(listed).not_to include("app/services/scoring/#{name}.rb"), "#{name}.rb does not decide a number"
+    end
+
+    # Changing one of them really does change the hash.
+    before = Scoring::Registry.code_hash
+    allow(File).to receive(:read).and_call_original
+    allow(File).to receive(:read).with(Rails.root.join("app/services/scoring/calculate.rb")).and_return("# changed")
+    expect(Scoring::Registry.code_hash).not_to eq(before)
+  end
+
   it "accepts both P0 configs" do
     expect(described_class.validate!(default_config)).to be_a(Hash)
     expect(described_class.validate!(strict_config)).to be_a(Hash)

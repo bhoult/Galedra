@@ -90,8 +90,15 @@ module Investigations
       end
 
       bundle.fetch("sources", []).each do |s|
+        # `edition_of` names an earlier source in this bundle, or an id already
+        # recorded: that is what makes two readings of one document versions of
+        # each other rather than unrelated sources, and without it the 0.3.0
+        # edition rule has no lineage to find (code review, 2026-09-22).
+        previous = s["edition_of"].presence && (ids[s["edition_of"]] || s["edition_of"])
         payload = { "source_type" => s["type"], "title" => s["title"], "canonical_uri" => s["url"], "content_hash" => s["content_hash"],
-                    "retrieved_at" => s["retrieved_at"], "publisher" => s["publisher"], "creator" => s["creator"], "publication_date" => s["publication_date"] }.compact
+                    "retrieved_at" => s["retrieved_at"], "publisher" => s["publisher"], "creator" => s["creator"],
+                    "publication_date" => s["publication_date"], "previous_version_id" => previous,
+                    "lineage_key" => s["lineage_key"].presence || (previous && Source.find_by(id: previous)&.lineage_key) }.compact
         write.call("CREATE_SOURCE", payload, s["handle"], "source", Source)
       end
       bundle.fetch("excerpts", []).each do |e|
@@ -107,7 +114,15 @@ module Investigations
           end
           next
         end
-        payload = { "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => c.fetch("qualifiers", {}) }
+        # A claim may say which edition of a source it is about. The value is a
+        # handle from this bundle or an id already recorded; it was stored
+        # verbatim, so a handle was saved where an id belongs and the rule never
+        # fired (code review, 2026-09-22).
+        qualifiers = c.fetch("qualifiers", {}).dup
+        if qualifiers["source_edition"].present?
+          qualifiers["source_edition"] = ids[qualifiers["source_edition"]] || qualifiers["source_edition"]
+        end
+        payload = { "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => qualifiers }
         payload["section_id"] = c["section"] if c["section"].present?
         write.call("CREATE_CLAIM", payload, c["handle"], "claim", Claim)
         topics = Array(c["topics"]).reject(&:blank?)

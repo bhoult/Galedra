@@ -51,12 +51,32 @@ module Scoring
 
     def quarantined_sources(seq) = store(seq)&.fetch(:quarantined_sources)
 
+    # nil, not [], for a key the pass does not hold. [] is a definite answer —
+    # "this entry has no audits" — and returning it for something merely absent
+    # from the bulk load skips the database fallback and reports a link
+    # unaudited, unchallenged and un-revoked: a value that was never true at any
+    # seq (code review, 2026-09-22).
+    #
+    # The pass is built from the links effective at the seq it was built at,
+    # while `down_to` lets it answer for the earlier seq a claim is scored at.
+    # A link effective then and superseded since is absent from the map, and it
+    # is exactly the case these two got wrong. `quarantined_sources` above has
+    # always returned nil for the same reason.
+    # A pass that loaded a key answers for it, with [] meaning "none" — that is
+    # the batching win and it stays. A key it never loaded gets nil, so the
+    # caller asks the database.
     def audits_for(contribution_id, seq)
-      store(seq)&.fetch(:audits_by_target)&.fetch(contribution_id, [])
+      answer(store(seq), :audit_targets, :audits_by_target, contribution_id)
     end
 
     def revocations_for(key_id, seq)
-      store(seq)&.fetch(:revocations_by_key)&.fetch(key_id, [])
+      answer(store(seq), :revocation_keys, :revocations_by_key, key_id)
+    end
+
+    def answer(store, covered, map, key)
+      return nil if store.nil? || !store.fetch(covered).include?(key)
+
+      store.fetch(map).fetch(key, [])
     end
 
     def build(claims, seq)
@@ -70,13 +90,20 @@ module Scoring
       {
         seq: seq,
         quarantined_sources: Quarantine.active_at(seq).where(target_type: "SOURCE", target_id: sources).pluck(:target_id).to_set,
+        # What was loaded, so "absent from the map" can be told from "has none".
+        # Without this the pass answered [] for a link it never loaded — one
+        # effective at the seq a claim is scored at but superseded by the seq the
+        # pass was built at — and reported it unaudited (code review).
+        audit_targets: contributions.map(&:id).to_set,
+        revocation_keys: contributions.filter_map(&:signer_key_id).uniq.to_set,
         audits_by_target: audits(contributions.map(&:id), seq),
         revocations_by_key: revocations(contributions.filter_map(&:signer_key_id).uniq, seq)
       }
     end
 
     def empty(seq)
-      { seq: seq, quarantined_sources: Set.new, audits_by_target: {}, revocations_by_key: {} }
+      { seq: seq, quarantined_sources: Set.new, audit_targets: Set.new, revocation_keys: Set.new,
+        audits_by_target: {}, revocations_by_key: {} }
     end
 
     # Ordered newest first, as `challenge_seq_for` and `latest_audit` read them.

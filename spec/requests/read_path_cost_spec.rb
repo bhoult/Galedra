@@ -16,6 +16,11 @@ require "rails_helper"
 #   outline index      44 -> 19
 #   weaknesses        141 -> 88, and 586 -> 98 once the corpus doubled
 #
+# The budgets sit just above those numbers, not at double them. A budget of 60
+# against a measured 26 lets the page regress to twice its cost and still pass,
+# which is a budget that buys nothing (code review, 2026-09-22). Raise one
+# deliberately, with the reason, when a change earns it.
+#
 # The last pair is the one that matters: the old page paid for every claim in
 # the corpus, the new one pays for the rows it shows.
 RSpec.describe "What a read path costs", type: :request do
@@ -69,7 +74,7 @@ RSpec.describe "What a read path costs", type: :request do
 
     n = statements { get "/sections/#{root.id}" }
     expect(response.body).to eq(before), "the page must render identically; this stage changes when rows are fetched, never what is shown"
-    expect(n).to be <= 60, "#{n} statements for one outline page"
+    expect(n).to be <= 32, "#{n} statements for one outline page"
   end
 
   it "renders the outline index in a bounded number of statements" do
@@ -78,7 +83,7 @@ RSpec.describe "What a read path costs", type: :request do
     get "/sections"
     n = statements { get "/sections" }
     expect(response).to have_http_status(:ok)
-    expect(n).to be <= 60, "#{n} statements for the outline index"
+    expect(n).to be <= 24, "#{n} statements for the outline index"
   end
 
   # This one is not bounded by a constant, and should not be: the page builds
@@ -98,7 +103,7 @@ RSpec.describe "What a read path costs", type: :request do
     second = statements { get "/weaknesses?limit=5" }
 
     expect(second).to be <= first + 10, "#{first} statements became #{second} when the corpus doubled"
-    expect(second).to be <= 130, "#{second} statements for five rows a kind"
+    expect(second).to be <= 110, "#{second} statements for five rows a kind"
   end
 
   # The one that was linear in the log rather than in the page: every append

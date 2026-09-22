@@ -11,21 +11,34 @@ RSpec.describe "A refusal says what to do instead", type: :request do
   # Every tool named in a remedy has to exist, or the advice is worse than none.
   def tool_names = Mcp::Server::TOOLS.map { |t| t[:name] }
 
+  # Words in a remedy that are not tools and are not meant to be. Anything else
+  # snake_cased in those strings must name a real tool.
+  NOT_TOOLS = %w[allowed_ops link_id source_location_id].freeze
+
   it "names tools that are in the registry" do
     named = [ Ledger::Appliers::TaskResult::REMEDY_FOR_LINK, Ledger::Appliers::TaskResult::REMEDY_FOR_OP ]
-            .flat_map { |text| text.scan(/\b([a-z_]+(?:_[a-z]+)+)\b/).flatten }
-            .uniq
-            .select { |word| word.include?("_") }
+            .flat_map { |text| text.scan(/\b([a-z]+(?:_[a-z]+)+)\b/).flatten }
+            .uniq - NOT_TOOLS
 
-    # The words that look like tool names must be tool names. A remedy pointing
-    # at something that does not exist is the failure this guards.
-    plausible = named.grep_v(/^(allowed_ops|link_id|open_thread_task)$/)
-    unknown = plausible.reject { |word| tool_names.include?(word) || !tool_names.any? { |t| t.start_with?(word[0, 4]) } }
+    # Every candidate must be a tool. The earlier version of this let a wholly
+    # invented name through — it dropped any word no real tool shared four
+    # opening characters with, so it could only ever catch a near-miss typo and
+    # never the failure its own comment claims (code review, 2026-09-22).
+    expect(named).not_to be_empty
+    unknown = named.reject { |word| tool_names.include?(word) }
     expect(unknown).to eq([]), "remedies name #{unknown.join(', ')}, which are not tools"
 
     expect(Ledger::Appliers::TaskResult::REMEDY_FOR_LINK).to include("revise_link").and include("open_thread")
     expect(Ledger::Appliers::TaskResult::REMEDY_FOR_OP).to include("record_investigation").and include("add_evidence")
     expect(tool_names).to include("revise_link", "open_thread", "record_investigation", "add_evidence")
+  end
+
+  # The guard above, checked against a name nobody has ever shipped.
+  it "would catch a remedy naming a tool that does not exist" do
+    stub_const("Ledger::Appliers::TaskResult::REMEDY_FOR_OP", "Use the delete_everything tool instead.")
+    named = Ledger::Appliers::TaskResult::REMEDY_FOR_OP.scan(/\b([a-z]+(?:_[a-z]+)+)\b/).flatten - NOT_TOOLS
+
+    expect(named.reject { |word| tool_names.include?(word) }).to eq([ "delete_everything" ])
   end
 
   it "tells a worker superseding a link outside its packet where the link may be revised" do

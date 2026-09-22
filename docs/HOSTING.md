@@ -165,13 +165,23 @@ At **100,024 claims and 1,019,834 contributions**, on the same workstation
 | One claim scored from cache | 0.6 ms |
 | One claim scored cold | 13 ms |
 | `Weaknesses::Report`, cold | 11 m 4 s |
-| `Weaknesses::Report`, every score already cached | 25 s |
+| `Weaknesses::Report`, every score already cached, **before** the same day's fixes | 25 s |
+| `Weaknesses::Report`, after them | **7 s** |
 | `claim_scores` | 202 MB per model, against a 2.7 GB log |
 
 Since Stage 38 an append no longer invalidates the score cache: a write that bears on no
-claim leaves every cached score askable-for, so the reader after it pays the 25 seconds,
-not the eleven minutes. The 25 seconds is Ruby walking 100,024 claims to build the lists,
-and no cache removes it — that is what the pinned-snapshot decision is about.
+claim leaves every cached score askable-for, so the reader after it pays the second row,
+not the eleven minutes.
+
+**Read the 25 s row as history.** An earlier version of this section said the 25 seconds was
+"Ruby walking 100,024 claims to build the lists, and no cache removes it". That was measured
+wrong and the measurement is in
+[the profiler entry](profiler/2026-09-21-capacity-at-100k-claims.md): the seven filters over
+the whole corpus cost **247 ms between them**, about 1%. The cost was 12 s of building rows
+the page then discarded and 10 s of reading a 2 KB trace per claim for fields that were
+already columns — both fixed the same day, which is the 7 s row. What remains is a summary
+per claim per model, `Facts`, and the filters. **That** is the number the pinned-snapshot
+decision should be taken against.
 
 **What to do when it hurts.** In order: run `scores:prune` on a schedule; check
 `bin/rails db:top_queries`, which reads `pg_stat_statements` and names the statements

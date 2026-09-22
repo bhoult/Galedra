@@ -15,7 +15,11 @@ class RecomputeAffectedScoresJob < ApplicationJob
     # they did not exist at it, and asking for one raised RecordNotFound and
     # failed the job. Skipping them is the answer: there is nothing to
     # recompute, not an error.
-    Claim.where(id: Scoring::Affected.claim_ids(contribution)).where(created_seq: ..seq).find_each do |claim|
+    # The same map the watermark stamps with, or the two drift: a placement, a
+    # check result or an edge moves the mark — invalidating the cache — while
+    # this job warms a different set and the reader pays the cold score the
+    # keying exists to avoid (code review, 2026-09-22).
+    Claim.where(id: Scoring::Watermark.claim_ids(contribution)).where(created_seq: ..seq).find_each do |claim|
       models.each { |model| Scoring::Score.recompute(claim, seq, model) }
     end
   end

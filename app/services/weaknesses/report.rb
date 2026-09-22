@@ -45,33 +45,43 @@ module Weaknesses
     # 3,500 of them to serve one page, 12 of the 27 seconds a warm whole-graph
     # report cost at 100,024 claims
     # (docs/profiler/2026-09-21-capacity-at-100k-claims.md).
+    # One page's worth of "what would most change this", across every kind at
+    # once and capped.
+    #
+    # It used to run per kind, so a request covering all seven paid for seven
+    # separate loads and scored the same claim once per list it appeared in.
+    # `GET /api/v1/weaknesses?limit=200` is unauthenticated, so that was seven
+    # times two hundred hypothetical scorings — several seconds of CPU per
+    # request, repeatable, with writes on a public read path (code review,
+    # 2026-09-22). Now: one load, one scoring pass, each claim worked out once,
+    # and a hard ceiling whatever the limit and however many kinds.
+    MOST_MOVING_PER_PAGE = 60
+
     def page(full, limit, offset)
       model = Scoring::Registry.find(full[:model]) if full[:model]
-      lists = full[:lists].to_h { |kind, entries| [ kind, next_steps(entries[offset, limit] || [], full[:snapshot_seq], model) ] }
-      full.merge(lists: lists, limit: limit, offset: offset)
+      sliced = full[:lists].to_h { |kind, entries| [ kind, entries[offset, limit] || [] ] }
+      full.merge(lists: next_steps_across(sliced, full[:snapshot_seq], model), limit: limit, offset: offset)
     end
 
-    # One load and one scoring pass for the page, whatever its length.
-    def next_steps(entries, seq, model)
-      return entries if entries.empty? || model.nil?
+    def next_steps_across(lists, seq, model)
+      return lists if model.nil?
 
-      claims = Claim.where(id: entries.map { |e| e[:claim_id] }).index_by(&:id)
+      wanted = lists.values.flatten.map { |e| e[:claim_id] }.uniq.first(MOST_MOVING_PER_PAGE)
+      return lists if wanted.empty?
+
+      claims = Claim.where(id: wanted).index_by(&:id)
       results = Scoring::Score.call_many(claims.values, seq, model)
-      # Each row rebuilds its claim's scorer input, which is per-claim work and
-      # stays; what does not have to be per-claim are the quarantine, audit and
-      # revocation questions inside it, which one pass answers for the set.
-      Audits::Status.memoized { Scoring::Pass.over(claims.values, seq) { with_next_step(entries, claims, results, seq, model) } }
-    end
+      steps = Audits::Status.memoized do
+        Scoring::Pass.over(claims.values, seq) do
+          claims.filter_map do |id, claim|
+            next if results[id].nil?
 
-    def with_next_step(entries, claims, results, seq, model)
-      entries.map do |e|
-        claim = claims[e[:claim_id]]
-        result = results[e[:claim_id]]
-        next e if claim.nil? || result.nil?
-
-        e.merge(what_would_most_change_this: Cards::Why.most_moving_addition(claim, seq, model, result)
-                                                       &.slice(:direction, :observation, :state_from, :state_to, :text))
+            step = Cards::Why.most_moving_addition(claim, seq, model, results[id])
+            [ id, step.slice(:direction, :observation, :state_from, :state_to, :text) ] if step
+          end.to_h
+        end
       end
+      lists.to_h { |kind, entries| [ kind, entries.map { |e| steps[e[:claim_id]] ? e.merge(what_would_most_change_this: steps[e[:claim_id]]) : e } ] }
     end
 
     def compute(seq, kinds, model)

@@ -40,9 +40,15 @@ class SectionsController < ApplicationController
   # The same page for an outline: whoever broke the source into sections counts
   # as much as whoever checked a claim inside it.
   def contributors
+    seq = current_seq
     section = Section.find(params[:id])
+    # The same guard `show` applies: a section that is not counted at this seq
+    # 404s there and must not render its heading and contributor list here.
+    raise ActiveRecord::RecordNotFound unless section.counted_at?(seq)
+
     root = Section.find_by(id: section.root_id) || section
-    claim_ids = ClaimPlacement.where(section_id: Section.where(root_id: root.root_id).select(:id)).distinct.pluck(:claim_id)
+    claim_ids = ClaimPlacement.counted_at(seq).where(section_id: Section.counted_at(seq).where(root_id: root.root_id).select(:id))
+                              .distinct.pluck(:claim_id) - Governance::Quarantines.quarantined_claim_ids
 
     @subject = root.heading
     @back = section_path(root)

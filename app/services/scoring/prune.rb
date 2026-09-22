@@ -39,8 +39,11 @@ module Scoring
       result
     end
 
-    # The head, and every seq a snapshot was pinned at. Both are sets a reader
-    # can ask for by name, so their scores stay cheap to serve.
+    # Kept for the rows that predate Stage 38's keying and are still keyed on an
+    # exact seq. It protects nothing a current read asks for: since the key
+    # became the claim's watermark, a read at the head or at a pinned snapshot S
+    # stores at LEAST(mark, S), not at S, so `current_rows` below is what
+    # actually guards a live cache entry (code review, 2026-09-22).
     def protected_seqs
       ([ Contribution.maximum(:seq) ] + GraphSnapshot.pluck(:seq)).compact.uniq
     end
@@ -73,7 +76,8 @@ module Scoring
 
     def report(result, keep_days, dry_run, out)
       out.puts "#{dry_run ? 'would delete' : 'deleted'} #{result.deleted} rows; #{result.kept} remain"
-      out.puts "kept every claim's current score, the head seq, #{result.seqs_kept - 1} pinned snapshot(s), and anything scored in the last #{keep_days} days"
+      out.puts "kept every claim's current score — which is what a read asks for — plus anything scored in the last #{keep_days} days"
+      out.puts "the head seq and #{result.seqs_kept - 1} pinned snapshot(s) are kept too, for rows predating the watermark key"
       out.puts "claim_scores #{human(result.bytes_before)} -> #{human(result.bytes_after)}" unless dry_run
       out.puts "every pruned row recomputes byte-identically from the log; nothing epistemic was lost"
     end

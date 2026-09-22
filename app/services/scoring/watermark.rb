@@ -124,7 +124,22 @@ module Scoring
       subjects = [ contribution, target_of(contribution) ].compact
       (Affected.claim_ids(contribution) +
         subjects.flat_map { |c| placement_claims(c) + edge_claims(c) } +
-        task_claims(contribution)).uniq
+        task_claims(contribution) + audit_claims(subjects)).uniq
+    end
+
+    # An audit changes the score of every claim whose evidence cites the entry
+    # it audited, and `Audit` is not a projection model — `projection_rows` on an
+    # AUDIT contribution is empty — so accepting, invalidating or re-auditing one
+    # reached no claim at all. A re-audit that overturns a confirmation flips
+    # `audit_confirmed`, `provisional` and the claim's probability while marking
+    # nothing, and the pre-overturn trace is then served indefinitely (code
+    # review, 2026-09-22).
+    def audit_claims(subjects)
+      targets = subjects.filter_map { |c| c.payload["target_contribution_id"] if c.action_type == "AUDIT" && c.payload.is_a?(Hash) }
+      targets += Audit.where(contribution_id: subjects.map(&:id)).pluck(:target_contribution_id)
+      return [] if targets.empty?
+
+      Contribution.where(id: targets.uniq).flat_map { |target| Affected.rows_claims(target) }
     end
 
     def placement_claims(contribution)
@@ -137,7 +152,11 @@ module Scoring
       task_ids = [ contribution.task_id, target_of(contribution)&.task_id ].compact
       return [] if task_ids.empty?
 
-      Task.where(id: task_ids, target_type: "CLAIM").pluck(:target_id)
+      # Plus the claims entangled with them: `Tasks::Checks.opposing_search_done?`
+      # answers for a link entry by scanning every claim that entry reaches, so a
+      # check answered on one claim can confirm an audit covering another.
+      targets = Task.where(id: task_ids, target_type: "CLAIM").pluck(:target_id)
+      targets + entangled(targets)
     end
 
     def target_of(contribution)
@@ -150,17 +169,30 @@ module Scoring
       ends = ClaimEdge.where(contribution_id: contribution.id).pluck(:from_claim_id, :to_claim_id).flatten.compact
       return [] if ends.empty?
 
-      ends + co_linked(ends)
+      ends + entangled(ends)
     end
 
-    # Claims whose evidence links were written by the same entries as these
-    # claims': an audit of one such entry is confirmed or not for all of them at
-    # once, so an edge that changes what that audit needs reaches all of them.
-    def co_linked(claim_ids)
-      entries = EvidenceClaimLink.where(claim_id: claim_ids).distinct.pluck(:contribution_id)
-      return [] if entries.empty?
+    # Claims that share an audit's fate with these ones.
+    #
+    # `Audits::Status.confirmed?` asks about a *contribution*, and reaches every
+    # claim that contribution touches — through `Affected.claims_of`, which for
+    # an evidence item is every claim linked to it, by any entry. So two claims
+    # are entangled if they share a link entry **or** share an evidence item:
+    # what confirms an audit for one confirms it for the other, and an edge or a
+    # check that changes the audit's standing changes both scores.
+    #
+    # Was the contribution alone, which missed the evidence-item path entirely
+    # (code review, 2026-09-22).
+    def entangled(claim_ids)
+      return [] if claim_ids.empty?
 
-      EvidenceClaimLink.where(contribution_id: entries).distinct.pluck(:claim_id)
+      links = EvidenceClaimLink.where(claim_id: claim_ids)
+      entries = links.distinct.pluck(:contribution_id)
+      items = links.distinct.pluck(:evidence_item_id)
+      return [] if entries.empty? && items.empty?
+
+      EvidenceClaimLink.where(contribution_id: entries).or(EvidenceClaimLink.where(evidence_item_id: items))
+                       .distinct.pluck(:claim_id)
     end
   end
 end

@@ -13,7 +13,7 @@ module Scoring
       {
         "claim" => { "id" => claim.id, "type" => claim.claim_type, "truth_evaluable" => evaluable, "not_evaluable_reason" => reason },
         "snapshot_seq" => seq,
-        "links" => links_for(claim, seq, own_origins(claim, seq), other_editions(claim)),
+        "links" => links_for(claim, seq, own_origins(claim, seq), other_editions(claim, seq)),
         "task_checks" => Tasks::Checks.for(claim.id, seq)
       }
     end
@@ -41,16 +41,23 @@ module Scoring
     # Empty, and free, for every claim that names no edition — which is all of
     # them until someone says otherwise. Lineage is `lineage_key` where the
     # sources carry one, and the `previous_version_id` chain either way.
-    def other_editions(claim)
+    # Windowed at the seq, like every other input in this module. Without it a
+    # source appended later joined the lineage retroactively and changed what
+    # `BuildInput.call(claim, 50)` returned today versus yesterday — the same
+    # seq and model no longer producing a byte-identical trace, which is
+    # Invariant 4 and the thing replay and a pinned snapshot both rest on
+    # (code review, 2026-09-22).
+    def other_editions(claim, seq)
       named_id = claim.qualifiers.is_a?(Hash) ? claim.qualifiers["source_edition"] : nil
       return Set.new if named_id.blank?
 
-      named = Source.find_by(id: named_id)
+      named = Source.active_at(seq).find_by(id: named_id)
       return Set.new if named.nil?
 
-      ids = Source.where(previous_version_id: named.id).pluck(:id)
+      lineage = Source.active_at(seq)
+      ids = lineage.where(previous_version_id: named.id).pluck(:id)
       ids << named.previous_version_id if named.previous_version_id
-      ids += Source.where(lineage_key: named.lineage_key).where.not(id: named.id).pluck(:id) if named.lineage_key.present?
+      ids += lineage.where(lineage_key: named.lineage_key).where.not(id: named.id).pluck(:id) if named.lineage_key.present?
       (ids.compact - [ named.id ]).to_set
     end
 

@@ -59,13 +59,18 @@ module Tasks
 
     # [task, result_contribution] pairs accepted at seq and not invalidated by seq.
     def accepted_results(claim_id, seq)
-      tasks = Task.where(target_type: "CLAIM", target_id: claim_id, task_type: CHECK_FOR.keys).index_by(&:id)
+      tasks = Task.where(target_type: "CLAIM", target_id: claim_id, task_type: CHECK_FOR.keys).order(:id).index_by(&:id)
       return [] if tasks.empty?
 
       # One query for every result of every check task on the claim, and one for
       # their standing, rather than a pair per task and a pair per result
       # (Stage 39).
-      results = Contribution.where(action_type: "TASK_RESULT", task_id: tasks.keys).where("seq <= ?", seq).to_a
+      # Ordered by seq: this list becomes review_checklist[check]["by"], which
+      # is inside the hashed trace, so an unordered query made the same (claim,
+      # seq, model) hash differently depending on the plan Postgres chose
+      # (code review, 2026-09-22). `Calculate` sorts its links for exactly this
+      # reason; the checks were left to chance.
+      results = Contribution.where(action_type: "TASK_RESULT", task_id: tasks.keys).where("seq <= ?", seq).order(:seq).to_a
       standing = Contributions::Standing.accepted_set(results, seq)
       results.filter_map { |r| [ tasks[r.task_id], r ] if standing.include?(r.id) }
     end

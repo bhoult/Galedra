@@ -70,6 +70,9 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
     # One icon per kind. Held used to carry its own, so the same open hand
     # appeared twice and every number read as belonging to the icon after it.
     expect(badge.scan("<svg").size).to eq(3), "#{badge.scan('<svg').size} icons for three kinds"
+
+    # And it belongs to the person whose job it is, nobody else.
+    expect_badge_hidden_from_everybody_else
   end
 
   # Templates are compiled once per process and the annotation is baked in at
@@ -84,7 +87,14 @@ RSpec.describe "Admin users (Stage 24)", type: :request do
   ensure
     ActionView::Base.annotate_rendered_view_with_filenames = was
     ActionView::LookupContext::DetailsKey.clear
+  end
 
+  # Four assertions used to live in that `ensure`, in a helper whose whole job is
+  # toggling view annotations. Beyond hiding them where nobody would look, an
+  # `ensure` that raises *replaces* the exception being unwound: a real badge
+  # regression inside the block would have been reported as a failure of the
+  # annotation helper (code review, 2026-09-22).
+  def expect_badge_hidden_from_everybody_else
     delete "/session"
     other = sign_up("second@example.com")
     get "/"

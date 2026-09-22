@@ -45,6 +45,21 @@
     <% end %>
   </div>
 <% end %>
+<%# Who initiated this outline: the contributor who recorded its root section,
+    not whoever last added a child (owner request, 2026-09-21).
+
+    Outside the Turbo frame on purpose. It is a property of the outline, not of
+    the section being read, so it is identical for every section in the tree —
+    and inside the frame it re-ran `Section.find_by`, `contributor` and
+    `principal_contributor` (which asks for its delegation separately) on every
+    click, which is the per-click work the frame exists to avoid (code review,
+    2026-09-22). %>
+<% root = @section.root_id ? Section.find_by(id: @section.root_id) : @section %>
+<% entry = (root || @section).contribution %>
+<%= render "shared/attribution", agent: entry&.contributor, principal: entry&.principal_contributor,
+           at: entry&.received_at, contribution_id: entry&.id,
+           everyone_path: contributors_section_path(@section) %>
+
 <%# One question for the whole set: asking each task for its open slots was two
     COUNTs apiece and 4,380 queries on this page (Stage 39). %>
 <% open_tasks = Tasks::Status.open_among(Task.where(section_id: Tasks::Lease.subtree_ids(@section.id), status: %w[OPEN LEASED])) %>
@@ -52,14 +67,6 @@
   <p><strong>Open work under this section: <%= open_tasks.size %></strong><% if open_tasks.any? %> (<%= open_tasks.group_by(&:task_type).map { |k, v| "#{v.size} #{k.downcase.tr('_', ' ')}" }.join(", ") %>)<% end %>.</p>
   <p class="meta">To help, tell your assistant: <code>work the open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are recorded and their verification tasks open at once, so anyone can carry on from where the last person stopped.</p>
 </div>
-<%# Who initiated this outline: the contributor who recorded its root section,
-    not whoever last added a child (owner request, 2026-09-21). %>
-<% root = @section.root_id ? Section.find_by(id: @section.root_id) : @section %>
-<% entry = (root || @section).contribution %>
-<%= render "shared/attribution", agent: entry&.contributor, principal: entry&.principal_contributor,
-           at: entry&.received_at, contribution_id: entry&.id,
-           everyone_path: contributors_section_path(@section) %>
-
 <% if authenticated? %>
   <details><summary>Add sections under this one</summary>
     <%= form_with url: sections_path, method: :post do |f| %>

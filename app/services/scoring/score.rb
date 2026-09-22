@@ -197,10 +197,18 @@ module Scoring
       claims = claims.reject { |c| c.created_seq > seq }
       return {} if claims.empty?
 
+      # The two columns added for these lists are nullable, so a row written by
+      # an older process during a rolling deploy carries NULL where a reader
+      # calls `<=` or `positive?` on it. Nought is the truthful reading of "no
+      # checks recorded", and it is a 500 on a public page otherwise (code
+      # review, 2026-09-22).
       found = {}
       claims.each_slice(LOOKUP_BATCH) do |slice|
         Watermark.hits(slice.map(&:id), seq, model.id).pluck(*SUMMARY_COLUMNS).each do |row|
-          found[row.first] = Summary.new(*row.drop(1))
+          values = row.drop(1)
+          values[3] = values[3].to_i   # review_checks_done
+          values[8] = values[8].to_i   # independence_unreviewed
+          found[row.first] = Summary.new(*values)
         end
       end
       missing = claims.reject { |c| found.key?(c.id) }

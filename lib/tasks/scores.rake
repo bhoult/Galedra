@@ -7,7 +7,7 @@ namespace :scores do
                         dry_run: ENV["DRY_RUN"] == "1", out: $stdout)
   end
 
-  desc "Check or rebuild the score watermarks: bin/rails scores:watermarks (VERIFY=1 rescores both ways, REBUILD=1 resets to the head)"
+  desc "Check or rebuild the score watermarks: bin/rails scores:watermarks (VERIFY=1 compares both ways and changes nothing, REBUILD=1 resets every mark to the head)"
   task watermarks: :environment do
     head = Contribution.maximum(:seq).to_i
     if ENV["REBUILD"] == "1"
@@ -31,19 +31,30 @@ namespace :scores do
     wrong = []
     # Every released model, not only the default: a mark that is right for one
     # config and wrong for another would be a mark that is wrong.
+    #
+    # The comparison does not touch a single watermark. It used to rewrite every
+    # claim's mark to the head to produce the "fresh" half, which meant that
+    # after the first model every later one compared head against head and could
+    # not fail — a guard that passed by construction, and the reason four
+    # incomplete mappings shipped (code review, 2026-09-22). It also destroyed
+    # the marks it was asked to check, which the help text blamed on REBUILD=1.
+    #
+    # Scoring the input directly at the head is the same answer without the
+    # mutation: no cache, no key, no side effect.
     Scoring::Registry.released.each do |model|
       print "#{model.full_name} "
       Claim.order(:created_seq).find_in_batches(batch_size: 200) do |batch|
         keyed = Scoring::Score.call_many(batch, head, model)
-        ClaimScore.where(claim_id: batch.map(&:id), scoring_model_id: model.id).delete_all
-        Ledger::DatabaseRole.as_owner { Claim.where(id: batch.map(&:id)).update_all(scored_inputs_seq: head) }
-        fresh = Scoring::Score.call_many(Claim.where(id: batch.map(&:id)).to_a, head, model)
-        batch.each do |claim|
-          a = keyed[claim.id]
-          b = fresh[claim.id]
-          wrong << [ model.full_name, claim.id ] unless a && b && a.assessment_state == b.assessment_state &&
-                                                       a.probability == b.probability &&
-                                                       a.trace.except("snapshot_seq") == b.trace.except("snapshot_seq")
+        Audits::Status.memoized do
+          Scoring::Pass.over(batch, head) do
+            batch.each do |claim|
+              a = keyed[claim.id]
+              b = Scoring::Registry.score(Scoring::BuildInput.call(claim, head), model)
+              wrong << [ model.full_name, claim.id ] unless a && a.assessment_state == b.assessment_state &&
+                                                           a.probability == b.probability &&
+                                                           a.trace.except("snapshot_seq") == b.trace.except("snapshot_seq")
+            end
+          end
         end
         print "."
       end
