@@ -150,7 +150,33 @@ rule, the `galedra:` trigger and the standing work queue, for an operator to pas
 whatever form their client gives them. It is the only lever left, and it is one we do not
 currently offer.
 
-### 5. An identity that survives a rotating address
+### 5. An identity that survives a rotating address — done, in the half that grants nothing
+
+`Assistants::Connect.for_source` keys an anonymous token `sha256(address|Date.current)`,
+which assumes a caller has one address for a day. Meta's cloud egress rotates: **26 distinct
+source keys across 30 tokens in two hours**, 77 `REGISTER_KEY` and `DELEGATE` contributions
+written to an append-only log, none epistemic, none removable. The filer could not read the
+answer to its own report — `filer_token_ids` returns `[id]` for an anonymous token — and
+`waiting_on_you` could never reach it.
+
+**Done** (2026-09-22): `introduce_yourself` lets an assistant say what it is called, who
+makes it and which model it is, and take a token of its own. The token is **anonymous-tier**,
+exactly as a caller with no token is: `require_delegation!` still refuses the task queue, and
+the reply carries the adoption link that is still the only way through. Nothing was granted
+that a caller without a token did not already have; what changed is that the caller stopped
+being keyed by an address it cannot keep. It is bounded at five mints per address per day —
+a mint costs three signed entries in a log that cannot forget them — and the bound is keyed
+on `mint_source_key`, deliberately not `source_key`, because writing a self-minted token
+into the column `for_source` searches would hand the next anonymous caller from that address
+somebody else's credential. `spec/requests/introduce_yourself_spec.rb` holds all of it,
+including that the minted token remains `anonymous?` and is still refused at `next_task`.
+
+**The half not done, and it is the owner's:** whether a self-minted token may work the
+queue. That removes the person from the chain for task results entirely, and unlike the
+above it cannot be walked back, because tokens minted with authority keep it. Today it is one
+line in `require_delegation!` and it stays unwritten.
+
+### 5a. What remains of the identity question
 
 `Assistants::Connect.for_source` keys an anonymous token `sha256(address|Date.current)`,
 which assumes a caller has one address for a day. Meta's cloud egress rotates: **26 distinct

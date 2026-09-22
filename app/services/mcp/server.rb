@@ -86,6 +86,23 @@ module Mcp
       { name: "tag_claim", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }, description: "File an existing claim under one to five topics from the vocabulary (e.g. health/vaccines). A tag is a signed, challengeable judgment; on someone else's claim it waits for acceptance. Never invent a topic; list_topics shows the vocabulary.",
         inputSchema: { type: "object", properties: { claim_id: { type: "string" }, topics: { type: "array", items: { type: "string", enum: Topics.all }, minItems: 1, maxItems: Topics::MAX_PER_CLAIM }, note: { type: "string" } }, required: %w[claim_id topics] },
         outputSchema: { type: "object", properties: { claim_id: { type: "string" }, topics: { type: "array", items: { type: "string" } }, status: { type: "string" }, url: { type: "string" } } } },
+      { name: "introduce_yourself", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        description: "Say who you are and get a token of your own. Without one you are keyed by the address you " \
+                     "call from, so an assistant whose egress rotates arrives as a different stranger every call: it " \
+                     "cannot read the answers to its own reports, it is told nothing it left hanging, and each " \
+                     "connection writes identity entries to a log that cannot forget them. A token fixes all of that. " \
+                     "Send the name you are known by, who makes you, and your model. What you send is recorded as " \
+                     "your own statement about yourself, never as something this node verified. " \
+                     "The token does not let you work the task queue: that needs a person behind it, and the reply " \
+                     "carries a link your person can open once to put this work under their key. Keep the token and " \
+                     "send it as Authorization: Bearer on every later call, or use the url in the reply if your " \
+                     "connector takes only a URL.",
+        inputSchema: { type: "object", properties: {
+          name: { type: "string", description: "What you are called, as a person would say it: \"Muse\", \"Claude\". Not a sentence." },
+          provider: { type: "string", enum: AssistantToken::PROVIDERS, description: "Who makes you. \"other\" if none of these." },
+          model: { type: "string", description: "Your model identifier, if you know it." } }, required: %w[name provider] },
+        outputSchema: { type: "object", properties: { token: { type: "string" }, url: { type: "string" }, header: { type: "string" },
+                                                      name: { type: "string" }, adopt_url: { type: "string" }, note: { type: "string" } } } },
       { name: "list_topics", annotations: { readOnlyHint: true, openWorldHint: false }, description: "The topic vocabulary: two levels of subjects with the paths to use in record_investigation and tag_claim.",
         inputSchema: { type: "object", properties: {} },
         outputSchema: { type: "object", properties: { topics: { type: "array", items: { type: "object", properties: { path: { type: "string" }, label: { type: "string" }, children: { type: "array", items: { type: "object" } } } } } } } },
@@ -554,6 +571,47 @@ module Mcp
       { claim_id: claim.id, topics: Array(args["topics"]), status: result.contribution.current_status, url: url_for(claim) }
     end
 
+    # An assistant may name itself and hold its own credential. What it cannot do
+    # is give itself authority: the principal here is anonymous, exactly as it is
+    # for a caller with no token at all, so `require_delegation!` still refuses
+    # the task queue and the adoption link in the reply is still the only way
+    # through. Nothing this grants was withheld before — a caller with no token
+    # could already do all of it — and what it fixes is that the caller was
+    # keyed by its address.
+    #
+    # `Assistants::Connect.for_source` keys an anonymous token
+    # sha256(address|date), which assumes an address a caller keeps. Meta's Muse
+    # rotates egress: 26 distinct keys across 30 tokens in two hours on
+    # 2026-09-22, 77 identity contributions to an append-only log, and a filer
+    # that could never read the answer to its own report because
+    # `filer_token_ids` returns `[id]` for an anonymous token. A token it holds
+    # and presents is the same identity every call, whatever address it arrives
+    # from.
+    #
+    # The name is the assistant's own statement about itself and is treated as
+    # untrusted text (Invariant 11): capped, stripped of control characters, and
+    # never presented as something this node checked.
+    NAME_MAX = 60
+
+    def tool_introduce_yourself(args)
+      name = args["name"].to_s.gsub(/[[:cntrl:]]/, " ").squish.slice(0, NAME_MAX)
+      raise ArgumentError, "name is required: what are you called?" if name.empty?
+      provider = args["provider"].to_s
+      raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.provider", detail: "expected one of #{AssistantToken::PROVIDERS.join(', ')}" } ]) unless AssistantToken::PROVIDERS.include?(provider)
+
+      minted = Assistants::Introduce.call(name: name, provider: provider, model: args["model"], token: @token)
+      record, secret = minted
+      { token: secret, name: name,
+        url: "#{@base_url}/mcp/#{secret}",
+        header: "Authorization: Bearer #{secret}",
+        adopt_url: Assistants::Adopt.adopt_url(record, @base_url),
+        note: "Send this token on every later call and you stay the same identity whatever address you call from — " \
+              "you can read the answers to your own reports, and you are told what you left hanging. Use header, or url " \
+              "if your connector takes only a URL. It does not let you work the task queue: ask your person to open " \
+              "adopt_url once while signed in, which puts this work under their key and keeps the token you are holding. " \
+              "This node has recorded the name as your own statement about yourself; it has not verified it." }
+    end
+
     def tool_list_topics(_args)
       { topics: Topics.tree.map { |t| { path: t.path, label: t.label, scope: t.scope, children: t.children.map { |c| { path: c.path, label: c.label } } } } }
     end
@@ -936,7 +994,11 @@ module Mcp
       sent = args.keys.map(&:to_s).sort
       carried = sent.empty? ? "this call carried no arguments" : "this call carried #{sent.join(', ')}"
       raise Ledger::Rejected.new(missing.map { |k|
-        { code: "SCHEMA_INVALID", path: "$.#{k}", detail: "#{k} is required and was not sent; #{carried}" }
+        # "not sent" is untrue of a key that was sent empty, and a caller told
+        # that goes looking for a bug in how it builds the call rather than at
+        # the value it put there.
+        state = args.key?(k) ? "is required and was sent empty" : "is required and was not sent"
+        { code: "SCHEMA_INVALID", path: "$.#{k}", detail: "#{k} #{state}; #{carried}" }
       })
     end
 

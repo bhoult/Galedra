@@ -198,6 +198,15 @@ RSpec.describe "A refusal says what to do instead", type: :request do
       expect(detail).not_to include("no such section"), "nothing may be asserted about a section the caller never named"
     end
 
+    # "not sent" is untrue of a key that was sent empty, and it sends a caller
+    # looking for a bug in how it builds the call rather than at the value.
+    it "tells apart an argument that was not sent from one sent empty" do
+      data = rpc_tool("get_outline", { "section_id" => "  " })
+
+      expect(data["errors"].first["detail"]).to include("section_id is required and was sent empty")
+      expect(data["errors"].first["detail"]).not_to include("was not sent")
+    end
+
     it "says so even when nothing at all was sent" do
       data = rpc_tool("get_outline", {})
 
