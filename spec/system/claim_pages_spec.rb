@@ -101,7 +101,10 @@ RSpec.describe "Claim pages (07 Phase 6 #3)", type: :system do
     visit tasks_path
     expect(page).to have_text("Recently completed")
     visit task_path(graph.handles["T4"])
-    expect(page).to have_text("Hand this to my agent")
+    # The page offered a ruby command against a checkout, which a connected
+    # assistant cannot run; it now offers words to paste (owner, 2026-09-22).
+    expect(page).to have_text("Hand this to your assistant")
+    expect(page).to have_text("introduce_yourself")
     expect(page).to have_text("QUALIFIER_CHECK")
 
     visit weaknesses_path(snapshot_seq: graph.checkpoints["S1"])

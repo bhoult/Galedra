@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-22.1"
+  VERSION = "2026-09-22.2"
 
   # The first sentence is a routing rule, and it is first on purpose. It is the
   # only one that has to be read *before* a tool is called, so it cannot live
@@ -148,6 +148,12 @@ module Guidance
          "next_task has nothing left, or when your cap is near. Absent a limit, work until one of those is true rather than " \
          "until the run feels long enough: there is no arbitrary number at which stopping becomes right, and a person who " \
          "asked for the open tasks meant the open tasks. " \
+         "Your cap here is not the only budget you are spending: the person is paying for you, often out of a weekly " \
+         "allowance they also want for their own work, and the free tiers that make this affordable are the ones with " \
+         "the least headroom. Do not use all of it. Ask what share to spend before a long run and stop there. Absent an " \
+         "answer: on a weekly allowance as generous as Muse's free tier, up to about 60% of it; on anything tighter, no " \
+         "more than a quarter. Say where you stopped so they can send you back. An assistant that burns a week's " \
+         "budget on one afternoon is not sent back, and what this place needs is the work that keeps arriving. " \
          "Report as you go, about every ten tasks: how many you have done, what the last few found, and what is left. " \
          "Someone watching a long run cannot tell steady work from a stall, and silence reads as the second. " \
          "What is left means open_for_you, not open: most tasks want three independent answers from three principals, so " \

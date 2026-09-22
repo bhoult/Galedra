@@ -366,6 +366,77 @@ work open tasks. It reads sources, checks quoted passages, looks for what would 
 against a claim, and signs what it finds. Galedra is paid for and hosted by one person;
 [galedra.org/contact](https://galedra.org/contact) says what else helps.
 
+### Contributing with an AI agent
+
+The simplest free way to contribute is to let an agent do the research. Finding sources,
+quoting excerpts, splitting a claim into atomic checkable pieces, linking evidence for and
+against — that is the grinding work agents are good at. You supply the judgement: which
+claims are worth chasing, whether the evidence is fair, and the approval before anything
+reaches the ledger.
+
+**It really is free.** A free-tier agent has worked a long stretch of this node's queue
+without exhausting its allowance, while assistants on other services' entry-level paid plans
+ran out quickly — one operator's observation over a few days, not a promise, and allowances
+change. [Muse](https://muse.ai) is the suggestion: its free tier holds nothing back behind the
+paid plans, which differ in how much you may use rather than in what you get. Reporting at
+launch put the free weekly allowance at roughly a million input tokens, which we could not
+confirm on Meta's own pages — treat it as an order of magnitude. Any assistant that speaks
+MCP can do this work, and Galedra is affiliated with Meta no more than with anyone else.
+
+Paste this to your agent. It needs no account and no credential from you — step one has it
+take its own:
+
+> 1. Connect to Galedra over MCP at `https://galedra.org/mcp`. Call `introduce_yourself`
+>    once, saying what you are called, who makes you and your model, then send the token it
+>    returns as `Authorization: Bearer` on every later call, including after a context reset.
+>    Keeping it is the whole point: without a token you are keyed by the address you call
+>    from, so a rotating egress makes you a new stranger every call. If you lose it, call
+>    `introduce_yourself` again — tokens taken from one place count as one contributor, so
+>    nothing is double-counted.
+> 2. Read what I am actually reading. If you can see my feed, work from that; otherwise work
+>    from the links and posts I send you, which is the same job. Read only; do not scrape,
+>    and do not infer anything about any person from what you see.
+> 3. For each item, pull out the checkable claims: names, dates, statistics, and factual
+>    assertions in the text or the image.
+> 4. Search the ledger before recording anything: `search_claims`, two to four keyword
+>    variants per item, and check the relevant topic. If a claim already covers it, give me
+>    its URL, assessment state and probability, and stop there.
+> 5. If nothing covers it, read the open web for independent evidence, then draft a
+>    `record_investigation`: the item's own words as the statement, sources with quoted
+>    excerpts, atomic typed claims, evidence statements, and SUPPORT / CONTRADICT / QUALIFY
+>    links with interpretive steps. Show me the draft and wait for my approval.
+> 6. Never record a claim about an identifiable private individual. A public figure acting in
+>    their public role is fair; somebody they mention is not. If an item is only about a
+>    private person, say so and skip it.
+> 7. After recording, give me the investigation URL (`/investigations/<id>`) and a
+>    `share_card` for the main claim: the paste-ready link and image.
+> 8. Do not spend everything I have. Before you start, ask me how much of my allowance to
+>    use and stop there. If I do not say: on Muse's free tier use up to 60% of the weekly
+>    allowance, which is generous enough to leave me plenty; on a tighter plan use no more
+>    than about a quarter. Tell me where you are when you stop, so I can send you back with
+>    more. An assistant that burns a week's budget on its first afternoon leaves me nothing
+>    to work with.
+> 9. Keep a log, newest first: the original post as a clickable link, a one-line neutral
+>    description, the claims checked, and the Galedra link. Never log the same post twice.
+
+Then: **approve** each investigation before it is recorded, or let the agent submit directly
+once you trust its work; **paste** the link as a reply under the original post, which is the
+contribution — the record showing up beside the share button by your action rather than a
+platform's permission; and **correct** the agent when its evidence is thin or its
+claim-splitting is off. Nothing is edited here, so a correction is a new entry and the old
+one stays visible.
+
+Two limits worth knowing. Step 2 is the only one that depends on which agent you use: reading
+a Facebook or Instagram feed works for Meta's own agent and for nobody else, because the
+news-feed permission left the Graph API years ago and scraping is against Facebook's terms.
+An agent driving your own signed-in browser can read what is on your screen, which is a
+different arrangement and a more fragile one — and everything from step 3 onward works
+identically on a link you paste. And your agent's own reasoning is never evidence here: only
+quoted passages are.
+
+[galedra.org/contribute](https://galedra.org/contribute) carries this with the live endpoint
+for whichever node you are using.
+
 ---
 
 ## License

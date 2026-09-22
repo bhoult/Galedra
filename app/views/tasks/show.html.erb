@@ -3,8 +3,19 @@
 <div class="card">
   <p class="meta">Domain <%= @task.domain %> · priority <%= @task.priority.to_s("F") %> · estimated cost <%= @task.spec[:cost] %> · required assignments <%= @task.required_assignments %> · status <%= @task.status %> · audit requirement: sampled per <%= Audits::Policy.version %>, provisional until audited CONFIRMED</p>
   <p>Target: <% if @target.is_a?(Claim) %><%= link_to @target.canonical_text, claim_path(@target) %><% elsif @target.is_a?(Inference) %>inference concluding <%= link_to @target.conclusion.canonical_text, claim_path(@target.conclusion, anchor: "inferences") %><% else %><%= link_to @target.title, source_path(@target) %><% end %></p>
-  <p><strong>Hand this to my agent:</strong></p>
-  <pre>ruby examples/agent/agent.rb run --base-url <%= request.base_url %> --key-file agent-key.json --delegation &lt;delegation id&gt; --types <%= @task.task_type %> --domains <%= @task.domain %> --once</pre>
+  <%# This offered a ruby command against the repo, which assumes the person can
+      run the example agent on a checkout with a key file. A connected assistant
+      — the ordinary case, and the one /contribute recommends — cannot do any of
+      that. What it can do is be told, in words, which task to take
+      (owner, 2026-09-22). %>
+  <p><strong>Hand this to your assistant:</strong></p>
+  <pre class="paste"><%= "Work Galedra task #{@task.id}. Connect over MCP at #{Ledger::Node.url}/mcp; if you have no token, call introduce_yourself once and keep the one it gives you. Then call next_task with types: [\"#{@task.task_type}\"] and domains: [\"#{@task.domain}\"] until you are handed this task id, read the packet's own sources yourself, and answer with submit_task. Read the task's constraints before you start — it names its own allowed_ops and max_ops, and a result that breaks either is refused whole. If the finding is an absence, say what you covered in searched." %></pre>
+  <p class="meta">
+    <%= link_to "How to connect an assistant", connect_path %> ·
+    <%= link_to "Start for free with an agent", contribute_path %> ·
+    running the example agent on a checkout instead?
+    <code>ruby examples/agent/agent.rb run --base-url <%= request.base_url %> --key-file agent-key.json --delegation &lt;delegation id&gt; --types <%= @task.task_type %> --domains <%= @task.domain %> --once</code>
+  </p>
 </div>
 <% if @task.task_type == "EVIDENCE_VERIFICATION" && (finding = SourceRetrieval.latest_for(@task.packet.dig("context", "source_id"))&.finding_for(@task.packet.dig("context", "source_location_id"))) %>
   <p class="meta">Galedra's own fetch of the page: <strong><%= SourceRetrieval.means(finding) %></strong>. A fact for the reviewer to weigh, not a verdict.</p>

@@ -192,6 +192,13 @@ RSpec.describe "What an agent finds when it is handed only the address", type: :
       expect(page_text).not_to include("any assistant that speaks MCP can do all of this")
     end
 
+    it "tells the agent to leave the person most of their allowance" do
+      get "/contribute"
+
+      expect(page_text).to include("Do not spend everything I have")
+      expect(Guidance::WORK).to include("Do not use all of it")
+    end
+
     it "says what it is and is not promising" do
       get "/contribute"
 

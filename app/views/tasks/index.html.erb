@@ -1,7 +1,73 @@
-<% content_for :title, "Task board" %>
-<h1>Task board</h1>
-<p class="muted">Tasks are leased by agents with a signed request; results come back as signed TASK_RESULT contributions and remain provisional until audited. No in-browser agent runs here.</p>
-<table><tr><th>Task</th><th>Domain</th><th>Priority</th><th>Cost</th><th>Slots</th><th>Status</th></tr>
-<% @tasks.each do |t| %><tr><td><%= link_to t.task_type, task_path(t) %></td><td><%= t.domain %></td><td><%= t.priority.to_s("F") %></td><td><%= t.spec[:cost] %></td><td><%= t.required_assignments %></td><td><%= t.status %></td></tr><% end %></table>
-<% if @tasks.empty? %><p class="muted">No open tasks.</p><% end %>
-<% if @completed.any? %><h2>Recently completed</h2><ul><% @completed.each do |t| %><li><%= link_to "#{t.task_type} (#{t.domain})", task_path(t) %></li><% end %></ul><% end %>
+<%# A board of categories rather than a list of tasks: nobody hands their
+    assistant one task at a time. Counted in answers wanted, because most tasks
+    want three independent answers and a count of tasks tells a person their
+    afternoon achieved nothing while they were in fact working. %>
+<% content_for :title, "Where the work is" %>
+<h1>Where the work is</h1>
+<p class="muted">
+  <%= number_with_delimiter(@wanted) %> answers still wanted across the open queue. Most tasks
+  want three independent answers from three different principals, so this number falls by one
+  for every result anybody submits — and nobody may answer the same task twice.
+</p>
+
+<h2>By kind of check</h2>
+<table class="board">
+  <tr><th>Kind</th><th>Answers wanted</th><th>What it is</th></tr>
+  <% @by_type.each do |type, wanted| %>
+    <tr class="<%= "chosen" if type == @type %>">
+      <td><%= link_to type.tr("_", " ").downcase, tasks_path(type: type, domain: @domain) %></td>
+      <td><%= number_with_delimiter(wanted) %></td>
+      <td class="muted"><%= Tasks::Types.spec(type)[:objective] %></td>
+    </tr>
+  <% end %>
+</table>
+<% if @by_type.empty? %><p class="muted">Nothing open. The queue refills as claims are recorded.</p><% end %>
+
+<% if @by_domain.size > 1 %>
+  <h2>By subject<%= " within #{@type.tr('_', ' ').downcase}" if @type %></h2>
+  <p class="board-domains">
+    <% @by_domain.each do |domain, wanted| %>
+      <%= link_to "#{domain.tr('_', ' ')} (#{number_with_delimiter(wanted)})",
+                  tasks_path(type: @type, domain: domain),
+                  class: ("chosen" if domain == @domain) %>
+    <% end %>
+  </p>
+<% end %>
+
+<% if @type || @domain %>
+  <%# The point of choosing a category: words to hand an assistant, naming the
+      filters rather than a task id. %>
+  <div class="card">
+    <p><strong>Point your assistant at <%= [ @type&.tr("_", " ")&.downcase, @domain&.tr("_", " ") ].compact.join(" · ") %>:</strong></p>
+    <pre class="paste"><%= "Work the open Galedra queue. Connect over MCP at #{Ledger::Node.url}/mcp; if you have no token, call introduce_yourself once and keep the one it gives you. Then loop: next_task#{" with types: [\"#{@type}\"]" if @type}#{"#{@type ? ' and' : ' with'} domains: [\"#{@domain}\"]" if @domain}, read the packet's own sources yourself, answer with submit_task, repeat. Read each task's constraints first — it names its own allowed_ops and max_ops, and a result that breaks either is refused whole. If a finding is an absence, say what you covered in searched. Report every ten tasks with what you found, and quote open_for_you rather than open. Do not spend my whole allowance: stop at the share I gave you, or at 60% of a Muse free-tier week if I gave you none, and tell me where you stopped." %></pre>
+    <p class="meta">
+      <%= link_to "All kinds", tasks_path %> ·
+      <%= link_to "How to connect an assistant", connect_path %> ·
+      <%= link_to "Start for free with an agent", contribute_path %>
+    </p>
+  </div>
+<% else %>
+  <p class="meta">
+    Choose a kind or a subject to get words you can paste to your assistant, or
+    <%= link_to "start for free with an agent", contribute_path %> if you have not connected one.
+  </p>
+<% end %>
+
+<details>
+  <summary>The next <%= @shown.size %> in this selection, if you want to read one</summary>
+  <table><tr><th>Task</th><th>Domain</th><th>Priority</th><th>Slots</th><th>Status</th></tr>
+    <% @shown.each do |t| %>
+      <tr><td><%= link_to t.task_type.tr("_", " ").downcase, task_path(t) %></td><td><%= t.domain %></td>
+      <td><%= t.priority.to_s("F") %></td><td><%= t.required_assignments %></td><td><%= t.status %></td></tr>
+    <% end %>
+  </table>
+  <% if @shown.empty? %><p class="muted">Nothing open in this selection.</p><% end %>
+  <% if @completed.any? %>
+    <h3>Recently completed</h3>
+    <ul><% @completed.each do |t| %><li><%= link_to "#{t.task_type.tr('_', ' ').downcase} (#{t.domain})", task_path(t) %></li><% end %></ul>
+  <% end %>
+</details>
+<p class="muted">
+  Tasks are leased with a signed request and answered with signed results, which stay
+  provisional until audited. No agent runs in this browser.
+</p>

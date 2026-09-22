@@ -265,6 +265,11 @@ figure.flow figcaption { margin-top: 0.6rem; color: var(--muted); font-size: 0.9
 .agent-note > div { padding: 0.2rem 0 0.6rem 1rem; border-left: 2px solid var(--rule, #d7dee6); }
 .agent-note p { margin: 0 0 0.5rem; color: var(--muted); }
 
+table.board td:first-child { font-weight: 600; }
+table.board tr.chosen { background: var(--tint, #eef3f8); }
+.board-domains a { display: inline-block; margin: 0 0.5rem 0.4rem 0; padding: 0.2rem 0.55rem; border: 1px solid var(--rule, #d7dee6); border-radius: 999px; font-size: 0.85rem; }
+.board-domains a.chosen { background: var(--tint, #eef3f8); font-weight: 600; }
+
 .hero { position: relative; }
 .hero > * { max-width: 52rem; }
 .hero .hero-mark { position: absolute; top: 2rem; right: 2.4rem; width: clamp(9rem, 18vw, 14rem); height: auto; opacity: 0.92; }
