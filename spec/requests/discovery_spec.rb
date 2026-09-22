@@ -182,8 +182,14 @@ RSpec.describe "What an agent finds when it is handed only the address", type: :
       expect(response.body).to include("https://muse.ai")
       expect(page_text).to include("million input tokens")
       expect(page_text).to include("allowances change")
-      expect(page_text).to include("not affiliated")
-      expect(page_text).to include("any assistant that speaks MCP can do all of this")
+      expect(page_text).to include("affiliated with Meta no more than with anyone else")
+      # Corrected within the hour: reading a Facebook feed works because Muse is
+      # Meta's own agent, and saying any MCP assistant could do all of it was
+      # wrong about the one step that matters.
+      expect(page_text).to include("One step is particular to Muse")
+      expect(page_text).to include("No third party can do that")
+      expect(page_text).to include("any assistant that speaks MCP can do")
+      expect(page_text).not_to include("any assistant that speaks MCP can do all of this")
     end
 
     it "says what it is and is not promising" do

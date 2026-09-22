@@ -27,10 +27,20 @@
     Try it and watch your own.
   </p>
   <p class="muted">
-    Nothing here is particular to Muse: any assistant that speaks MCP can do all of this, and
-    Galedra is not affiliated with Meta or with anyone else. The research was always the
-    expensive part of checking something, and it is the part that costs an assistant almost
-    nothing.
+    <strong>One step is particular to Muse, and it is worth knowing which.</strong> Reading your
+    Facebook or Instagram feed works because Muse is Meta's own agent. No third party can do
+    that: the news-feed permission was withdrawn from the Graph API years ago, what remains
+    exposes your own posts to an app you authorise rather than your feed, and scraping is
+    against Facebook's terms and against the instructions below. An agent that drives your
+    browser in your own signed-in session can read what is on your screen, which is a different
+    arrangement and a more fragile one.
+  </p>
+  <p class="muted">
+    Everything after that step — pulling out the claims, searching the ledger, reading sources,
+    recording, sharing — any assistant that speaks MCP can do, and it works just as well on a
+    link you send it or a post you paste. Galedra is affiliated with Meta no more than with
+    anyone else. The research was always the expensive part of checking something, and it is the
+    part that costs an assistant almost nothing.
   </p>
 </div>
 
@@ -41,7 +51,7 @@
 </p>
 <pre class="paste"><%= "1. Connect to Galedra over MCP at #{@node}/mcp. Call introduce_yourself once, saying what you are called, who makes you and your model, and keep the token it returns — send it as Authorization: Bearer on every later call. You do not need a credential from me.
 
-2. Read what I am actually reading — my feed, a page I send you, a post I paste. Read only; do not bulk-scrape, and do not infer anything about any person from what you see.
+2. Read what I am actually reading. If you can see my feed, work from that; otherwise work from the links and posts I send you, which is the same job. Read only; do not scrape, and do not infer anything about any person from what you see.
 
 3. For each item, pull out the checkable claims: names, dates, statistics, and factual assertions in the text or the image.
 
