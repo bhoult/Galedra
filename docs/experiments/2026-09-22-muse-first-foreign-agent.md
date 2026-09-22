@@ -87,7 +87,24 @@ results: **165 links, 139 claims touched, and of those claims 64 still read
 both zero-signed in `direction_sign`, so **113 of 165 cannot move a state at
 all**.
 
-**Not one of the 319 results carries the `searched` field.**
+Attributed by task type, at 397 results, the null flood turns out to be one
+kind of task rather than a general collapse — `task_assignments.result_contribution_id`
+is the join, which the contribution payload does not carry:
+
+| task type | outcome | results | with coverage |
+|---|---|---|---|
+| QUALIFIER_CHECK | NONE_MATERIAL | 152 | 0 |
+| QUALIFIER_CHECK | QUALIFIERS_FOUND | 48 | 0 |
+| QUALIFIER_CHECK | CANNOT_DETERMINE | 16 | 0 |
+| EVIDENCE_VERIFICATION | PARTIAL | 65 | 0 |
+| EVIDENCE_VERIFICATION | CONFIRMED | 43 | 0 |
+| EVIDENCE_VERIFICATION | NOT_SUPPORTED | 9 | 0 |
+| OPPOSING_EVIDENCE_SEARCH | FOUND | 42 | 0 |
+| OPPOSING_EVIDENCE_SEARCH | NONE_FOUND | 21 | **14** |
+
+`QUALIFIER_CHECK` is 216 of the 397 and comes back empty 70% of the time; when
+it does find something it produces `QUALIFY` links, which are zero-signed. That
+task type cannot move a claim under either outcome.
 
 ## 3. What it found
 
@@ -116,6 +133,41 @@ all**.
   between renaming in the schema and translating at the boundary; the owner's.
 - **319 nulls with no coverage. — OPEN.** `searched` is optional and was never
   once supplied.
+- **The published tool schemas are never enforced. — OPEN, and the largest
+  thing here.** `Mcp::Server::TOOLS` declares types, enums, `minItems` and
+  defaults for every tool, and nothing validates a call against any of it;
+  `require_arguments!` checks presence alone. Every refusal that cost this run a
+  round trip is one shape — the caller sent what the published schema already
+  forbids and found out four layers down, in a vocabulary it had never been
+  given: `source_type`, `relevance_strength`, `observation_type`, `steps` as an
+  array, and a float. The last is structural rather than sloppy:
+  `Contributions::Envelope.build` canonicalises in order to sign, signing
+  precedes applying, so `CanonicalJson.reject_floats!` — correctly ignorant of
+  what any field means — always speaks before the applier's
+  `expected one of DIRECT, STRONG, …` can. Muse was told to use "an integer or a
+  decimal string" for a field whose values are five words. Validating at the
+  boundary retires the class and needs no translation table, because the schema
+  **is** the caller's vocabulary.
+- **An opposing-evidence search that never opposes. — OPEN, and the only
+  epistemic finding here.** 42 `OPPOSING_EVIDENCE_SEARCH` tasks came back
+  `FOUND` and recorded **50 SUPPORT links, 8 QUALIFY, and no CONTRADICT at
+  all**. Whether the fault is the worker's or the packet's is not yet
+  established — the task's objective says "search for evidence in the stated
+  direction" and it is not confirmed that the packet states one. It matters more
+  than any of the plumbing above: a contradiction-seeking task that returns no
+  contradictions biases the record upward silently, and the run's own state
+  distribution is SUPPORTED 54 against CONTRADICTED 6. Article XXII depends on
+  this task type working.
+- **A crash reached the caller as an HTML page. — FIXED** (`f6b9ae1`).
+  `links[].steps` given an array raised NoMethodError out of
+  `Investigations::Steps.for_link` and escaped to the controller, so a client
+  speaking JSON-RPC was handed Rails' error page. Muse filed `01a0cab9` and
+  noted the right shape "was only discoverable by reading the stack trace" — the
+  accidental part, and the worse one: an error page shows the inside of a
+  process to whoever called the tool. `handle` now rescues `StandardError`, logs
+  class, message and backtrace for the operator, and returns `INTERNAL_ERROR`.
+- **A refusal blocked the behaviour it was meant to encourage. — FIXED**
+  (`593732d`). See the qualification above.
 - **The queue route moves few claims, again. — OPEN.** The 2026-09-20 run already
   found 13 queue tasks moving nothing against 48 self-chosen links moving 35
   claims. `Guidance::WORK` was written for exactly this and says to change route
@@ -124,11 +176,20 @@ all**.
 ### The pattern the run is actually about
 
 Four rules were well written, correct, and served on every result. **None of
-them changed behaviour once.** The three failures that were repaired were
-repaired by changing a schema or a refusal — something that meets the caller at
-the moment of the decision. Guidance served alongside an answer arrives after
-it. That is now evidenced rather than suspected, and it is the finding worth
-carrying forward.
+them changed behaviour while they were only guidance.** Every failure repaired
+here was repaired by changing a schema or a refusal — something that meets the
+caller at the moment of the decision. Guidance served alongside an answer
+arrives after it.
+
+One qualification, added later and more damning than the original claim. Muse
+*did* eventually reach for `searched` unprompted, on its 320th result — and the
+server refused it, because coverage belongs to the answer in every sense except
+the schema's, and it had put the field inside `answer` rather than beside it. The
+refusal said only "unknown answer sections: searched". So guidance changed
+behaviour exactly once in 319 turns, and we rejected it. Once the refusal named
+the field's real home (`593732d`), coverage started landing within minutes and
+stood at **14 of 21 `NONE_FOUND` results** by the end of the run, against 0 of
+319 before.
 
 ## 4. What was wrong in the watching
 
