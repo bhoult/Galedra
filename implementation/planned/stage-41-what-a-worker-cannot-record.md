@@ -260,12 +260,21 @@ opened then.
 
 ### What remains
 
-- **Deliverable 4, beyond the display: an owner decision.** Whether a revision should be a
-  distinct source through `previous_version_id` and `lineage_key`, or a claim should be able
-  to name the version it is about. The first is projection work; the second is schema and
-  **changes what is scored**, which means a new model version and regenerated goldens, not a
-  patch. The date on the page is a reader's aid, not a fix: nothing stops the same
-  mis-attachment happening again, and the next one may not have somebody watching.
+- **Deliverable 4, beyond the display: an owner decision, now a narrower one.** *Corrected
+  2026-09-22: until today this bullet said the option was unbuilt, which stopped being true at
+  `b3f9958` and nobody came back to it.* The second option exists: `ledger-default@0.3.0` and
+  `ledger-strict@0.3.0` declare `edition_rule: "named_edition_only"` (03 §7a) — a claim that
+  names its edition in `qualifiers.source_edition` gives weight 0, with
+  `reason: "other_edition"` in the trace, to evidence from a different version in the same
+  lineage — and both are released on this node. They are **not the default**:
+  `LEDGER_DEFAULT_MODEL` pins `ledger-default@0.2.0`. What remains for the owner is whether
+  to make 0.3.0 the default. Two things still stand even if it is: the rule fires only when a
+  claim names its edition, so the same mis-attachment can happen again on a claim that does
+  not; and it needs a lineage to compare, which today means `previous_version_id` or
+  `lineage_key` set on the source. `record_investigation` and `CREATE_SOURCE` accept both, but
+  no source on this node carries either (0, counted 2026-09-22), so on today's data 0.3.0 would
+  score every claim exactly as 0.2.0 does. The first option — inferring a revision as a
+  distinct source, projection work — is unbuilt.
 - **The correction was made by one principal, unaudited.** Revising your own principal's link
   is allowed and is not self-certification, but no second party has looked at the reasoning,
   and `review_coverage` on that claim is unchanged. That is ordinary for any contribution and
