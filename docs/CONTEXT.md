@@ -206,6 +206,13 @@ the untracked list first. Generated output directories are the specific hazard, 
 happened an hour after writing "a filter narrow enough to look tidy is narrow enough to
 discard what you needed" into this file.
 
+**Quoting a commit id to a filer before it is pushed.** On 2026-09-22 seven report answers
+named commits by id, and the commits were then rebased onto merged pull requests before
+pushing, so every id changed. Filers said they had verified the changes "in the repo" by ids
+that did not exist there. A local id is not a public one until it is on `origin`: push
+first, or rebase first, and only then write the id into an answer. If one has already gone
+out, post the new id on each report, keeping its status.
+
 **`git add <paths>` then `git commit` — which takes the whole index.** Staging only your
 own files does not keep the owner's staged work out: `git commit` commits everything in the
 index, and on 2026-09-22 the owner's staged rename of a skill rode into an unrelated fix. Run
