@@ -135,7 +135,8 @@ module Scoring
     # that long is a statement of several megabytes before any row comes back.
     # A page of claims is well under one slice, so the ordinary case is still
     # one statement.
-    LOOKUP_BATCH = 1_000
+    # Ten thousand now that the ids travel as one array (Watermark.hits).
+    LOOKUP_BATCH = 10_000
 
     def lookup(claims, seq, model)
       claims.each_slice(LOOKUP_BATCH)
@@ -189,9 +190,48 @@ module Scoring
                          :support_groups, :contradict_groups, :contested, :provisional,
                          :independence_unreviewed)
 
-    SUMMARY_COLUMNS = %w[claim_id assessment_state probability review_coverage review_checks_done
-                         support_groups contradict_groups contested provisional independence_unreviewed]
-                      .map { |c| "claim_scores.#{c}" }.freeze
+    # claim_id as text: plucked as a uuid, every row is checked against a
+    # pattern in Ruby, and a whole-graph list reads two hundred thousand of them
+    # (a tenth of /weaknesses at 100,024 claims; Stage 26). The same string.
+    SUMMARY_COLUMNS = ([ Arel.sql("claim_scores.claim_id::text") ] +
+                       %w[assessment_state probability review_coverage review_checks_done
+                          support_groups contradict_groups contested provisional independence_unreviewed]
+                       .map { |c| "claim_scores.#{c}" }).freeze
+
+    # Each claim's trace hash, and nothing else. The snapshot digest hashes
+    # these and reads no other field, and `call_many` loads each row's ~2 KB
+    # trace and parses it: at 100,024 claims that was 38% of the page in
+    # Postgres, 8% parsing JSON and 27% in the collector (Stage 26). A claim
+    # with no cached row is scored exactly as call_many would.
+    def trace_hashes(claims, seq, model)
+      model = Registry.find(model) unless model.is_a?(ScoringModel)
+      claims = claims.reject { |c| c.created_seq > seq }
+      return {} if claims.empty?
+
+      found = {}
+      claims.each_slice(LOOKUP_BATCH) do |slice|
+        found.merge!(Watermark.hits(slice.map(&:id), seq, model.id).pluck(:claim_id, :trace_hash).to_h)
+      end
+      # Loaded whole, because a caller may have selected only the columns it
+      # needed and scoring reads the rest.
+      missing = Claim.where(id: claims.reject { |c| found.key?(c.id) }.map(&:id)).to_a
+      found.merge(call_many(missing, seq, model).transform_values(&:trace_hash))
+    end
+
+    # Each claim's assessment state under a model, and nothing else: all that
+    # "models disagree" compares, for every model but the default (Stage 26).
+    def states(claims, seq, model)
+      model = Registry.find(model) unless model.is_a?(ScoringModel)
+      claims = claims.reject { |c| c.created_seq > seq }
+      return {} if claims.empty?
+
+      found = {}
+      claims.each_slice(LOOKUP_BATCH) do |slice|
+        found.merge!(Watermark.hits(slice.map(&:id), seq, model.id).pluck(Arel.sql("claim_scores.claim_id::text"), :assessment_state).to_h)
+      end
+      missing = Claim.where(id: claims.reject { |c| found.key?(c.id) }.map(&:id)).to_a
+      found.merge(call_many(missing, seq, model).transform_values(&:assessment_state))
+    end
 
     def summaries(claims, seq, model)
       model = Registry.find(model) unless model.is_a?(ScoringModel)
@@ -212,8 +252,9 @@ module Scoring
           found[row.first] = Summary.new(*values)
         end
       end
+      # Loaded whole: a caller may have selected only the columns it reads.
       missing = claims.reject { |c| found.key?(c.id) }
-      call_many(missing, seq, model).each { |id, result| found[id] = summarize(result) } if missing.any?
+      call_many(Claim.where(id: missing.map(&:id)).to_a, seq, model).each { |id, result| found[id] = summarize(result) } if missing.any?
       found
     end
 

@@ -98,8 +98,14 @@ module Scoring
     # statement, as it did when the key was the seq itself. Asking Ruby first
     # would have added a round trip to every scored claim on every page.
     def hits(claim_ids, seq, model_id)
+      # The ids as one Postgres array parameter rather than an IN list: Rails
+      # quotes and escapes each element of an IN list in Ruby, which was a fifth
+      # of /weaknesses at 100,024 claims, and one array literal halves the
+      # query (1,599 ms to 756 ms for the whole corpus, identical rows; Stage 26).
+      # The ids are uuids from our own rows, and the literal is still bound.
       ClaimScore.joins("JOIN claims ON claims.id = claim_scores.claim_id")
-                .where(claim_id: claim_ids, scoring_model_id: model_id)
+                .where("claim_scores.claim_id = ANY(?::uuid[])", "{#{Array(claim_ids).join(',')}}")
+                .where(scoring_model_id: model_id)
                 .where("claim_scores.snapshot_seq = LEAST(COALESCE(claims.scored_inputs_seq, :seq), :seq)", seq: seq)
     end
 

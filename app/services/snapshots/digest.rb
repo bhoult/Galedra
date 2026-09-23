@@ -10,9 +10,11 @@ module Snapshots
     def call(seq, model: Scoring::Registry.default_model)
       # One cache query for the set rather than one per claim: this page asked
       # 374 times on the development node (Stage 26).
-      claims = claims_at(seq).order(:id).to_a
-      scored = Scoring::Score.call_many(claims, seq, model)
-      pairs = claims.map { |claim| [ claim.id, scored.fetch(claim.id).trace_hash ] }
+      # The hash only: the whole trace is 2 KB a claim and this reads none of
+      # it (Scoring::Score.trace_hashes).
+      claims = claims_at(seq).order(:id).select(:id, :created_seq).to_a
+      hashes = Scoring::Score.trace_hashes(claims, seq, model)
+      pairs = claims.map { |claim| [ claim.id, hashes.fetch(claim.id) ] }
       Crypto::Hashing.json(pairs)
     end
 

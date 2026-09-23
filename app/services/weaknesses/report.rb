@@ -94,11 +94,19 @@ module Weaknesses
 
     def compute_lists(seq, kinds, model)
       models = Scoring::Registry.released.to_a
-      claims = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids).order(:created_seq).to_a
+      # The columns the lists read, not whole rows: 100,024 of them at the bench
+      # corpus, and only the few hundred returned ever show their text (Stage 26).
+      counted = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
+      # Three fields as plain values, not model objects: Active Record checks
+      # each uuid against a pattern the first time it is read, and the lists read
+      # a hundred thousand of them (Stage 26). Scoring a claim with no cached
+      # score reloads it whole (Scoring::Score.summaries).
+      claims = counted.order(:created_seq)
+                      .pluck(Arel.sql("claims.id::text"), :created_seq, :canonical_text).map { |row| Row.new(*row) }
       # The lists read nine fields, every one of them a column: the trace stays
       # in the database (Scoring::Score.summaries).
       scored = Scoring::Score.summaries(claims, seq, model)
-      facts = Facts.new(claims, seq)
+      facts = Facts.new(counted.select(:id), seq)
       totals = {}
       lists = kinds.to_h do |k|
         found = send(k, claims, scored, seq, model, models, facts)
@@ -109,16 +117,23 @@ module Weaknesses
         capped: totals.values.any? { |n| n > MAX_ENTRIES }, max_entries: MAX_ENTRIES }
     end
 
+    Row = Struct.new(:id, :created_seq, :canonical_text)
+
     # The set queries the per-claim lists used to issue one at a time.
+    #
+    # Given the counted claims as a subquery, not as a list of ids: at 100,024
+    # claims each list was a hundred thousand values quoted one at a time in
+    # Ruby, three times over, plus every link's contribution id for the audits —
+    # most of the 2.4 s this report spent outside the database (Stage 26).
     class Facts
-      def initialize(claims, seq)
-        ids = claims.map(&:id)
-        @downstream = ClaimEdge.counted_at(seq).where(from_claim_id: ids).group(:from_claim_id).count
-        links = EvidenceClaimLink.effective_at(seq).where(claim_id: ids).pluck(:claim_id, :contribution_id)
+      def initialize(claim_ids, seq)
+        @downstream = ClaimEdge.counted_at(seq).where(from_claim_id: claim_ids).group(:from_claim_id).count
+        effective = EvidenceClaimLink.effective_at(seq).where(claim_id: claim_ids)
+        links = effective.pluck(Arel.sql("evidence_claim_links.claim_id::text"), Arel.sql("evidence_claim_links.contribution_id::text"))
         @evidenced = links.map(&:first).uniq.to_set
         by_contribution = links.group_by(&:last)
         @audits = Hash.new { |h, k| h[k] = [] }
-        Audit.disputed_for(by_contribution.keys, seq).each do |audit|
+        Audit.disputed_for(effective.select(:contribution_id), seq).each do |audit|
           by_contribution.fetch(audit.target_contribution_id, []).each { |claim_id, _| @audits[claim_id] << audit }
         end
       end
@@ -164,11 +179,12 @@ module Weaknesses
 
       # The default model's summaries are already in hand: reading them again is
       # a third of the rows this report reads at all.
+      # The state is all this compares, so the other models give only that.
       by_model = models.to_h do |m|
-        [ m.full_name, m.id == model&.id ? scored : Scoring::Score.summaries(evidenced, seq, m) ]
+        [ m.full_name, m.id == model&.id ? scored.transform_values(&:assessment_state) : Scoring::Score.states(evidenced, seq, m) ]
       end
       evidenced.filter_map do |c|
-        states = by_model.transform_values { |results| results[c.id]&.assessment_state }
+        states = by_model.transform_values { |results| results[c.id] }
         [ c, { states: states } ] if states.values.compact.uniq.size > 1
       end
     end
