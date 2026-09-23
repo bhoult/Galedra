@@ -175,11 +175,13 @@ Of 118 names referenced across 46 stage plans, two were genuine drift.
 
 ## Mistakes made more than once
 
-**Instructions drifting from behaviour — four times.** Stage 30 added a `reading`
+**Instructions drifting from behaviour — five times.** Stage 30 added a `reading`
 field the tool schema never gained, so the feature was unreachable. The size rule
 was fixed in the skill while `record_investigation` carried no ceiling at all.
 Stage 34 opened self-checking while `next_task` still forbade it. The timestamp
 format lived only in a tool schema and not in the guidance a task-worker reads.
+`b8aea27` let `QUALIFIER_CHECK` create sources while `Tasks::Answer::ANSWER_WITH`, the
+text that worker is handed, never said so; a spec now ties the two for every task type.
 Every time the code was right, the thing an assistant reads was wrong, and **the
 suite passed**. Nothing tests that an instruction matches the behaviour it
 describes. Treat the tool description and the guidance as *part of* any change
@@ -203,6 +205,12 @@ in the same command, and only the two expected files were read. Stage explicitly
 the untracked list first. Generated output directories are the specific hazard, and this
 happened an hour after writing "a filter narrow enough to look tidy is narrow enough to
 discard what you needed" into this file.
+
+**`git add <paths>` then `git commit` — which takes the whole index.** Staging only your
+own files does not keep the owner's staged work out: `git commit` commits everything in the
+index, and on 2026-09-22 the owner's staged rename of a skill rode into an unrelated fix. Run
+`git diff --cached --stat` before every commit when the session began with anything staged,
+or commit with `git commit -- <paths>`, which takes only those.
 
 **Blaming the thing that was easy to blame, twice in one day (2026-09-21).** The
 weaknesses report was 25 seconds with every score cached, and the first written
