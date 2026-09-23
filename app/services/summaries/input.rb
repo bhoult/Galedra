@@ -50,6 +50,14 @@ module Summaries
       cites += input["suppressed"].flat_map { |s| [ s["evidence"], s["group"] ] }
       cites += input["related"].map { |r| r["claim_id"] }
       cites += input["review_checklist"].values.flat_map { |v| v["by"] }
+      # And every task result the input carries. A check the author performed on
+      # their own claim is kept out of the checklist on purpose (Stage 34), so its
+      # task was in the input and not citable, and the stub's own sentence about
+      # it failed validation and the claim page raised a 500 — found on the
+      # development node on 2026-09-23, where 288 claims carry a self-performed
+      # check and any of them could, until a summary was cached. The task is a
+      # graph row either way.
+      cites += input.fetch("task_results", []).map { |t| t["task_id"] }
       cites += input["audits"].map { |a| "audit:#{a['audit']}" }
       cites.compact.uniq
     end
