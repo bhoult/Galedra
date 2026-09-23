@@ -484,7 +484,12 @@ module Mcp
       claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty? && args["source_id"].blank?
       total = Claim.counted_at(seq).count
       result = { query: query, snapshot_seq: seq, total_accepted_claims: total, claims: claims.map { |c| brief(c, seq, model) }, caller: caller_note }
-      result[:note] = "No recorded claim matches. Galedra holds #{total} accepted #{'claim'.pluralize(total)} in total, so this is more likely unrecorded than mis-searched. Offer to investigate and record it." if claims.empty?
+      # Not "more likely unrecorded than mis-searched": the total cannot tell a
+      # caller that, because a match needs every word of the query, and one word
+      # the claim does not use ("ban" for "barred") empties the result. The same
+      # query that filed bug report 91bee9ac found 1 of the 5 claims about its
+      # event once they existed; three of its words found all of them.
+      result[:note] = "No recorded claim contains every word of that query; a match needs all of them, with similar wording tried as a fallback. Galedra holds #{total} accepted #{'claim'.pluralize(total)}. Try two or three of the most distinctive words before concluding it is unrecorded, and if that also finds nothing, offer to investigate and record it." if claims.empty?
       result
     end
 

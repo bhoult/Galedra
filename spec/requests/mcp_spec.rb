@@ -164,6 +164,9 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     data, err = call_tool("search_claims", { query: "Brackenridge bicycles" })
     expect(err).to be(false)
     expect(data["claims"]).to eq([])
+    # An empty result must not steer the caller away from a narrower search
+    # (bug report 91bee9ac): a match needs every word of the query.
+    expect(data["note"]).to include("every word").and include("two or three")
 
     # Without a token the write still lands, as an anonymous assistant keyed to the caller.
     data, err = call_tool("record_investigation", bundle.merge("claims" => [ { "handle" => "t", "text" => "A tokenless MCP claim.", "type" => "TEXTUAL" } ], "links" => [], "evidence" => [], "excerpts" => [], "sources" => []))

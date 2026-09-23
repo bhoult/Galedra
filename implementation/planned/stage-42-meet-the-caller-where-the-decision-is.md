@@ -314,6 +314,15 @@ OAuth documents that already work, and worth revisiting when the shape is fixed.
 - `OPPOSING_EVIDENCE_SEARCH` means *opposing the claim's current lean*, so it frequently
   asks for SUPPORT. The name is misread by people holding the source — it was misread twice
   in the writing of this stage. One sentence in the objective fixes it.
+- **`search_claims` needs every word of the query** (`plainto_tsquery` ANDs them), so one
+  word the claim does not use empties the full-text match and leaves only the trigram
+  fallback. Measured 2026-09-22 on bug report `91bee9ac`'s own query, *"Trump ban CNN Politico
+  MS NOW White House press"*: 1 of the 5 claims about that event, because none says "ban" or
+  "press"; *"CNN Politico White House"* finds 3. The empty-result note used to steer the caller
+  *away* from retrying ("more likely unrecorded than mis-searched") and now says a match needs
+  every word; the search itself is unchanged. Ranking by how many terms match
+  (`ts_rank` over an OR query, with a floor) is the likely fix, and wants a spec with a
+  query that shares most but not all of its words with a claim.
 - `open_for_you` exists only inside `list_tasks`. A connection that never calls it never
   learns a queue exists, however many calls it makes. `waiting_on_you` rides on every
   result for reports; the same shape would serve here.
