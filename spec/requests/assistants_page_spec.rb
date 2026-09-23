@@ -7,6 +7,9 @@ RSpec.describe "Connect an assistant page (Stage 12)", type: :request do
     get "/assistants/new"
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("anonymous contributor")
+    # create answers 200 with the token rather than redirecting, which Turbo
+    # silently discards, so the form must opt out (bug report 9370d5a5).
+    expect(response.body).to match(%r{<form(?=[^>]*action="/assistants")(?=[^>]*data-turbo="false")})
 
     post "/assistants", params: { assistant: { provider: "openai" } }
     expect(response).to have_http_status(:ok)

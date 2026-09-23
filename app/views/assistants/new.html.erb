@@ -51,7 +51,10 @@
   <details class="card">
     <summary>Advanced: a token instead of OAuth</summary>
     <p class="muted">For clients that send headers but cannot do OAuth, or for scripts. The token is shown once.</p>
-    <%= form_with url: assistants_path, method: :post do |f| %>
+    <%# Not through Turbo: create renders the token in place, because it is shown
+        once and cannot ride a redirect, and Turbo ignores a 200 to a form post —
+        the button did nothing at all in a browser (bug report 9370d5a5). %>
+    <%= form_with url: assistants_path, method: :post, data: { turbo: false } do |f| %>
       <fieldset class="choices">
         <legend>Which assistant?</legend>
         <% AssistantsController::ASSISTANTS.each_with_index do |(label, provider), i| %>
