@@ -128,4 +128,17 @@ RSpec.describe "Threads on determinations over MCP (Stage 37)", type: :request d
     expect(data["errors"].first["code"]).to eq("SCHEMA_INVALID")
     expect(data["errors"].first["detail"]).to include("Claim")
   end
+
+  # Stage 41, acceptance 4: a worker that disagrees with one counted link, rather
+  # than with the claim, can raise it on that link. TARGET_MISMATCH names
+  # open_thread as the way; this is the call it points at.
+  it "opens a thread on a single counted link" do
+    source = create_source(curator, content: "Employees who worked remotely reported higher productivity.")
+    link = link_evidence(curator, create_evidence(curator, create_location(curator, source, start: 0, finish: 40)), claim)
+    data, err = call_tool("open_thread", { subject_type: "EvidenceClaimLink", subject_id: link.id,
+                                           concern: "This reading is of a later revision of the page than the claim is about." })
+    expect(err).to be(false), data.inspect
+    thread = DeterminationThread.find(data["thread_id"])
+    expect(thread).to have_attributes(subject_type: "EvidenceClaimLink", subject_id: link.id)
+  end
 end

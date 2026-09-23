@@ -1,6 +1,6 @@
 # Stage 41 — What a worker finds and cannot record
 
-**Status:** mostly built 2026-09-22 · one deliverable waits on an owner decision · tag will be `stage-41-what-a-worker-cannot-record`
+**Status:** built 2026-09-23 · tag `stage-41-what-a-worker-cannot-record`
 
 **Tag:** `stage-41-what-a-worker-cannot-record` · **Spec:** 03 §4 (counted links), 04 §3–§6
 (agent protocol, task packets), 06 §2 (reads), 02 §3.2 (sources and versions), Invariants 4
@@ -260,22 +260,25 @@ opened then.
 
 ### What remains
 
-- **Deliverable 4: decided 2026-09-22 — `0.3.0` is the default.** The second option exists:
-  `ledger-default@0.3.0` and `ledger-strict@0.3.0` (`b3f9958`) declare
-  `edition_rule: "named_edition_only"` (03 §7a) — a claim that names its edition in
+- **Deliverable 4: decided 2026-09-22 — `0.3.0` is the default, and the feature is usable
+  end to end.** `ledger-default@0.3.0` and `ledger-strict@0.3.0` (`b3f9958`) declare
+  `edition_rule: "named_edition_only"` (03 §7a): a claim that names its edition in
   `qualifiers.source_edition` gives weight 0, with `reason: "other_edition"` in the trace, to
   evidence from a different version in the same lineage. The owner made it the default;
-  `LEDGER_DEFAULT_MODEL` is `ledger-default@0.3.0` in compose and `.env.example`. At the
-  switch, 386 counted claims scored identically under 0.2.0 and 0.3.0, because no claim names
-  an edition and no source carries `previous_version_id` or `lineage_key`
-  (`record_investigation` and `CREATE_SOURCE` accept both). **What remains:** the rule fires
-  only when a claim names its edition, so the same mis-attachment can still happen on a claim
-  that does not; the `record_investigation` schema explains `qualifiers.source_edition`, but
-  its sources schema does not declare `previous_version_id` or `lineage_key` although
-  `Investigations::Record` reads both, so an assistant can name an edition and has no
-  documented way to link the revision it read to that edition — and without the link the rule
-  cannot fire. Declaring them is the fix, per Stage 42 §1; and inferring a revision as a
-  distinct source (the first option, projection work) is unbuilt.
+  `LEDGER_DEFAULT_MODEL` is `ledger-default@0.3.0` in compose and `.env.example` (`4d9b8ad`).
+  At the switch 386 counted claims scored identically under 0.2.0 and 0.3.0, because no claim
+  here names an edition. The lineage it needs is declared: `record_investigation`'s sources
+  take `edition_of` (a handle in the call or a recorded source id), which
+  `Investigations::Record` writes as `previous_version_id` (`5a4a870`), and
+  `spec/services/scoring/editions_spec.rb` "fires for a check recorded the ordinary way"
+  records one through that path and asserts the rule applies.
+  *Corrected 2026-09-23:* an earlier version of this bullet, the message of `4d9b8ad`, and an
+  answer on feature request `62372ecd` all said the schema declared no way to link a revision
+  to its original. That was wrong — it was found by searching for `previous_version_id` and
+  `lineage_key`, the payload's names, rather than for the name the tool uses — and a filer
+  then confirmed the false gap by the same search. **Remaining, and deliberate:** the rule
+  fires only when a claim names its edition, so a claim that does not can still be
+  contradicted by a later revision; nothing infers editions.
 - **The correction was made by one principal, unaudited.** Revising your own principal's link
   is allowed and is not self-certification, but no second party has looked at the reasoning,
   and `review_coverage` on that claim is unchanged. That is ordinary for any contribution and
@@ -283,3 +286,29 @@ opened then.
 - **A wrong id went into the record.** The filer's turn names claim `c15d1a20`, which matches
   nothing; the claim is `234ec42c…0491ac36`. Answered on the report. Worth noticing because a
   wrong id in a record misleads whoever reads it next, and nothing checks them.
+
+## How it closed (2026-09-23)
+
+**What was resolved.** All six deliverables: five built, one withdrawn.
+Deliverables 1, 2, 3 and 5 as above; 4 by the owner's decision to make 0.3.0 the default;
+6 withdrawn because the dispute was settled by signed supersessions instead.
+
+**How.** `list_claims` filters on `status: "ACTIVE"` and quarantine (`b8aea27`);
+`QUALIFIER_CHECK` allows `CREATE_SOURCE` and `CREATE_SOURCE_LOCATION`, and
+`Tasks::Answer::ANSWER_WITH` now tells the worker so (`a533b99`); refusals name their remedy
+from `Ledger::Appliers::TaskResult`; `RequestMetrics.label("mcp#<tool>")` names the tool;
+`LEDGER_DEFAULT_MODEL` is `ledger-default@0.3.0`. Guards, one per acceptance criterion:
+
+| Acceptance | Spec |
+|---|---|
+| 1 | `spec/requests/refusals_name_the_remedy_spec.rb` — "keeps a merged or superseded claim out of the worklist" |
+| 2 | `spec/services/tasks/tasks_spec.rb` — "lets a QUALIFIER_CHECK create the source and passage its qualifier rests on" (fails on the old ops with the filer's refusal verbatim), and "tells every task type that may create a source how to write one" |
+| 3 | `spec/requests/refusals_name_the_remedy_spec.rb` — fails if a remedy names a tool not in the registry |
+| 4 | `spec/requests/mcp_threads_spec.rb` — "opens a thread on a single counted link" |
+| 5 | `spec/requests/request_metrics_spec.rb` — no `mcp#create` row after mixed calls |
+| 6 | The suite and the reference scorer; the edition rule is its own model version with its own goldens (`spec/services/scoring/editions_spec.rb`) |
+
+**What remains.** Nothing in this stage's scope. Two things stay true and are said so nobody
+reads them as done: the edition rule is inert on a claim that does not name its edition, and
+nothing infers one; and the Navier–Stokes correction was made by one principal and has not
+been independently checked.
