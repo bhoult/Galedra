@@ -336,9 +336,11 @@ lets the old model stay reproducible.
 **Releasing a model used to change the default silently**, because `default_model`
 took the newest. `LEDGER_DEFAULT_MODEL` now pins it. Switching what a visitor sees
 is a decision, not a side effect of a rake task. **This node is pinned to
-`ledger-default@0.2.0`** in `docker-compose.yml`, so that is what a connected
-assistant's claims are scored under here — worth knowing before reading a run's
-states against anything written when `0.1.0` was current.
+`ledger-default@0.3.0`** in `docker-compose.yml` (the owner's decision, 2026-09-22), so that
+is what a connected assistant's claims are scored under here — worth knowing before reading
+a run's states against anything written when `0.1.0` or `0.2.0` was current. `0.3.0` adds
+only the edition rule (03 §7a), which fires when a claim names its edition; at the switch no
+claim did, and all 386 counted claims scored identically under `0.2.0` and `0.3.0`.
 
 **Never adjust a golden to make something pass.** When the reference scorer and a
 prediction disagree, find which side is wrong. Predicting expected values before

@@ -260,21 +260,22 @@ opened then.
 
 ### What remains
 
-- **Deliverable 4, beyond the display: an owner decision, now a narrower one.** *Corrected
-  2026-09-22: until today this bullet said the option was unbuilt, which stopped being true at
-  `b3f9958` and nobody came back to it.* The second option exists: `ledger-default@0.3.0` and
-  `ledger-strict@0.3.0` declare `edition_rule: "named_edition_only"` (03 §7a) — a claim that
-  names its edition in `qualifiers.source_edition` gives weight 0, with
-  `reason: "other_edition"` in the trace, to evidence from a different version in the same
-  lineage — and both are released on this node. They are **not the default**:
-  `LEDGER_DEFAULT_MODEL` pins `ledger-default@0.2.0`. What remains for the owner is whether
-  to make 0.3.0 the default. Two things still stand even if it is: the rule fires only when a
-  claim names its edition, so the same mis-attachment can happen again on a claim that does
-  not; and it needs a lineage to compare, which today means `previous_version_id` or
-  `lineage_key` set on the source. `record_investigation` and `CREATE_SOURCE` accept both, but
-  no source on this node carries either (0, counted 2026-09-22), so on today's data 0.3.0 would
-  score every claim exactly as 0.2.0 does. The first option — inferring a revision as a
-  distinct source, projection work — is unbuilt.
+- **Deliverable 4: decided 2026-09-22 — `0.3.0` is the default.** The second option exists:
+  `ledger-default@0.3.0` and `ledger-strict@0.3.0` (`b3f9958`) declare
+  `edition_rule: "named_edition_only"` (03 §7a) — a claim that names its edition in
+  `qualifiers.source_edition` gives weight 0, with `reason: "other_edition"` in the trace, to
+  evidence from a different version in the same lineage. The owner made it the default;
+  `LEDGER_DEFAULT_MODEL` is `ledger-default@0.3.0` in compose and `.env.example`. At the
+  switch, 386 counted claims scored identically under 0.2.0 and 0.3.0, because no claim names
+  an edition and no source carries `previous_version_id` or `lineage_key`
+  (`record_investigation` and `CREATE_SOURCE` accept both). **What remains:** the rule fires
+  only when a claim names its edition, so the same mis-attachment can still happen on a claim
+  that does not; the `record_investigation` schema explains `qualifiers.source_edition`, but
+  its sources schema does not declare `previous_version_id` or `lineage_key` although
+  `Investigations::Record` reads both, so an assistant can name an edition and has no
+  documented way to link the revision it read to that edition — and without the link the rule
+  cannot fire. Declaring them is the fix, per Stage 42 §1; and inferring a revision as a
+  distinct source (the first option, projection work) is unbuilt.
 - **The correction was made by one principal, unaudited.** Revising your own principal's link
   is allowed and is not self-certification, but no second party has looked at the reasoning,
   and `review_coverage` on that claim is unchanged. That is ordinary for any contribution and
