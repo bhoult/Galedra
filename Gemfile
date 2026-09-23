@@ -44,7 +44,7 @@ gem "kramdown"
 # Ruby 4.0 bundles json 3.x, whose JSON.parse takes keyword-only options;
 # ActiveSupport 8.1.3.1 still passes a positional hash, which breaks jsonb
 # columns and JSON request bodies. Pin 2.x until Rails catches up.
-gem "json", "~> 2.0"
+gem "json", "~> 3.0"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
