@@ -123,6 +123,23 @@ still a single case. Before the `INTERRUPTED` verdict ships, at least one more i
 be confirmed from raw HTML, or acceptance 1's fixture should be understood as the whole of the
 evidence rather than a sample of it.
 
+## Not in this stage: PDFs (2026-09-22)
+
+Bug report `acd7b1bf` asks for PDF text to be extracted so a passage quoted from one can be
+checked (the Ipsos AI Monitor 2026, evidence `d7a2f011`). Galedra's fetch does not read a
+PDF: `Sources::Retrieve::TEXT_TYPES` has no `application/pdf`, and since `79ffd4f` such a
+passage reads `NOT_READ` — *we did not look* — rather than a verdict. Two of the node's four
+PDF retrievals predate that change and still carry the old `UNSUPPORTED`, which is the label
+the filer read.
+
+Reading PDFs needs a text extractor, which is a new dependency, and the stack is decided, so
+**whether to add one is the owner's call** and not part of this stage. If it is taken, it
+belongs beside this stage's renderings: a PDF's extracted text breaks lines and hyphenates
+where the page did, which is the same class of failure as markup interrupting a sentence, and
+the same rule applies — the matcher may only ever remove what the extraction inserted, never
+bridge words the source does not contain. Nothing about it reaches scoring, for the reason in
+the section above.
+
 ## Deliverables
 
 1. `SourceRetrieval::FINDINGS` gains `INTERRUPTED`; the column is a validated string against
