@@ -66,4 +66,48 @@ RSpec.describe "Contributions API", type: :request do
     expect(response.parsed_body["current_seq"]).to eq(Contribution.maximum(:seq))
     expect(response.parsed_body["chain_head"]).to eq(Contribution.in_order.last.entry_hash)
   end
+
+  # The body is parsed once, the signature is checked over the canonical form
+  # of what was parsed, and that parsed form is what is stored. The json gem
+  # below 3.0 keeps the last of two duplicate keys without a word, so a body can
+  # carry a second value for a signed field. These pin that no reading of such a
+  # body can record anything the signer did not sign: a forged value placed
+  # first is overwritten by the signed one, and a forged value placed last fails
+  # the payload hash or the signature. json 3.0 refuses duplicate keys outright,
+  # which would turn the first case into a refusal too; nothing here depends on
+  # that.
+  describe "a body carrying a signed field twice" do
+    let(:pair) { register_key.first }
+    let(:envelope) { build_envelope(action_type: "CREATE_CLAIM", key_pair: pair, payload: claim_payload("The signed claim.")) }
+    let(:forged) { claim_payload("A claim nobody signed.") }
+
+    def with_duplicate(envelope, key, value, position)
+      body = envelope.to_json
+      extra = "#{key.to_json}:#{value.to_json}"
+      spliced = position == :first ? body.sub("{", "{#{extra},") : body.sub(/\}\z/, ",#{extra}}")
+      expect(spliced.scan("#{key.to_json}:").size).to eq(2), "the body must really carry the key twice"
+      spliced
+    end
+
+    it "records only what was signed when the forged value comes first" do
+      post "/api/v1/contributions", params: with_duplicate(envelope, "payload", forged, :first), headers: headers
+      expect(response).to have_http_status(:created)
+      c = Contribution.find(response.parsed_body.dig("contribution", "id"))
+      expect(c.payload).to eq(envelope["payload"])
+      expect(Ledger::Verify.entry(c)).to include(client_signature_ok: true, chain_ok: true)
+      expect(Claim.where(canonical_text: "A claim nobody signed.")).to be_empty
+    end
+
+    it "refuses the forged value when it comes last, with or without its own hash" do
+      envelope # registers the signer, so the count below measures only the attempts
+      count = Contribution.count
+      post "/api/v1/contributions", params: with_duplicate(envelope, "payload", forged, :last), headers: headers
+      expect(response.parsed_body["errors"].map { |e| e["code"] }).to include("PAYLOAD_HASH_MISMATCH")
+
+      both = envelope.merge("payload" => forged, "payload_hash" => Crypto::Hashing.json(forged)).to_json
+      post "/api/v1/contributions", params: both, headers: headers
+      expect(response.parsed_body["errors"].map { |e| e["code"] }).to include("SIGNATURE_INVALID")
+      expect(Contribution.count).to eq(count)
+    end
+  end
 end
