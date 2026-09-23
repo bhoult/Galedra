@@ -137,12 +137,9 @@ module Cards
     # The claim, other than this one, that the qualifying evidence supports
     # directly and that holds up: the version the qualifier points to.
     def qualified_version(claim, evidence, seq, model)
-      evidence.evidence_claim_links.effective_at(seq).where(direction: "SUPPORT").where.not(claim_id: claim.id).order(:created_seq).includes(:claim)
-              .map(&:claim).find do |other|
-        next false if Governance::Quarantines.live_for("CLAIM", other.id) || !short?(other.canonical_text)
-
-        %w[SUPPORTED LEANS_SUPPORTED].include?(Scoring::Score.call(other, seq, model).assessment_state)
-      end
+      candidates = evidence.evidence_claim_links.effective_at(seq).where(direction: "SUPPORT").where.not(claim_id: claim.id).order(:created_seq).includes(:claim)
+                           .map(&:claim)
+      first_holding(candidates.select { |other| short?(other.canonical_text) }, seq, model)
     end
 
     def narrower_supported(claim, seq, model)
@@ -151,11 +148,19 @@ module Cards
       # in does not decide anything (docs/profiler/2026-09-19-weaknesses-at-3000-claims.md).
       candidates = claim.counted_incoming_edges(seq).select { |e| e.relationship_type == "NARROWS" }.map(&:from_claim) +
                    claim.counted_outgoing_edges(seq).select { |e| e.relationship_type == "BROADENS" }.map(&:to_claim)
-      candidates.uniq.sort_by(&:created_seq).find do |other|
-        next false if Governance::Quarantines.live_for("CLAIM", other.id)
+      first_holding(candidates.uniq.sort_by(&:created_seq), seq, model)
+    end
 
-        %w[SUPPORTED LEANS_SUPPORTED].include?(Scoring::Score.call(other, seq, model).assessment_state)
-      end
+    # The first of these, in the order given, that is not quarantined and holds
+    # up. Asked for the set — one quarantine query, one scoring pass — where it
+    # was a lookup and a score per candidate until one matched (Stage 26).
+    def first_holding(candidates, seq, model)
+      return nil if candidates.empty?
+
+      withheld = Quarantine.live.where(target_type: "CLAIM", target_id: candidates.map(&:id)).pluck(:target_id).to_set
+      open = candidates.reject { |other| withheld.include?(other.id) }
+      scored = Scoring::Score.call_many(open, seq, model)
+      open.find { |other| %w[SUPPORTED LEANS_SUPPORTED].include?((scored[other.id] || Scoring::Score.call(other, seq, model)).assessment_state) }
     end
   end
 end

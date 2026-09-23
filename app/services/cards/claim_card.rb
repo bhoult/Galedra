@@ -77,8 +77,13 @@ module Cards
     def related(claim, seq, model)
       edges = claim.counted_incoming_edges(seq).map { |e| [ e.from_claim, e.relationship_type, "incoming" ] } +
               claim.counted_outgoing_edges(seq).map { |e| [ e.to_claim, e.relationship_type, "outgoing" ] }
+      # One quarantine question and one scoring pass for every related claim,
+      # not one of each per claim (Stage 26; found by tracing per-row calls).
+      others = edges.map(&:first).uniq(&:id)
+      withheld = Quarantine.live.where(target_type: "CLAIM", target_id: others.map(&:id)).pluck(:target_id).to_set
+      scored = Scoring::Score.call_many(others.reject { |o| withheld.include?(o.id) }, seq, model)
       edges.map do |other, type, dir|
-        state = Governance::Quarantines.live_for("CLAIM", other.id) ? "QUARANTINED" : Scoring::Score.call(other, seq, model).assessment_state
+        state = withheld.include?(other.id) ? "QUARANTINED" : (scored[other.id] || Scoring::Score.call(other, seq, model)).assessment_state
         { claim_id: other.id, relation: type, direction: dir, headline: Headline.for(state) }
       end
     end

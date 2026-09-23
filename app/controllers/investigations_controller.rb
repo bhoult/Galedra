@@ -29,7 +29,12 @@ class InvestigationsController < ApplicationController
     @investigations = checks.order(created_at: :desc).offset((@page - 1) * PER_PAGE).limit(PER_PAGE).to_a
 
     # One scoring pass for the whole page rather than one per check.
-    @claims_for = @investigations.to_h { |i| [ i.id, i.claims.reject { |c| Governance::Quarantines.live_for("CLAIM", c.id) } ] }
+    # And one load of the page's claims and one quarantine question, rather
+    # than a claim load per check and a quarantine lookup per claim (Stage 26).
+    ids = @investigations.flat_map(&:claim_ids).uniq
+    by_id = Claim.where(id: ids).index_by(&:id)
+    withheld = Quarantine.live.where(target_type: "CLAIM", target_id: ids).pluck(:target_id).to_set
+    @claims_for = @investigations.to_h { |i| [ i.id, i.claim_ids.filter_map { |id| by_id[id] unless withheld.include?(id) } ] }
     results = Scoring::Score.call_many(@claims_for.values.flatten.uniq, @seq, @model)
     @verdicts = @investigations.to_h do |i|
       claims = @claims_for[i.id]
@@ -66,12 +71,15 @@ class InvestigationsController < ApplicationController
     return redirect_to section_path(@investigation.section_id) if @investigation.outline? # Stage 21: the outline page is the check page
     @seq = Contribution.maximum(:seq)
     @model = Scoring::Registry.default_model
-    @claims = @investigation.claims.reject { |c| Governance::Quarantines.live_for("CLAIM", c.id) }
+    claims = @investigation.claims
+    withheld = Quarantine.live.where(target_type: "CLAIM", target_id: claims.map(&:id)).pluck(:target_id).to_set
+    @claims = claims.reject { |c| withheld.include?(c.id) }
     ClaimReference.count!(@claims.map(&:id), "SHARED")
-    @results = @claims.to_h { |c| [ c.id, Scoring::Score.call(c, @seq, @model) ] }
+    # Scored once, as a set; the verdict below used to score every claim again.
+    @results = Scoring::Score.call_many(@claims, @seq, @model)
     @cards = @claims.to_h { |c| [ c.id, Cards::ClaimCard.call(c, @seq, @model, @results[c.id]) ] }
     @headlines = @cards.values.map { |k| k[:plain][:headline] }
-    @verdict = Investigations::Verdict.call(@claims, @seq, @model)
+    @verdict = Investigations::Verdict.call(@claims, @seq, @model, results: @results)
     @summary = Investigation.summary(@cards.values, @verdict)
     @share_line = Investigation.share_line(url: investigation_url(@investigation), **@summary.except(:badge))
     @sources = @claims.flat_map { |c| c.evidence_claim_links.effective_at(@seq).includes(evidence_item: { source_location: :source }).map { |l| l.evidence_item.source_location.source } }

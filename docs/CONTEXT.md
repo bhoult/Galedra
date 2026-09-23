@@ -125,6 +125,21 @@ it came from is in "Open work" below, with two of its four findings still open.)
 whether a *description* matches behaviour — a tool description is a string
 literal and parses fine however wrong it is.
 
+**Worth it for a second thing (2026-09-23): tracing per-row calls to the pages that
+reach them.** Graphify's AST extraction of `app/` and `lib/` is free and quick (321
+files, no model), and it resolves *class-method* calls across modules well —
+`Scoring::Score.call` had 25 callers — but not instance-method calls, whose receiver type
+it cannot know (`claim.evaluability_at` showed none). So it cannot tell a call inside a
+loop from one outside. What worked was three steps: Prism (Ruby's own parser) lists every
+query and per-claim service call inside an iteration block; the graphify call graph walks
+each one back to the controller actions and MCP tools that can reach it; and
+`request_tallies` ranks those by real time. That ranked 68 sites, found the investigations
+list at 71 statements (now 8), and — because requesting the pages it named is how you check
+a candidate — found a claim page returning 500 (`3bdc78a`). Build it into the scratchpad,
+not `graphify-out/`, so the full graph with its document extraction is not rebuilt for a
+code question. Eight sites reached no entry point through the graph; that means an
+unresolved instance call, not dead code.
+
 **Known gap:** the dangling-edge count appears in build console output and is
 written to no artefact. `graph.json` ships cleaned and `GRAPH_REPORT.md` never
 mentions it, so the finding is not reproducible from the files. Fix by writing
