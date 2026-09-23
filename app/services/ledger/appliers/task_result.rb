@@ -89,7 +89,13 @@ module Ledger
         ops = p["ops"]
         reject("SCHEMA_INVALID", path("ops"), "expected an array") unless ops.is_a?(Array)
         limit = [ spec[:max_ops], Tasks::Types::MAX_OPS ].min
-        reject("TOO_MANY_OPS", path("ops"), "at most #{limit} ops for #{task.task_type}") if ops.size > limit
+        if ops.size > limit
+          # How many were sent and what the budget buys, because "at most 12" is
+          # counted in ops while the caller composed sources and links: a found
+          # source costs four ops, so the real budget is three sources (Stage 42 §8).
+          budget = " A source costs four ops (source, passage, evidence, link), so that is #{limit / 4} #{limit / 4 == 1 ? 'source' : 'sources'}; record the rest with record_investigation." if Tasks::Types.allowed_ops(task.task_type).include?("CREATE_SOURCE")
+          reject("TOO_MANY_OPS", path("ops"), "this answer came to #{ops.size} ops; #{task.task_type} takes at most #{limit}.#{budget}")
+        end
         refs = []
         ops.each_with_index do |op, i|
           reject("SCHEMA_INVALID", "#{path('ops')}[#{i}]", "expected an object with op") unless op.is_a?(Hash) && op["op"].is_a?(String)

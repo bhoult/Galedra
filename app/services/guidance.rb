@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-23.1"
+  VERSION = "2026-09-23.2"
 
   # The first sentence is a routing rule, and it is first on purpose. It is the
   # only one that has to be read *before* a tool is called, so it cannot live
@@ -159,7 +159,7 @@ module Guidance
          "budget on one afternoon is not sent back, and what this place needs is the work that keeps arriving. " \
          "Report as you go, about every ten tasks: how many you have done, what the last few found, and what is left. " \
          "Someone watching a long run cannot tell steady work from a stall, and silence reads as the second. " \
-         "What is left means open_for_you, not open: most tasks want three independent answers from three principals, so " \
+         "What is left means open_for_you, not open_all: most tasks want three independent answers from three principals, so " \
          "the queue total barely moves however hard you work, and quoting it tells the person their afternoon achieved " \
          "nothing. open_for_you and answers_wanted_for_you count only what you may still take. " \
          "If what you are doing stops moving claims — the checks keep coming back CANNOT_DETERMINE or NONE_FOUND, or the " \
@@ -293,6 +293,19 @@ module Guidance
 
   # What each topic is made of. Composed at call time rather than frozen into a
   # constant, because :work pulls in the task rules from Tasks::Answer.
+  # Stage 42 §4. What an operator pastes into a client's connector form, where
+  # a directory-style client decides a connector is relevant from its entry
+  # *before* it fetches a single tool — so no channel this node controls reaches
+  # that decision. Served on /connect and at GET /api/v1/connector. Every rule
+  # in it also lives in PURPOSE or a topic (spec/lib/skills_spec.rb), because a
+  # pasted description is frozen the moment it is pasted.
+  CONNECTOR = "Galedra — a public, signed record of claims and the evidence behind them. Use these tools to check something " \
+              "before sharing it, to read why a claim is or is not supported, and to contribute evidence. Any galedra link — a " \
+              "claim, an outline, a section — is answered by calling a tool with the id from that link, never by opening a " \
+              "browser: a browser cannot write, and every write here is signed through a tool. A message that is just " \
+              "\"galedra:\" followed by text means: check this before I share it. There is a standing queue of verification " \
+              "work; ask for it with list_tasks and quote open_for_you."
+
   TOPICS = %i[check outline inference work correct threads].freeze
 
   module_function

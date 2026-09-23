@@ -128,6 +128,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       get "meta", to: "meta#show"
       get "guidance", to: "guidance#show"
+      get "connector", to: "guidance#connector"
       get "openapi", to: "openapi#show"
       get "topics", to: "topics#index"
       resources :threads, only: [ :index, :show ] do

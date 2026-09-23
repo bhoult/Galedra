@@ -6,6 +6,11 @@
     <%= f.label :resolution, row.awaiting_reporter? ? "Add to your answer" : "What you want to say to whoever filed this", class: "meta" %>
     <%= f.text_area :resolution, value: nil, rows: 4,
                     placeholder: "What was done, or why this needs nothing. It goes on this page as your turn, and the reporter is asked whether it settles the thing." %>
+    <%# Stage 42 §9: so the filer can check the fix without the repository. %>
+    <%= f.label :fixed_in, "Fixed in (a commit or tag already pushed)", class: "meta" %>
+    <%= f.text_field :fixed_in, value: nil, maxlength: 100, placeholder: "e.g. 288125a" %>
+    <%= f.label :repro, "The call to re-run, and what it should now return", class: "meta" %>
+    <%= f.text_area :repro, value: nil, rows: 2, placeholder: "e.g. submit_task with links[0].steps as [\"one\"] now answers SCHEMA_INVALID naming answer.links[0].steps" %>
     <p class="triage-actions">
       <%= f.submit "Answer", name: "status", value: "ANSWERED", class: "primary small" %>
       <%= f.submit "Answer and hold", name: "status", value: "HELD", class: "secondary small" %>

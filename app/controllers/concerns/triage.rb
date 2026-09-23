@@ -66,7 +66,8 @@ module Triage
                            alert: "Say something in the reply: answering hands the report back, and an empty answer gives the reporter nothing to respond to."
     end
 
-    row.answer!(body: resolution, user: Current.user, status: status, settles: settles)
+    row.answer!(body: resolution, user: Current.user, status: status, settles: settles,
+                fixed_in: params[:fixed_in].to_s.strip, repro: params[:repro].to_s.strip)
     redirect_back fallback_location: triage_index_path, notice: notice_for(settles ? status : "HELD")
   end
 

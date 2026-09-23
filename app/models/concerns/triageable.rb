@@ -88,9 +88,14 @@ module Triageable
   # `settles: false` is an answer that is not a resolution: work has been agreed
   # and not done yet. It still hands the report back, and it does not start the
   # timeout, because the timeout's licence is "if you think it is settled".
-  def answer!(body:, user: nil, status: "ANSWERED", settles: true)
+  # fixed_in names where a fix is — a commit or tag that is on the public
+  # repository, never a local id that a rebase can still change — and repro the
+  # exact call that failed, so the filer re-runs it and watches it pass
+  # (Stage 42 §9).
+  def answer!(body:, user: nil, status: "ANSWERED", settles: true, fixed_in: nil, repro: nil)
     transaction do
-      add_turn!(body: body, author_kind: "maintainer", user: user, settles: settles) if body.present?
+      add_turn!(body: body, author_kind: "maintainer", user: user, settles: settles,
+                fixed_in: fixed_in.presence, repro: repro.presence) if body.present?
       update!(status: status, resolution: body.presence || resolution)
     end
   end

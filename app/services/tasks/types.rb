@@ -26,7 +26,7 @@ module Tasks
       "OPPOSING_EVIDENCE_SEARCH" => {
         target_type: "CLAIM", allowed_ops: %w[CREATE_SOURCE CREATE_SOURCE_LOCATION CREATE_EVIDENCE LINK_EVIDENCE], outcomes: %w[FOUND NONE_FOUND], max_ops: 12,
         lease_hours: 4, auto_accept: true, cost: "3",
-        objective: "Search for evidence in the stated direction. Report NONE_FOUND if none exists; a documented null search is information."
+        objective: "Search for evidence in the stated direction. Opposing means opposing the claim's current lean, so the direction is often SUPPORT; context.search_direction says which. Report NONE_FOUND if none exists; a documented null search is information."
       },
       "SOURCE_INDEPENDENCE_CHECK" => {
         target_type: "CLAIM", allowed_ops: %w[CREATE_INDEPENDENCE_GROUP ASSIGN_INDEPENDENCE_GROUP], outcomes: %w[GROUPED INDEPENDENT CANNOT_DETERMINE], max_ops: 20,

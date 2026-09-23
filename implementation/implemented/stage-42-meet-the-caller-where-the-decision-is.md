@@ -1,6 +1,6 @@
 # Stage 42 — Meet the caller where the decision is made
 
-**Status:** planned · tag will be `stage-42-meet-the-caller-where-the-decision-is`
+**Status:** built 2026-09-23 · tag `stage-42-meet-the-caller-where-the-decision-is` · §5a waits on the owner
 
 **Tag:** `stage-42-meet-the-caller-where-the-decision-is` · **Spec:** 04 §3–§6 (agent
 protocol), 05 §3 (signed envelopes), 06 §7 (API), Articles XIV (contributors, not
@@ -392,15 +392,29 @@ the protocol.*
 
 ## Constitutional Test
 
-To be answered in full before building, with these three flagged now:
+The ten questions of `12-constitution.md`, answered 2026-09-23 before the stage closed. The
+stage touches identity only through §5, which was built earlier and is recorded there.
 
-- **Q5 (does this make the record more auditable?)** Yes for §2: an absence with its
-  coverage can be judged; one without cannot be judged at all, and 319 of them are already
-  recorded permanently.
-- **Q6 (does this weaken any invariant?)** No. §1 moves validation *earlier* than signing,
-  so nothing enters the log that would not have entered it before; Invariant 4 is untouched
-  because no scorer input changes.
-- **Q9 (self-certification)** Untouched. Nothing here changes who may accept whose work.
+1. **Evidence more traceable or less?** More. §9 puts the commit and the re-runnable call on
+   the answer itself, so a filer can trace a fix without the maintainer routing it.
+2. **Disagreement more inspectable?** Yes. A refusal now names the field and the contract it
+   broke; a caller that disagrees with a refusal can see exactly what it disagrees with.
+3. **Hidden authority?** No. The validator applies the schema every caller is handed and
+   nothing else; it adds no rule that is not published in `tools/list`.
+4. **Reputation substituting for evidence?** No. Nothing here reads who is calling to decide
+   what is accepted.
+5. **Preserves uncertainty?** Yes. No scorer input changes; §8's search change widens what is
+   *found*, never what is concluded.
+6. **Reproducible?** Yes. Validation is a pure function of the arguments and the schema.
+   Invariant 4 is untouched.
+7. **Can an opposing investigator challenge it with the same system?** Yes, more easily:
+   the search no longer needs every word, and an absence without coverage is refused.
+8. **Can the history be reconstructed?** Yes. Validation happens *before* signing, so
+   nothing enters the log that would not have entered it before, and nothing already in it
+   changes.
+9. **Shared evidence versus personal belief?** Untouched.
+10. **Would we want it in the hands of people we disagree with?** Yes. A schema that
+    refuses the same malformed call from anyone, and says why, is the neutral case.
 
 ## What this stage is not
 
@@ -456,3 +470,74 @@ not this stage's work — they are its evidence, and the reason §1 is written t
 | `65170f6` | `answer.searched` accepted where four sessions kept putting it | the stumble stopped recurring |
 
 Every one of them is a schema or a refusal. That is the stage.
+
+
+## How it closed (2026-09-23)
+
+### What was resolved
+
+§1, §3, §4, §6, most of §8 and the open parts of §9 were built today. §2, §5 and most of §7
+were already done. §5a is an owner decision; §7's manifest has no settled format; and one
+item each in §8 and §9 is deliberately left.
+
+### How
+
+- **§1, the validator.** `Mcp::Arguments` checks every call against its `inputSchema`
+  (`type`, `enum`, `properties`, `required`, `items`, `minItems`, `maxItems`, `minimum`,
+  `maximum`) in `Mcp::Server#call_tool`, before anything is built or signed, with no gem. It
+  follows the tools where they were looser than the schema. Integers may be whole-number
+  strings or whole floats; plain strings may be numbers; booleans may be `"true"`/`"false"`;
+  null is absence; undeclared keys are left alone. Each leniency is named in the module.
+  Refusals say `answer.links[0].strength must be one of DIRECT, …` in the caller's
+  vocabulary, never echo a value, and carry `see`: the schema fragment that was broken (§6).
+- **§3.** `list_tasks` returns `open_all` and `answers_wanted_all`, and keeps `open` and
+  `answers_wanted` as deprecated aliases. The caller's own pair comes first.
+- **§4.** `Guidance::CONNECTOR` is shown on `/connect` and served at `GET /api/v1/connector`
+  (in `Api::Openapi`), and now carries the `galedra:` trigger.
+- **§6.** A refusal carries `guidance` and `waiting_on_you` on the same terms as a success.
+  `Mcp::Server.ways_in` names all three ways to authenticate. It is used by the server's
+  `TOKEN_INVALID` and by `McpController`'s 401. The 401 is the refusal a caller with a stale
+  token actually meets, and it had named only OAuth.
+- **§8.** `TOO_MANY_OPS` says how many ops were sent and how many sources the budget buys.
+  `OPPOSING_EVIDENCE_SEARCH`'s objective says the direction is often SUPPORT.
+  `Claims::Search.most_terms` gives `search_claims` a second pass that ranks by terms held,
+  and keeps only claims holding at least half: the query from `91bee9ac` went from 1 claim
+  to 7.
+- **§9.** `thread_turns.fixed_in` and `repro`, for a maintainer's turn only. `answer!` and the
+  reply box take them, `get_report` returns them as fields, the report page shows them, and
+  `/check-galedra` says to use them and to push before naming a commit.
+
+| Acceptance | Status | Guard |
+|---|---|---|
+| 1 | Met: all 36 tools that take arguments; three take none | `spec/requests/mcp_schema_refusals_spec.rb` walks `TOOLS` |
+| 2 | **Met as far as the evidence allows** — see below | the whole suite (626 examples), and the leniency spec |
+| 3 | Met: float, list, bad enum and missing nested field, and nothing written | same file |
+| 4 | Met earlier (§2) | `spec/requests/mcp_tasks_spec.rb` |
+| 5 | Met | `mcp_tasks_spec.rb`, beside the counter spec |
+| 6 | Met | `spec/lib/skills_spec.rb`, `spec/requests/api/v1/guidance_spec.rb` |
+| 7 | Met | `mcp_schema_refusals_spec.rb` |
+| 8 | Met, for both refusals | same file; each named route is checked as routed |
+
+**Acceptance 2 could not be run as written.** It asks for the run's accepted `TASK_RESULT`
+payloads to be replayed through the validator. Those payloads are the *translated ops*; the
+tool arguments that produced them were never stored, so there is no record of what callers
+actually sent. What was done instead: the full suite, whose every MCP call now passes through
+the validator, ran green, and the one spec the validator changed was one it should change (an
+array in `links[].steps` is now refused by the schema, earlier and in the caller's terms). The
+shipped example bundle `examples/agent/investigation.json` lacks `retrieved_at`, which the
+server already refused (`Investigations::Record`); the page that loads it fills it in. The
+risk that remains is a real caller sending a shape no spec sends. The live node logs every
+refusal as `mcp_call … outcome=refused codes=SCHEMA_INVALID`, and **the first real run after
+this stage should be read for new `SCHEMA_INVALID` refusals before anything else.**
+
+### What remains
+
+- **§5a: an owner decision.** What an anonymous caller behind a rotating address should get.
+- **§7: the MCP discovery manifest.** There is no ratified format yet, so serving one would be
+  a guess.
+- **§8: `open_for_you` on every result.** Left deliberately. It costs a task-queue computation
+  on every call, on a codebase whose recurring defect is per-call queries. `waiting_on_you`
+  already rides on every result; the queue count wants a cached form first.
+- **§9: agent confusion as a defect class.** A triage practice rather than code. The fields
+  built here are its delivery vehicle; the practice is not written down anywhere yet.
+- **Acceptance 2** as above, until a real run is read.

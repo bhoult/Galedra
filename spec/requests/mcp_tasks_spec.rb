@@ -286,6 +286,10 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
 
     data, = call_tool("list_tasks", {})
     expect(data["open"]).to eq(before["open"]), "two more answers are still wanted, so the queue is unchanged"
+    # Stage 42 §3: the global pair is named for what it is, the old names are
+    # aliases for one release, and the caller's own count is what is read first.
+    expect(data).to include("open_all" => data["open"], "answers_wanted_all" => data["answers_wanted"])
+    expect(data.keys.first).to eq("open_for_you")
     expect(data["open_for_you"]).to eq(before["open_for_you"] - 1), "but there is one fewer left for this caller"
     expect(data["answers_wanted"]).to eq(before["answers_wanted"] - 1)
     expect(data["answers_wanted_for_you"]).to eq(before["answers_wanted_for_you"] - 3), "all three of that task's answers are now beyond this caller"
@@ -574,6 +578,9 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
   # Its guard was a unit test on Steps.for_link, and the repro handed to the
   # filer was record_investigation, which has refused an array here since
   # Stage 13 and so never had the bug; this is the path that did (b0386d84).
+  # Since Stage 42 §1 the tool's own schema refuses it first, in the caller's
+  # vocabulary, before anything is built; Steps.for_link's own refusal is
+  # still pinned by its unit test in mcp_spec.rb.
   it "refuses links[].steps given as an array in submit_task, in the protocol and by name" do
     claim, = curated_claim
     Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: claim)
@@ -587,8 +594,10 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
                 evidence: [ { handle: "e", excerpt: "x", statement: "The rollout does not begin until 2028." } ],
                 links: [ { evidence: "e", claim: "target", direction: "QUALIFY", steps: [ "one", "two" ] } ] } } }, token: token)
     expect(response.media_type).to eq("application/json")
-    expect(body.dig("error", "code")).to eq(-32_602), "invalid params, answered in JSON-RPC rather than as an HTML 500"
-    expect(body.dig("error", "message")).to eq("links[].steps must be a whole number of interpretive steps, not array")
+    expect(body.dig("result", "isError")).to be(true), "answered in JSON-RPC rather than as an HTML 500"
+    error = body.dig("result", "structuredContent", "errors").first
+    expect(error).to include("code" => "SCHEMA_INVALID", "path" => "$.answer.links[0].steps")
+    expect(error["detail"]).to eq("answer.links[0].steps must be a whole number; got a list")
     expect(Contribution.count).to eq(count)
   end
 end

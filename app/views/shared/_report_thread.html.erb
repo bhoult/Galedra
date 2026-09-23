@@ -24,6 +24,8 @@
         <% end %>
       </p>
       <%= simple_format(m.body) %>
+      <% if m.fixed_in.present? %><p class="meta">Fixed in <code><%= m.fixed_in %></code></p><% end %>
+      <% if m.repro.present? %><p class="meta">To check it: <%= m.repro %></p><% end %>
     </div>
   <% end %>
 <% end %>

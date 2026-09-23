@@ -28,6 +28,11 @@ class ThreadTurn < ApplicationRecord
   # keeping them apart is why there are two columns and not one overloaded one.
   validates :satisfied, absence: true, if: -> { author_kind == "maintainer" }
   validates :verdict, inclusion: { in: DeterminationThread::OUTCOMES }, allow_nil: true
+  # Stage 42 §9: where a fix is and the call that shows it, as fields a filer
+  # can act on rather than prose it has to parse. A maintainer's to give, since
+  # they are a claim about this repository.
+  validates :fixed_in, length: { maximum: 100 }, absence: { if: -> { author_kind != "maintainer" } }
+  validates :repro, length: { maximum: MAX_CHARS }, absence: { if: -> { author_kind != "maintainer" } }
 
   scope :oldest_first, -> { order(:created_at) }
 

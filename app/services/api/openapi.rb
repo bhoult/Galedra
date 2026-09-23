@@ -68,6 +68,7 @@ module Api
       {
         "/api/v1/meta" => get_op("meta", "Ledger metadata: constitution hash, keys, models, endpoints."),
         "/api/v1/openapi" => get_op("getOpenapi", "This document."),
+        "/api/v1/connector" => get_op("getConnector", "The description to paste into a client's connector form, where a directory-style client decides a connector is relevant before it reads any tool."),
         "/api/v1/guidance" => get_op("getGuidance", "The operational rules for an assistant working here, served live so a change reaches you without reinstalling anything. Read this at the start of a Galedra task. Assistants on MCP get the same text attached to every tool result instead.", params: [ query("topic", "One of: check, outline, inference, work, correct, threads. All of them by default") ]),
         "/api/v1/schemas/{name}" => get_op("getSchema", "One JSON Schema by name: eir-contribution-v1, eir-task-v1, or eir-result-v1.", params: [ path_param("name", "Schema name without the .json") ]),
         "/api/v1/topics" => get_op("getTopics", "The topic vocabulary with the number of claims under each.", params: [ snapshot_seq_query ]),

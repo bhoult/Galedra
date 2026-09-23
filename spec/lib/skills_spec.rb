@@ -56,4 +56,15 @@ RSpec.describe Skills::Build do
         "#{marker} is an operational rule in the skill; it belongs in Guidance, which is re-read on every call"
     end
   end
+
+  # Stage 42 §4, acceptance 6. The connector description is pasted into a
+  # client's form once and never re-read, exactly like the skill, so the same
+  # rule holds: nothing it says may live only there.
+  it "keeps every rule in the connector description in the live guidance too" do
+    live = ([ Guidance::PURPOSE ] + Guidance.all.values).join(" ")
+    { "never by opening a" => "browser", "galedra:" => "galedra:", "list_tasks" => "list_tasks", "open_for_you" => "open_for_you" }.each do |in_connector, in_live|
+      expect(Guidance::CONNECTOR).to include(in_connector)
+      expect(live).to include(in_live), "the connector description says #{in_connector.inspect}, and the live guidance does not"
+    end
+  end
 end

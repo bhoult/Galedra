@@ -64,13 +64,17 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(report.reload.status).to eq("OPEN")
 
     # Second round, and this time the reporter agrees.
-    report.answer!(body: "Found it: tool_error skipped decorate. Fixed.", user: user)
+    # Stage 42 §9: where the fix is and the call that shows it, as fields.
+    report.answer!(body: "Found it: tool_error skipped decorate. Fixed.", user: user,
+                   fixed_in: "288125a", repro: "get_claim with a mistyped id now answers NOT_FOUND inside a frame carrying resultType")
     done, = call_tool("respond_to_report", { "report_id" => report.id, "body" => "Confirmed against the live node.", "satisfied" => true })
     expect(done["status"]).to eq("CLOSED")
 
     thread, = call_tool("get_report", { "report_id" => report.id })
     expect(thread["messages"].map { |m| m["from"] }).to eq(%w[maintainer assistant maintainer assistant])
     expect(thread["messages"].map { |m| m["satisfied"] }).to eq([ nil, false, nil, true ])
+    expect(thread["messages"][2]).to include("fixed_in" => "288125a", "repro" => a_string_starting_with("get_claim with a mistyped id"))
+    expect(thread["messages"][0]).not_to have_key("fixed_in"), "absent, not null, where none was given"
     expect(thread["awaiting_you"]).to be(false)
 
     # And every turn is on the page.
@@ -78,6 +82,7 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     post session_path, params: { email_address: user.email_address, password: password }
     get "/bug_reports/#{report.id}"
     expect(response.body).to include("Exchange", "Confirmed against the live node.", "not satisfied", "the reporter said it was settled")
+    expect(response.body).to include("Fixed in <code>288125a</code>", "To check it: get_claim with a mistyped id")
 
     # The list says whose turn it is in a few characters, with the sentence as
     # the tooltip: the full phrase wrapped to four lines in a 4.5rem column.

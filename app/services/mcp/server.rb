@@ -121,7 +121,7 @@ module Mcp
       { name: "list_tasks", annotations: { readOnlyHint: true, openWorldHint: false },
         description: "Answer a Galedra outline or section URL here rather than in a browser: pass its id as section_id. What needs doing in Galedra: open verification tasks by type and domain, and the top few by priority with the claim they check. No token needed. To do them, the person says \"work N open tasks in Galedra\" and you call next_task then submit_task N times.",
         inputSchema: { type: "object", properties: { types: { type: "array", items: { type: "string", enum: Tasks::Types::ALL } }, domains: { type: "array", items: { type: "string" } }, section_id: { type: "string", description: "Only work under this outline or section" }, limit: { type: "integer", default: 5 } } },
-        outputSchema: { type: "object", properties: { open: { type: "integer", description: "Open tasks in the queue, whoever answers them. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted: { type: "integer", description: "Answers still wanted across those tasks: this falls by one for every result submitted, by anyone" }, open_for_you: { type: "integer", description: "Of those, the ones you may still take: never one you or your principal has already leased or answered. This is the number that falls as you work, and the one to quote to the person" }, answers_wanted_for_you: { type: "integer", description: "Answers still wanted on the tasks you may take" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" },
+        outputSchema: { type: "object", properties: { open_for_you: { type: "integer", description: "Open tasks you may still take: never one you or your principal has already leased or answered. This is the number that falls as you work, and the one to quote to the person" }, answers_wanted_for_you: { type: "integer", description: "Answers still wanted on the tasks you may take" }, open_all: { type: "integer", description: "Open tasks in the whole queue, whoever answers them — everybody's, not yours. Most ask for three independent answers, so this does not move until a task has all three" }, answers_wanted_all: { type: "integer", description: "Answers still wanted across the whole queue, by anyone — not yours: this falls by one for every result submitted by anybody" }, open: { type: "integer", description: "Deprecated alias of open_all, kept for one release. Not your work: quote open_for_you" }, answers_wanted: { type: "integer", description: "Deprecated alias of answers_wanted_all, kept for one release. Not your work: quote answers_wanted_for_you" }, by_type: { type: "object" }, by_domain: { type: "object" }, next: { type: "array" },
                                                       content_reviews_pending: { type: "integer", description: "Awaiting review from anyone." },
                                                       content_reviews_for_you: { type: "integer", description: "Of those, the ones you may take: never your own principal's words, never one you have already voted on." },
                                                       how: { type: "string" } } } },
@@ -213,7 +213,7 @@ module Mcp
         outputSchema: { type: "object", properties: { id: { type: "string" }, kind: { type: "string" }, status: { type: "string" }, awaiting_you: { type: "boolean" },
                                                       settles_at: { type: [ "string", "null" ], description: "When silence closes this. You can still disagree afterwards and it reopens. Null when held." },
                                                       held: { type: "boolean", description: "Answered, and deliberately not closing: work has been agreed and not done yet. It waits for that rather than for you, and silence will not settle it." },
-                                                      messages: { type: "array", items: { type: "object", properties: { at: { type: "string" }, from: { type: "string" }, body: { type: "string" }, satisfied: { type: [ "boolean", "null" ] } } } } } } },
+                                                      messages: { type: "array", items: { type: "object", properties: { at: { type: "string" }, from: { type: "string" }, fixed_in: { type: "string", description: "On a maintainer's answer: the commit or tag, on the public repository, that holds the fix" }, repro: { type: "string", description: "On a maintainer's answer: the call to re-run to see the fix, and what it should now return. Run it rather than taking the answer's word" }, body: { type: "string" }, satisfied: { type: [ "boolean", "null" ] } } } } } } },
       { name: "respond_to_report", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Answer a maintainer on a report you filed, and say whether the resolution actually settles it. satisfied: true closes it by agreement; satisfied: false reopens it with your reasons attached. You may do this as many times as it takes — a report is closed when both sides say so, not when one side says so.",
         inputSchema: { type: "object", properties: { report_id: { type: "string" }, body: { type: "string" }, satisfied: { type: "boolean" } }, required: %w[report_id body satisfied] },
@@ -285,6 +285,8 @@ module Mcp
       id = message["id"]
       method = message["method"].to_s
       params = message["params"].is_a?(Hash) ? message["params"] : {}
+      # What a refusal needs to be told as much as a success is (Stage 42 §6).
+      call = method == "tools/call" ? { name: params["name"].to_s, args: params["arguments"].is_a?(Hash) ? params["arguments"] : {} } : {}
       return [ era.error_status, { jsonrpc: "2.0", id: id, error: era.error } ] if era.error
       return [ 202, nil ] if method.start_with?("notifications/")
 
@@ -314,15 +316,15 @@ module Mcp
       end
       [ 200, { jsonrpc: "2.0", id: id, result: decorate(result, era) } ]
     rescue Ledger::Rejected => e
-      [ 200, tool_error(id, e.errors, era) ]
+      [ 200, tool_error(id, e.errors, era, **call) ]
     rescue Assistants::CapReached => e
-      [ 200, tool_error(id, [ { code: "DAILY_CAP", path: "$", detail: e.message } ], era) ]
+      [ 200, tool_error(id, [ { code: "DAILY_CAP", path: "$", detail: e.message } ], era, **call) ]
     rescue ActiveRecord::RecordInvalid => e
       # A validation that reaches here is still a refusal, and a refusal the
       # caller can read beats a bare 422 with nothing in it. One of these cost an
       # assistant two attempts at a reply it could not shorten because nothing
       # told it to (docs/experiments/2026-09-20-second-connector-run.md).
-      [ 200, tool_error(id, [ { code: "SCHEMA_INVALID", path: "$", detail: e.record.errors.full_messages.join("; ") } ], era) ]
+      [ 200, tool_error(id, [ { code: "SCHEMA_INVALID", path: "$", detail: e.record.errors.full_messages.join("; ") } ], era, **call) ]
     rescue ArgumentError => e
       [ 200, error(id, INVALID_PARAMS, e.message) ]
     rescue StandardError => e
@@ -340,7 +342,7 @@ module Mcp
       # Broad on purpose, and loud on purpose — this rescue exists to keep the
       # envelope intact, never to make a crash quiet.
       Rails.logger.error("mcp_crash tool=#{params.is_a?(Hash) ? params['name'] : nil} #{e.class}: #{e.message}\n#{Array(e.backtrace).first(8).join("\n")}")
-      [ 200, tool_error(id, [ { code: "INTERNAL_ERROR", path: "$", detail: "this call failed inside the server and nothing was recorded; it has been logged. Check the arguments against the tool's schema — a field given the wrong type is the usual cause — and report it with report_bug if they match." } ], era) ]
+      [ 200, tool_error(id, [ { code: "INTERNAL_ERROR", path: "$", detail: "this call failed inside the server and nothing was recorded; it has been logged. Check the arguments against the tool's schema — a field given the wrong type is the usual cause — and report it with report_bug if they match." } ], era, **call) ]
     end
 
     # Modern results carry resultType and identify the server per response,
@@ -440,6 +442,10 @@ module Mcp
 
       begin
         require_arguments!(tool, args)
+        # Stage 42 §1: the rest of the schema, before anything is built or signed.
+        refusals = Arguments.errors(tool[:inputSchema], args)
+        raise Ledger::Rejected.new(refusals) if refusals.any?
+
         data = send(:"tool_#{name}", args)
       rescue Ledger::Rejected => e
         # The path and detail are carried on the error and were being dropped, so
@@ -481,7 +487,11 @@ module Mcp
                      .order(created_seq: :desc).limit(50)
       end
       claims = scope.to_a
-      claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty? && args["source_id"].blank?
+      if claims.empty? && args["source_id"].blank?
+        base = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
+        claims = Claims::Search.most_terms(base, query, limit: args.fetch("limit", 10).to_i.clamp(1, 50)).to_a
+        claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty?
+      end
       total = Claim.counted_at(seq).count
       result = { query: query, snapshot_seq: seq, total_accepted_claims: total, claims: claims.map { |c| brief(c, seq, model) }, caller: caller_note }
       # Not "more likely unrecorded than mis-searched": the total cannot tell a
@@ -898,7 +908,7 @@ module Mcp
         awaiting_you: row.awaiting_reporter?, settles_at: row.settles_at&.utc&.iso8601, held: row.held?,
         filed: (row.is_a?(BugReport) ? row.happened : row.needed).to_s,
         messages: row.turns.oldest_first.map do |m|
-          { at: m.created_at.utc.iso8601, from: m.author_kind, body: m.body, satisfied: m.satisfied }.compact
+          { at: m.created_at.utc.iso8601, from: m.author_kind, fixed_in: m.fixed_in, repro: m.repro, body: m.body, satisfied: m.satisfied }.compact
         end }
     end
 
@@ -1083,8 +1093,15 @@ module Mcp
       # and not an answer to the question it asked. Reported three times in one
       # day in three different shapes (01a0c085 and the pair below), which is
       # what makes it one fault and not three.
-      { open: open.size, answers_wanted: open.sum { |t| slots.fetch(t.id, 0) },
-        open_for_you: yours.size, answers_wanted_for_you: yours.sum { |t| slots.fetch(t.id, 0) },
+      #
+      # Stage 42 §3: four assistants read `answers_wanted` as their own
+      # remaining work, and a paragraph in Guidance saying otherwise did not
+      # stop any of them. So the global pair is named for what it is, the
+      # caller's pair comes first, and the old names stay one release as aliases.
+      all_answers = open.sum { |t| slots.fetch(t.id, 0) }
+      { open_for_you: yours.size, answers_wanted_for_you: yours.sum { |t| slots.fetch(t.id, 0) },
+        open_all: open.size, answers_wanted_all: all_answers,
+        open: open.size, answers_wanted: all_answers,
         by_type: open.group_by(&:task_type).transform_values(&:size), by_domain: open.group_by(&:domain).transform_values(&:size), next: top,
         # The same split as above: the total said sixty were waiting while
         # next_content_review said none awaited, and both were right — all sixty
@@ -1406,11 +1423,25 @@ module Mcp
 
     def url_for(claim) = "#{@base_url}/claims/#{claim.id}"
 
+    # Every way to authenticate, for every refusal about authentication — here
+    # and in McpController's 401 — so the two cannot drift apart. The URL form
+    # is the one a connector screen taking only a URL needs, and it was the one
+    # missing (Stage 42 §6).
+    def self.ways_in(base_url)
+      "Three ways in: connect with OAuth at #{base_url}/mcp/connect (how, for each client: #{base_url}/connect); " \
+        "or mint a token at #{base_url}/assistants/new and send it as Authorization: Bearer <token>; " \
+        "or, for a connector screen that takes only a URL, put the token in the address: #{base_url}/mcp/<token>. " \
+        "An anonymous token you already hold is put under a person's name by opening its adopt_url while signed in."
+    end
+
     def require_token!
       raise Ledger::Rejected.new([ { code: "INSUFFICIENT_SCOPE", path: "$", detail: "this connection was granted read-only access (galedra:read); reconnect with the galedra scope to record" } ]) if @read_only
       return if @token&.usable?
 
-      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "this tool writes to the log; connect an assistant at #{@base_url}/assistants/new and send its token as Authorization: Bearer" } ])
+      # Every way in, because the one that fits a connector screen taking only a
+      # URL is the one that was missing, and a caller told only about headers
+      # cannot use a form that has no header field (Stage 42 §6).
+      raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "this tool writes to the log, and this call carried no usable token. #{self.class.ways_in(@base_url)}" } ])
     end
 
     def error(id, code, message)
@@ -1424,7 +1455,7 @@ module Mcp
     # then mistyped one character of a claim id, never saw "no such claim", and
     # spent two bug reports concluding the record was corrupt
     # (docs/experiments/2026-09-20-second-connector-run.md, finding 1).
-    def tool_error(id, errors, era = Era.legacy)
+    def tool_error(id, errors, era = Era.legacy, name: nil, args: {})
       # Narrower than Guidance, which asks for a report "equally when you got the
       # job done but the way through was wasteful". An assistant read a refusal
       # that named a field it had supplied, loaded the schema, worked around it
@@ -1434,8 +1465,18 @@ module Mcp
       # the one the caller actually reads was the narrow one.
       hint = "Call request_feature with what you needed if this stopped you — or if it cost you a step you then worked around. " \
              "Recovering from a bad refusal and moving on is how it survives to cost the next assistant the same step."
-      result = { content: [ { type: "text", text: (errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" } + [ hint ]).join("\n") } ],
-                 structuredContent: { errors: errors, hint: hint }, isError: true }
+      # Stage 42 §6: a refusal is the moment a caller is most receptive — it has
+      # just been stopped and is about to try again — and it was told least: two
+      # fields, where a success carries the guidance and what is waiting on the
+      # caller. Both now ride here on the same terms, topic chosen as for a
+      # success, so an erroring call is never told less than a succeeding one.
+      note = name && guidance(name, args)
+      waiting = Assistants::Waiting.for(@token)
+      structured = { errors: errors, hint: hint, guidance: note, waiting_on_you: waiting }.compact
+      text = (errors.map { |e| "#{e[:code] || e['code']}: #{e[:detail] || e['detail']}" } + [ hint ]).join("\n")
+      extra = structured.except(:errors, :hint)
+      text += "\n\n#{JSON.pretty_generate(extra)}" if extra.any?
+      result = { content: [ { type: "text", text: text } ], structuredContent: structured, isError: true }
       { jsonrpc: "2.0", id: id, result: decorate(result, era) }
     end
   end

@@ -35,4 +35,13 @@ RSpec.describe "GET /api/v1/guidance (Stage 31)", type: :request do
     expect(response.parsed_body["topics"]["check"]).to eq(server[:text])
     expect(server[:version]).to eq(Guidance::VERSION)
   end
+
+  # Stage 42 §4.
+  it "serves the connector description, and /connect shows the same text" do
+    get "/api/v1/connector"
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include("version" => Guidance::VERSION, "description" => Guidance::CONNECTOR)
+    get "/connect"
+    expect(CGI.unescapeHTML(response.body)).to include(Guidance::CONNECTOR)
+  end
 end

@@ -20,6 +20,14 @@ module Api
         render json: { version: Guidance::VERSION, purpose: Guidance::PURPOSE,
                        topics: topic ? { topic => Guidance.for(topic) } : Guidance.all }
       end
+
+      # GET /api/v1/connector (Stage 42 §4): the text to paste into a client's
+      # connector form, the one place a directory-style client looks before it
+      # fetches any tool.
+      def connector
+        render json: { version: Guidance::VERSION, description: Guidance::CONNECTOR,
+                       how: "Paste description into the description field of your client's connector form. It is frozen once pasted; the rules it names are also served live on every tool result." }
+      end
     end
   end
 end

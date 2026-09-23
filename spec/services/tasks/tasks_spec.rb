@@ -238,6 +238,19 @@ RSpec.describe "Tasks, leases, packets, and results (07 Phase 5)", type: :reques
     expect(result_rows(result, EvidenceClaimLink).first.direction).to eq("QUALIFY")
   end
 
+  # Stage 42 §8: the ceiling is counted in ops and the worker composed sources.
+  it "says how many ops an answer came to and how many sources the budget buys" do
+    _, _, claim = graph
+    _, agent_pair, _, delegation = principal_with_agent
+    task = create_task("OPPOSING_EVIDENCE_SEARCH", claim)
+    ops = Array.new(13) { |i| { "op" => "CREATE_SOURCE", "ref" => "s#{i}", "source_type" => "WEBSITE", "title" => "S#{i}", "canonical_uri" => "https://example.test/#{i}" } }
+    expect { submit_result(agent_pair, task, delegation: delegation, outcome: "FOUND", ops: ops) }
+      .to raise_error(Ledger::Rejected) { |e|
+        detail = e.errors.find { |x| x[:code] == "TOO_MANY_OPS" }[:detail]
+        expect(detail).to include("came to 13 ops", "at most 12", "that is 3 sources", "record_investigation")
+      }
+  end
+
   # The allowed-ops change above was invisible to the worker it was for: the
   # instruction a worker reads never said a qualifier check could add sources.
   it "tells every task type that may create a source how to write one" do
