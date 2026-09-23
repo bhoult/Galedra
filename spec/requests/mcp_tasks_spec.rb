@@ -569,4 +569,26 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(task.reload.status).to eq("CANCELLED")
     expect(task.cancelled_reason).to eq(Tasks::Lease::TARGET_NOT_CURRENT)
   end
+
+  # The call feature request 88cb551e was filed about, made the way it was made.
+  # Its guard was a unit test on Steps.for_link, and the repro handed to the
+  # filer was record_investigation, which has refused an array here since
+  # Stage 13 and so never had the bug; this is the path that did (b0386d84).
+  it "refuses links[].steps given as an array in submit_task, in the protocol and by name" do
+    claim, = curated_claim
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: claim)
+    leased, = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
+    count = Contribution.count
+
+    body = rpc("tools/call", { name: "submit_task", arguments: {
+      task_id: leased["task_id"], outcome: "QUALIFIERS_FOUND",
+      answer: { sources: [ a_source ],
+                excerpts: [ { handle: "x", source: "s", text: "The rollout begins in 2028." } ],
+                evidence: [ { handle: "e", excerpt: "x", statement: "The rollout does not begin until 2028." } ],
+                links: [ { evidence: "e", claim: "target", direction: "QUALIFY", steps: [ "one", "two" ] } ] } } }, token: token)
+    expect(response.media_type).to eq("application/json")
+    expect(body.dig("error", "code")).to eq(-32_602), "invalid params, answered in JSON-RPC rather than as an HTML 500"
+    expect(body.dig("error", "message")).to eq("links[].steps must be a whole number of interpretive steps, not array")
+    expect(Contribution.count).to eq(count)
+  end
 end
