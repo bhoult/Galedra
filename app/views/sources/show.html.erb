@@ -36,7 +36,7 @@
           <%# The word and what it means, because one word carried two facts: a
               passage genuinely absent and a document this server never read. %>
           <table><tr><th>Excerpt</th><th>Finding</th></tr>
-          <% r.excerpts.each do |e| %><% loc = SourceLocation.find_by(id: e["location_id"]) %><tr><td><%= truncate(loc&.excerpt.to_s, length: 160) %></td><td><strong><%= e["found"].to_s.downcase.tr("_", " ") %></strong> — <%= SourceRetrieval.means(e["found"]) %></td></tr><% end %></table>
+          <% r.excerpts.each do |e| %><% loc = SourceLocation.find_by(id: e["location_id"]) %><tr><td><%= truncate(loc&.excerpt.to_s, length: 160) %></td><td><strong><%= e["found"].to_s.downcase.tr("_", " ") %></strong> — <%= SourceRetrieval.means(e["found"]) %><% if (how = SourceRetrieval.rendering_means(e["rendering"])) %><br><span class="meta">Not on the page as served: <%= how %>.</span><% end %></td></tr><% end %></table>
         <% end %>
       </div>
     <% end %>

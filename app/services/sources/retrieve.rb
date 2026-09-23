@@ -84,26 +84,122 @@ module Sources
 
       text = extract_text(body, media_type)
       normalized_text = normalize(text)
+      html = html?(media_type)
+      # Built only when a passage needs them, and once per page.
+      joined = elided = nil
       locations.map do |l|
         excerpt = l.excerpt.to_s
-        found = if excerpt.strip.empty? then "UNSUPPORTED"
+        wanted = normalize(excerpt)
+        found, rendering = if excerpt.strip.empty? then "UNSUPPORTED"
         elsif text.include?(excerpt) then "VERBATIM"
-        elsif normalized_text.include?(normalize(excerpt)) then "NORMALIZED"
+        elsif normalized_text.include?(wanted) then "NORMALIZED"
+        elsif html && normalize(joined ||= extract_joined(body)).include?(wanted) then [ "NORMALIZED", "INLINE_JOINED" ]
+        elsif html && normalize(elided ||= extract_elided(body)).include?(wanted) then [ "INTERRUPTED", "INLINE_ELIDED" ]
+        # What somebody said in a recording is not text on the page that hosts
+        # it, and this server does not listen: "not found" was a verdict on a
+        # search it never made. Claim e8e0b673 carried the label for four
+        # accurate transcriptions of a video (Stage 36).
+        elsif l.respond_to?(:locator_type) && l.locator_type == "TRANSCRIPTION" then "NOT_READ"
         else "NOT_FOUND"
         end
-        { "location_id" => l.id, "found" => found }
+        { "location_id" => l.id, "found" => found, "rendering" => rendering }.compact
       end
     end
 
     # Served HTML is read as text after dropping scripts, styles, and tags.
     def extract_text(body, media_type)
-      text = body.dup.force_encoding("UTF-8")
-      text = text.scrub("�")
-      if media_type.to_s.start_with?("text/html", "application/xhtml+xml")
-        text = text.gsub(%r{<(script|style|noscript)\b[^>]*>.*?</\1\s*>}mi, " ").gsub(/<!--.*?-->/m, " ").gsub(/<[^>]+>/, " ")
-        text = CGI.unescapeHTML(decode_named_entities(text))
+      text = decoded(body)
+      if html?(media_type)
+        text = as_text(without_scripts(text))
       end
       text.gsub(/[[:space:]]+/, " ").strip
+    end
+
+    # Stage 36. Two more readings of the same bytes, tried only when the served
+    # one fails, both deterministic functions of a fixed element list: no
+    # distance, no threshold, nothing a later hand could tune.
+    INLINE_ELEMENTS = %w[a abbr b cite code data dfn em i kbd mark q s samp small span strong sub sup time u var].freeze
+    INLINE = INLINE_ELEMENTS.join("|")
+    INLINE_TAG = %r{</?(?:#{INLINE})\b[^>]*>}i
+    INNERMOST_INLINE = %r{<(#{INLINE})\b[^>]*>([^<]*)</\1\s*>}i
+
+    # Inline tags removed with no space, their text kept. Catches a passage our
+    # own space insertion broke: "wo<b>rd</b>" served as "wo rd".
+    def extract_joined(body)
+      as_text(without_scripts(decoded(body)).gsub(INLINE_TAG, "")).gsub(/[[:space:]]+/, " ").strip
+    end
+
+    # What a reader sees who skips a chip: an inline element removed content and
+    # all, but only where removing it cannot make a quotation say something the
+    # page does not. See elision for the conditions.
+    def extract_elided(body)
+      # A comment renders as nothing, so it is removed as nothing: React writes
+      # "Nvidia<!-- --> <a>$NVDA</a>" and a comment turned into a space would
+      # leave two gaps where the page shows one.
+      html = decoded(body).gsub(%r{<(script|style|noscript)\b[^>]*>.*?</\1\s*>}mi, " ").gsub(/<!--.*?-->/m, "")
+      loop do
+        changed = false
+        html = html.gsub(INNERMOST_INLINE) do
+          m = Regexp.last_match
+          changed = true
+          ELIDE_MARK.fetch(elision(as_text(m[2]), m.pre_match, m.post_match), m[2])
+        end
+        break unless changed
+      end
+      # A chip attached to what follows it and spaced from what precedes it
+      # ("Nvidia $NVDA's") takes its space with it, as a reader's eye does.
+      html = html.gsub(/[[:space:]]*#{ELIDE_MARK[:right]}/o, "").gsub(/#{ELIDE_MARK[:left]}[[:space:]]*/o, "").delete(ELIDE_MARK[:both])
+      as_text(html.gsub(INLINE_TAG, "")).gsub(/[[:space:]]+/, " ").strip
+    end
+
+    # Placeholders for an elided element, by which side it was attached on.
+    ELIDE_MARK = { both: "\u0001", right: "\u0002", left: "\u0003" }.freeze
+
+    # Whether an inline element may be left out, and which side it takes its
+    # space from. All four conditions hold or it stays, and each has a case it
+    # alone refuses (spec/services/sources/interrupted_quotes_spec.rb):
+    #
+    # 1. One token: no whitespace inside. "costs<a>$5 more</a>." holds a phrase.
+    # 2. Not a word: the token carries a digit or a symbol, as a ticker ($NVDA),
+    #    a footnote (12, [3], †) or a chip does. A token of letters is a word
+    #    of the sentence, and "found <a>no</a>." must never read "found.".
+    # 3. Attached to the text beside it on at least one side. "rose <sup>12</sup>
+    #    sharply" is spaced on both, so the 12 may be a number the sentence says.
+    # 4. Leaving it out does not fuse two words: "the 1<sup>2</sup>0 cases"
+    #    must not read "the 10 cases".
+    #
+    # A tag beside the element counts as a space, the cautious reading.
+    def elision(content, pre, post)
+      token = content.strip
+      return nil if token.empty? || token.match?(/[[:space:]]/)
+      return nil unless token.match?(/[^[:alpha:]'\u2019-]/)
+
+      before = pre[-1]
+      after = post[0]
+      glued_before = before && !before.match?(/[[:space:]<>]/)
+      glued_after = after && !after.match?(/[[:space:]<>]/)
+      return nil unless glued_before || glued_after
+
+      side = if glued_before && glued_after then :both elsif glued_after then :right else :left end
+      # The characters that end up side by side once the element and, on its
+      # unattached side, its spacing are gone.
+      left_char = side == :right ? pre.rstrip[-1] : before
+      right_char = side == :left ? post.lstrip[0] : after
+      return nil if left_char&.match?(/[[:alnum:]]/) && right_char&.match?(/[[:alnum:]]/)
+
+      side
+    end
+
+    def decoded(body) = body.dup.force_encoding("UTF-8").scrub("\uFFFD")
+
+    def html?(media_type) = media_type.to_s.start_with?("text/html", "application/xhtml+xml")
+
+    def without_scripts(html)
+      html.gsub(%r{<(script|style|noscript)\b[^>]*>.*?</\1\s*>}mi, " ").gsub(/<!--.*?-->/m, " ")
+    end
+
+    def as_text(html)
+      CGI.unescapeHTML(decode_named_entities(html.gsub(/<[^>]+>/, " ")))
     end
 
     # CGI.unescapeHTML knows only the five basic and numeric entities.

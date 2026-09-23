@@ -69,7 +69,7 @@ qualifier checks, but nothing in the design decided that trade, it simply happen
   next reinstall. A caller holding nothing gets the same figure twice rather than a missing
   field.
 - **The quote verifier's NOT_FOUND is publisher markup, not a missing body. Status: OPEN
-  (`01a0c01e`), planned as [Stage 36](../../implementation/planned/stage-36-interrupted-quotes.md).** The hypothesis on this side was that qz.com
+  (`01a0c01e`), planned as [Stage 36](../../implementation/implemented/stage-36-interrupted-quotes.md).** The hypothesis on this side was that qz.com
   served a shell. The assistant fetched the page and refuted it: 331,009 bytes is a rendered
   article, and the sentence reads `Nvidia<a href="/quote/NVDA">$NVDA</a>'s equity
   investments`. Confirmed mechanically from `Sources::Retrieve.extract_text`, which does

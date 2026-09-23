@@ -44,7 +44,8 @@ module Tasks
           "found" => finding,
           "means" => SourceRetrieval.means(finding),
           "note" => "Galedra's own fetch of the page: #{SourceRetrieval.means(finding)}. A fact for you to weigh, not a verdict" \
-                    "#{', and here it is not even that: open the document and read it yourself' if finding == 'NOT_READ'}."
+                    "#{', and here it is not even that: open the document and read it yourself' if finding == 'NOT_READ'}." \
+                    "#{' Interrupted means the passage is present: the page puts markup inside it, which a reader skips and our matcher cannot. Confirm it if the passage is faithful to what a reader of the page reads.' if finding == 'INTERRUPTED'}"
         })
       end
       if task.section_id && (section = Section.find_by(id: task.section_id))

@@ -33,6 +33,9 @@ module Ledger
           location = SourceLocation.find_by(id: e["location_id"].to_s)
           reject("TARGET_UNKNOWN", "#{path('excerpts')}[#{i}].location_id", "no such location on this source") if location.nil? || location.source_id != source.id
           reject("SCHEMA_INVALID", "#{path('excerpts')}[#{i}].found", "expected one of #{SourceRetrieval::FINDINGS.join(', ')}") unless SourceRetrieval::FINDINGS.include?(e["found"])
+          unless e["rendering"].nil? || SourceRetrieval::RENDERINGS.include?(e["rendering"])
+            reject("SCHEMA_INVALID", "#{path('excerpts')}[#{i}].rendering", "expected one of #{SourceRetrieval::RENDERINGS.join(', ')}")
+          end
         end
       end
 
@@ -42,7 +45,7 @@ module Ledger
         SourceRetrieval.create!(
           id: Ids.derive(c.id, "retrieval"), contribution_id: c.id, source_id: source.id, source_created_seq: source.created_seq,
           outcome: p["outcome"], fetched_at: p["fetched_at"], content_hash: p["content_hash"], content_length: p["content_length"],
-          media_type: p["media_type"], final_url: p["final_url"], excerpts: p.fetch("excerpts", []).map { |e| { "location_id" => e["location_id"], "found" => e["found"] } },
+          media_type: p["media_type"], final_url: p["final_url"], excerpts: p.fetch("excerpts", []).map { |e| { "location_id" => e["location_id"], "found" => e["found"], "rendering" => e["rendering"] }.compact },
           created_seq: c.seq
         )
         source.update!(retrieval_pending: false) if p["outcome"] == "FETCHED"

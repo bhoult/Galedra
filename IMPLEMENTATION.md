@@ -95,7 +95,7 @@ installed. Stage 0 records the exact versions it ends up using.
 | 33 | Take an outline away as a file you can read | planned | [implementation/planned/stage-33-static-export.md](implementation/planned/stage-33-static-export.md) |
 | 34 | A person can finish their own investigation | implemented | [implementation/implemented/stage-34-first-pass-self-check.md](implementation/implemented/stage-34-first-pass-self-check.md) |
 | 35 | Provenance is not corroboration | implemented | [implementation/implemented/stage-35-provenance-is-not-corroboration.md](implementation/implemented/stage-35-provenance-is-not-corroboration.md) |
-| 36 | A quotation interrupted by markup is not one that is missing | planned | [implementation/planned/stage-36-interrupted-quotes.md](implementation/planned/stage-36-interrupted-quotes.md) |
+| 36 | A quotation interrupted by markup is not one that is missing | built | [implementation/implemented/stage-36-interrupted-quotes.md](implementation/implemented/stage-36-interrupted-quotes.md) |
 | 37 | A thread on a determination | implemented | [implementation/implemented/stage-37-threads-on-determinations.md](implementation/implemented/stage-37-threads-on-determinations.md) |
 | 38 | A score that has not changed should not be recomputed | built | [implementation/implemented/stage-38-score-cache-keying.md](implementation/implemented/stage-38-score-cache-keying.md) |
 | 39 | The read paths ask one row at a time | built | [implementation/implemented/stage-39-read-paths-one-row-at-a-time.md](implementation/implemented/stage-39-read-paths-one-row-at-a-time.md) |

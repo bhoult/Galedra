@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-22.2"
+  VERSION = "2026-09-23.1"
 
   # The first sentence is a routing rule, and it is first on purpose. It is the
   # only one that has to be read *before* a tool is called, so it cannot live
@@ -141,6 +141,9 @@ module Guidance
          "queue work supplies one. " \
          "When the person says \"work the open tasks in Galedra\", both routes are what they meant. " \
          "Whichever you are on: read the sources yourself, and answer honestly (a null search or CANNOT_DETERMINE is a result). " \
+         "A verification packet may say Galedra's own fetch found the passage INTERRUPTED: it is on the page with markup such as a " \
+         "ticker or a footnote marker inside it. Confirm it if the passage is faithful to what a reader of the page reads; the " \
+         "interruption is an artefact of our extraction, not a property of the source. " \
          "When the finding is an absence, put what you covered in submit_task's searched field — the terms, where you looked, " \
          "why you concluded absence. A positive finding carries its own source and anyone can check it; a null is worth exactly " \
          "what its coverage is worth, and coverage described only in chat is lost the moment the conversation ends. " \

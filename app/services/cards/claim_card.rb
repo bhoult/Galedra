@@ -58,8 +58,12 @@ module Cards
       # Said separately from NOT_FOUND, because they are different facts and
       # sharing a sentence was the whole complaint: a primary source published as
       # a PDF read as a passage that could not be found.
-      labels << "A quoted passage is in a document this server does not read, such as a PDF, so it has not been checked here." if findings.include?("NOT_READ")
-      labels << "Every quoted passage was confirmed on the page when Galedra fetched it." if findings.any? && findings.all? { |f| %w[VERBATIM NORMALIZED].include?(f) }
+      labels << "A quoted passage is in something this server does not read, such as a PDF or a recording, so it has not been checked here." if findings.include?("NOT_READ")
+      # Its own sentence, and not a hedge of the not-found one: the passage is
+      # there, and the reader's own eye would have matched it (Stage 36).
+      labels << "A quoted passage is on the page but our reader could not line it up with it, because the publisher's markup interrupts the sentence." if findings.include?("INTERRUPTED")
+      # INTERRUPTED counts as confirmed here, because the passage is present.
+      labels << "Every quoted passage was confirmed on the page when Galedra fetched it." if findings.any? && findings.all? { |f| %w[VERBATIM NORMALIZED INTERRUPTED].include?(f) }
       labels
     end
 

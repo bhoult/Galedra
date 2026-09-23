@@ -1,6 +1,6 @@
 # Stage 36 — A quotation interrupted by markup is not a quotation that is missing
 
-**Status:** planned · tag will be `stage-36-interrupted-quotes`
+**Status:** built 2026-09-23 · tag `stage-36-interrupted-quotes`
 
 **Tag:** `stage-36-interrupted-quotes` · **Spec:** 02 §3 (projections), 04 §6 (source
 retrieval), 06 §4 (display rules), Articles XIX (transparency over persuasion), XXII
@@ -199,3 +199,92 @@ change even though it is not a scoring one.
 9. **Can it be audited and reversed?** Yes: retrieval is re-runnable, findings are rows with
    validity windows, and the previous finding stays in the log.
 10. **Is anything invented?** No. Every rendering is a function of the served bytes.
+
+
+## How it closed (2026-09-23)
+
+### What was resolved
+
+Every deliverable, one of them changed, and one thing added that the stage's goal required.
+Claim `e8e0b673` no longer carries a not-found label: its qz.com passage reads
+`INTERRUPTED`, and its four video transcriptions read `NOT_READ`.
+
+### How
+
+**The plan's safety rule contradicted its own case, and was replaced.** "The mechanism" above
+says a match in the elided rendering is admissible only if the excerpt never crossed the
+elided span. The qz.com quotation crosses one — the chip sits between "Nvidia" and "'s" — so
+that rule would have kept acceptance 1 at `NOT_FOUND` along with acceptance 2. What actually
+separates the two is **what the element holds**. `Sources::Retrieve.elision` leaves an inline
+element out only when all four hold:
+
+1. it holds one token (no whitespace) — `costs<a>$5 more</a>.` stays;
+2. the token is **not a word**: it carries a digit or a symbol, as a ticker, a footnote number
+   or a chip does — `found <a>no</a>.` stays, so no sentence can lose a word;
+3. it is attached to the text beside it on at least one side — `rose <sup>12</sup> sharply`
+   stays, since a number spaced on both sides may be one the sentence says;
+4. leaving it out does not fuse two words — `the 1<sup>2</sup>0 cases` stays.
+
+Condition 2 is what makes the rest safe, and it is what lets an element attached on one side
+take its spacing with it, as a reader's eye does. `spec/services/sources/interrupted_quotes_spec.rb`
+has one case per condition, and **each was checked by removing that condition alone: exactly
+its own case fails.**
+
+**The plan's fixture was not the page.** The stage and the report both described
+`Nvidia<a>$NVDA</a>'s`. qz.com actually serves `Nvidia<!-- --> <a …>$NVDA</a>&#x27;s` — a React
+comment and then a space. The first build matched the fixture and, re-run against the page,
+still said `NOT_FOUND`. The spec now carries the served form beside the planned one. For the
+same reason the new renderings remove a comment as nothing, where the served one turns it into
+a space: a comment renders as nothing. `extract_text` itself is unchanged.
+
+**Deliverable 7 changed.** "Show the rendering that matched" would store page text, which
+Stage 17 forbids. A finding instead carries `rendering` — `INLINE_JOINED` or `INLINE_ELIDED`,
+a closed list the applier validates — and `/sources/:id` says in words which reading matched.
+Older retrievals have no such key and project exactly as before, so replay is unchanged
+(asserted).
+
+**Added: a transcription the server cannot find is `NOT_READ`.** Re-running e8e0b673 showed a
+second false label on it: four accurate transcriptions of a YouTube video, checked against the
+HTML of the page that hosts it. What somebody said in a recording is not page text, and this
+server does not listen, so the finding is `NOT_READ` — the answer the PDF case already had. A
+transcription that is on the page still reads `VERBATIM`.
+
+The rest is as planned: `SourceRetrieval::FINDINGS` gains `INTERRUPTED` with its meaning in
+words; the claim card has its own sentence and counts `INTERRUPTED` as confirmed; the
+verification packet explains the finding; `Guidance::WORK` carries the worker rule
+(`Guidance::VERSION` 2026-09-23.1); and a spec asserts nothing under `scoring/` or `audits/`
+mentions `SourceRetrieval`.
+
+| Acceptance | Status |
+|---|---|
+| 1 | Met, on the planned fixture and on the bytes qz.com serves |
+| 2 | Met, with the stage's example and one case per condition |
+| 3 | Met: `the <em>very</em> best` was already `VERBATIM`; `extra<em>ordinary</em>` is `NORMALIZED` via `INLINE_JOINED` |
+| 4 | Met: 617 examples, 0 failures; reference scorer `ALL PASS` |
+| 5 | Retrieval re-run, and the label moved (seq 7495, 7496). **Not met until the filer closes bug report `33349d5d`**, which is theirs to do |
+| 6 | Met |
+
+### What the node's own not-found passages showed
+
+Every passage still reading `NOT_FOUND` after the build was re-checked against its live page
+without writing to the log — 26 passages on 24 sources:
+
+- **2 recovered** by the joined rendering (mediaite.com, simonwillison.net), and re-retrieved
+  for real (seq 7497, 7498). **No second `INTERRUPTED` case** turned up, so the caveat above
+  stands: the qz.com page is still the only confirmed instance.
+- **The rest are not markup.** Measured by how far into each excerpt the page agrees, they are:
+  a terminal period the quoter added where the sentence goes on (Wikipedia 125/126, Benzinga
+  100/101, Guardian 154/155); an ellipsis marking omitted text (NBC News, Clay Math); single
+  quotes where the page has double (openai.com); a citation chip that holds a space
+  (`[Coase, 1937]`, refused by condition 1, which is correct); a word hyphenated across a line
+  (NASA); table rows quoted with markdown pipes, from a converting fetcher; and about ten that
+  share only a few characters, where the text differs or the page has changed.
+
+### What remains
+
+- **Acceptance 5** waits on the filer of `33349d5d`.
+- **The rule rests on one real page.** No other passage on this node exercised it.
+- **Editorial quoting is the larger class and is not addressed.** An added terminal period and
+  an ellipsis are ordinary conventions, and each reads `NOT_FOUND` today. Whether either should
+  have its own finding is a question for a later stage, with the same rule this one kept: never
+  let a quotation match words the page does not contain.
