@@ -1,7 +1,7 @@
 <% content_for :title, "Constitution" %>
 <% content_for :body_class, "document" %>
 <h1>Constitutional Principles of the Epistemic Ledger</h1>
-<p class="meta">Version <%= @constitution.version %> · integrity <code><%= @constitution.digest %></code>, published at <%= link_to "the metadata endpoint", api_v1_meta_path %>. The text below is rendered from the same bytes the hash covers.</p>
+<p class="meta">Version <%= @constitution.version %> · integrity <code data-copy><%= @constitution.digest %></code>, published at <%= link_to "the metadata endpoint", api_v1_meta_path %>. The text below is rendered from the same bytes the hash covers.</p>
 
 <nav class="toc" aria-label="Articles">
   <ol>

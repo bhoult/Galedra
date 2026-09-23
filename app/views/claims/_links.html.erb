@@ -7,18 +7,24 @@
 
     It is display only. Nothing here reaches scoring, and a date beside a link
     decides nothing; it lets a reader ask the question. %>
+<%# A card per link rather than a row of seven columns: the statement and the
+    note are prose, and a table gave each a column a word wide on a phone and a
+    sliver beside the outline on a desktop (2026-09-23). %>
 <% if links.any? %>
-  <table><tr><th>Evidence</th><th>Source</th><th>Read</th><th>Relevance</th><th>Steps</th><th>Note</th><th>Counted</th></tr>
+  <ul class="rows">
   <% links.each do |l| %>
     <% read_at = l.dig(:evidence, :source, :retrieved_at) %>
-    <tr>
-      <td><%= link_to l[:evidence][:statement] || "[withheld]", evidence_path(l[:evidence_item_id]) %></td>
-      <td><%= link_to l[:evidence][:source][:title] || "[withheld]", source_path(l[:evidence][:source][:id]) %></td>
-      <td class="muted" title="When this passage was taken from the source. A reading later than the thing a claim is about may be a different version of it."><%= read_at ? read_at.to_date.iso8601 : "—" %></td>
-      <td><%= l[:relevance_strength] %></td>
-      <td><%= l[:interpretive_steps] %></td>
-      <td class="muted"><%= l[:note] %></td>
-      <td><%= l[:counted] ? "yes" : "no" %></td>
-    </tr>
-  <% end %></table>
+    <li class="<%= 'muted-row' unless l[:counted] %>">
+      <div class="lead"><%= link_to l[:evidence][:statement] || "[withheld]", evidence_path(l[:evidence_item_id]) %></div>
+      <p class="facts">
+        <span>From <%= link_to l[:evidence][:source][:title] || "[withheld]", source_path(l[:evidence][:source][:id]) %></span>
+        <span title="When this passage was taken from the source. A reading later than the thing a claim is about may be a different version of it.">Read <b><%= read_at ? read_at.to_date.iso8601 : "—" %></b></span>
+        <span>Relevance <b><%= l[:relevance_strength] %></b></span>
+        <span>Steps <b><%= l[:interpretive_steps] %></b></span>
+        <span><b><%= l[:counted] ? "Counted" : "Not counted" %></b></span>
+      </p>
+      <% if l[:note].present? %><p class="aside"><%= l[:note] %></p><% end %>
+    </li>
+  <% end %>
+  </ul>
 <% else %><p class="muted">None.</p><% end %>

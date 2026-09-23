@@ -206,6 +206,15 @@ the untracked list first. Generated output directories are the specific hazard, 
 happened an hour after writing "a filter narrow enough to look tidy is narrow enough to
 discard what you needed" into this file.
 
+**Measuring a phone layout with `window.innerWidth`.** The first headless audit of every
+page (2026-09-23) reported zero horizontal overflow on all 56 pages while the screenshot of the
+claim page was 874 CSS pixels wide on a 390-pixel phone. In mobile emulation the browser widens
+the layout viewport to fit the page, so `innerWidth` grew with the overflow and the page
+measured against itself. Measure against the device width you asked for. The same audit also
+ran signed out without saying so, because five sign-ins per run tripped the sessions rate
+limit: sign in once, reuse the stored session, and fail the run when a signed-in page does not
+show "Sign out".
+
 **Quoting a commit id to a filer before it is pushed.** On 2026-09-22 seven report answers
 named commits by id, and the commits were then rebased onto merged pull requests before
 pushing, so every id changed. Filers said they had verified the changes "in the repo" by ids

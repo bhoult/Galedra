@@ -422,3 +422,152 @@ header.site .model-picker { display: inline-flex; align-items: center; margin: 0
 header.site .model-picker select { font-size: 0.8rem; padding: 0.1rem 0.3rem; max-width: 12rem; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 40rem) { header.site .model-picker select { max-width: 8rem; } }
+
+/* ------------------------------------------------------------------------
+   Every screen, 2026-09-23. Measured with a headless browser at 390, 844,
+   820, 1180 and 1440 CSS pixels: six pages ran wider than a phone, the
+   claim page by 484px, and every multi-column table squeezed prose into
+   strips a word wide. The rules below are what fixed each finding.
+   ------------------------------------------------------------------------ */
+
+/* A long URL or key id breaks rather than widening the page. break-word, not
+   anywhere: anywhere also shrinks a table cell's minimum width, which is how a
+   column ends up one word wide. */
+main { overflow-wrap: break-word; }
+
+/* The claim and section pages stack their outline above the content below
+   56rem. `1fr` alone lets the column grow to its widest child, so one wide
+   table widened the whole page; minmax(0, 1fr) is what the two-column form
+   already said. */
+@media (max-width: 56rem) { .with-outline { grid-template-columns: minmax(0, 1fr); } }
+
+/* The reply buttons on a report or a thread wrap instead of running 150px off
+   a phone. */
+.triage-actions { flex-wrap: wrap; }
+
+/* Tables as cards. enhance_controller labels each cell with its column and
+   marks the table `stack`; below tablet width each row becomes a card of
+   label / value lines. A table the script has not reached, or one marked
+   `keep`, keeps the older behaviour of scrolling inside its own box. 60rem,
+   not 48: a tablet in portrait and a phone on its side are 820 and 844px, and
+   a six-column table does not fit either. */
+@media (max-width: 60rem) {
+  table.stack { display: block; overflow: visible; background: none; border: 0; border-radius: 0; margin: 0.6rem 0 1rem; }
+  table.stack > thead, table.stack tr.head { display: none; }
+  table.stack > tbody { display: block; }
+  table.stack tr { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 0 0.6rem; padding: 0.5rem 0.8rem; }
+  table.stack tr:hover td { background: none; }
+  table.stack td, table.stack th { display: block; min-width: 0; border: 0; padding: 0.22rem 0; white-space: normal; background: none; }
+  table.stack td:first-child { min-width: 0; }
+  table.stack th { text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--ink); }
+  table.stack td[data-label] { display: grid; grid-template-columns: minmax(5.5rem, 34%) minmax(0, 1fr); column-gap: 0.75rem; align-items: baseline; }
+  table.stack td[data-label]::before { content: attr(data-label); font-size: 0.72rem; font-weight: 600; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); overflow-wrap: break-word; }
+  table.stack td[data-label] > .cell-value { min-width: 0; }
+  table.stack td:empty { display: none; }
+  table.stack td.actions form, table.stack td form.inline { display: inline-block; margin: 0.15rem 0.3rem 0.15rem 0; }
+}
+
+/* Rows of prose as cards at every width: where the text is the point, a table
+   gives each field a column and each column a sliver. Used for the evidence
+   on a claim; the pattern is .rows > li with a lead line, a line of facts, and
+   an aside. */
+.rows { list-style: none; padding: 0; margin: 0.6rem 0 1rem; display: grid; gap: 0.55rem; }
+.rows > li { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0.7rem 0.95rem; }
+.rows > li.muted-row { opacity: 0.72; }
+.rows .lead { font-size: 1rem; line-height: 1.45; }
+.rows .facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0.35rem 0 0; font-size: 0.86rem; color: var(--muted); }
+.rows .facts b { font-weight: 600; color: var(--ink); }
+.rows .aside { margin: 0.4rem 0 0; font-size: 0.9rem; color: var(--muted); border-left: 3px solid var(--line); padding-left: 0.6rem; }
+
+/* Copy buttons (enhance_controller). */
+/* The button sits above its block, never over it: laid over the text it hid
+   part of an address that did not wrap. */
+.copy-wrap { display: flex; flex-direction: column; align-items: flex-end; margin: 0.6rem 0; }
+.copy-wrap > pre { width: 100%; margin: 0.3rem 0 0; order: 2; }
+.copy-wrap > .copy-button { order: 1; margin: 0; }
+.copy-button { font: inherit; font-size: 0.78rem; line-height: 1; padding: 0.4rem 0.65rem; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--accent-ink); cursor: pointer; vertical-align: middle; margin-left: 0.4rem; white-space: nowrap; }
+.copy-button:hover { background: var(--panel-2); }
+.copy-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* The header on a phone: the menus on one row, the account on the next, and
+   nothing in it wrapped or crushed. The model picker had been shrunk to a
+   20px sliver and the address broken across two lines. */
+@media (max-width: 40rem) {
+  header.site nav .menu-panel { min-width: 0; }
+  header.site .account { flex-wrap: wrap; gap: 0.5rem 0.75rem; }
+  header.site .account > * { flex: 0 0 auto; }
+  header.site .account > a.muted { max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header.site .account input[type=submit], header.site .account button, header.site .account .button { white-space: nowrap; }
+  header.site .model-picker select { max-width: 11rem; }
+}
+
+/* Touch screens: controls big enough for a finger (about 44px, the platform
+   guidance on both iOS and Android), without changing how they look to a
+   mouse. */
+@media (pointer: coarse) {
+  input[type=text], input[type=email], input[type=password], input[type=search], input[type=url], select, textarea { font-size: 16px; }
+  input[type=submit], button, .button, select, input[type=text], input[type=email], input[type=password], input[type=search], input[type=url] { min-height: 2.75rem; }
+  button.small, .button.small, input[type=submit].small, .copy-button { min-height: 2.25rem; }
+  header.site nav details.menu > summary { padding: 0.45rem 0; }
+  header.site nav .menu-panel a { padding: 0.65rem 1rem; }
+}
+
+/* A picker of many options, as boxes to tick rather than a list box that needs
+   a modifier key to choose more than one (topics on a claim). */
+.pick { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); max-height: 18rem; overflow: auto; padding: 0.4rem 0.7rem; margin: 0.3rem 0 0.6rem; }
+.pick fieldset { border: 0; margin: 0.3rem 0; padding: 0; }
+.pick legend { font-weight: 600; font-size: 0.9rem; padding: 0; }
+.pick label { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; font-size: 0.95rem; }
+.pick input[type=checkbox] { width: 1.15rem; height: 1.15rem; flex: 0 0 auto; }
+
+/* The shareable card is drawn at 1200px for social previews; on a screen it
+   scales to fit. */
+main img { max-width: 100%; height: auto; }
+
+/* A label is a sentence now ("A quoted passage is on the page but…"), and a
+   pill that may not wrap ran 460px past a phone's edge. Short ones still sit on
+   one line; long ones wrap inside the pill. */
+.labels span, .badge { white-space: normal; max-width: 100%; overflow-wrap: break-word; }
+
+/* Long untrusted text in a card: a preview, then the whole on request. */
+details.fold > summary { color: var(--ink); font-weight: 400; list-style: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold[open] > summary .lead { display: none; }
+details.fold > summary .meta { color: var(--accent); }
+.rows .triage-actions { margin: 0.5rem 0 0; }
+
+/* Code blocks wrap at spaces first and break inside a word only when a word is
+   wider than the line: break-word split "…/mcp" into "…/m" and "cp". */
+pre { word-break: normal; overflow-wrap: anywhere; }
+
+/* On a phone the header is three rows, a sixth of the screen, and it stayed
+   on screen while scrolling; there it scrolls away with the page. Its controls
+   keep one compact size whatever the touch rules below say. */
+@media (max-width: 40rem) {
+  header.site { position: static; }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.25rem; }
+}
+header.site select, header.site input[type=submit], header.site button { min-height: 0; }
+@media (pointer: coarse) { header.site select, header.site input[type=submit], header.site button { min-height: 2.25rem; } }
+
+/* A share line is a sentence somebody pastes into a post: set as text, not as
+   code, with its copy button beside it. */
+.share-line { font-family: var(--sans); font-size: 0.95rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.55rem 0.75rem; margin: 0.3rem 0; display: block; overflow-wrap: anywhere; }
+.share-line + .copy-button { margin: 0.2rem 0 0.6rem; }
+
+/* Labels sit on their boxes, whatever the markup put between them. */
+form label + br { display: none; }
+
+/* The notice for AI assistants on the landing page sits over the graph
+   background; give it a backing so it can be read. */
+details.agent-note > summary { background: var(--panel); border-radius: 6px; padding: 0.2rem 0.5rem; display: inline-block; }
+
+/* Touch targets that stood alone under 24px tall: the report counts and the
+   account link in the header, and the topic headings and topic links, which
+   are a menu in all but name. Padding grows the target, not the type. */
+@media (pointer: coarse) {
+  header.site .report-badge a, header.site .account > a { padding: 0.55rem 0.2rem; }
+  .card.topic h3 a { display: inline-block; padding: 0.4rem 0; }
+  .card.topic p a { display: inline-block; padding: 0.45rem 0; }
+}

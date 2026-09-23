@@ -273,7 +273,7 @@
   <% if authenticated? %>
     <details><summary>File under a section</summary>
       <%= form_with url: place_claim_path(@claim), method: :post, class: "filters" do |f| %>
-        <label>Section id <%= f.text_field :section_id, placeholder: "from an outline page" %></label>
+        <label>Section <%= f.select :section_id, section_picker_options(Contribution.maximum(:seq)), { include_blank: "Choose a section…" }, required: true %></label>
         <%= f.submit "File", class: "secondary" %>
       <% end %>
     </details>

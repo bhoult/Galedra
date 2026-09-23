@@ -26,7 +26,7 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  <body class="<%= content_for?(:body_class) ? yield(:body_class) : "" %>">
+  <body class="<%= content_for?(:body_class) ? yield(:body_class) : "" %>" data-controller="enhance">
     <%= yield :background %>
     <header class="site">
       <%= link_to root_path, class: "brand" do %><%= image_tag "logo.svg", alt: "", class: "brand-mark", width: 26, height: 26 %> Galedra<% end %>

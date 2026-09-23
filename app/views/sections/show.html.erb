@@ -28,7 +28,7 @@
   <% if @subtree[:children].empty? && @subtree[:claims].empty? %><p class="muted">Nothing under this section yet. Its claims arrive when the extraction task below is worked.</p><% end %>
   <p class="meta"><%= Sections::Tree::NOTE %> As of snapshot <%= @seq %><%= " under #{@model.full_name}" if @model %>.</p>
   <p class="meta">Progress of the whole outline: <%= @progress[:leaves_extracted] %> of <%= @progress[:leaves] %> leaves extracted · <%= @progress[:checked] %> of <%= @progress[:claims] %> claims with evidence · <%= @progress[:open_tasks] %> open tasks.</p>
-  <p><strong>Share:</strong> <code><%= @share_line %></code></p>
+  <p><strong>Share:</strong></p><p class="share-line" data-copy><%= @share_line %></p>
 </div>
 <% if @text.any? %>
   <div class="card reading">
@@ -65,7 +65,7 @@
 <% open_tasks = Tasks::Status.open_among(Task.where(section_id: Tasks::Lease.subtree_ids(@section.id), status: %w[OPEN LEASED])) %>
 <div class="card">
   <p><strong>Open work under this section: <%= open_tasks.size %></strong><% if open_tasks.any? %> (<%= open_tasks.group_by(&:task_type).map { |k, v| "#{v.size} #{k.downcase.tr('_', ' ')}" }.join(", ") %>)<% end %>.</p>
-  <p class="meta">To help, tell your assistant: <code>work the open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are recorded and their verification tasks open at once, so anyone can carry on from where the last person stopped.</p>
+  <p class="meta">To help, tell your assistant: <code data-copy>work the open tasks in Galedra on <%= section_url(@section) %></code>. Extracted claims are recorded and their verification tasks open at once, so anyone can carry on from where the last person stopped.</p>
 </div>
 <% if authenticated? %>
   <details><summary>Add sections under this one</summary>

@@ -1,0 +1,15 @@
+<%# Topics as boxes to tick, grouped under each top-level topic. A multiple
+    select needs a modifier key to choose more than one, which a phone does not
+    have (2026-09-23). `name` is the field, `selected` the paths ticked. %>
+<% selected = Array(local_assigns[:selected]) %>
+<% prefix = name.parameterize %>
+<div class="pick" role="group" aria-label="Topics">
+  <% topic_picker_groups.each do |top, children| %>
+    <fieldset>
+      <legend><label><%= check_box_tag name, top.path, selected.include?(top.path), id: "#{prefix}-#{top.path.parameterize}" %> <%= top.label %></label></legend>
+      <% children.each do |n| %>
+        <label><%= check_box_tag name, n.path, selected.include?(n.path), id: "#{prefix}-#{n.path.parameterize}" %> <%= n.label %></label>
+      <% end %>
+    </fieldset>
+  <% end %>
+</div>

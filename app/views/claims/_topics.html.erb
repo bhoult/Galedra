@@ -7,7 +7,7 @@
   <details>
     <summary>Suggest a different topic</summary>
     <%= form_with url: topics_claim_path(claim), method: :post, class: "filters" do |f| %>
-      <label>Topic <%= select_tag "topics[]", options_for_select(Topics.index.values.map { |n| [ n.top? ? n.label : "#{n.parent.label} / #{n.label}", n.path ] }), multiple: true, size: 6 %></label>
+      <%= render "shared/topic_picker", name: "topics[]" %>
       <label>Why (optional) <%= text_field_tag :note %></label>
       <%= f.submit "Tag it", class: "secondary" %>
     <% end %>

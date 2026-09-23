@@ -20,7 +20,7 @@
     <% if @summary[:detail].present? %><p><strong><%= @summary[:headline] %></strong> <%= @summary[:detail] %>.</p><% end %>
     <% if @summary[:stated] %><p class="meta"><%= @summary[:stated] %>.<% if @claims.size > 1 %> <%= @verdict[:note] %><% end %></p><% end %>
     <p class="meta"><%= @claims.size > 1 ? "The statement as a whole, read from the #{@claims.size} claims below. Each claim is scored on its own; this reading only counts them." : "What was asked, and where it stands." %> Provisional until audited.</p>
-    <p><strong>Share:</strong> <code><%= @share_line %></code></p>
+    <p><strong>Share:</strong></p><p class="share-line" data-copy><%= @share_line %></p>
   </div>
   <% if @claims.size > 1 %><h2>Claim by claim</h2><% end %>
   <% @claims.each do |claim| %>

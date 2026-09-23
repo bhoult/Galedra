@@ -1,6 +1,9 @@
 <% content_for :title, "Proposed claims" %>
 <h1>Proposed claims</h1>
 <p class="muted">From <%= link_to @source.title, source_path(@source) %>. Proposals only: edit the wording, split what is not atomic, set the type, and affirm each claim is not about an identifiable private individual.</p>
+<% if @proposals.empty? %>
+  <p class="card">No claims were proposed from this source. The extractor found no sentence it could put forward as a claim; you can still record one on the <%= link_to "claim form", new_investigation_path %>.</p>
+<% else %>
 <%= form_with url: claims_source_path(@source), method: :post do |f| %>
   <% @proposals.each_with_index do |p, i| %>
     <div class="proposal">
@@ -8,10 +11,12 @@
       <label>Claim <%= text_field_tag "claims[#{i}][canonical_text]", p["canonical_text"] %></label>
       <label>Type <%= select_tag "claims[#{i}][claim_type]", options_for_select(Claim::TYPES, p["claim_type"]) %></label>
       <% guessed = Topics.guess(p["canonical_text"]) %>
-      <label>Topics (guessed from the wording; edit freely) <%= select_tag "claims[#{i}][topics][]", options_for_select(Topics.index.values.map { |n| [ n.top? ? n.label : "#{n.parent.label} / #{n.label}", n.path ] }, guessed), multiple: true, size: 4 %></label>
+      <p class="meta">Topics, guessed from the wording; change them freely.</p>
+      <%= render "shared/topic_picker", name: "claims[#{i}][topics][]", selected: guessed %>
       <label><%= check_box_tag "claims[#{i}][affirms_not_private_individual]", "1", false %> I affirm this claim is not about an identifiable private individual.</label>
       <% p["warnings"].each do |w| %><span class="warning"><%= w[:detail] || w["detail"] %></span><% end %>
     </div>
   <% end %>
   <%= f.submit "Submit claims" %>
+<% end %>
 <% end %>

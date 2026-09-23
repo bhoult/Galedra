@@ -1,7 +1,7 @@
 <% content_for :title, "Snapshot" %>
 <h1>Snapshot seq <%= @seq %></h1>
 <div class="card">
-  <p class="meta">Entry hash <code><%= @entry.entry_hash %></code><%= @pinned ? " · pinned as #{@pinned.label || 'unlabelled'}" : " · not pinned" %><% if @pinned&.checkpoint %> · checkpoint signed by node key <code><%= @pinned.checkpoint["node_key_id"] %></code> (<%= Snapshots::Checkpoint.verify(@pinned.checkpoint) ? "signature verifies" : "signature does not verify" %>)<% end %><% if @digest %> · claim score digest <code><%= @digest %></code> under <%= @model.full_name %><% end %></p>
+  <p class="meta">Entry hash <code data-copy><%= @entry.entry_hash %></code><%= @pinned ? " · pinned as #{@pinned.label || 'unlabelled'}" : " · not pinned" %><% if @pinned&.checkpoint %> · checkpoint signed by node key <code><%= @pinned.checkpoint["node_key_id"] %></code> (<%= Snapshots::Checkpoint.verify(@pinned.checkpoint) ? "signature verifies" : "signature does not verify" %>)<% end %><% if @digest %> · claim score digest <code data-copy><%= @digest %></code> under <%= @model.full_name %><% end %></p>
 </div>
 <%= form_with url: snapshot_path(@seq), method: :get, class: "filters" do |f| %>
   <label>Model <%= f.select :model, released_models.map { |m| [ m.full_name, m.full_name ] }, { selected: @model&.full_name } %></label>

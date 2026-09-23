@@ -5,7 +5,12 @@ module Admin
     before_action :require_admin
 
     def index
-      @pending = ContentReview.pending.order(:created_at).limit(200).to_a
+      # Fifty a page: 186 at once made a page seventy thousand pixels tall on a
+      # phone even as cards (2026-09-23).
+      @per_page = 50
+      @page = params[:page].to_i.clamp(1, 1_000)
+      @pending_total = ContentReview.pending.count
+      @pending = ContentReview.pending.order(:created_at).offset((@page - 1) * @per_page).limit(@per_page).to_a
       @redacted = ContentReview.where(status: "REDACTED").order(reviewed_at: :desc).limit(100).to_a
       # Both tables asked per row: the verdicts for each pending item, and the
       # reviewer's address for each redacted one. Two queries for the page.

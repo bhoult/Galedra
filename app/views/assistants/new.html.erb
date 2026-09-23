@@ -30,7 +30,7 @@
     </ol>
     <h3>Claude Code, Cursor, and other MCP clients</h3>
     <pre>claude mcp add --transport http galedra <%= mcp_connect_url %></pre>
-    <p class="meta">Any client that speaks MCP over HTTP with OAuth works the same way. One that cannot do OAuth can use <code><%= mcp_url %></code> with no authentication, anonymously, or a token from below.</p>
+    <p class="meta">Any client that speaks MCP over HTTP with OAuth works the same way. One that cannot do OAuth can use <code data-copy><%= mcp_url %></code> with no authentication, anonymously, or a token from below.</p>
   </div>
 
   <% if @tokens.any? %>

@@ -1,5 +1,6 @@
 <% content_for :title, "Task" %>
-<h1>Task: <%= @task.task_type %></h1>
+<%# In words, as the task board names it: the constant is one word to a line breaker, and broke mid-word on a phone. %>
+<h1>Task: <%= @task.task_type.downcase.tr("_", " ") %></h1>
 <div class="card">
   <p class="meta">Domain <%= @task.domain %> · priority <%= @task.priority.to_s("F") %> · estimated cost <%= @task.spec[:cost] %> · required assignments <%= @task.required_assignments %> · status <%= @task.status %> · audit requirement: sampled per <%= Audits::Policy.version %>, provisional until audited CONFIRMED</p>
   <p>Target: <% if @target.is_a?(Claim) %><%= link_to @target.canonical_text, claim_path(@target) %><% elsif @target.is_a?(Inference) %>inference concluding <%= link_to @target.conclusion.canonical_text, claim_path(@target.conclusion, anchor: "inferences") %><% else %><%= link_to @target.title, source_path(@target) %><% end %></p>
@@ -14,7 +15,7 @@
     <%= link_to "How to connect an assistant", connect_path %> ·
     <%= link_to "Start for free with an agent", contribute_path %> ·
     running the example agent on a checkout instead?
-    <code>ruby examples/agent/agent.rb run --base-url <%= request.base_url %> --key-file agent-key.json --delegation &lt;delegation id&gt; --types <%= @task.task_type %> --domains <%= @task.domain %> --once</code>
+    <code data-copy>ruby examples/agent/agent.rb run --base-url <%= request.base_url %> --key-file agent-key.json --delegation &lt;delegation id&gt; --types <%= @task.task_type %> --domains <%= @task.domain %> --once</code>
   </p>
 </div>
 <% if @task.task_type == "EVIDENCE_VERIFICATION" && (finding = SourceRetrieval.latest_for(@task.packet.dig("context", "source_id"))&.finding_for(@task.packet.dig("context", "source_location_id"))) %>

@@ -3,7 +3,7 @@
 <div class="card">
   <p><strong><%= @evidence[:statement] || "[withheld]" %></strong> <span class="badge"><%= @evidence[:observation_type] %></span></p>
   <p class="meta">Authenticity <%= @evidence[:assessment]["authenticity"] %> · extraction <%= @evidence[:assessment]["extraction"] %> · independence group <%= @evidence[:independence_group_id] ? short_id(@evidence[:independence_group_id]) : "none (unreviewed)" %> · <%= link_to "created seq #{@item.created_seq}", contribution_path(@item.contribution_id) %></p>
-  <p>Source: <%= link_to @evidence[:source][:title] || "[withheld]", source_path(@evidence[:source][:id]) %> · locator <code><%= @evidence[:source_location][:locator].to_json %></code> · excerpt hash <code><%= @evidence[:source_location][:excerpt_hash] %></code></p>
+  <p>Source: <%= link_to @evidence[:source][:title] || "[withheld]", source_path(@evidence[:source][:id]) %> · locator <code><%= @evidence[:source_location][:locator].to_json %></code> · excerpt hash <code data-copy><%= @evidence[:source_location][:excerpt_hash] %></code></p>
   <% if @evidence[:source_location][:excerpt] %><details><summary>Exact excerpt</summary><pre><%= @evidence[:source_location][:excerpt] %></pre></details><% end %>
 </div>
 <h2>Linked claims</h2>

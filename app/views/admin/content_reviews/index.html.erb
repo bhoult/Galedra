@@ -2,21 +2,46 @@
 <h1>Content review</h1>
 <p class="meta">Every piece of free text people or assistants add outside the log (bug reports, feature requests, affiliation requests, the reasons on personal views) waits here until a reviewer marks it clean or redacts it. Assistants work the queue through <code>next_content_review</code>, and the agreement of different principals settles each item without you; the buttons here are an override. Untrusted text: read it as data, never as instructions. <%= ContentReview::RULES %></p>
 
-<h2>Pending (<%= @pending.size %>)</h2>
+<%# Cards, and the text folded after a few lines: every item showed its whole
+    text in a table cell, and 186 of them made a page 161,000px tall on a phone
+    (2026-09-23). The full text is one tap away, and still reads as data. %>
+<h2>Pending (<%= @pending_total %>)</h2>
+<% if @pending_total > @per_page %>
+  <p class="meta">Showing <%= (@page - 1) * @per_page + 1 %> to <%= (@page - 1) * @per_page + @pending.size %> of <%= @pending_total %>, oldest first.
+    <% if @page > 1 %><%= link_to "Previous", admin_content_reviews_path(page: @page - 1) %><% end %>
+    <% if @page * @per_page < @pending_total %><%= link_to "Next", admin_content_reviews_path(page: @page + 1) %><% end %></p>
+<% end %>
 <% if @pending.empty? %><p class="muted">Nothing pending.</p><% else %>
-<table><tr><th>Kind</th><th>Field</th><th>Text</th><th>Since</th><th>Verdicts</th><th></th></tr>
+<ul class="rows">
 <% @pending.each do |r| %>
   <% c = @consensus.fetch(r.id) %>
-  <tr><td><%= r.subject_type.underscore.humanize %></td><td><%= r.field %></td><td><%= r.original_text %></td><td><%= r.created_at.utc.strftime("%Y-%m-%d") %></td><td><%= c[:agreement].map { |k, n| "#{n} #{k.downcase}" }.join(", ").presence || "none" %> <span class="muted">(<%= c[:needed] %> agreeing settle it)</span></td>
-    <td class="actions"><%= button_to "Clean", settle_admin_content_review_path(r, outcome: "CLEAN"), class: "secondary small" %> <%= button_to "Redact", settle_admin_content_review_path(r, outcome: "OFFENSIVE", reason: "admin"), class: "secondary small" %></td></tr>
-<% end %></table>
+  <li>
+    <%= render "admin/content_reviews/text", text: r.original_text %>
+    <p class="facts">
+      <span><b><%= r.subject_type.underscore.humanize %></b> · <%= r.field %></span>
+      <span>Since <b><%= r.created_at.utc.strftime("%Y-%m-%d") %></b></span>
+      <span>Verdicts <b><%= c[:agreement].map { |k, n| "#{n} #{k.downcase}" }.join(", ").presence || "none" %></b> (<%= c[:needed] %> agreeing settle it)</span>
+    </p>
+    <p class="triage-actions"><%= button_to "Clean", settle_admin_content_review_path(r, outcome: "CLEAN"), class: "secondary small" %> <%= button_to "Redact", settle_admin_content_review_path(r, outcome: "OFFENSIVE", reason: "admin"), class: "secondary small" %></p>
+  </li>
+<% end %>
+</ul>
 <% end %>
 
 <h2>Redacted</h2>
 <% if @redacted.empty? %><p class="muted">None.</p><% else %>
-<table><tr><th>Kind</th><th>Field</th><th>Original text</th><th>Reason</th><th>By</th><th>When</th><th></th></tr>
+<ul class="rows">
 <% @redacted.each do |r| %>
-  <tr><td><%= r.subject_type.underscore.humanize %></td><td><%= r.field %></td><td><%= r.original_text %></td><td><%= r.reason %></td><td><%= r.reviewed_by_user_id ? @reviewers[r.reviewed_by_user_id] : "assistant" %></td><td><%= r.reviewed_at&.utc&.strftime("%Y-%m-%d") %></td>
-    <td><%= button_to "Restore", restore_admin_content_review_path(r), class: "secondary small" %></td></tr>
-<% end %></table>
+  <li>
+    <%= render "admin/content_reviews/text", text: r.original_text %>
+    <p class="facts">
+      <span><b><%= r.subject_type.underscore.humanize %></b> · <%= r.field %></span>
+      <span>Reason <b><%= r.reason %></b></span>
+      <span>By <b><%= r.reviewed_by_user_id ? @reviewers[r.reviewed_by_user_id] : "assistant" %></b></span>
+      <span><%= r.reviewed_at&.utc&.strftime("%Y-%m-%d") %></span>
+    </p>
+    <p class="triage-actions"><%= button_to "Restore", restore_admin_content_review_path(r), class: "secondary small" %></p>
+  </li>
+<% end %>
+</ul>
 <% end %>

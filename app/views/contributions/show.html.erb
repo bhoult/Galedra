@@ -9,9 +9,9 @@
     <span>server signature: <%= @verification[:server_signature_ok] ? "verifies" : "does not verify" %></span>
     <span>chain: <%= @verification[:chain_ok] ? "intact" : "broken" %></span>
   </p>
-  <p class="meta">prev <code><%= @contribution.prev_hash %></code><br>entry <code><%= @contribution.entry_hash %></code><br>envelope <code><%= @contribution.envelope_hash %></code><br>payload <code><%= @contribution.payload_hash %></code></p>
+  <p class="meta">prev <code data-copy><%= @contribution.prev_hash %></code><br>entry <code data-copy><%= @contribution.entry_hash %></code><br>envelope <code data-copy><%= @contribution.envelope_hash %></code><br>payload <code data-copy><%= @contribution.payload_hash %></code></p>
   <% if @contribution.software %><p class="meta">Software: <code><%= @contribution.software.to_json %></code></p><% end %>
-  <% if @contribution.task_id %><p class="meta">Task <%= link_to short_id(@contribution.task_id), task_path(@contribution.task_id) %> · packet <code><%= @contribution.task_packet_hash %></code></p><% end %>
+  <% if @contribution.task_id %><p class="meta">Task <%= link_to short_id(@contribution.task_id), task_path(@contribution.task_id) %> · packet <code data-copy><%= @contribution.task_packet_hash %></code></p><% end %>
 </div>
 <h2>Payload</h2>
 <% if @contribution.redacted? %><p class="warning">Bytes removed by TAKEDOWN at seq <%= @contribution.redacted_by_seq %>; hashes and the chain remain.</p>

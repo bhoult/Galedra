@@ -1,0 +1,9 @@
+<%# Untrusted text, shown as data. Long text folds after about four lines. %>
+<% text = text.to_s %>
+<% if text.length > 280 %>
+  <details class="fold"><summary><span class="lead"><%= text.truncate(280, separator: " ") %></span> <span class="meta">Show all <%= number_with_delimiter(text.length) %> characters</span></summary>
+    <div class="lead"><%= simple_format(text) %></div>
+  </details>
+<% else %>
+  <div class="lead"><%= simple_format(text) %></div>
+<% end %>

@@ -44,7 +44,7 @@
 <% if @row.url.present? || @row.context_tool.present? || @row.last_error.present? %>
   <h2>Where</h2>
   <div class="card">
-    <% if @row.url.present? %><p><strong>Page</strong> <code><%= @row.url %></code></p><% end %>
+    <% if @row.url.present? %><p><strong>Page</strong> <code data-copy><%= @row.url %></code></p><% end %>
     <% if @row.context_tool.present? %><p><strong>While using</strong> <code><%= @row.context_tool %></code></p><% end %>
     <% if @row.last_error.present? %><p><strong>Last error</strong> <code><%= @row.last_error %></code></p><% end %>
   </div>

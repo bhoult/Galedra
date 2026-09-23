@@ -3,7 +3,7 @@
   <h1><%= @token.software["agent_name"] %> is connected</h1>
   <p class="lede">Copy this token now. It is shown once and stored only as a hash.</p>
   <div class="card token">
-    <p><code id="token"><%= @plaintext %></code></p>
+    <p><code id="token" data-copy><%= @plaintext %></code></p>
     <p class="meta">Agent key <%= link_to short_id(@token.agent.key_id), contributor_path(@token.agent) %> · acting for <%= link_to(@token.principal.display_name || "an anonymous contributor", contributor_path(@token.principal)) %> · valid until <%= @token.delegation.valid_until.to_date %> · <%= @token.hourly_cap %> writes an hour · delegation <%= link_to "in the log", contribution_path(Contribution.find_by!(seq: @token.delegation.created_seq)) %></p>
   </div>
 
