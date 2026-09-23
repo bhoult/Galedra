@@ -25,7 +25,12 @@ module Sections
       nodes = descendants(section, seq)
       # The sections already know which locations they need; asking one at a
       # time was 141 single-id loads on the outline page (Stage 39).
-      readings = SourceLocation.where(id: nodes.filter_map(&:reading_location_id).uniq).index_by(&:id)
+      # The anchors too: the page shows each part's quoted anchor, and read one
+      # section at a time that was 47 single-id loads (Stage 26).
+      wanted = nodes.flat_map { |n| [ n.reading_location_id, n.location_id ] }.compact.uniq
+      locations = SourceLocation.where(id: wanted).index_by(&:id)
+      nodes.each { |n| n.association(:location).target = locations[n.location_id] if n.location_id && locations.key?(n.location_id) }
+      readings = locations
       nodes.filter_map do |node|
         reading = readings[node.reading_location_id]
         next if reading.nil? || reading.excerpt.blank?

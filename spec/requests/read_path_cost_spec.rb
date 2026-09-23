@@ -25,6 +25,9 @@ require "rails_helper"
 # The last pair is the one that matters: the old page paid for every claim in
 # the corpus, the new one pays for the rows it shows.
 RSpec.describe "What a read path costs", type: :request do
+  SNAPSHOT_BUDGET = 10
+  LIST_BUDGET = 8
+  API_BUDGET = 220
   include GraphHelpers
   before { release_models }
 
@@ -106,6 +109,26 @@ RSpec.describe "What a read path costs", type: :request do
 
     expect(second).to be <= first + 10, "#{first} statements became #{second} when the corpus doubled"
     expect(second).to be <= 60, "#{second} statements for five rows a kind"
+  end
+
+  # Stage 26. The snapshot page hashed every claim's trace one score lookup at a
+  # time (485 statements on the development node), the claim list scored its
+  # rows one at a time (106), and the claims API presented each claim on its
+  # own (1,136 for fifty). All three now ask for the set.
+  it "prices the snapshot page, the claim list and the claims API by the page, not by the claim" do
+    outline
+    seq = Contribution.maximum(:seq)
+    get "/snapshots/#{seq}"
+    small = { snapshot: statements { get "/snapshots/#{seq}" }, list: statements { get "/claims" }, api: statements { get "/api/v1/claims" } }
+    outline # twice the claims
+    seq = Contribution.maximum(:seq)
+    get "/snapshots/#{seq}"
+    large = { snapshot: statements { get "/snapshots/#{seq}" }, list: statements { get "/claims" }, api: statements { get "/api/v1/claims" } }
+    expect(large[:snapshot]).to be <= small[:snapshot] + 2, "snapshot: #{small[:snapshot]} became #{large[:snapshot]} when the claims doubled"
+    expect(large[:list]).to be <= small[:list] + 2, "claim list: #{small[:list]} became #{large[:list]}"
+    expect(large[:snapshot]).to be <= SNAPSHOT_BUDGET, "#{large[:snapshot]} statements for the snapshot page"
+    expect(large[:list]).to be <= LIST_BUDGET, "#{large[:list]} statements for the claim list"
+    expect(large[:api]).to be <= API_BUDGET, "#{large[:api]} statements for the claims API"
   end
 
   # The one that was linear in the log rather than in the page: every append

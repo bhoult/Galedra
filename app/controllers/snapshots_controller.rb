@@ -10,8 +10,13 @@ class SnapshotsController < ApplicationController
     @pinned = GraphSnapshot.find_by(seq: @seq)
     @model = selected_model
     @digest = @model && Snapshots::Digest.call(@seq, model: @model)
-    @claims = Snapshots::Digest.claims_at(@seq).order(:created_seq).limit(100).map { |c| [ c, @model && Scoring::Score.call(c, @seq, @model) ] }
+    listed = Snapshots::Digest.claims_at(@seq).order(:created_seq).limit(100).to_a
+    scored = @model ? Scoring::Score.call_many(listed, @seq, @model) : {}
+    @claims = listed.map { |c| [ c, scored[c.id] ] }
     @compare_seq = Integer(params[:compare_seq], exception: false)
-    @compare = @compare_seq && @model && @claims.map { |c, _| [ c, c.created_seq <= @compare_seq ? Scoring::Score.call(c, @compare_seq, @model) : nil ] }.to_h
+    if @compare_seq && @model
+      then_scored = Scoring::Score.call_many(listed.select { |c| c.created_seq <= @compare_seq }, @compare_seq, @model)
+      @compare = listed.to_h { |c| [ c, then_scored[c.id] ] }
+    end
   end
 end

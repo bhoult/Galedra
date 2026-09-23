@@ -27,7 +27,10 @@ module Api
             scope.limit(limit_param(default: 50, max: 200))
           end
         end
-        rendered = claims.map { |c| Graph::Presenter.claim(c, seq, model: model).merge(similarity: c.try(:similarity)).compact }
+        claims = claims.to_a
+        # Presented as a page, not claim by claim (Stage 26).
+        presented = Graph::Presenter.claims(claims, seq, model: model)
+        rendered = claims.zip(presented).map { |c, p| p.merge(similarity: c.try(:similarity)).compact }
         rendered = rendered.select { |c| c.dig(:assessment, :assessment_state) == params[:state] } if params[:state].present?
         render json: { snapshot_seq: seq, model: model&.full_name, claims: rendered }
       end

@@ -16,6 +16,21 @@ module Inferences
       { concluded_from: concluded, premise_in: premise_in, note: Inference::NOTE }
     end
 
+    # The same as for_claim, for a page of claims: the two lookups asked once
+    # for the set rather than twice per claim (Stage 26). {claim_id => view}.
+    def for_claims(claims, seq, model = Scoring::Registry.default_model)
+      ids = claims.map(&:id)
+      concluded = Inference.counted_at(seq).where(conclusion_claim_id: ids).order(:created_seq).to_a.group_by(&:conclusion_claim_id)
+      premise_pairs = InferencePremise.counted_at(seq).where(claim_id: ids).pluck(:claim_id, :inference_id)
+      as_premise = Inference.counted_at(seq).where(id: premise_pairs.map(&:last).uniq).order(:created_seq).to_a
+      claims.to_h do |claim|
+        mine = premise_pairs.select { |cid, _| cid == claim.id }.map(&:last).to_set
+        [ claim.id, { concluded_from: (concluded[claim.id] || []).map { |i| present(i, seq, model) },
+                      premise_in: as_premise.select { |i| mine.include?(i.id) }.map { |i| present(i, seq, model) },
+                      note: Inference::NOTE } ]
+      end
+    end
+
     def present(inference, seq, model)
       premises = inference.premises.counted_at(seq).order(:position).includes(:claim).map do |pr|
         state = model && !Governance::Quarantines.live_for("CLAIM", pr.claim_id) ? Scoring::Score.call(pr.claim, seq, model).assessment_state : nil

@@ -25,7 +25,8 @@ class ClaimsController < ApplicationController
       claims = scope.limit(100).to_a
     end
     @references = ClaimReference.counts_for(claims.map(&:id), kind: @counted_kind, since: @since)
-    @rows = claims.map { |c| [ c, selected_model && Scoring::Score.call(c, @seq, selected_model) ] }
+    scored = selected_model ? Scoring::Score.call_many(claims.to_a, @seq, selected_model) : {}
+    @rows = claims.map { |c| [ c, scored[c.id] ] }
     @rows = @rows.select { |_, r| r&.assessment_state == params[:state] } if params[:state].present?
   end
 

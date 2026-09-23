@@ -34,6 +34,13 @@ class Claim < ApplicationRecord
   def counted_incoming_edges(seq)
     (@counted_incoming_edges ||= {})[seq] ||= incoming_edges.counted_at(seq).includes(:from_claim).to_a
   end
+
+  # For a caller that loaded a page of claims' edges at once
+  # (Graph::Presenter.claims): the same rows the two methods above would load.
+  def prime_counted_edges(seq, outgoing:, incoming:)
+    (@counted_outgoing_edges ||= {})[seq] = outgoing
+    (@counted_incoming_edges ||= {})[seq] = incoming
+  end
   has_many :merges_from, class_name: "ClaimMerge", foreign_key: :from_claim_id, inverse_of: :from_claim, dependent: nil
   has_many :merges_into, class_name: "ClaimMerge", foreign_key: :into_claim_id, inverse_of: :into_claim, dependent: nil
   has_many :evaluability_settings, class_name: "ClaimEvaluabilitySetting", dependent: nil

@@ -6,7 +6,33 @@ module Graph
   module Presenter
     module_function
 
-    def claim(claim, seq, model: nil)
+    # `result` may be passed by a caller that scored a set at once
+    # (Scoring::Score.call_many); it is the same result either way.
+    # A page of claims (the claims API): the questions each claim asked for
+    # itself — its score, its inferences, its edges both ways and its link
+    # counts — asked once for the page. 1,136 statements for fifty claims on
+    # the development node before (Stage 26). Same output as claim() per claim.
+    def claims(list, seq, model: nil)
+      list = list.to_a
+      return [] if list.empty?
+
+      model ||= Scoring::Registry.default_model
+      ids = list.map(&:id)
+      scored = model ? Scoring::Score.call_many(list, seq, model) : {}
+      inferences = Inferences::View.for_claims(list, seq, model)
+      outgoing = ClaimEdge.counted_at(seq).where(from_claim_id: ids).includes(:to_claim).to_a.group_by(&:from_claim_id)
+      incoming = ClaimEdge.counted_at(seq).where(to_claim_id: ids).includes(:from_claim).to_a.group_by(&:to_claim_id)
+      links = EvidenceClaimLink.where(claim_id: ids).active_at(seq)
+      counted = links.effective_at(seq).group(:claim_id, :direction).count
+      pending = links.pending_at(seq).group(:claim_id).count
+      list.map do |c|
+        c.prime_counted_edges(seq, outgoing: outgoing[c.id] || [], incoming: incoming[c.id] || [])
+        by_direction = counted.select { |(cid, _), _| cid == c.id }.transform_keys(&:last)
+        claim(c, seq, model: model, result: scored[c.id], inferences: inferences[c.id], counts: counts_from(by_direction, pending.fetch(c.id, 0)))
+      end
+    end
+
+    def claim(claim, seq, model: nil, result: nil, inferences: nil, counts: nil)
       if (quarantine = Governance::Quarantines.live_for("CLAIM", claim.id))
         return claim_stub(claim, seq, quarantine)
       end
@@ -20,20 +46,20 @@ module Graph
         id: claim.id, text: claim.canonical_text, type: claim.claim_type,
         truth_evaluable: evaluable, not_evaluable_reason: reason, references: references,
         sections: Sections::Tree.placements_for(claim, seq).map { |s| { id: s.id, root_id: s.root_id, path: s.path(seq) } },
-        inferences: Inferences::View.for_claim(claim, seq, model).slice(:concluded_from, :premise_in),
+        inferences: (inferences || Inferences::View.for_claim(claim, seq, model)).slice(:concluded_from, :premise_in),
         status: claim.status_at(seq), qualifiers: claim.qualifiers, snapshot_seq: seq, redacted: claim.redacted?,
         created_seq: claim.created_seq, accepted_seq: claim.accepted_seq, invalidated_seq: claim.invalidated_seq,
         contribution_id: claim.contribution_id,
         topics: Topics.for_claim(claim, seq),
         supersedes_claim_id: claim.supersedes_claim_id, superseded_by_id: claim.superseded_by_at(seq)&.id,
         merged_into_id: claim.merge_at(seq)&.into_claim_id,
-        evidence_counts: evidence_counts(links, counted, seq),
+        evidence_counts: counts || evidence_counts(links, counted, seq),
         edges: {
           outgoing: claim.counted_outgoing_edges(seq).map { |e| edge(e) },
           incoming: claim.counted_incoming_edges(seq).map { |e| edge(e) }
         },
-        assessment: model && assessment(Scoring::Score.call(claim, seq, model), seq, model),
-        card: model && Cards::ClaimCard.call(claim, seq, model)
+        assessment: model && assessment(result ||= Scoring::Score.call(claim, seq, model), seq, model),
+        card: model && Cards::ClaimCard.call(claim, seq, model, result)
       }
     end
 
@@ -44,11 +70,14 @@ module Graph
     # total is summed from the grouping rather than asked for again, which holds
     # whatever directions exist because the grouping covers all of them.
     def evidence_counts(links, counted, seq)
-      by_direction = counted.group(:direction).count
+      counts_from(counted.group(:direction).count, links.pending_at(seq).count)
+    end
+
+    def counts_from(by_direction, pending)
       {
         support: by_direction.fetch("SUPPORT", 0), contradict: by_direction.fetch("CONTRADICT", 0),
         qualify: by_direction.fetch("QUALIFY", 0), neutral: by_direction.fetch("NEUTRAL", 0),
-        counted: by_direction.values.sum, pending: links.pending_at(seq).count
+        counted: by_direction.values.sum, pending: pending
       }
     end
 
