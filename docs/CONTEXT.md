@@ -209,8 +209,12 @@ discard what you needed" into this file.
 **`git add <paths>` then `git commit` — which takes the whole index.** Staging only your
 own files does not keep the owner's staged work out: `git commit` commits everything in the
 index, and on 2026-09-22 the owner's staged rename of a skill rode into an unrelated fix. Run
-`git diff --cached --stat` before every commit when the session began with anything staged,
-or commit with `git commit -- <paths>`, which takes only those.
+`git diff --cached --stat` before every commit when the session began with anything staged.
+`git commit -- <paths>` is not the escape it looks like: it commits the *working-tree*
+content of those paths, so a file the owner has also edited carries their edit in with
+yours. When your change shares a file with theirs, stage your hunk alone (build the blob and
+`git update-index --cacheinfo`), move their staged entries aside, commit the index, and put
+them back.
 
 **Blaming the thing that was easy to blame, twice in one day (2026-09-21).** The
 weaknesses report was 25 seconds with every score cached, and the first written
