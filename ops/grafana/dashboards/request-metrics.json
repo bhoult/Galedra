@@ -1,0 +1,331 @@
+{
+  "uid": "galedra-requests",
+  "title": "Galedra \u2014 request metrics (Stage 40)",
+  "tags": [
+    "galedra"
+  ],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Where the time goes (seconds per hour, top 10 actions)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "galedra"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "bars",
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 60
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "galedra"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT hour AS time, action AS metric, total_ms / 1000.0 AS value FROM request_tallies WHERE $__timeFilter(hour) AND action IN (SELECT action FROM request_tallies WHERE $__timeFilter(hour) GROUP BY action ORDER BY SUM(total_ms) DESC LIMIT 10) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Mean ms per call",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "galedra"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "stacking": {
+              "mode": "none"
+            },
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "galedra"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT hour AS time, action AS metric, total_ms / NULLIF(calls, 0) AS value FROM request_tallies WHERE $__timeFilter(hour) AND action IN (SELECT action FROM request_tallies WHERE $__timeFilter(hour) GROUP BY action ORDER BY SUM(total_ms) DESC LIMIT 10) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Statements per call \u2014 the number that finds N+1s",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "galedra"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "stacking": {
+              "mode": "none"
+            },
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "galedra"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT hour AS time, action AS metric, statements::float / NULLIF(calls, 0) AS value FROM request_tallies WHERE $__timeFilter(hour) AND action IN (SELECT action FROM request_tallies WHERE $__timeFilter(hour) GROUP BY action ORDER BY SUM(total_ms) DESC LIMIT 10) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Calls per hour",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "galedra"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "stacking": {
+              "mode": "none"
+            },
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "galedra"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT hour AS time, action AS metric, calls AS value FROM request_tallies WHERE $__timeFilter(hour) AND action IN (SELECT action FROM request_tallies WHERE $__timeFilter(hour) GROUP BY action ORDER BY SUM(total_ms) DESC LIMIT 10) ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Slow calls per hour (over 500 ms or 200 statements)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "galedra"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "stacking": {
+              "mode": "none"
+            },
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "galedra"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT hour AS time, action AS metric, slow_calls AS value FROM request_tallies WHERE $__timeFilter(hour) AND slow_calls > 0 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Slowest requests kept",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "galedra"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ms"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "galedra"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT recorded_at AS \"when\", action, method, status, duration_ms AS ms, statements, db_ms AS \"db ms\", head_seq AS \"head seq\" FROM request_samples WHERE $__timeFilter(recorded_at) ORDER BY duration_ms DESC LIMIT 50"
+        }
+      ]
+    }
+  ],
+  "description": "request_tallies and request_samples from the development node. Statements per call is the number that finds an N+1; see CLAUDE.md."
+}

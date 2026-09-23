@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Grafana over the development node's request metrics (Stage 40, Stage 26).
+#
+# Not a Compose service: the stack is two services (11 §2), and this is a
+# tool for looking at the node, like psql. It joins the Compose network,
+# listens on 127.0.0.1 only, and reads through a role that can SELECT the two
+# metrics tables and nothing else. Nothing here reaches production.
+#
+#   bin/grafana          start it (http://127.0.0.1:3001, dashboards need no login)
+#   bin/grafana stop     stop and remove the container
+set -euo pipefail
+cd "$(dirname "$0")/.."
+NAME=galedra-grafana
+IMAGE=grafana/grafana-oss:${GRAFANA_VERSION:-12.1.1}
+
+if [[ "${1:-}" == "stop" ]]; then
+  docker rm -f "$NAME" >/dev/null 2>&1 && echo "stopped" || echo "not running"
+  exit 0
+fi
+
+docker compose exec -T db psql -q -U postgres -d galedra_development <<'SQL'
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'grafana_reader') THEN
+    CREATE ROLE grafana_reader LOGIN PASSWORD 'grafana_reader';
+  END IF;
+END $$;
+GRANT CONNECT ON DATABASE galedra_development TO grafana_reader;
+GRANT USAGE ON SCHEMA public TO grafana_reader;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM grafana_reader;
+GRANT SELECT ON request_tallies, request_samples TO grafana_reader;
+SQL
+
+docker rm -f "$NAME" >/dev/null 2>&1 || true
+docker run -d --name "$NAME" --network galedra_default -p 127.0.0.1:3001:3000 \
+  -e GF_AUTH_ANONYMOUS_ENABLED=true -e GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer \
+  -e GF_AUTH_DISABLE_LOGIN_FORM=false -e GF_ANALYTICS_REPORTING_ENABLED=false \
+  -e GF_ANALYTICS_CHECK_FOR_UPDATES=false -e GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/request-metrics.json \
+  -v "$PWD/ops/grafana/provisioning:/etc/grafana/provisioning:ro" \
+  -v "$PWD/ops/grafana/dashboards:/var/lib/grafana/dashboards:ro" \
+  "$IMAGE" >/dev/null
+echo "Grafana on http://127.0.0.1:3001 (anonymous viewer; admin/admin to edit)"

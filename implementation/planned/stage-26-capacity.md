@@ -1,6 +1,6 @@
 # Stage 26 — Capacity: seeding, profiling, and the pages that scan
 
-**Status:** in progress · tag will be `stage-26-capacity`
+**Status:** in progress · tag will be `stage-26-capacity` · 2026-09-23: the request-metrics pass is done; the owner decision and the droplet load test remain
 
 Built: `bench:seed`, `bench:report`, the profiling harness (`bench:cpu`, `bench:memory`,
 `bench:rss`, `bench:boot`), batched scoring, `scores:prune`, the contributor-tally index,
@@ -363,24 +363,16 @@ bundle list` names none of `stackprof`, `memory_profiler`, `rack-mini-profiler` 
 
 ### What remains
 
-- **`/weaknesses` is 25 s with every score cached, and most of that is ordinary work, not
-  an owner decision.** The phase timing in the profiler entry says where it goes, and the
-  first answer written here — "Ruby walking 100,024 claims" — was wrong: the seven filters
-  over the whole corpus cost **247 ms between them**. The cost is two things this project
-  already has a name for:
-  - **12 s building entries nobody asked for.** Every kind builds `MAX_ENTRIES` (500)
-    entries at compute time, each calling `Cards::Why.most_moving_addition` at ~4.8 ms, and
-    the page then slices 25 or 50 off the front. Up to 3,500 calls to serve fifty rows, and
-    the per-row statements inside them are 12,000 of the run's 26,474.
-  - **10 s reading traces nobody reads.** `SELECT claim_scores.*` carries a ~2 KB `trace`
-    for 200,000 rows — 5.0 s of SQL in one shape — and the lists read `assessment_state`,
-    `review_coverage`, `support_groups`, `contradict_groups`, `contested` and `provisional`,
-    every one of which is already its own column. Only `independence_unreviewed` is
-    trace-only, and it could be a column like the rest.
-
-  Both are removable without deciding anything about snapshots. **Do them first**, then ask
-  the owner about the ~2 s that would be left, rather than choosing a caching strategy to
-  hide work that should not be happening.
+- **`/weaknesses` is 2.1 s computed from nothing at 100,034 claims (2026-09-23), and what is
+  left is the owner decision.** *Corrected: this bullet said 25 s and listed two removable
+  costs; both had been removed before today, and the measurement the bullet relied on predated
+  them.* On 2026-09-23, on a quiet host, the uncached report was 4.9 s with the code as it
+  stood and 2.1 s after the set paths in
+  [`docs/profiler/2026-09-23-request-metrics-and-the-set-paths.md`](../../docs/profiler/2026-09-23-request-metrics-and-the-set-paths.md),
+  output byte-identical. Most of the 2.1 s is reading 200,000 score summaries, which is the
+  report's work rather than waste. Served from the page cache it costs milliseconds until the
+  next append. **Owner decision:** pin it to a snapshot, or recompute on a schedule, or accept
+  2 s on the first view after each append.
 - **Acceptance 4 — the ten-minute load test on the recommended droplet. NOT RUN, and not
   runnable here.** There is no droplet; `script/loadtest.js` and `script/loadtest.sh` are
   built and waiting for a target. This is the one criterion that needs infrastructure rather
@@ -406,3 +398,32 @@ bundle list` names none of `stackprof`, `memory_profiler`, `rack-mini-profiler` 
   and window, the same key the weaknesses report uses, because the answer is a function of
   the log and the log does not move between appends. Measured at 1,019,834 contributions:
   **234.8 ms cold, 0.2 ms on every view until the next append.**
+
+
+## 2026-09-23 — driven by the request metrics
+
+**What was resolved.** The costs Stage 40's `request_tallies` named, in order of total time:
+`submit_task` (190 statements a call), `record_investigation` (up to 27,032), `/weaknesses`,
+the snapshot page (487), and the claim list, claims API and outline page. See the profiler
+entry for every number and the conditions.
+
+**How.** `Scoring::BuildInput.call_many` (one load per table for a set of claim/seq pairs,
+exact by construction and by spec); `Contribution::PROJECTIONS_BY_ACTION` (an append asks the
+tables its type can write, held by a spec against a search of every table);
+`Scoring::Score.trace_hashes` and `.states` (read only what the caller compares); the score
+cache asked with one array parameter; `Graph::Presenter.claims` for a page of claims. Budgets
+in `spec/requests/read_path_cost_spec.rb` fail against the old code. `bin/grafana` puts the
+metrics on a dashboard, outside Compose.
+
+| At 100,034 claims | Before | After |
+|---|---|---|
+| Snapshot page | 49.3 s | 1.0 s |
+| `/weaknesses`, uncached | 4.9 s | 2.1 s |
+| `record_investigation`, 10 claims | 5.0 s | 4.2 s |
+| Claims API | 593 ms | 343 ms |
+
+**What remains.** The `/weaknesses` owner decision above; the ten-minute droplet load test
+(acceptance 4); the near-duplicate check, 2.9 of `record_investigation`'s 4.2 s at this corpus,
+where a trigram index measured three times *slower* because the bench corpus is 42 skeleton
+sentences repeated — it wants a varied corpus before anything is decided; and the claims API's
+per-claim card, 734 statements for fifty on an endpoint called 19 times a week.

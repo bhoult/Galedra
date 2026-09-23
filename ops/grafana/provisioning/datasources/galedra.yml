@@ -1,0 +1,17 @@
+# The development database, read through a role that can see the two request
+# metrics tables and nothing else (created by bin/grafana).
+apiVersion: 1
+datasources:
+  - name: Galedra
+    uid: galedra
+    type: grafana-postgresql-datasource
+    url: db:5432
+    user: grafana_reader
+    secureJsonData:
+      password: grafana_reader
+    jsonData:
+      database: galedra_development
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: true
