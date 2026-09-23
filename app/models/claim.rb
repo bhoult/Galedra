@@ -82,17 +82,19 @@ class Claim < ApplicationRecord
   end
 
   # After a TAKEDOWN the payload is gone; the retained column values stand in.
-  def original_truth_evaluable
-    payload = contribution.payload
+  # The payload may be passed in by a caller that loaded it for a whole set
+  # (Scoring::BuildInputBatch), which spares loading the whole ~1.9 KB row to
+  # read two keys of it.
+  def original_truth_evaluable(payload = contribution.payload)
     return truth_evaluable if payload.nil?
 
     payload.key?("truth_evaluable") ? payload["truth_evaluable"] : Claim.default_truth_evaluable(claim_type)
   end
 
-  def original_not_evaluable_reason
-    return nil if original_truth_evaluable
-    return not_evaluable_reason if contribution.payload.nil?
+  def original_not_evaluable_reason(payload = contribution.payload)
+    return nil if original_truth_evaluable(payload)
+    return not_evaluable_reason if payload.nil?
 
-    contribution.payload["not_evaluable_reason"] || DEFAULT_NOT_EVALUABLE[claim_type]
+    payload["not_evaluable_reason"] || DEFAULT_NOT_EVALUABLE[claim_type]
   end
 end

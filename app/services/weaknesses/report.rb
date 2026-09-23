@@ -73,10 +73,14 @@ module Weaknesses
       results = Scoring::Score.call_many(claims.values, seq, model)
       steps = Audits::Status.memoized do
         Scoring::Pass.over(claims.values, seq) do
+          # One load per table for the page's claims, rather than a scorer
+          # input rebuilt per claim: 929 statements for sixty claims on the
+          # development node (2026-09-23).
+          inputs = Scoring::BuildInput.call_many(claims.values.select { |c| results[c.id] }.map { |c| [ c, seq ] })
           claims.filter_map do |id, claim|
             next if results[id].nil?
 
-            step = Cards::Why.most_moving_addition(claim, seq, model, results[id])
+            step = Cards::Why.most_moving_addition(claim, seq, model, results[id], input: inputs[id])
             [ id, step.slice(:direction, :observation, :state_from, :state_to, :text) ] if step
           end.to_h
         end

@@ -14,7 +14,8 @@ require "rails_helper"
 #
 #   outline page      100 -> 26 statements
 #   outline index      44 -> 19
-#   weaknesses        141 -> 88, and 586 -> 98 once the corpus doubled
+#   weaknesses        141 -> 88, and 586 -> 98 once the corpus doubled;
+#                     54 once scorer inputs were built as a set (Stage 26)
 #
 # The budgets sit just above those numbers, not at double them. A budget of 60
 # against a measured 26 lets the page regress to twice its cost and still pass,
@@ -90,8 +91,9 @@ RSpec.describe "What a read path costs", type: :request do
   # "what would most change this" for the rows it returns, and each of those
   # rebuilds one claim's scorer input on purpose. What it must not do is grow
   # with the **corpus**, so the page size is held still while the claims double.
-  # (The per-row cost is `Scoring::BuildInput`, still one row at a time; batching
-  # that is the half of Stage 38 that was deferred.)
+  # The per-row cost was `Scoring::BuildInput`, one claim at a time; since
+  # Stage 26 (2026-09-23) the page's inputs are built as a set
+  # (Scoring::BuildInputBatch), and this fixture went from 98 statements to 54.
   it "renders the weaknesses page without paying for claims it does not show" do
     outline
     get "/weaknesses?limit=5"
@@ -103,7 +105,7 @@ RSpec.describe "What a read path costs", type: :request do
     second = statements { get "/weaknesses?limit=5" }
 
     expect(second).to be <= first + 10, "#{first} statements became #{second} when the corpus doubled"
-    expect(second).to be <= 110, "#{second} statements for five rows a kind"
+    expect(second).to be <= 60, "#{second} statements for five rows a kind"
   end
 
   # The one that was linear in the log rather than in the page: every append
@@ -136,6 +138,11 @@ RSpec.describe "What a read path costs", type: :request do
     allow(Scoring::BuildInput).to receive(:call).and_wrap_original do |original, *args|
       built += 1
       original.call(*args)
+    end
+    # And through the batch, which builds one input per pair it is given.
+    allow(Scoring::BuildInputBatch).to receive(:call).and_wrap_original do |original, pairs|
+      built += pairs.size
+      original.call(pairs)
     end
 
     one_at_a_time = claims.to_h { |c| [ c.id, models.to_h { |m| [ m.id, Scoring::Score.call(c, seq, m).trace_hash ] } ] }

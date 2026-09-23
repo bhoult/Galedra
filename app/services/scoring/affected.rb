@@ -7,19 +7,22 @@ module Scoring
   module Affected
     module_function
 
-    def claim_ids(contribution)
+    # `target` may be passed by a caller that already looked it up (Scoring::
+    # Watermark); for the types that name one it is the same row either way.
+    def claim_ids(contribution, target: :lookup)
+      find = ->(key) { target == :lookup ? Contribution.find_by(id: contribution.payload[key]) : target }
       ids = case contribution.action_type
       when "ACCEPT", "INVALIDATE"
-        target = Contribution.find_by(id: contribution.payload["contribution_id"])
+        target = find.call("contribution_id")
         target ? rows_claims(target) : []
       when "QUARANTINE", "RELEASE_QUARANTINE"
         quarantine = contribution.action_type == "QUARANTINE" ? Quarantine.find_by(contribution_id: contribution.id) : Quarantine.find_by(id: contribution.payload["quarantine_id"])
         quarantine ? target_claims(quarantine) : []
       when "TAKEDOWN"
-        target = Contribution.find_by(id: contribution.payload["contribution_id"])
+        target = find.call("contribution_id")
         target ? rows_claims(target) : []
       when "AUDIT"
-        target = Contribution.find_by(id: contribution.payload["target_contribution_id"])
+        target = find.call("target_contribution_id")
         target ? rows_claims(target) : []
       else
         contribution.epistemic? ? rows_claims(contribution) : []

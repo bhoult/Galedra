@@ -8,6 +8,14 @@ module Scoring
   module BuildInput
     module_function
 
+    # The same, for many (claim, seq) pairs, from one load per table
+    # (Scoring::BuildInputBatch). {claim_id => input}.
+    def call_many(pairs)
+      return {} if pairs.empty?
+
+      BuildInputBatch.call(pairs)
+    end
+
     def call(claim, seq)
       evaluable, reason = claim.evaluability_at(seq)
       {
@@ -77,6 +85,13 @@ module Scoring
       # in a whole-graph pass (Stage 26).
       links = claim.evidence_claim_links.effective_at(seq)
                    .includes(:contribution, evidence_item: { source_location: :source }).order(:id)
+      link_entries(links, seq, own_origins, other_editions) { |item| item.independence_group_at(seq)&.id }
+    end
+
+    # The entries for links already chosen as effective at seq and in id order.
+    # The block answers an item's independence group, so a batch can answer it
+    # from one load while a single call asks the database.
+    def link_entries(links, seq, own_origins, other_editions, &group_id)
       links.filter_map do |link|
         item = link.evidence_item
         location = item.source_location
@@ -96,7 +111,7 @@ module Scoring
           "audit_confirmed" => Audits::Status.confirmed?(link.contribution_id, seq),
           "evidence" => {
             "observation_type" => item.observation_type,
-            "independence_group_id" => item.independence_group_at(seq)&.id,
+            "independence_group_id" => group_id.call(item),
             "origin" => origin,
             "passage" => location.excerpt_hash.presence || "location:#{location.id}",
             "source_type" => location.source.source_type,

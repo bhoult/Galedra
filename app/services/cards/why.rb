@@ -36,10 +36,12 @@ module Cards
         observation: link["observation"], statement: statements[link["evidence"]] }
     end
 
-    def most_moving_addition(claim, seq, model, result)
+    # `input` may be passed in by a caller that built a set of them at once
+    # (Scoring::BuildInput.call_many); it is the same input either way.
+    def most_moving_addition(claim, seq, model, result, input: nil)
       return nil if result.assessment_state == "NOT_APPLICABLE"
 
-      input = Scoring::BuildInput.call(claim, seq)
+      input ||= Scoring::BuildInput.call(claim, seq)
       base = result.probability && BigDecimal(result.probability)
       candidates = HYPOTHETICALS.map do |h|
         hypothetical = { "id" => "hypothetical", "evidence_id" => "hypothetical", "direction" => h["direction"], "relevance_strength" => h["relevance_strength"],

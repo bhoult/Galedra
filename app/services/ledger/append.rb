@@ -31,7 +31,9 @@ module Ledger
           next Result.new(contribution: existing, created: false, warnings: [], acceptance: nil)
         end
 
-        head = Contribution.in_order.last
+        # Only the fields the next entry chains from. The whole row is ~1.9 KB of
+        # payload, envelope and signatures, read on every append (Stage 26).
+        head = Contribution.in_order.select(:id, :seq, :entry_hash).last
         genesis!(validated, head)
         applier = Appliers.for(validated.action_type)
         applier&.authorize!(validated)
@@ -140,7 +142,7 @@ module Ledger
           reject("GENESIS_REQUIRED", "$", "an empty log accepts only the pinned system key's REGISTER_KEY")
         end
       else
-        Genesis.verify!(Contribution.find_by!(seq: 0))
+        Genesis.verify!(Contribution.select(:id, :seq, :action_type, :custody, :payload, :signer_key_id).find_by!(seq: 0))
         if validated.action_type == "REGISTER_KEY" && validated.payload["kind"] == Contributor::SYSTEM
           reject("NOT_AUTHORIZED", "$.payload.kind", "only the genesis entry registers a SYSTEM key")
         end

@@ -121,10 +121,20 @@ module Scoring
     # itself marked the claim, its ACCEPT did not, and the score served between
     # them was the one from before the claim had an origin.
     def claim_ids(contribution)
-      subjects = [ contribution, target_of(contribution) ].compact
-      (Affected.claim_ids(contribution) +
+      # Looked up once and handed on: Affected, the placement and edge checks
+      # and the task check each fetched it again (Stage 26).
+      target = target_of(contribution)
+      subjects = [ contribution, target ].compact
+      (Affected.claim_ids(contribution, target: target) +
         subjects.flat_map { |c| placement_claims(c) + edge_claims(c) } +
-        task_claims(contribution) + audit_claims(subjects)).uniq
+        task_claims(contribution, target) + audit_claims(subjects)).uniq
+    end
+
+    # Whether a contribution of this type can have written rows of this model:
+    # a question not worth a statement when the answer is no
+    # (Contribution::PROJECTIONS_BY_ACTION, held by spec/models/contribution_spec.rb).
+    def may_write?(contribution, model)
+      contribution.projection_tables.include?(model)
     end
 
     # An audit changes the score of every claim whose evidence cites the entry
@@ -136,20 +146,24 @@ module Scoring
     # review, 2026-09-22).
     def audit_claims(subjects)
       targets = subjects.filter_map { |c| c.payload["target_contribution_id"] if c.action_type == "AUDIT" && c.payload.is_a?(Hash) }
-      targets += Audit.where(contribution_id: subjects.map(&:id)).pluck(:target_contribution_id)
+      # Only an AUDIT writes an Audit row, so only those are worth asking about.
+      audits = subjects.select { |c| c.action_type == "AUDIT" }
+      targets += Audit.where(contribution_id: audits.map(&:id)).pluck(:target_contribution_id) if audits.any?
       return [] if targets.empty?
 
       Contribution.where(id: targets.uniq).flat_map { |target| Affected.rows_claims(target) }
     end
 
     def placement_claims(contribution)
+      return [] unless may_write?(contribution, "ClaimPlacement")
+
       ClaimPlacement.where(contribution_id: contribution.id).pluck(:claim_id)
     end
 
     # A TASK_RESULT for a check task raises review_coverage without writing a row
     # that names the claim; so does accepting, invalidating or auditing one.
-    def task_claims(contribution)
-      task_ids = [ contribution.task_id, target_of(contribution)&.task_id ].compact
+    def task_claims(contribution, target = target_of(contribution))
+      task_ids = [ contribution.task_id, target&.task_id ].compact
       return [] if task_ids.empty?
 
       # Plus the claims entangled with them: `Tasks::Checks.opposing_search_done?`
@@ -166,6 +180,8 @@ module Scoring
     end
 
     def edge_claims(contribution)
+      return [] unless may_write?(contribution, "ClaimEdge")
+
       ends = ClaimEdge.where(contribution_id: contribution.id).pluck(:from_claim_id, :to_claim_id).flatten.compact
       return [] if ends.empty?
 

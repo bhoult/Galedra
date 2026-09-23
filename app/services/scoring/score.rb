@@ -82,7 +82,8 @@ module Scoring
     def compute_misses(misses, at, seq, model)
       misses.each_slice(SCORE_BATCH).reduce({}) do |all, slice|
         computed = Pass.over(slice, seq, down_to: slice.map { |c| at[c.id] }.min || seq) do
-          slice.to_h { |c| [ c.id, Registry.score(BuildInput.call(c, at[c.id]), model) ] }
+          inputs = BuildInput.call_many(slice.map { |c| [ c, at[c.id] ] })
+          slice.to_h { |c| [ c.id, Registry.score(inputs[c.id], model) ] }
         end
         store_all(computed, at, model)
         all.merge(computed)
@@ -107,7 +108,7 @@ module Scoring
       Audits::Status.memoized do
         claims.each_slice(SCORE_BATCH) do |slice|
           Pass.over(slice, seq, down_to: slice.map { |c| at[c.id] }.min) do
-            inputs = slice.to_h { |c| [ c.id, BuildInput.call(c, at[c.id]) ] }
+            inputs = BuildInput.call_many(slice.map { |c| [ c, at[c.id] ] })
             models.each do |model|
               store_all(slice.to_h { |c| [ c.id, Registry.score(inputs[c.id], model) ] }, at, model)
             end
