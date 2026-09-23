@@ -220,6 +220,32 @@ RSpec.describe "Tasks, leases, packets, and results (07 Phase 5)", type: :reques
     end
   end
 
+  # A qualifier is evidence of an omission, which is rarely already on the node,
+  # so the check must be able to quote the passage it rests on (feature request
+  # 131d8cda, Stage 41). The allowed-ops change shipped without a call that used it.
+  it "lets a QUALIFIER_CHECK create the source and passage its qualifier rests on" do
+    _, _, claim = graph
+    _, agent_pair, _, delegation = principal_with_agent
+    task = create_task("QUALIFIER_CHECK", claim)
+    result = submit_result(agent_pair, task, delegation: delegation, outcome: "QUALIFIERS_FOUND", ops: [
+      { "op" => "CREATE_SOURCE", "ref" => "src", "source_type" => "WEBSITE", "title" => "The ministry's announcement", "canonical_uri" => "https://example.test/announcement" },
+      { "op" => "CREATE_SOURCE_LOCATION", "ref" => "loc", "source_id" => "src", "locator_type" => "SECTION", "locator" => { "section" => "para 2" },
+        "excerpt" => "The rollout begins in 2028.", "excerpt_hash" => Crypto::Hashing.bytes("The rollout begins in 2028.") },
+      { "op" => "CREATE_EVIDENCE", "ref" => "ev", "source_location_id" => "loc", "observation_type" => "DIRECT_TEXT", "statement" => "The rollout does not begin until 2028." },
+      { "op" => "LINK_EVIDENCE", "evidence_item_id" => "ev", "claim_id" => claim.id, "direction" => "QUALIFY", "relevance_strength" => "MODERATE", "interpretive_steps" => 1 }
+    ])
+    expect(result_rows(result, Source).first).to have_attributes(canonical_uri: "https://example.test/announcement")
+    expect(result_rows(result, EvidenceClaimLink).first.direction).to eq("QUALIFY")
+  end
+
+  # The allowed-ops change above was invisible to the worker it was for: the
+  # instruction a worker reads never said a qualifier check could add sources.
+  it "tells every task type that may create a source how to write one" do
+    Tasks::Types::ALL.select { |t| Tasks::Types.allowed_ops(t).include?("CREATE_SOURCE") }.each do |t|
+      expect(Tasks::Answer::ANSWER_WITH.fetch(t)).to include("sources: [", "excerpts: ["), "#{t} may create a source and does not say how"
+    end
+  end
+
   it "weighs a TRANSCRIPTION passage alike whether it arrives by record_investigation or submit_task" do
     source = create_source(curator, type: "IMAGE", content: "Anthropic took a different route with its constitution.")
     location = create_location(curator, source, locator_type: "TRANSCRIPTION", locator: {})
