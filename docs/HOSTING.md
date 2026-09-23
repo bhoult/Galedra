@@ -108,6 +108,13 @@ Ubuntu 24.04 LTS
 
 One process serves web and jobs.
 
+**Set `WEB_CONCURRENCY` to the number of vCPUs.** Puma reads it, and nothing else sets it, so
+without it every reader is served by one core. Rendering is CPU-bound — about twenty claim
+pages a second per process at 100,034 claims, however many threads — so a second vCPU buys
+nothing unless a second process uses it (audit, 2026-09-23,
+`docs/security/2026-09-23-methodology-and-load-audit.md`). Each process is a few hundred MB,
+so on 2 GB keep it at two.
+
 Do not prematurely provision Kubernetes, load balancers, multiple web nodes, Redis,
 Sidekiq, a service mesh, or any orchestration beyond Kamal. Measure first.
 

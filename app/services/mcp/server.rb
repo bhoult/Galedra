@@ -17,6 +17,7 @@ module Mcp
     PARSE_ERROR = -32700
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601
+    MAX_QUERY_CHARS = 300
     INVALID_PARAMS = -32602
     INTERNAL_ERROR = -32603
     TOKEN_REQUIRED = -32001
@@ -475,6 +476,12 @@ module Mcp
     def tool_search_claims(args)
       query = args["query"].to_s.strip
       raise ArgumentError, "query or source_id is required" if query.empty? && args["source_id"].blank?
+      # A search is a few words, and its similar-wording fallback costs time in
+      # proportion to the query's length: 28 s for 10 KB at 100,034 claims, open
+      # to any caller with no token (audit, 2026-09-23).
+      if query.length > MAX_QUERY_CHARS
+        raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.query", detail: "query is at most #{MAX_QUERY_CHARS} characters: a few distinctive words, not the text of a claim" } ])
+      end
 
       seq = Contribution.maximum(:seq) || 0
       model = Scoring::Registry.default_model

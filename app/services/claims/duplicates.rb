@@ -8,6 +8,9 @@ module Claims
     LIMIT = 10
 
     def self.candidates(text, exclude_id: nil, limit: LIMIT, threshold: THRESHOLD)
+      # No claim is longer than this, so nothing longer can be near one; and the
+      # comparison costs time in proportion to the text (audit, 2026-09-23).
+      text = text.to_s[0, Claim::MAX_TEXT_CHARS]
       # Bound, not interpolated. Quoting the text was correct, but a quoted
       # literal built by hand is one careless edit from not being, and this
       # takes contributor-supplied text (security audit, 2026-09-19).

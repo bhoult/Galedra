@@ -118,4 +118,18 @@ RSpec.describe "Refusals from the schema a caller was handed (Stage 42)", type: 
       expect { Rails.application.routes.recognize_path(path, method: verb) }.not_to raise_error, "#{verb.upcase} #{path} is named but not routed"
     end
   end
+
+  # Audit, 2026-09-23: the similar-wording search costs time in proportion to the
+  # text it compares, and both of these reached it with text of any length.
+  it "refuses an over-long search query and an over-long claim before the similarity search runs" do
+    expect(Claims::Duplicates).not_to receive(:candidates)
+    refused = rpc("search_claims", { "query" => "word " * 100 })
+    expect(refused.dig("result", "structuredContent", "errors").first).to include("code" => "SCHEMA_INVALID", "path" => "$.query")
+
+    count = Contribution.count
+    long = "A claim that goes on. " * 100
+    body = rpc("record_investigation", { "statement" => "x", "claims" => [ { "handle" => "c", "text" => long, "type" => "TEXTUAL" } ] })
+    expect(body.dig("result", "structuredContent", "errors").map { |e| e["path"] }).to include("$.claims[0].text")
+    expect(Contribution.count).to eq(count)
+  end
 end

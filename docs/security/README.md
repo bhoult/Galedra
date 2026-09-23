@@ -54,6 +54,7 @@ Both are in the development and test bundle groups already.
 
 | Date | Entry | Outcome |
 |---|---|---|
+| 2026-09-23 | [Methodology and load audit](2026-09-23-methodology-and-load-audit.md) | Production did not boot (fixed). Anyone can self-register as an auditor and regroup others' evidence; 68 of 145 SUPPORTED claims rest on one link; an old snapshot seq on a public GET rescores the corpus. Most need the owner and a new model version |
 | 2026-09-23 | [Duplicate keys in a signed JSON body](2026-09-23-duplicate-json-keys.md) | Not exploitable: one parse, the signature checked over its canonical form, and that form stored. Pinned by a spec that splices a forged duplicate before and after the signed field. |
 | 2026-09-19 | [Full-application audit](2026-09-19-full-application-audit.md) | One finding: server-side request forgery by DNS rebinding in source retrieval. Fixed, with the three smaller notes. |
 

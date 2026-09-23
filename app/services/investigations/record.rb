@@ -278,6 +278,11 @@ module Investigations
         add.call("#{path}.attach_to", attach_to_detail(c["attach_to"].to_s)) unless Claim.live.accepted.exists?(id: c["attach_to"].to_s)
       else
         add.call("#{path}.text", "required: one atomic assertion") unless c["text"].is_a?(String) && c["text"].present?
+        # Checked here, before the duplicate search runs on it: that search costs
+        # time in proportion to the text's length (3.1 s for 5,000 characters at
+        # 100,034 claims), and the applier's own limit came after it (audit,
+        # 2026-09-23).
+        add.call("#{path}.text", "at most #{Claim::MAX_TEXT_CHARS} characters") if c["text"].is_a?(String) && c["text"].length > Claim::MAX_TEXT_CHARS
         add.call("#{path}.type", "expected one of #{Claim::TYPES.join(', ')}") unless Claim::TYPES.include?(c["type"])
       end
       add.call("#{path}.section", "no such section") if c["section"].present? && !Section.live.exists?(id: c["section"].to_s)
