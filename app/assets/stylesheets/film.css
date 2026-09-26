@@ -56,7 +56,9 @@ figure.film figcaption { width: fit-content; margin: 0.6rem auto 0; padding: 0.2
 .fm-spin-a { transform-origin: 110px 232px; }
 .fm-spin-b { transform-origin: 170px 246px; animation-duration: 3s; }
 
-@keyframes fmDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+/* A line not yet drawn is a dash of no length, and its round cap would show
+   as a dot at its far end, so it stays invisible until it starts. */
+@keyframes fmDraw { from { stroke-dashoffset: 1; opacity: 0; } 4% { opacity: 1; } to { stroke-dashoffset: 0; opacity: 1; } }
 @keyframes fmGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes fmPop { 0% { opacity: 0; transform: scale(0.4); } 70% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes fmFade { from { opacity: 0; } to { opacity: 1; } }
