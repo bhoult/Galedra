@@ -10,7 +10,7 @@ agents alike. It is a source of traceable reasons for believing or doubting a cl
 source of truth. The spec calls it **Epistemic Ledger**; same project, do not spend time
 on branding.
 
-**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stages 23 and 24 tagged (federation readiness; admins, help, and navigation); Stage 17 tagged (source retrieval by a trusted job); Stages 20–22 tagged (sections and placements; large requests from a connector; sharing outlines); Stage 25 tagged (inferences); Stage 26 (capacity) has all its tooling built — `bench:seed`, `bench:report`, the profiling harness, batched scoring, the `claim_scores` prune, the contributor-tally index, `db:top_queries` and the k6 load test — and **the acceptance run at 100,024 claims was taken on 2026-09-21** (`docs/profiler/2026-09-21-capacity-at-100k-claims.md`): acceptance 1, 3 and 5 are met, and 2 is met for every page but `/weaknesses`, which since 2026-09-23 is 2.1 s computed from nothing at 100,034 claims (it was 25 s; `docs/profiler/2026-09-23-request-metrics-and-the-set-paths.md`), most of it reading 200,000 score summaries. It stays in `planned/` and untagged for two reasons: **an owner decision** on how `/weaknesses` is answered (a pinned snapshot, or a schedule), and **the ten-minute load test on a droplet** (acceptance 4), which needs infrastructure that does not exist yet. Stage 30 (a section's whole text, readable, with the quoted anchor kept separate) is built. Stage 31 (the working rules served live from `Guidance`, on every MCP result and at `/api/v1/guidance`, with the skill thinned to a pointer) is built. Stage 32 (MCP revision 2026-07-28 served alongside the 2025-06-18 handshake; `Mcp::Era` decides per request) is built. Stage 34 (a person may work the routine checks on their own claims; recorded as self-performed, never raising review coverage) is built. Stage 37 (a thread on a determination: a conversation about *how* something was recorded, settled by three distinct principals naming one outcome, which opens work or closes work and never touches a score) is built; Stage 36 (a quotation interrupted by markup is not one that is missing: `INTERRUPTED` beside `NOT_FOUND`, and a transcription the server cannot hear is `NOT_READ`) is built. Stage 38 (the score cache is keyed on the last seq that bore on the claim, not on the seq asked for, so an unrelated write no longer invalidates it) is built. Stage 39 (the read paths asked one row at a time: the outline page went from 5,343 statements to 79) is built. Stage 40 (the node records how long it took, how many statements it issued and how often it was asked) is built. Stage 42 (every MCP call is checked against the schema it was handed before anything is signed, a refusal carries the guidance a success does, `list_tasks` names the global counters `_all`, and a report answer carries `fixed_in` and `repro`) is built; its §5a, identity for a caller behind a rotating address, is an owner decision. Stage 41 (list_claims offers only current claims, a qualifier check may quote its own source, refusals name the remedy, metrics per tool, and `ledger-default@0.3.0` the default so a claim may name the edition it is about) is built. Stages 27 (model provenance), 28 (export and import as verifiable JSON), 29 (fallacy notes) and 33 (a readable static copy of an outline) are planned and not started.** `IMPLEMENTATION.md` indexes the
+**Status: P0 complete (`v0.1.0`, Stages 0–11 tagged); P1 Stages 12–16 tagged (connected assistants, record an investigation, MCP and the skill, topics, OAuth for connectors); Stages 18 and 19 tagged (work open tasks, corrections from a connector); Stages 23 and 24 tagged (federation readiness; admins, help, and navigation); Stage 17 tagged (source retrieval by a trusted job); Stages 20–22 tagged (sections and placements; large requests from a connector; sharing outlines); Stage 25 tagged (inferences); Stage 26 (capacity) has all its tooling built — `bench:seed`, `bench:report`, the profiling harness, batched scoring, the `claim_scores` prune, the contributor-tally index, `db:top_queries` and the k6 load test — and **the acceptance run at 100,024 claims was taken on 2026-09-21** (`docs/profiler/2026-09-21-capacity-at-100k-claims.md`): acceptance 1, 3 and 5 are met, and 2 is met for every page but `/weaknesses`, which since 2026-09-23 is 2.1 s computed from nothing at 100,034 claims (it was 25 s; `docs/profiler/2026-09-23-request-metrics-and-the-set-paths.md`), most of it reading 200,000 score summaries. It stays in `planned/` and untagged for two reasons: **an owner decision** on how `/weaknesses` is answered (a pinned snapshot, or a schedule), and **the ten-minute load test on a droplet** (acceptance 4), which needs infrastructure that does not exist yet. Stage 30 (a section's whole text, readable, with the quoted anchor kept separate) is built. Stage 31 (the working rules served live from `Guidance`, on every MCP result and at `/api/v1/guidance`, with the skill thinned to a pointer) is built. Stage 32 (MCP revision 2026-07-28 served alongside the 2025-06-18 handshake; `Mcp::Era` decides per request) is built. Stage 34 (a person may work the routine checks on their own claims; recorded as self-performed, never raising review coverage) is built. Stage 37 (a thread on a determination: a conversation about *how* something was recorded, settled by three distinct principals naming one outcome, which opens work or closes work and never touches a score) is built; Stage 36 (a quotation interrupted by markup is not one that is missing: `INTERRUPTED` beside `NOT_FOUND`, and a transcription the server cannot hear is `NOT_READ`) is built. Stage 38 (the score cache is keyed on the last seq that bore on the claim, not on the seq asked for, so an unrelated write no longer invalidates it) is built. Stage 39 (the read paths asked one row at a time: the outline page went from 5,343 statements to 79) is built. Stage 40 (the node records how long it took, how many statements it issued and how often it was asked) is built. Stage 43 (an open door and a guarded record: the 2026-09-23 audit's findings as recommendations — anyone may contribute, only a proven non-kin identity may judge, nobody unauthenticated may make the node do unbounded work) is planned, with four items waiting on the owner. Stage 44 (from working to used: labels that match what was checked, legal basics beyond the terms/privacy/takedown pages added 2026-09-23, an accuracy benchmark against outside verdicts, one first audience and one seeded subject, extension/embeds/ClaimReview, auditor profiles, a second keyholder, and a feature freeze) is planned. Stage 42 (every MCP call is checked against the schema it was handed before anything is signed, a refusal carries the guidance a success does, `list_tasks` names the global counters `_all`, and a report answer carries `fixed_in` and `repro`) is built; its §5a, identity for a caller behind a rotating address, is an owner decision. Stage 41 (list_claims offers only current claims, a qualifier check may quote its own source, refusals name the remedy, metrics per tool, and `ledger-default@0.3.0` the default so a claim may name the edition it is about) is built. Stages 27 (model provenance), 28 (export and import as verifiable JSON), 29 (fallacy notes) and 33 (a readable static copy of an outline) are planned and not started.** `IMPLEMENTATION.md` indexes the
 stages; each stage's plan and Decision Log entry is one file under `implementation/`
 (`planned/` or `implemented/`), built one stage per tag only when the owner asks. Read the
 relevant spec sections and the stage file before changing anything.
@@ -37,7 +37,7 @@ docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/     ("SPEC" below)
   01 … 11, 13                 scope, domain model, scoring, agent protocol, identity/security,
                               API/UI, roadmap/acceptance, public demo + goldens, deferred work,
                               agent handoff, Rails architecture, constitutional compliance map
-  CONSTITUTION-AMENDMENTS.md  append-only amendment log; P-1..P-6 are proposed, not adopted
+  CONSTITUTION-AMENDMENTS.md  amendment log; P-1, P-2, P-3, P-5 folded into 1.0.0; P-4, P-6 proposed
   REVIEW-NOTES.md             what changed across revisions and why (numbered entries)
   scoring-config-v0.1.json, scoring-config-strict-v0.1.json   authoritative model configs
   reference/reference_scorer.py   Python cross-check reproducing every golden value
@@ -133,7 +133,9 @@ Condensed from `10-agent-handoff.md`. They must hold in any code written here.
 14. **More than one model.** Scoring code never assumes a single model.
 15. **No text-uniqueness for claims.** Similarity proposes; only an accepted, reversible
     `MERGE_CLAIMS` merges.
-16. **Answers first, numbers on request.** The default claim view is the answer card.
+16. **Answers first, numbers never the headline.** The default claim view is the answer card;
+    since 2026-09-23 its score sits under the headline with model and snapshot, and outline
+    sections and investigations carry a reading of their claims (06 §6), never a score for a speaker.
 17. **Determinism is not objectivity.**
 18. **Galedra runs no model.** It is a deterministic framework through which people and the
     AI assistants they bring collaborate on a durable record. The only `Llm::Adapter` is the
@@ -142,10 +144,10 @@ Condensed from `10-agent-handoff.md`. They must hold in any code written here.
     for a connected assistant, whose answer is a signed contribution open to audit. The
     server's only outbound requests are Stage 17 source fetches.
 
-For any change touching scoring, identity, reputation, moderation, visibility, or
+For any change touching scoring, identity, reputation, moderation, visibility, selection, or
 history, answer the ten Constitutional Test questions (end of `12-constitution.md`) in
-the stage's file under `implementation/`. A "no" to 1, 5, 6, 7, 8, or 9, or a "yes" to 3 or 4, is a blocker
-until justified in writing.
+the stage's file under `implementation/`. A "no" to 1, 2, 5, 6, 7, 8, 9, or 10, or a "yes" to 3 or 4, is a blocker
+until a justification is published with the change, and that justification is itself open to challenge.
 
 ## Implementation rules
 
@@ -197,7 +199,7 @@ python3 docs/epistemic-ledger-poc-spec-v4/epistemic-ledger-poc/reference/referen
 ```
 
 Also: `docker compose up -d`, `bundle exec rspec`, `bin/rails ledger:genesis`, `bin/rails ledger:release_models`,
-`bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/demo --reset`, `bin/demo --example watchers --reset`,
+`bin/rails ledger:verify`, `bin/rails ledger:replay`, `bin/rails ledger:adopt_constitution` (after changing the constitution's text), `bin/demo --reset`, `bin/demo --example watchers --reset`,
 `bin/demo --example check --reset`, `bin/rails skills:build` (after editing `skills/galedra.md`), `bin/rails admin:grant[email]`, `bin/rails bugs:report`, `bin/rails features:report`, `bin/rails sources:retrieve[ID]` (`LEDGER_RETRIEVAL` on/off).
 Benchmarking and profiling (Stage 26, development and test only): `bin/rails 'bench:seed[n]'` (RESET=1),
 `bench:report`, `bench:workloads`, `bench:cpu[name]` (MODE=cpu, RUNS=n), `bench:memory[name]`, `bench:rss[name]`,
@@ -388,10 +390,17 @@ P0 Definition of Done.
 
 ## Decisions reserved for the owner
 
+Decided 2026-09-23: the constitution is revised in place as 1.0.0 before first release. P-1 (protection of
+persons), P-2 (visible removal), P-3 (unknowability designations are claims) and P-5 (the ledger runs no model)
+are folded into Articles XIII, VI and XIV. The text also closes the loopholes found in the 2026-09-23 review:
+binding "shall" for II, XII, XIII, XVIII, XIX and XXV; powers held by roles and governance of defaults (XII);
+earned standing (XI); and questions 2 and 10 of the Test now block. An adopted version takes effect only once
+recorded as a signed `AMEND_CONSTITUTION` (`bin/rails ledger:adopt_constitution`).
+
 Decided 2026-09-19: the licence stack in `docs/LICENSE-POLICY.md` is adopted (AGPL-3.0-or-later
 code, Apache-2.0 protocol and schemas, CC BY 4.0 docs, ODbL-1.0 database, CC0-1.0 records; see
 `NOTICE`).
 
 Implement the conservative reading already in the spec and flag these when relevant:
-adopting amendments P-1 through P-6 (P-5, the ledger runs no model, is Invariant 18; P-6, money buys no part of the record, is stated on /contact); both await adoption; who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
+adopting amendments P-4 (a standard for extraordinary conclusions) and P-6 (money buys no part of the record, stated on /contact), which await adoption; who holds the system key and appoints moderators; whether `LEGAL` claims are scored before
 a legal model exists; whether `TEXTUAL` stays a distinct claim type.

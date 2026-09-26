@@ -116,7 +116,7 @@ class ClaimsController < ApplicationController
     return redirect_to new_session_path, alert: "Sign in to accept a correction." unless authenticated?
 
     contribution = Contribution.find(params[:contribution_id])
-    principal = Ui::Write.contributor_for(Current.user) || Crypto::Custody.create_server_custodied(user: Current.user, display_name: Current.user.email_address.split("@").first)
+    principal = Ui::Write.contributor_for(Current.user) || Crypto::Custody.create_server_custodied(user: Current.user)
     Corrections.accept!(contribution, principal: principal) { |action, payload| Ui::Write.call(Current.user, action, payload) }
     redirect_to claim_path(claim), notice: "Accepted as a signed contribution."
   rescue Ledger::Rejected => e

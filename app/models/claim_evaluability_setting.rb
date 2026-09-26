@@ -1,4 +1,4 @@
-# SET_TRUTH_EVALUABLE as a windowed row (spec 02 §3.3, constitution P-3): the
+# SET_TRUTH_EVALUABLE as a windowed row (spec 02 §3.3, constitution Article VI): the
 # latest counted setting at S governs; the claim's creation value is the default.
 class ClaimEvaluabilitySetting < ApplicationRecord
   include GraphProjection

@@ -3,27 +3,33 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Galedra">
   <meta property="og:title" content="<%= @section.root.heading %>">
-  <meta property="og:description" content="<%= "#{@progress[:claims]} claims · #{@progress[:self_checked]} self-checked · #{@progress[:independently_checked]} independently checked · #{Sections::Tree.states_line(@subtree[:counts])}. Checked in Galedra, an epistemic ledger; counts, never a verdict." %>">
+  <meta property="og:description" content="<%= "#{Cards::ShareText.summary_line(@share_line)}. #{pluralize(@progress[:claims], 'claim')} from this source, each checked against other sources in Galedra, a public record of claims and the evidence for and against them." %>">
   <meta property="og:url" content="<%= section_url(@section) %>">
 <% end %>
 <% open_ids = ([ @section ] + @ancestors).map(&:id) %>
 <div class="with-outline">
   <aside class="outline tree">
-    <h2><%= link_to @section.root.heading, section_path(@section.root), data: { turbo_frame: outline_frame } %></h2>
-    <%= render "sections/tree", node: @tree, open_ids: open_ids, current_claim: @current_claim, current_section: @section.id, seq: @seq %>
+    <h2><%= reading_mark(@tree[:verdict], of: "in this outline") %><%= link_to @section.root.heading, section_path(@section.root), data: { turbo_frame: outline_frame } %></h2>
+    <%= render "sections/tree", node: @tree, open_ids: open_ids, current_claim: @current_claim, current_section: @section.id, seq: @seq, model: @model %>
   </aside>
   <%# Only this reloads when a section is chosen. The outline beside it stays in
       the page, which is what lets it animate and what stops a menu click from
       fetching a whole document. %>
-  <%= turbo_frame_tag outline_frame, data: { turbo_action: "advance", controller: "reading-pane" } do %>
+  <%# target: "_top" so that every link in the pane leaves the outline as an
+      ordinary page load unless it names this frame. Without it, the source
+      link, a contribution link or a claim link loaded its page *into* the pane,
+      found no matching frame there, and Turbo showed "Content missing"
+      (owner, 2026-09-23). Section links name the frame and stay in it. %>
+  <%= turbo_frame_tag outline_frame, target: "_top", data: { turbo_action: "advance", controller: "reading-pane" } do %>
 <p class="meta"><%= link_to "Outlines", sections_path, data: { turbo_frame: "_top" } %><% @ancestors.each do |a| %> › <%= link_to a.heading, section_path(a), data: { turbo_frame: outline_frame } %><% end %> › <%= @section.heading %></p>
-<h1><%= @section.heading %></h1>
+<h1><%= reading_mark(@subtree[:verdict], of: (@section.parent_id.nil? ? "in this outline" : "under this section")) %><%= @section.heading %></h1>
 <div class="card">
   <p class="meta">Source: <%= link_to @section.source.title, source_path(@section.source) %><% if @section.location %> · <%= locator_label(@section.location) %><% end %> · <%= link_to "created seq #{@section.created_seq}", contribution_path(@section.contribution_id) %></p>
   <% if @section.location&.excerpt.present? %>
     <blockquote class="passage"><%= simple_format(@section.location.excerpt) %></blockquote>
     <p class="meta">The opening words of this section, quoted exactly. This is what is hashed and checked against the source.</p>
   <% end %>
+  <% if (figure = @subtree.dig(:verdict, :stated)) %><p class="meta score-line" title="<%= @subtree[:verdict][:note] %>">Score: <strong><%= @subtree[:verdict][:figure] %></strong> · <%= figure %></p><% end %>
   <p><strong><%= Sections::Tree.counts_line(@subtree[:counts]) %></strong><% if @subtree[:pending].positive? %> · <%= @subtree[:pending] %> proposed claims awaiting acceptance<% end %></p>
   <% if @subtree[:children].empty? && @subtree[:claims].empty? %><p class="muted">Nothing under this section yet. Its claims arrive when the extraction task below is worked.</p><% end %>
   <p class="meta"><%= Sections::Tree::NOTE %> As of snapshot <%= @seq %><%= " under #{@model.full_name}" if @model %>.</p>

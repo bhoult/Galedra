@@ -31,7 +31,7 @@ module Assistants
       software = { "agent_name" => name, "version" => "connected", "model_provider" => provider.to_s, "model_id" => model.presence || "unknown", "prompt_version" => "galedra-skill-v1" }
       agent = Crypto::Custody.create_server_custodied(
         kind: Contributor::AGENT, identity_tier: principal.identity_tier,
-        display_name: "#{name} for #{principal.display_name || 'an anonymous contributor'}", metadata: { "software" => software }
+        display_name: "#{name} for #{principal.public_label}", metadata: { "software" => software }
       )
       delegation = delegate(principal, agent, hourly_cap)
       plaintext = "gal_#{SecureRandom.urlsafe_base64(32)}"
@@ -61,7 +61,7 @@ module Assistants
     end
 
     def principal_for(user)
-      return user.custodied_key&.contributor || Crypto::Custody.create_server_custodied(user: user, display_name: user.email_address.split("@").first) if user
+      return user.custodied_key&.contributor || Crypto::Custody.create_server_custodied(user: user) if user
 
       Crypto::Custody.create_server_custodied(display_name: "Anonymous", identity_tier: "ANONYMOUS")
     end

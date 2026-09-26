@@ -30,6 +30,7 @@
         <% end %>
       </p>
       <% if verdict %><p><strong><%= verdict[:headline] %></strong> <%= verdict[:sentence] %>.</p><% end %>
+      <% if verdict&.dig(:figure) %><p class="meta score-line" title="<%= verdict[:note] %>">Score: <strong><%= verdict[:figure] %></strong> · <%= verdict[:stated] %></p><% end %>
       <p class="meta">
         <%= pluralize(claims.size, "claim") %><%= " · an outline" if investigation.outline? %> ·
         recorded <%= investigation.created_at.utc.strftime("%-d %B %Y") %> · provisional until audited

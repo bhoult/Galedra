@@ -14,7 +14,7 @@ module Assistants
       raise NotAdoptable, "this work is already under an account" unless token.anonymous?
       raise NotAdoptable, "this assistant's key is revoked" if token.principal.revoked?
 
-      adopter = user.custodied_key&.contributor || Crypto::Custody.create_server_custodied(user: user, display_name: user.email_address.split("@").first)
+      adopter = user.custodied_key&.contributor || Crypto::Custody.create_server_custodied(user: user)
       anonymous = token.principal
       challenge = Ledger::Appliers::AdoptKey.challenge(adopter.key_id, anonymous.key_id)
       counter = Crypto::Custody.signer_for_contributor(anonymous).sign(challenge)

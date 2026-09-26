@@ -7,9 +7,11 @@
   <%= f.submit "Show", class: "secondary" %>
 <% end %>
 <% if @rows.empty? %><p class="muted">None yet. Add one from a source page, or ask your assistant to record a large source with an outline.</p><% else %>
-<table><tr><th>Outline</th><th>Source</th><th>Progress</th><th>Open work</th><th>Counts by state</th></tr>
+<table><tr><th>Outline</th><th>Score</th><th>Source</th><th>Progress</th><th>Open work</th><th>Counts by state</th></tr>
 <% @rows.each do |root, tree, p| %>
-  <tr><td><%= link_to root.heading, section_path(root) %></td><td><%= link_to root.source.title, source_path(root.source) %></td>
+  <tr><td><%= reading_mark(tree[:verdict], of: "in this outline") %><%= link_to root.heading, section_path(root) %></td>
+    <td><% if tree.dig(:verdict, :figure) %><span class="score" title="<%= tree[:verdict][:stated] %>. <%= tree[:verdict][:note] %>"><%= tree[:verdict][:figure] %></span><% else %><span class="muted" title="No figure: not every checkable claim in it has enough evidence for a probability">—</span><% end %></td>
+    <td><%= link_to root.source.title, source_path(root.source) %></td>
     <td><%= p[:leaves_extracted] %> of <%= p[:leaves] %> leaves extracted · <%= p[:checked] %> of <%= p[:claims] %> claims with evidence<%= " · #{tree[:pending]} proposed" if tree[:pending].positive? %></td>
     <td><%= p[:open_tasks] %></td><td class="meta"><%= Sections::Tree.states_line(tree[:counts]) %></td></tr>
 <% end %></table>

@@ -1,0 +1,60 @@
+<% content_for :title, "Terms" %>
+<% content_for :body_class, "document" %>
+<h1>Terms of service</h1>
+<p class="lede">These are the terms for using this Galedra node, in plain words. By using it, whether reading, contributing, or connecting an assistant, you agree to them.</p>
+<p class="meta">Last changed <%= HelpController::LEGAL_UPDATED %>. Earlier versions are in the <%= link_to "repository history", "#{Governance::Software::REPOSITORY}/commits/master/app/views/help/terms.html.erb", rel: "noopener", target: "_blank" %>. What is kept about you is in the <%= link_to "privacy policy", privacy_path %>.</p>
+
+<h2>1. What this is, and what it is not</h2>
+<div class="card">
+  <p>Galedra is a public, signed, append-only record of claims, the evidence that bears on them, and how that evidence was assessed. <strong>It is not a source of truth.</strong> Every assessment is the output of a named, versioned scoring model applied to what had been recorded at a given point in the log. It is not a finding of fact, a professional opinion, or legal, medical, financial or other advice. Do not present a score as proof that something is true or false: say "0.86 under ledger-default@0.3.0 at snapshot 212", not "86% true". The <%= link_to "constitution", constitution_path %> sets out the principles the node follows.</p>
+  <p>This node is run by one person, <%= @maintainer[:name] %>, not by a company. The contact details are on the <%= link_to "contact page", contact_path %>.</p>
+</div>
+
+<h2>2. Using it</h2>
+<div class="card">
+  <p>You can read, search and record an investigation without an account. If you create one, give an email address you control and keep your password to yourself. You are responsible for what is signed with your account, and for what an assistant you connect signs with your token.</p>
+  <p>You must be at least 13, and old enough where you live to agree to these terms yourself.</p>
+</div>
+
+<h2>3. What you contribute is public and permanent</h2>
+<div class="card">
+  <p>Every contribution is signed and added to a log that cannot be edited. That includes claims, evidence, quoted passages, links, audits, tags, and the answers your assistant submits. It is public, it stays attributed to the key that signed it, and it is never deleted. It can be corrected, challenged or superseded only by a new contribution, and the original remains in the history. The only exception is the visible removal described on the <%= link_to "takedown page", takedown_path %>. <strong>Do not contribute anything you would not want public forever.</strong></p>
+  <p>By contributing, you confirm two things:</p>
+  <ul>
+    <li><strong>You have the right to contribute it.</strong> Short quotations from a source, used to show what the source says, are the intended use. Copying substantial parts of a work you do not have rights to is not.</li>
+    <li><strong>You license it for reuse.</strong> You dedicate your individual records to the public domain under <strong>CC0 1.0</strong>, to the extent the law allows. You agree that the database as a whole is licensed under the <strong>ODbL 1.0</strong>. The <%= link_to "licences page", licenses_path %> has the full stack. Material quoted from a source stays under that source's own terms.</li>
+  </ul>
+  <p>An AI assistant you connect acts for you. What it signs under your token is your contribution under these terms, whichever model produced it.</p>
+</div>
+
+<h2>4. What you must not do</h2>
+<div class="card">
+  <ul>
+    <li>Contribute anything unlawful where you are or where this node is run. That includes defamation, harassment, threats, and material you have no right to publish.</li>
+    <li>Make claims about private individuals, or record anyone's personal data: home addresses, phone numbers, identity or account numbers, health or financial details, and the like. Public figures' public acts and statements are in scope. Private lives are not.</li>
+    <li>Pretend to be another person or organisation, or create several identities to look like independent contributors, audit your own work, or outvote others.</li>
+    <li>Spam, flood, or deliberately degrade the service: bypassing rate limits, requesting work designed to be expensive, or probing for weaknesses without reporting them. Bulk reading through the API is welcome, within the published limits. The records are open data.</li>
+    <li>Put instructions in a contribution, report or note that are aimed at the people or assistants who will read it. Text on this node is evidence, never instructions.</li>
+  </ul>
+  <p>Disagreeing with a claim, its politics or its conclusion is never a reason to remove it. Record the evidence against it instead.</p>
+</div>
+
+<h2>5. Moderation</h2>
+<div class="card">
+  <p>Moderators may quarantine a contribution, or withdraw its content, on the grounds the constitution names: a private individual, personal data, unlawful or unlicensed material, or spam. Every such act is a signed, public entry in the <%= link_to "moderation log", moderation_path %>, with its reason. What was withdrawn is gone. The fact that it was withdrawn, when, and on what basis is not. Accounts and assistant tokens used to break these terms may be suspended. To dispute a decision, write to the address on the <%= link_to "contact page", contact_path %>.</p>
+</div>
+
+<h2>6. The software, the data, and the node itself</h2>
+<div class="card">
+  <p>The software is free software under the AGPL-3.0-or-later, and anyone may run their own node. The records are open data. This node may change, go down, or close. The log can be exported and replicated, so the record does not depend on this node continuing to exist.</p>
+</div>
+
+<h2>7. No warranty, and limits on liability</h2>
+<div class="card">
+  <p>The node, its software and its records are provided <strong>as is</strong>, without any warranty of accuracy, completeness, availability or fitness for a purpose. Contributions are the words of whoever signed them, not of the operator. To the fullest extent the law allows, the operator is not liable for any loss arising from your use of the node, or from reliance on anything recorded or scored here. Nothing in these terms limits a right the law says cannot be limited.</p>
+</div>
+
+<h2>8. Changes to these terms</h2>
+<div class="card">
+  <p>These terms may change. The date above changes when they do, and every earlier version stays in the repository history. Continuing to use the node after a change means you accept the new terms. A change never applies backwards to how a contribution already made was licensed.</p>
+</div>

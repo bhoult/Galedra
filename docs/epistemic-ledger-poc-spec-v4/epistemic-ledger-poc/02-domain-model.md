@@ -195,7 +195,7 @@ truth_evaluable    boolean
 not_evaluable_reason  nullable: NORMATIVE_OR_VALUE | METAPHYSICAL | RHETORICAL
                       | UNTESTABLE_CURRENT_METHODS | UNRESOLVED_FORECAST | NO_LEGAL_MODEL
                       (required when truth_evaluable is false; set by type default or by an
-                       auditable SET_TRUTH_EVALUABLE contribution — constitution Art. VI, proposed P-3)
+                       auditable SET_TRUTH_EVALUABLE contribution — constitution Art. VI)
 qualifiers         jsonb   (time_range, location, population, denominator, source_edition, translation, …)
 status             ACTIVE | SUPERSEDED | MERGED | RETIRED | QUARANTINED
 superseded_by_id   nullable
@@ -431,7 +431,7 @@ POC validation is heuristic (warn on coordinating conjunctions joining verb phra
 - The target's `payload`, `envelope`, and any blob are physically deleted; `payload_hash`, `envelope_hash`, `entry_hash`, and `server_signature` remain, so the **chain** still verifies. The target's client signature can no longer be checked, because the signed bytes are gone.
 - `ledger:verify` then reports `CHAIN_VERIFIED_WITH_REDACTIONS` and lists redacted seqs.
 - `ledger:replay` applies redacted entries from their redaction manifest, producing rows with the removed fields nulled. Replay equivalence is checked against the redacted projection. Score traces for snapshots before the takedown are reproduced where they depended only on unredacted fields (traces use enums and IDs, so this is the common case); any that cannot be reproduced are reported as `UNREPRODUCIBLE_REDACTED`, never silently changed.
-- The removal itself stays publicly visible (constitution Art. XII, XIII; proposed amendment P-2).
+- The removal itself stays publicly visible (constitution Art. XII, XIII).
 - Corrections are new contributions (`INVALIDATE`, `SUPERSEDE_CLAIM`, a new `LINK_EVIDENCE`).
 - A database role used by the app has no `DELETE`/`UPDATE` grant on `contributions` except for the cached `current_status` column.
 

@@ -52,6 +52,23 @@ class HelpController < ApplicationController
   end
 
   # Who to write to, and the routes that beat writing (owner request, 2026-09-19).
+  # The terms, the privacy policy and how to ask for removal. Static pages,
+  # written to describe what this node actually does; each carries the date it
+  # last changed, and the repository history keeps every earlier version.
+  LEGAL_UPDATED = "2026-09-23"
+
+  def terms
+    @maintainer = Governance::Software::MAINTAINER
+  end
+
+  def privacy
+    @maintainer = Governance::Software::MAINTAINER
+  end
+
+  def takedown
+    @maintainer = Governance::Software::MAINTAINER
+  end
+
   def contact
     @maintainer = Governance::Software::MAINTAINER
     @software = Governance::Software.to_h

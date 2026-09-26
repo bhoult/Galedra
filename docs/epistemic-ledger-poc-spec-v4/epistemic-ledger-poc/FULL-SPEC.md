@@ -9,14 +9,14 @@
 | | |
 |---|---|
 | Version | 1.0.0 (initial adoption) |
-| Status | Adopted with the POC spec v3 |
+| Status | Adopted with the POC spec v4; revised before first release on 2026-09-23 |
 | Amendment log | `CONSTITUTION-AMENDMENTS.md` |
 | Implementation map | `13-constitutional-compliance.md` |
-| Integrity | `sha256` of this file is published at `GET /api/v1/meta` as `constitution_hash` |
+| Integrity | `sha256` of this file is published at `GET /api/v1/meta` as `constitution_hash`, and each adopted version is recorded in the ledger as a signed `AMEND_CONSTITUTION` contribution carrying that hash |
 
 **Precedence.** This document outranks every other file in this repository. If a spec file, scoring model, or implementation choice conflicts with an Article, the Article governs and the conflict must be recorded in `13-constitutional-compliance.md` (as a known gap) or resolved by an explicit amendment under Article XXV. It is never resolved silently.
 
-**Reading the language.** "Shall" and "must" state binding commitments. "Should" states a strong default that may be departed from only with a documented reason. Examples are illustrative, not exhaustive.
+**Reading the language.** "Shall" and "must" state binding commitments. "Should" states a strong default that may be departed from only with a documented reason, and every such departure shall be recorded in `13-constitutional-compliance.md` where anyone can read it. A departure that is not recorded there is a violation, not a departure. Examples are illustrative, not exhaustive.
 
 **Scope.** The Articles describe the project, not the POC. Some are only partly realized in v0.1; `13-constitutional-compliance.md` says which, and how.
 
@@ -65,7 +65,7 @@ The system's role is to preserve and expose the reasons for and against believin
 
 ## Article II — Evidence Must Be Traceable
 
-Every material evidentiary contribution should be traceable to its provenance.
+Every material evidentiary contribution shall be traceable to its provenance.
 
 Where possible, the system shall preserve:
 
@@ -166,6 +166,8 @@ The inability to reach a conclusion is not a system failure.
 
 False certainty is.
 
+A designation that a claim is untestable, non-empirical, or outside a model's competence is itself a contribution subject to provenance, audit, and challenge. Such a designation shall not be used to shield a claim from evidence.
+
 ---
 
 ## Article VII — Probabilities Are Model-Conditional
@@ -246,6 +248,8 @@ Even high-reputation contributors must provide evidence where evidence is requir
 
 Anonymous or pseudonymous contributors may earn trust through a durable record of accurate work.
 
+Every standing the system grants, including the standing to audit, shall be reachable by any contributor through a durable record of audited work. A standing may also be granted by attestation, but no standing shall be reachable only by attestation, and every attestation shall be a signed, visible contribution open to challenge.
+
 ---
 
 ## Article XII — The System Must Resist Capture
@@ -273,13 +277,23 @@ Defenses against capture should include:
 - adversarial review;
 - and the ability to run alternative scoring models over the same evidence.
 
-No operator should be able to silently rewrite the epistemic history of the system.
+No operator shall be able to rewrite the epistemic history of the system, silently or openly. The only removal permitted is the visible removal described in Article XIII.
+
+**Powers held by roles.** Any role that holds a power over the shared record shall exercise it only through signed contributions that are publicly visible and open to challenge. This covers moderation, quarantine, removal, attestation, custody of the system key, and the adoption of amendments. A role may grant a procedural power. It shall not confer epistemic authority. A moderator's finding bears the same burden of evidence as anyone else's.
+
+**Defaults and selection.** Capture does not require rewriting history. It can also work through what is shown first and what is examined at all. The following shall be governed by published rules, and every change to them shall be recorded and visible:
+
+- the default scoring model;
+- search ranking;
+- task priority;
+- which claims the system proposes for examination;
+- and the wording of summary verdicts.
 
 ---
 
 ## Article XIII — Corrections Do Not Erase History
 
-Accepted contributions should not be silently rewritten or deleted merely because they were later found to be wrong.
+No contribution shall be rewritten or deleted, whether it was accepted, pending, rejected, or quarantined, and whether or not it was later found to be wrong. The only exception is the visible removal described below.
 
 Corrections should:
 
@@ -296,6 +310,10 @@ Users should be able to reconstruct:
 > what the system believed at a given time and why.
 
 Knowledge should evolve visibly.
+
+**Protection of persons.** The system shall not become an instrument for harming identifiable individuals. Claims about private persons, personal data, material whose publication is unlawful or unlicensed, and spam may be restricted. Disagreement with a claim, its politics, or its conclusion is never a ground for restriction. Every such restriction shall itself be recorded, attributed, and publicly visible as a restriction, even where its content cannot be.
+
+**Visible removal.** Content may be withdrawn only where law requires it or where this Article's protection of persons requires it. The fact of removal, its date, its stated basis, and the cryptographic record of what was removed shall remain.
 
 ---
 
@@ -319,6 +337,8 @@ Humans may do the same.
 Both remain subject to provenance, audit, evidence requirements, and correction.
 
 No model family should become a privileged source of truth.
+
+The system itself shall perform no model inference. It is a deterministic framework through which people and the AI agents they bring collaborate on a durable record of claims and the reasons for them. The framework consists of signed records, closed vocabularies, replayable projections, and versioned scoring. Every judgment that requires a model shall be made outside the system, by a person or by an agent acting for one, and shall enter it as an attributed contribution open to audit.
 
 ---
 
@@ -348,7 +368,7 @@ An individual may maintain a personal estimate, interpretation, or belief lens b
 - additional private evidence;
 - or subjective judgment.
 
-Personal belief must not silently modify the shared evidence layer.
+Personal belief must not modify the shared evidence layer. What a person believes may enter the shared layer only as an ordinary attributed contribution, bearing the same burden of provenance as any other.
 
 The system should help users explain:
 
@@ -417,7 +437,9 @@ For political claims, the same epistemic procedures must apply regardless of:
 
 The system should evaluate claims, not endorse political actors.
 
-It should not produce aggregate political winner scores, preferred candidates, or ideological conformity measures.
+It shall not produce aggregate political winner scores, preferred candidates, or ideological conformity measures. A summary over many claims shall say what it aggregates, and shall not stand as a verdict on a person or party whose statements were examined.
+
+Consistent procedure is not enough if the claims examined were chosen unevenly. The system shall make visible which claims it proposes for examination and why, so that selection can be inspected as readily as scoring.
 
 Political neutrality should arise from consistent process rather than artificial equivalence between unequal evidence.
 
@@ -425,7 +447,7 @@ Political neutrality should arise from consistent process rather than artificial
 
 ## Article XIX — Transparency Over Persuasion
 
-The system should not be optimized to persuade users toward a predetermined conclusion.
+The system shall not be optimized to persuade users toward a predetermined conclusion.
 
 Its primary responsibility is to expose:
 
@@ -535,7 +557,7 @@ Extraordinary conclusions should require correspondingly strong and well-audited
 
 These principles may evolve.
 
-Any constitutional change should be:
+Any constitutional change shall be:
 
 - explicit;
 - versioned;
@@ -552,7 +574,9 @@ A constitutional amendment should describe:
 4. what risks the change introduces;
 5. and whether it alters prior compatibility assumptions.
 
-The project should never drift into a different epistemic philosophy through undocumented implementation choices.
+An amendment is adopted by the project owner until a broader governance body exists. That is a concentration of authority, and it is stated here so that it is not hidden. An amendment takes effect only when it is recorded in the ledger as a signed `AMEND_CONSTITUTION` contribution carrying the new version and the hash of the new text. A conflict between this constitution and an implementation shall not be resolved by amending the constitution in the same change that introduces the conflict.
+
+The project shall never drift into a different epistemic philosophy through undocumented implementation choices.
 
 ---
 
@@ -573,7 +597,14 @@ Before introducing a major feature, ask:
 
 If a feature fails several of these questions, it likely violates the spirit of the project.
 
-**Recording the test.** For any feature that changes scoring, identity, reputation, moderation, visibility, or history, the answers to these ten questions shall be written down (in `IMPLEMENTATION.md` during the POC, and in the change's review record afterward). Any "no" to questions 1, 5, 6, 7, 8, or 9, or any "yes" to 3 or 4, requires a written justification or a design change.
+**Recording the test.** For any feature that changes scoring, identity, reputation, moderation, visibility, selection, or history, the answers to these ten questions shall be written down in the change's own record: its stage file under `implementation/` during the POC, and its review record afterward.
+
+The following require a written justification or a design change:
+
+- a "no" to question 1, 2, 5, 6, 7, 8, 9, or 10;
+- a "yes" to question 3 or 4.
+
+A justification shall be published with the change and is itself open to challenge. It does not become adequate merely because it was written.
 
 ---
 
@@ -1113,7 +1144,7 @@ truth_evaluable    boolean
 not_evaluable_reason  nullable: NORMATIVE_OR_VALUE | METAPHYSICAL | RHETORICAL
                       | UNTESTABLE_CURRENT_METHODS | UNRESOLVED_FORECAST | NO_LEGAL_MODEL
                       (required when truth_evaluable is false; set by type default or by an
-                       auditable SET_TRUTH_EVALUABLE contribution — constitution Art. VI, proposed P-3)
+                       auditable SET_TRUTH_EVALUABLE contribution — constitution Art. VI)
 qualifiers         jsonb   (time_range, location, population, denominator, source_edition, translation, …)
 status             ACTIVE | SUPERSEDED | MERGED | RETIRED | QUARANTINED
 superseded_by_id   nullable
@@ -1349,7 +1380,7 @@ POC validation is heuristic (warn on coordinating conjunctions joining verb phra
 - The target's `payload`, `envelope`, and any blob are physically deleted; `payload_hash`, `envelope_hash`, `entry_hash`, and `server_signature` remain, so the **chain** still verifies. The target's client signature can no longer be checked, because the signed bytes are gone.
 - `ledger:verify` then reports `CHAIN_VERIFIED_WITH_REDACTIONS` and lists redacted seqs.
 - `ledger:replay` applies redacted entries from their redaction manifest, producing rows with the removed fields nulled. Replay equivalence is checked against the redacted projection. Score traces for snapshots before the takedown are reproduced where they depended only on unredacted fields (traces use enums and IDs, so this is the common case); any that cannot be reproduced are reported as `UNREPRODUCIBLE_REDACTED`, never silently changed.
-- The removal itself stays publicly visible (constitution Art. XII, XIII; proposed amendment P-2).
+- The removal itself stays publicly visible (constitution Art. XII, XIII).
 - Corrections are new contributions (`INVALIDATE`, `SUPERSEDE_CLAIM`, a new `LINK_EVIDENCE`).
 - A database role used by the app has no `DELETE`/`UPDATE` grant on `contributions` except for the cached `current_status` column.
 
@@ -2168,7 +2199,7 @@ Actions (each a signed contribution by a moderator key): key revocation, contrib
 
 Moderator actions are contributions like any other: auditable, appealable via `RE_AUDIT`, and listed on a public moderation log page. A quarantine whose stated reason does not match a published category is itself grounds for appeal.
 
-Quarantine reason categories in P0 (closed list): `PRIVATE_INDIVIDUAL`, `PERSONAL_DATA`, `UNLAWFUL_CONTENT`, `UNLICENSED_MATERIAL`, `SPAM`. Disagreement with a claim, its politics, or its conclusion is never a quarantine reason; that is what evidence links are for (Art. V, XVIII). See proposed amendment P-1.
+Quarantine reason categories in P0 (closed list): `PRIVATE_INDIVIDUAL`, `PERSONAL_DATA`, `UNLAWFUL_CONTENT`, `UNLICENSED_MATERIAL`, `SPAM`. Disagreement with a claim, its politics, or its conclusion is never a quarantine reason; that is what evidence links are for (Art. V, XVIII). The closed list is the one Article XIII (protection of persons) names.
 
 ---
 
@@ -2319,7 +2350,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
    [Why?]  [Show calculation]  [Model: ledger-default ▾]
    ```
 
-   The probability, trace, and graph live behind **Show calculation** and **Why?**. Users read 0.73 as "73% true" no matter how it is labeled, so the number is available but never the headline.
+   The trace and the graph live behind **Show calculation** and **Why?**. Users read 0.73 as "73% true" however it is labelled, so **the number is never the headline**. Since 2026-09-23 (owner decision), the probability is no longer hidden behind **Show calculation**. When a claim has one, it sits on a line under the headline, as "Score: 0.7300 under ledger-default@0.3.0 at snapshot 212", with the rules below.
 2. **When the number is shown**, it always carries model and snapshot, and sits next to state, review checks, stability, and independent lineage count.
 3. `INSUFFICIENT_EVIDENCE` and `NOT_APPLICABLE` show **no number at all**.
 4. `provisional` shows "Not yet independently audited." `contested` shows "Evidence points both ways."
@@ -2380,6 +2411,28 @@ Never produce a speaker- or party-level truth score. A speech view shows descrip
 ```
 
 No ranking, no comparison across speakers.
+
+**A reading of a section (owner decision, 2026-09-23).** Every section of an outline, and every
+investigation, may carry the reading of the claims under it. The reading has:
+
+- a validity badge on the ten-level scale of a claim;
+- a figure:
+  - for an investigation, the figure for every checkable claim holding at once, treating
+    them as independent, only when every checkable claim has a probability;
+  - for a section, the average score of the claims under it that have one, only once at
+    least half its checkable claims do;
+- hover text saying how many claims it was read from and how they split.
+
+An investigation is one statement, so one part against the evidence makes it lean against.
+A section is a collection of separate statements, so **its badge is read from its figure**.
+The average score goes through the default model's own `state_thresholds`, with the same
+0.9 and 0.1 splits a claim's badge uses. The badge and the number beside it therefore always
+agree. A section with too little scored to have an average is "Not checked yet".
+
+Both rules live in `Investigations::Verdict`. The reading is a reading of those
+claims and is labelled as one. It is never presented as a score for the speaker, the party,
+or the source (Article XVIII). The counts line above stays beside it. There is still no ranking,
+and no comparison across speakers.
 
 ---
 
@@ -2933,12 +2986,12 @@ A locally runnable POC meeting the README's P0 Definition of Done, demonstrated 
 13. **Shared and personal stay separate.** Nothing user-specific or opinion-shaped is written to the log except as an ordinary, evidence-bearing contribution.
 14. **More than one model.** Scoring code must never assume a single model; the second model exists to keep that honest.
 15. **No text-uniqueness for claims.** Similarity proposes relationships; only an accepted `MERGE_CLAIMS` merges.
-16. **Answers first, numbers on request.** The default claim view is the answer card; probabilities sit behind Show calculation.
+16. **Answers first, numbers never the headline.** The default claim view is the answer card. A probability, when there is one, sits under the headline with its model and snapshot (owner decision, 2026-09-23); the trace sits behind Show calculation.
 17. **Determinism is not objectivity.** Never describe a score as objective in UI copy, docs, or API field names.
 
 ## Constitutional Test
 
-For every change that touches scoring, identity, reputation, moderation, visibility, or history, answer the ten questions at the end of `12-constitution.md` in `IMPLEMENTATION.md`. Treat any "no" to 1, 5, 6, 7, 8, or 9 — or "yes" to 3 or 4 — as a blocker until justified in writing. Do not edit `12-constitution.md`; propose changes in `CONSTITUTION-AMENDMENTS.md` under "Proposed."
+For every change that touches scoring, identity, reputation, moderation, visibility, selection, or history, answer the ten questions at the end of `12-constitution.md` in the stage's file under `implementation/`. Treat any "no" to 1, 2, 5, 6, 7, 8, 9, or 10, or any "yes" to 3 or 4, as a blocker until a justification is published with the change. Do not edit `12-constitution.md`; propose changes in `CONSTITUTION-AMENDMENTS.md` under "Proposed". An amendment takes effect when the owner adopts it and it is recorded as a signed `AMEND_CONSTITUTION` (Article XXV).
 
 ## Framework Decision (already made)
 
@@ -3240,31 +3293,31 @@ Status: **P0** implemented in POC · **P1** planned after P0 · **Partial** P0 i
 | Article | Where realized | Status | Notes |
 |---|---|---|---|
 | I Claims are not truth | 01 §2, 03 §3, 06 §4 | P0 | UI leads with model-conditional states; no "true/false" labels |
-| II Evidence traceable | 02 §3.2–3.3, 04 §6 steps 6–8 | P0 | Exact locator + excerpt hash + creating contribution. Evidence from agent-supplied external sources is stored `retrieval_pending` until content is imported |
+| II Evidence traceable | 02 §3.2–3.3, 04 §6 steps 6–8, Stage 17 retrieval | Partial | Exact locator + excerpt hash + creating contribution. **Gap (2026-09-23 audit M6):** an excerpt is not checked against its source before it counts. Only 8 of 875 locations are range-checked, and a `NOT_FOUND` retrieval changes nothing in scoring. Stage 43 M6 |
 | III Evidence ≠ interpretation | 02 (evidence item vs. link vs. claim), `TEXTUAL` type, `interpretive_steps` | P0 | Inferences as explicit objects are deferred (09 §1) |
 | IV Atomicity | 02 §4, 04 §4.3 | P0 | Heuristic warning + human confirmation. Claim identity: no text uniqueness; explicit, reversible merges (02 §3.3) |
 | V Contradiction preserved | 02 `evidence_claim_links`, `claim_edges` (incl. `PREDICTS`, `EXPLAINS`, `ALTERNATIVE_TO`) | P0 | Edges stored and displayed; no propagation in v0.1. A link a model weighs at nought — `provenance` from 0.2.0, `other_edition` from 0.3.0 — is kept, shown and named in the trace with its reason; nothing is ever discarded to make a number move |
 | VI Unknown is valid | 03 §4 states; mapping below | Partial | See mapping below; underdetermined/indistinguishable are hypothesis-level (P1) |
-| VII Model-conditional probabilities | 03 §1, §7a, §10; 06 §4 | P0 | Trace names snapshot, model, config/code hashes, counted and suppressed evidence. v4: numbers sit behind Show calculation; directional states require matching evidence, so a prior can't masquerade as a finding. A later model may declare a rule an earlier one does not (03 §7a): the trace carries a factor only when the model's config declares its key — `provenance` under 0.2.0, `edition` under 0.3.0 — so a model without the key reproduces its old traces byte for byte (Invariant 4) |
+| VII Model-conditional probabilities | 03 §1, §7a, §10; 06 §4 | Partial | Trace names snapshot, model, config/code hashes, counted and suppressed evidence. v4: numbers sit behind Show calculation; directional states require matching evidence, so a prior can't masquerade as a finding. A later model may declare a rule an earlier one does not (03 §7a): the trace carries a factor only when the model's config declares its key — `provenance` under 0.2.0, `edition` under 0.3.0 — so a model without the key reproduces its old traces byte for byte (Invariant 4). **Gaps (audit M8, M9):** a challenged or quarantined link disappears from the trace instead of appearing at weight 0 with its reason. `code_hash` covers seven files and not the whole scorer, and Stage 34 changed `review_coverage` for released models without a new version. Stage 43 |
 | VIII Coverage ≠ confidence | 03 §8, 06 §4 rule 5 | Partial | Coverage is a review **checklist** (now fully executable in P0), an honest proxy; it cannot measure "most of the evidence that may exist," so it is shown only as "N of M checks", never as low/medium/high |
-| IX Independence | 02 groups, 03 Step 3, 08 S1→S4 | P0 | Extended in v4 to verification processes (04 §3.1; diversity constraints P1). Automated independence inference deferred |
-| X Reputation ≠ authority | 05 §6–8 | P0 | Stronger than required: reputation is not a scoring input in v0.1 |
-| XI Identity ≠ evidence | 05 §2–3, `identity_tier` never affects scores | P0 | Pseudonymous reputation supported |
-| XII Resist capture | 02 §1.2 chain, 05 §5, §9 deterministic sampling, §13 visible moderation, 03 §13 multiple models | P0 | Two scoring models ship in P0 so "alternative models over the same evidence" is exercised, not just promised. Governance of the system key is open (09 §15) |
-| XIII Corrections keep history | 02 §1.3, §5; snapshot views | P0 | Legal removal via visible `TAKEDOWN`; replay reports `CHAIN_VERIFIED_WITH_REDACTIONS` rather than claiming completeness — see proposed amendment P-2 |
-| XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification | P0 | Humans are audited by the same rules as agents |
+| IX Independence | 02 groups, 03 Step 3, 08 S1→S4 | Partial / **Gap** | Extended in v4 to verification processes (04 §3.1; diversity constraints P1). Automated independence inference deferred. **Gaps (audit M2, M5), breaking this Article's "must":** the origin fallback keys on origin *and* passage, so two passages of one document count as two witnesses. Any human's `ASSIGN_INDEPENDENCE_GROUP` on anyone's evidence is accepted at once, which can split one origin into two groups or merge independent ones. Stage 43 M2, M5 |
+| X Reputation ≠ authority | 05 §6–8 | Partial | Reputation is not a scoring input in v0.1. **Gap:** a moderator skips every audit-eligibility check (`Audits::Eligibility`), which is authority across all domains that no audited record earned. Article XII now requires a role to confer no epistemic authority |
+| XI Identity ≠ evidence | 05 §2–3 | **Gap** | Pseudonymous reputation supported. **Not as stated before 2026-09-23:** `identity_tier` does reach scores, through audits. A self-registered key can claim ESTABLISHED, and ESTABLISHED can audit (audit M1). **Earned standing is unreachable:** AUDIT reputation comes only from one's own audits being audited, and auditing needs the tier or that reputation, so no contributor can earn the standing to audit. Stage 43 M1 carries both the fix and an earned route |
+| XII Resist capture | 02 §1.2 chain, 05 §5, §9 deterministic sampling, §13 visible moderation, 03 §13 multiple models | Partial / **Gap** | Two scoring models ship in P0 so "alternative models over the same evidence" is exercised, not just promised. Governance of the system key is open (09 §15). **Gaps against the 2026-09-23 text.** Powers held by roles: moderator appointment (`/admin/users`) is not a signed contribution. Defaults and selection: the default model is set in configuration (`LEDGER_DEFAULT_MODEL`, read by `Scoring::Registry.default_model`), with no signed record or published rule. Task priority asks `default_model_at`, which ignores that setting, so the two would disagree as soon as a newer model is released without being made the default. Search ranking and task priority are code, not published rules. Summary verdict wording is not governed. Stage 43 G1–G3 |
+| XIII Corrections keep history | 02 §1.3, §5; snapshot views; 05 §13 | P0 | Removal via visible `TAKEDOWN` with a stated legal basis; replay reports `CHAIN_VERIFIED_WITH_REDACTIONS` rather than claiming completeness. Quarantine reasons are the closed list this Article names (protection of persons). Nothing in the app deletes a contribution of any status: the DB role cannot |
+| XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification; Invariant 18 | P0 | Humans are audited by the same rules as agents. The system runs no model: the only `Llm::Adapter` is the deterministic stub. **Gap (audit M10):** an agent auditor is compared by its own id, not its principal's |
 | XV Shared vs. personal belief | 02 §3.6a reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
 | XVI Localized disagreement | 06 `/compare` (model vs. model) | Partial | P0 shows *which links and config keys* explain a difference between two models. Localizing disagreement between people needs lenses (P1) |
 | XVII Normative ≠ empirical | 01 §4, 03 §11 | P0 | `NOT_APPLICABLE` with a stated reason |
-| XVIII Political neutrality | 06 §6 | P1 view, rule P0 | No speaker/party scores anywhere; same pipeline for all claims |
+| XVIII Political neutrality | 06 §6 | P1 view, rule P0 / **Gap** | No speaker/party scores anywhere; same pipeline for all claims. **Gaps against the 2026-09-23 text:** an investigation of one speaker's statement carries a single headline ("Checks out so far.") that reads as a verdict on it (audit M13). Why a claim is proposed for examination (task priority, the weaknesses list) is not shown. **Since 2026-09-23 (owner decision)** every outline section carries a badge and, when every checkable claim under it has a probability, a figure (06 §6). The hover says how many claims it was read from and that it reads those claims, not whoever made them. That is the XVIII line it must hold: an outline titled after a speaker's statement still gets a badge at its root |
 | XIX Transparency over persuasion | 06 §4, model selector | P0 | Users may choose any released model and see every trace |
 | XX Evidence endures | 02 §1 (log is source of record), 03 §13 | P0 | Old model versions stay loadable |
 | XXI Cumulative research | 04 | P0 | Small leased tasks; results become durable ops |
 | XXII Reveal weaknesses | 06 §5 Weaknesses page, 01 §6 "what would most change this" | Partial | Suspicious contribution-cluster detection is P1 (05 §16) |
 | XXIII Re-examination | Opposing-search tasks, `RE_AUDIT`, supersession | P0 | Challenges only move scores through evidence links; assertions alone do nothing |
-| XXIV Efficient skepticism | 03 states distinguish `INSUFFICIENT_EVIDENCE` from `CONTRADICTED`; `support_groups`/`contradict_groups` shown separately | Partial / **Gap** | "Correspondingly strong evidence" for extraordinary claims is not modeled in v0.1 (flat priors). See proposed amendment P-4 |
-| XXV Amendments explicit | `CONSTITUTION-AMENDMENTS.md`, `AMEND_CONSTITUTION` action, `constitution_hash` in `/meta` | P0 | |
-| Constitutional Test | 10 "Constitutional Test" | P0 | Answers recorded in `IMPLEMENTATION.md` |
+| XXIV Efficient skepticism | 03 states distinguish `INSUFFICIENT_EVIDENCE` from `CONTRADICTED`; `support_groups`/`contradict_groups` shown separately | Partial / **Gap** | "Correspondingly strong evidence" for extraordinary claims is not modeled in v0.1 (flat priors). See proposed amendment P-4. Worse than flat priors (audit M3): one DIRECT link reaches SUPPORTED for any claim, and an omitted label defaults to the strongest. Stage 43 M3 |
+| XXV Amendments explicit | `CONSTITUTION-AMENDMENTS.md`, `AMEND_CONSTITUTION` (system key; its hash must equal the text served), `constitution_hash` and `constitution_recorded` in `/meta` | P0 | Adopted by the owner, stated as a concentration of authority. `bin/rails ledger:adopt_constitution` records the text a node serves |
+| Constitutional Test | 10 "Constitutional Test" | P0 | Answers recorded in each stage's file under `implementation/`; questions 2 and 10 block since 2026-09-23 |
 
 ---
 
@@ -3304,7 +3357,7 @@ Status: **P0** implemented in POC · **P1** planned after P0 · **Partial** P0 i
 
 # Constitution Amendment Log
 
-Append-only. Every entry follows Article XXV: what changed, why, what motivated it, what risks it introduces, and compatibility impact. Once the ledger is running, each adopted entry is also recorded as an `AMEND_CONSTITUTION` contribution containing the new `constitution_hash`.
+Append-only once the ledger is released. Every entry follows Article XXV: what changed, why, what motivated it, what risks it introduces, and compatibility impact. Once the ledger is running, each adopted entry is also recorded as an `AMEND_CONSTITUTION` contribution containing the new `constitution_hash`.
 
 ---
 
@@ -3315,27 +3368,57 @@ Append-only. Every entry follows Article XXV: what changed, why, what motivated 
 - **Risks:** The recording rule adds process overhead to the POC. It is limited to features touching scoring, identity, reputation, moderation, visibility, or history.
 - **Compatibility:** None; no prior version.
 
+### 1.0.0 revised before first release (2026-09-23)
+
+The project owner decided that, because no node had been released, the review's findings should be folded into 1.0.0 rather than adopted as 1.1.0. The version number is unchanged, and the hash is not. `GET /api/v1/meta` publishes the new hash. From this revision on, a text takes effect only when it is recorded as a signed `AMEND_CONSTITUTION`, and the first such record is this text.
+
+- **What:**
+  - **Proposals adopted.** P-1 (protection of persons) and P-2 (visible removal) are folded into Article XIII, P-3 (unknowability designations are claims) into Article VI, and P-5 (the ledger runs no model) into Article XIV.
+  - **Header.** A departure from a "should" must be recorded in `13` or it is a violation.
+  - **"Should" becomes "shall"** in II, XII, XIII, XVIII, XIX and XXV.
+  - **Rewriting and deletion (XII and XIII).** The qualifiers "silently", "accepted" and "merely because they were later found to be wrong" are removed from the prohibitions. XIII now names the only permitted removal and its grounds, and restriction may never be grounded in disagreement.
+  - **Powers held by roles, and defaults and selection (XII).** Every power a role holds is exercised only through signed, visible, challengeable contributions. The default scoring model, search ranking, task priority, what is proposed for examination, and the wording of summary verdicts are governed by published rules.
+  - **Earned standing (XI).** Every standing, including the standing to audit, can be reached through a record of audited work. Attestation alone is never the only route.
+  - **Personal belief (XV).** It may enter the shared layer only as an ordinary attributed contribution.
+  - **Aggregates and selection (XVIII).** A summary over many claims is not a verdict on a person or party, and selection is made visible.
+  - **Adoption (XXV).** Who adopts an amendment, that adoption takes effect when it is signed into the ledger, and that no amendment may resolve a conflict in the same change that introduces it.
+  - **The Test.** Answers go in the change's own record. Questions 2 and 10 now block, "selection" joins the list of sensitive features, and a justification is published and open to challenge.
+- **Why:** The review found protections whose triggers were narrow enough to walk around:
+  - a rewrite was forbidden only if silent;
+  - a deletion was forbidden only if made "merely" because the contribution was wrong;
+  - only accepted contributions were protected;
+  - the amendment rule itself was a "should";
+  - moderators and defaults had no governing text;
+  - Article XI promised earnable trust that the code made unreachable for auditing.
+
+  Three mechanisms already running (`TAKEDOWN`, reasons on `SET_TRUTH_EVALUABLE`, and Invariant 18) rested on proposals nobody had adopted.
+- **Risks:**
+  - **The node now falls short of the text in several places**, each recorded as a Gap in `13`. The chief ones are the moderator's bypass of audit eligibility, the lack of an earned route to auditing, defaults set without a recorded rule, and the investigation headline, which reads as a verdict.
+  - **Removal grounds are narrower.** Moderators lose any removal ground other than law or protection of persons.
+  - **Owner adoption concentrates authority**, and the text now says so.
+- **Compatibility:** The text changes without a version change, which is allowed only because nothing was released. Any external copy of the 1.0.0 hash taken before 2026-09-23 is stale. The live development node has never recorded an `AMEND_CONSTITUTION`.
+
 ---
 
 ## Proposed (not adopted — requires the project owner's decision)
 
-These came out of reconciling the constitution with the POC spec. The spec currently implements the conservative reading of each and records it as a known gap or interpretation in `13-constitutional-compliance.md`.
+These came out of reconciling the constitution with the POC spec. P-1, P-2, P-3 and P-5 were adopted into the 1.0.0 revision of 2026-09-23 and are kept below as the record of where that text came from. P-4 and P-6 remain proposed, and the spec implements the conservative reading of each.
 
-### P-1 — Protection of persons
+### P-1 — Protection of persons (adopted into 1.0.0, 2026-09-23)
 
 - **Proposed text:** *"The system shall not become an instrument for harming identifiable individuals. Claims about private persons, personal data, and material whose publication is unlawful may be restricted. Every such restriction shall itself be recorded, attributed, and publicly visible as a restriction, even where its content cannot be."*
 - **Why:** The constitution protects contributors' privacy (Articles XI, and the spec's 05 §15) but says nothing about the people claims are *about*. A permanent, signed, append-only ledger of scored assertions is an unusually durable defamation and doxxing vector.
 - **Risk:** Restriction powers can be abused for capture (Article XII). The second sentence is the safeguard: restriction is never silent.
 - **Compatibility:** The POC already excludes private-individual claims and makes quarantine visible (05 §13).
 
-### P-2 — Lawful removal is visible
+### P-2 — Lawful removal is visible (adopted into 1.0.0, 2026-09-23)
 
 - **Proposed text (addition to Article XIII):** *"Where law requires content to be removed, the content may be withdrawn, but the fact of removal, its date, its stated legal basis, and the cryptographic record of what was removed shall remain."*
 - **Why:** Article XIII forbids erasing contributions "merely because they were later found to be wrong," which does not address legally compelled removal. The spec needs a takedown path; without this amendment it sits in an unaddressed gap.
 - **Risk:** Even a visible tombstone can leak that something sensitive existed. Accepted as the lesser harm compared with silent removal.
 - **Compatibility:** Implemented as the `TAKEDOWN` action (02 §5).
 
-### P-3 — Designations of "unknowable" are themselves claims
+### P-3 — Designations of "unknowable" are themselves claims (adopted into 1.0.0, 2026-09-23)
 
 - **Proposed text (addition to Article VI):** *"A designation that a claim is untestable, non-empirical, or outside a model's competence is itself a contribution subject to provenance, audit, and challenge."*
 - **Why:** Article VI makes "untestable" a valid state. Without this sentence, labeling a claim untestable could shield it from evidence — the evidence-free denial Article XXIII warns against, pointed the other way.
@@ -3348,7 +3431,7 @@ These came out of reconciling the constitution with the POC spec. The spec curre
 - **Risk of (b):** whoever sets `prior_class` holds real power over outcomes (Articles X, XII). Must be contestable and visible in the trace.
 - **Current spec:** option (a), recorded as a known gap; (b) listed as deferred in 09.
 
-### P-5 — The ledger runs no model
+### P-5 — The ledger runs no model (adopted into 1.0.0, 2026-09-23)
 
 - **Proposed text (addition to Article XIV):** *"The system itself shall perform no model inference. It is a deterministic framework, signed records, closed vocabularies, replayable projections, and versioned scoring, through which people and the AI agents they bring collaborate on a durable record of claims and the reasons for them. Every judgment that requires a model shall be made outside the system, by a person or by an agent acting for one, and shall enter it as an attributed contribution open to audit."*
 - **Why:** Article XIV makes humans and AI contributors, not oracles, and Article VII makes every probability model-conditional and reproducible. A model running inside the ledger would be an unattributed, unreproducible contributor whose outputs could not be replayed, audited, or challenged like any other. Keeping every model outside, behind a signed contribution, is what makes "reproducible from the log" true.

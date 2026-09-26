@@ -127,4 +127,18 @@ RSpec.describe "Help menu and pages (Stage 24)", type: :request do
   ensure
     Governance::Software.instance_variable_set(:@revision, nil)
   end
+
+  # Terms, privacy and takedown (2026-09-23): reachable signed out, linked from
+  # every page, and published in /api/v1/meta so a client can find them.
+  it "serves the terms, the privacy policy and the takedown page, and links them" do
+    { "/terms" => "CC0 1.0", "/privacy" => "cannot delete what you signed", "/takedown" => "Takedown request" }.each do |path, text|
+      get path
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(text)
+    end
+    get "/about"
+    expect(response.body).to include(%(href="/terms")).and include(%(href="/privacy")).and include(%(href="/takedown"))
+    get "/api/v1/meta"
+    expect(response.parsed_body).to include("terms_url", "privacy_url", "takedown_url")
+  end
 end

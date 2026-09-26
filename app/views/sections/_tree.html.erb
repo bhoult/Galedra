@@ -2,6 +2,7 @@
     lines, the current claim marked, and the section being read marked too so a
     reader can see where they are in the whole outline. %>
 <% current_section = local_assigns.fetch(:current_section, nil) %>
+<% model = local_assigns.fetch(:model, nil) %>
 <%# The controller goes on the outermost list only: clicks bubble, so one
     listener covers every branch, and one per level meant a click was handled
     again by each list above it. %>
@@ -10,14 +11,14 @@
     <% count = tag.span(child[:counts]["claims"].to_s + (child[:pending].positive? ? "+#{child[:pending]}" : ""),
                         class: "counts",
                         title: pluralize(child[:counts]["claims"], "claim") + (child[:pending].positive? ? ", #{child[:pending]} proposed" : "")) %>
-    <% heading = link_to child[:section].heading, section_path(child[:section]), data: { turbo_frame: outline_frame } %>
+    <% heading = reading_mark(child[:verdict], of: "under this section") + link_to(child[:section].heading, section_path(child[:section]), data: { turbo_frame: outline_frame }) + tree_score(child[:verdict]) %>
     <% classes = "#{'current' if child[:section].id == current_section}" %>
     <li>
       <% if child[:children].any? || child[:claims].any? %>
         <details <%= "open" if open_ids.include?(child[:section].id) %>>
           <summary class="<%= classes %>"><%= count %><%= heading %></summary>
           <div class="reveal">
-            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq, root: false %>
+            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq, model: model, root: false %>
           </div>
         </details>
       <% else %>
@@ -30,8 +31,8 @@
   <% end %>
   <% node[:claims].each do |claim| %>
     <li class="claim-row">
-      <span class="counts state" title="<%= node[:states][claim.id].to_s.downcase.tr('_', ' ') %>"><%= state_mark(node[:states][claim.id]) %></span>
-      <%= link_to claim.canonical_text.truncate(90), claim_path(claim, section: node[:section].id), class: "claim-line #{'current' if claim.id == current_claim}" %>
+      <span class="counts state"><%= claim_mark(node[:scores][claim.id], model: model, seq: seq) %></span>
+      <%= link_to claim_path(claim, section: node[:section].id), class: "claim-line #{'current' if claim.id == current_claim}" do %><%= claim.canonical_text.truncate(90) %><%= tree_claim_score(node[:scores][claim.id], model: model, seq: seq) %><% end %>
     </li>
   <% end %>
 </ul>

@@ -540,7 +540,7 @@ marked untrusted text.
 
 # 17. Expensive AI Work Must Stay Off the Central Server
 
-Galedra runs no model, as a matter of principle (CLAUDE.md Invariant 18, amendment P-5),
+Galedra runs no model, as a matter of principle (CLAUDE.md Invariant 18, constitution Article XIV),
 not only of cost. The only adapter is the deterministic stub; summaries, claim
 extraction, and affiliation deduplication run on it, and anything that needs a model is a
 task or a tool for a connected assistant. The production server performs:

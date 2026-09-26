@@ -55,18 +55,18 @@ module Sections
       { self_checked: by_author.size, independently_checked: by_others.size }
     end
 
-    # "N claims · N self-checked · N independently checked · <counts by state> ·
-    # <url>" (Stage 22, 06 §6, and Stage 34 for the split).
-    #
-    # All three numbers, rather than the shorter "none independently checked":
-    # this line is what a person pastes where they were going to post, so it
-    # states the weakness in the same breath as the volume. It also still reads
-    # correctly once the third number moves, which the short form does not.
+    # What to paste for an outline (Cards::ShareText): its badge and average
+    # score, its title, and the link. It was the counts line — claims,
+    # self-checked, independently checked, every state — which was exact and
+    # meant nothing to a reader who had never heard of Galedra (owner,
+    # 2026-09-23). The weakness it carried survives in plain words: an outline
+    # nobody else has checked says so.
     def share_line(root, seq, url)
       p = call(root, seq)
-      counts = Tree.call(root, seq)[:counts]
-      "Checked in Galedra: #{root.heading} · #{p[:claims]} claims · #{p[:self_checked]} self-checked · " \
-        "#{p[:independently_checked]} independently checked · #{Tree.states_line(counts)} · #{url}"
+      verdict = Tree.call(root, seq)[:verdict]
+      label = verdict ? Cards::Badge.for_key(verdict[:badge])[:label] : Cards::Badge.for_key(:not_checked)[:label]
+      Cards::ShareText.call(label: label, figure: verdict&.dig(:figure), title: root.heading, url: url,
+                            reviewed: p[:independently_checked].positive?)
     end
 
     # Roots whose leaves are all extracted but fewer than a quarter of whose claims have evidence (Article XXII).

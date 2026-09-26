@@ -203,9 +203,79 @@ name are now enforced hourly at the number they were given daily, which loosens 
 is a consequence of one column holding both, and the alternative — two columns, two
 meanings, forever — is worse.
 
+## N. The constitution revised in place before first release (2026-09-23)
+
+**What changed.** The owner asked for a review of `12-constitution.md` for inconsistencies
+and loopholes, then for every finding to be applied to 1.0.0 as the initial version, since
+no node has been released. `CONSTITUTION-AMENDMENTS.md` lists the changes one by one.
+
+**Why.** The review found three kinds of problem:
+
+- **Loopholes.** Core protections were written as "should", and XXV's amendment rule was
+  one of them. The bans on rewriting and deletion were limited by "silently", "accepted",
+  and "merely because they were later found to be wrong". Nothing named who adopts an
+  amendment. Moderators and defaults had no governing text. Test questions 2 and 10 could
+  not block. Nothing protected the people claims are about.
+- **Inconsistencies.**
+  - Three running mechanisms rested on proposals that had not been adopted.
+  - The adopted text was never signed into the log, although the amendment log said it
+    would be.
+  - Article XI promised that trust could be earned, but auditing could only be reached
+    through a self-declared tier.
+  - `13` said the tier never affects a score, which is false through audits.
+  - The Test's answers were said to go in `IMPLEMENTATION.md`, but they go in stage files.
+- **Unrecorded violations.** The node breaks several "musts" that `13` marked as met:
+  IX (passages counted as independent, and origins splittable by anyone), VII (challenged
+  links missing from the trace, and `code_hash` coverage), XXIV (one link reaches
+  SUPPORTED), and XVIII (an investigation headline that reads as a verdict).
+
+**What it forced.**
+
+- `13` gains Gap rows for everything the new text asks and the node does not yet do.
+  Stage 43 carries most of the remedies.
+- `AMEND_CONSTITUTION` is implemented. It is signed by the system key, and the hash it
+  carries must equal that of the text the node serves. `/meta` reports whether the served
+  text is the one recorded.
+- The Test's blocking list is updated in `10` and `CLAUDE.md`.
+
+## O. A score and a badge at every level (2026-09-23)
+
+**What changed.** The owner asked for a score wherever there is enough evidence for one, on
+claims, investigations and outlines, and for a small badge (icon only, meaning on hover) at
+every parent level of an outline.
+
+- **Claims.** The answer card now shows "Score: 0.8581 under … at snapshot N" under the
+  headline, and the claims list has a Score column. 06 §4 rule 1 and Invariant 16 changed
+  from "numbers on request" to "numbers never the headline". Rule 3 is untouched:
+  INSUFFICIENT_EVIDENCE and NOT_APPLICABLE show no number.
+- **Outlines.** Every section gets the reading `Investigations::Verdict` already gave an
+  investigation. The figure is the product of the probabilities, shown only when every
+  checkable claim has one. 06 §6 said no section ever gets a score. It now says what the
+  reading is and what it never is.
+
+**What building it found.** The investigation rule treats a set as one statement, so any
+part against the evidence makes the whole lean against it. Applied to an outline on the
+development node, it read a 54-claim outline, with 36 claims holding and 6 against, as
+"Leans against". A section is a collection of separate statements, so it is now read by
+proportion (06 §6 lists the thresholds, and a spec pins the measured case).
+
+**Corrected the same day.** A section's figure was first the investigation's product, shown
+only when every checkable claim had a probability. On a real outline almost no section
+qualified, because nearly every section held one claim with too little evidence. The few that
+did qualify shrank with their size: 0.0047 for a chapter whose claims mostly held. The owner
+saw no score anywhere on the page. A section's figure is now the average score of its scored
+claims, shown once at least half its checkable claims have one, and it appears beside every
+heading and claim in the tree as well as on hover. Investigations keep the product, since
+an investigation is one statement.
+
+The owner then asked whether the badges should be based on the score. They should: the
+proportion rule could put "Leans against" beside an average of 0.70. A section's badge is now
+its average read through the model's state bands, the same bands that set a single claim's
+state.
+
 ## Open questions for the project owner
 
-- Adopt, revise, or reject proposed amendments P-1 through P-4?
+- Adopt, revise, or reject proposed amendments P-4 and P-6? (P-1, P-2, P-3 and P-5 were adopted into 1.0.0 on 2026-09-23.)
 
 - Data license for the public log (CC0 vs CC-BY)?
 - Who holds the system key and appoints moderators after the POC?

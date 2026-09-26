@@ -45,6 +45,10 @@ class Contributor < ApplicationRecord
   # The node this key lives on; null on the row means this node.
   def home_node_url = Ledger::Node.home_url_for(self)
   def anonymous? = identity_tier == "ANONYMOUS"
+
+  # What to call a contributor who chose no public name. A person who signed up
+  # and left the name blank is not anonymous, and must not be called so.
+  def public_label = display_name.presence || (anonymous? ? "an anonymous contributor" : "a named contributor")
   def adopted_by_key_id = metadata["adopted_by"]
   def adopted? = adopted_by_key_id.present?
 

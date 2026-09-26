@@ -1,6 +1,9 @@
-<%# The answer card (spec 06 §3, §4): no number here. %>
+<%# The answer card (spec 06 §3, §4). The number is never the headline; since
+    2026-09-23 (owner decision) it sits under it, with model and snapshot, when
+    the claim has one. INSUFFICIENT_EVIDENCE and NOT_APPLICABLE have none. %>
 <div class="card">
   <p class="headline"><%= card[:headline] %></p>
+  <% if card[:stated] %><p class="meta score-line" title="Model-conditional, not a share of truth. The trace is under Show calculation.">Score: <%= card[:stated] %></p><% end %>
   <p class="meta">
     <%= pluralize(card[:independent_lineages], "independent evidence lineage") %> ·
     review checks <%= card[:review_checks] %> ·

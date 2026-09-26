@@ -20,6 +20,13 @@ namespace :ledger do
     end
   end
 
+  desc "Record the constitution this node serves as a signed AMEND_CONSTITUTION (Article XXV), unless it already is"
+  task adopt_constitution: :environment do
+    contribution = Ledger::AdoptConstitution.call(note: ENV["NOTE"])
+    constitution = Governance::Constitution.new
+    puts contribution ? "constitution #{constitution.version} recorded at seq #{contribution.seq} (#{constitution.digest})" : "constitution #{constitution.version} already recorded (#{constitution.digest})"
+  end
+
   desc "Recompute every hash and check every signature in the log"
   task verify: :environment do
     result = Ledger::Verify.call

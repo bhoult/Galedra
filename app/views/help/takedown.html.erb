@@ -1,0 +1,63 @@
+<% content_for :title, "Takedown" %>
+<% content_for :body_class, "document" %>
+<h1>Asking for something to come down</h1>
+<p class="lede">The record here is permanent by design, but not at any cost. Content that is unlawful, or that is about a private person, can be withdrawn. This page says what qualifies, what to send, and what stays visible afterwards.</p>
+<p class="meta">Last changed <%= HelpController::LEGAL_UPDATED %>. The rules come from Article XIII of the <%= link_to "constitution", constitution_path %>, and every removal is listed in the <%= link_to "moderation log", moderation_path %>.</p>
+
+<h2>What qualifies</h2>
+<div class="card">
+  <ul>
+    <li><strong>A private individual.</strong> A claim about a person who is not a public figure, or about a public figure's private life.</li>
+    <li><strong>Personal data.</strong> An address, phone number, identity or account number, health or financial detail, or anything else that identifies or exposes a person, whoever it belongs to.</li>
+    <li><strong>Unlawful content.</strong> Defamation, threats, harassment, or material whose publication the law forbids.</li>
+    <li><strong>Unlicensed material.</strong> More of a copyrighted work than a quotation needs, or anything published without the right to publish it.</li>
+    <li><strong>Spam.</strong></li>
+  </ul>
+  <p><strong>What does not qualify:</strong> disagreeing with a claim, its politics or its conclusion, or believing an assessment is wrong. Record the evidence against it instead. Any assistant can do that in one call, and it counts for more than removal would.</p>
+</div>
+
+<h2>What to send</h2>
+<div class="card">
+  <p>Write to <%= mail_to @maintainer[:email], @maintainer[:email], subject: "Takedown request" %> with the subject <strong>Takedown request</strong>, and include:</p>
+<pre>Takedown request
+
+Address of the claim, evidence or page:
+Which part (quote it, or describe where it is):
+Ground (private individual / personal data / unlawful / unlicensed / spam):
+Why it qualifies:
+Your relationship to it (the person concerned, their representative, the rights holder, or a reader):
+How to reach you:
+
+For unlicensed material, also:
+The work that was copied, and where the original is:
+A statement that you believe in good faith the use is not authorised by the rights holder, its agent, or the law:
+A statement that this request is accurate and, under penalty of perjury, that you are the rights holder or authorised to act for them:
+Your signature (typing your full name is enough):</pre>
+  <p class="meta">If the content is about you, you do not need to prove who you are to have it looked at. You may be asked to confirm something only if that is needed to decide.</p>
+</div>
+
+<h2>What happens</h2>
+<div class="card">
+  <ol>
+    <li><strong>It is read by a person.</strong> Personal data and threats are dealt with first.</li>
+    <li><strong>If it plainly qualifies, the claim or source is quarantined straight away.</strong> Its text is withheld from every public page and result, and a stub stays at the same address. The stub says it was quarantined, when, by which moderator, and on what ground. Quarantined content stops counting in any score.</li>
+    <li><strong>Where the law or the protection of a person requires it, the content is taken down.</strong> Its bytes are withdrawn from the log and from every copy this node serves.</li>
+    <li><strong>You get an answer</strong> saying what was done, or why nothing was.</li>
+  </ol>
+</div>
+
+<h2>What stays visible</h2>
+<div class="card">
+  <p>The content goes. The fact that it went does not. Every quarantine and takedown is a signed entry in the public <%= link_to "moderation log", moderation_path %>, stating the date, the ground, and which moderator acted. A takedown also keeps a cryptographic record of what was removed, so anyone checking the log can see that something was withdrawn and that nothing else was changed. A takedown also publishes its stated legal basis and the date of the request. Your request itself is not published, and your name appears only if you agree to it.</p>
+  <p>This is deliberate. A record that could be edited quietly would be worth nothing, so nothing is removed quietly, not even for good reasons.</p>
+</div>
+
+<h2>If you contributed it and disagree</h2>
+<div class="card">
+  <p>Write to the same address, with the address of the content and why you believe it does not qualify. For unlicensed material, include a statement, under penalty of perjury, that you believe in good faith it was removed by mistake, and say how to reach you. A quarantine can be released, and the release is also a signed entry in the moderation log. A takedown withdraws the bytes, so what was removed can come back only if the contributor submits it again.</p>
+</div>
+
+<h2>Misusing this page</h2>
+<div class="card">
+  <p>A request made to silence a claim someone dislikes, rather than on one of the grounds above, will be refused. Anyone who repeatedly files requests like that may have them ignored.</p>
+</div>

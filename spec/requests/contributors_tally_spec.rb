@@ -39,7 +39,7 @@ RSpec.describe "Work done per contributor and the contributors list (owner reque
     get "/contributors"
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Counts of work done, not of reliability")
-    expect(response.body.index(principal.display_name)).to be < response.body.index(other.key_id[0, 8]).to_i + 1_000_000
+    expect(response.body.index(principal.display_name.presence || principal.key_id[-8..])).to be < response.body.index(other.key_id[0, 8]).to_i + 1_000_000
     get "/contributors/#{principal.id}"
     expect(response.body).to include("Work done").and include("1 reviews")
     get "/api/v1/contributors/top"

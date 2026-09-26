@@ -2,7 +2,7 @@
 
 module Ledger
   module Appliers
-    # TAKEDOWN (spec 02 §5, constitution P-2): legally compelled removal of an
+    # TAKEDOWN (spec 02 §5, constitution Article XIII): legally compelled removal of an
     # epistemic contribution's bytes, by a moderator, stating the date, the
     # legal basis, and a redaction manifest. The removal itself stays public.
     module Takedown

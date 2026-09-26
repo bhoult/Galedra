@@ -187,7 +187,7 @@ Actions (each a signed contribution by a moderator key): key revocation, contrib
 
 Moderator actions are contributions like any other: auditable, appealable via `RE_AUDIT`, and listed on a public moderation log page. A quarantine whose stated reason does not match a published category is itself grounds for appeal.
 
-Quarantine reason categories in P0 (closed list): `PRIVATE_INDIVIDUAL`, `PERSONAL_DATA`, `UNLAWFUL_CONTENT`, `UNLICENSED_MATERIAL`, `SPAM`. Disagreement with a claim, its politics, or its conclusion is never a quarantine reason; that is what evidence links are for (Art. V, XVIII). See proposed amendment P-1.
+Quarantine reason categories in P0 (closed list): `PRIVATE_INDIVIDUAL`, `PERSONAL_DATA`, `UNLAWFUL_CONTENT`, `UNLICENSED_MATERIAL`, `SPAM`. Disagreement with a claim, its politics, or its conclusion is never a quarantine reason; that is what evidence links are for (Art. V, XVIII). The closed list is the one Article XIII (protection of persons) names.
 
 ---
 

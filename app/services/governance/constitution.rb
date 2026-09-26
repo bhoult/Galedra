@@ -18,6 +18,14 @@ module Governance
 
     def self.call = new.to_h
 
+    # The hash the log last recorded (Article XXV: an amendment takes effect
+    # only once recorded), or nil when nothing has been.
+    def self.recorded
+      Contribution.where(action_type: "AMEND_CONSTITUTION").order(seq: :desc).pick(:seq, Arel.sql("payload->>'version'"), Arel.sql("payload->>'constitution_hash'"))
+    end
+
+    def self.recorded_hash = recorded&.last
+
     def bytes
       @bytes ||= File.binread(PATH)
     end

@@ -159,8 +159,23 @@ module GraphHelpers
     "Searched the cited sources and the obvious alternatives; nothing bearing on this was found."
   end
 
+  # The rows a contribution created, in the order its ops were written.
+  #
+  # Every row from one TASK_RESULT has the same created_seq, so ordering by it
+  # left the order to Postgres, which is free to return ties either way. About
+  # one run in thirty, `h["C2"], h["C4"], … = result_rows(extraction, Claim)`
+  # named the NORMATIVE claim C2, the demo's evidence was attached to it, and a
+  # claim page read "Not assessed" or a different score (2026-09-23). A row's id
+  # is derive(contribution, kind, op index) (Ledger::Appliers#row_id), so the op
+  # index is recoverable exactly.
+  ROW_KINDS = %w[claim evidence link edge location source group assignment evaluability placement merge inference].freeze
+
   def result_rows(result, model)
-    model.where(contribution_id: result.contribution.id).order(:created_seq).to_a
+    contribution = result.contribution
+    ops = contribution.payload.is_a?(Hash) ? contribution.payload.fetch("ops", []).size : 0
+    position = {}
+    ops.times { |i| ROW_KINDS.each { |kind| position[Ledger::Ids.derive(contribution.id, kind, i)] ||= i } }
+    model.where(contribution_id: contribution.id).to_a.sort_by { |row| [ position.fetch(row.id, ops), row.id ] }
   end
 
   def register_reviewer(**payload)

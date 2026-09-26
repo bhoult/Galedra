@@ -28,11 +28,14 @@ RSpec.describe "Sharing and following an outline (Stage 22)", type: :request do
     progress = Sections::Progress.call(root, seq)
     expect(progress).to include(leaves: 2, leaves_extracted: 2, claims: 5, checked: 1, open_tasks: 0)
     line = Sections::Progress.share_line(root, seq, "http://www.example.com/sections/#{root.id}")
-    expect(line).to eq("Checked in Galedra: State of the union · 5 claims · 0 self-checked · 0 independently checked · 5 insufficient evidence · http://www.example.com/sections/#{root.id}")
+    # Plain words for a reader who has never heard of Galedra (Cards::ShareText):
+    # no score while under half the claims have one, and the caveat, since nobody
+    # else has checked any of it.
+    expect(line).to eq("Checked in Galedra: not checked yet · not yet reviewed by anyone else\nState of the union\nhttp://www.example.com/sections/#{root.id}")
 
     get "/sections/#{root.id}"
     expect(response.body).to include('property="og:title" content="State of the union"')
-    expect(response.body).to include("5 claims · 0 self-checked · 0 independently checked")
+    expect(response.body).to include('og:description" content="Not checked yet · not yet reviewed by anyone else. 5 claims from this source')
     expect(response.body).to include("2 of 2 leaves extracted")
 
     get "/weaknesses"

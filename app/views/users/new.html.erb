@@ -5,8 +5,12 @@
   <%= form_with model: @user do |f| %>
     <% if @user.errors.any? %><p class="warning"><%= @user.errors.full_messages.join(", ") %></p><% end %>
     <label>Email <%= f.email_field :email_address, required: true, autocomplete: "username" %></label>
+    <p class="meta">Your email is never shown or published.</p>
+    <label>Public name, optional <%= text_field_tag "user[display_name]", params.dig(:user, :display_name), maxlength: Users::PublicName::MAX, autocomplete: "nickname" %></label>
+    <p class="meta">Shown beside what you sign, and written into the permanent public record, so it can never be removed. Leave it blank to sign without a name.</p>
     <label>Password <%= f.password_field :password, required: true, autocomplete: "new-password" %></label>
     <label>Confirm password <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password" %></label>
+    <p class="meta">By creating an account you agree to the <%= link_to "terms", terms_path %>. What is kept about you, and what becomes public, is in the <%= link_to "privacy policy", privacy_path %>.</p>
     <%= f.submit "Create account" %>
   <% end %>
   <p class="meta">Already have one? <%= link_to "Sign in", new_session_path %>.</p>

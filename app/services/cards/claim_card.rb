@@ -37,7 +37,10 @@ module Cards
         # The number in the one form the display rules allow (06 §4 rule 2, CLAUDE.md
         # vocabulary): with its model and snapshot, never as "N% true". Nil when
         # the state carries no probability.
-        stated: DisplayRules.stated(result.probability, model.full_name, seq)
+        stated: DisplayRules.stated(result.probability, model.full_name, seq),
+        # For the share text (Cards::ShareText): the badge and the plain score.
+        assessment_state: result.assessment_state, probability: result.probability,
+        provisional: result.provisional
       }
       card[:reason] = Headline.reason_text(result.not_applicable_reason) if result.assessment_state == "NOT_APPLICABLE"
       card[:labels] += retrieval_labels(counted, seq)

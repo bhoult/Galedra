@@ -21,10 +21,9 @@ module Ledger
     ALL = (CONTROL + EPISTEMIC).freeze
 
     # Types whose server-side handling exists yet. Others are rejected with
-    # UNSUPPORTED_ACTION rather than logged unchecked. AMEND_CONSTITUTION
-    # arrives with the amendment process.
+    # UNSUPPORTED_ACTION rather than logged unchecked.
     IMPLEMENTED = (%w[REGISTER_KEY DELEGATE REVOKE_KEY REVOKE_DELEGATION ADOPT_KEY ACCEPT INVALIDATE QUARANTINE RELEASE_QUARANTINE TAKEDOWN
-                       RELEASE_SCORING_MODEL AUDIT RETRIEVE_SOURCE] + EPISTEMIC).freeze
+                       RELEASE_SCORING_MODEL AMEND_CONSTITUTION AUDIT RETRIEVE_SOURCE] + EPISTEMIC).freeze
 
     def self.class_for(type)
       CONTROL.include?(type) ? Contribution::CONTROL : Contribution::EPISTEMIC

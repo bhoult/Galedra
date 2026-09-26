@@ -105,4 +105,48 @@ module DisplayHelper
                   "INSUFFICIENT_EVIDENCE" => "?", "NOT_APPLICABLE" => "n/a" }.freeze
 
   def state_mark(state) = STATE_MARKS.fetch(state.to_s, "·")
+
+  # A small validity badge for a set of claims (an outline section, an
+  # investigation): the icon only, with what it means, what it was read from and
+  # the figure on hover (owner request, 2026-09-23). `of` finishes "read from
+  # the 12 claims ...".
+  def reading_mark(verdict, of:)
+    return "".html_safe if verdict.nil?
+
+    tag.span(Cards::Badge.svg(verdict[:badge], size: 14), class: "reading-mark", title: Investigations::Verdict.title(verdict, of: of))
+  end
+
+  # The same icon for one claim, from its own state and probability.
+  def claim_mark(result, model: nil, seq: nil)
+    return tag.span("·", class: "reading-mark", title: "Not scored under any released model") if result.nil?
+
+    badge = Cards::Badge.for(result.assessment_state, result.probability)
+    figure = result.probability && [ result.probability, (" under #{model.full_name}" if model), (" at snapshot #{seq}" if seq) ].join
+    tag.span(Cards::Badge.svg(badge[:key], size: 14), class: "reading-mark",
+                                                       title: [ "#{badge[:label]} (#{result.assessment_state})", figure, "provisional until audited" ].compact.join(" · "))
+  end
+
+  # The figure beside a heading in an outline tree, small and muted, with what
+  # it is on hover. Nothing when the section has too little scored to have one.
+  def tree_score(verdict)
+    return "".html_safe unless verdict&.dig(:figure)
+
+    tag.span(verdict[:figure], class: "tree-score", title: "#{verdict[:stated]}. #{verdict[:note]}")
+  end
+
+  def tree_claim_score(result, model:, seq:)
+    return "".html_safe unless result&.probability
+
+    tag.span(result.probability, class: "tree-score", title: "#{result.probability} under #{model&.full_name} at snapshot #{seq}. Model-conditional, not a share of truth.")
+  end
+
+  # A claim's score, when it has one: the probability, with what it is
+  # conditional on on hover. A state with too little evidence has none, and
+  # says why rather than showing a blank.
+  def score_cell(result, model:, seq:)
+    return tag.span("no model", class: "muted") if result.nil?
+    return tag.span("—", class: "muted", title: "No score: #{result.assessment_state} carries no probability") if result.probability.nil?
+
+    tag.span(result.probability, class: "score", title: "#{result.probability} under #{model&.full_name} at snapshot #{seq}. Model-conditional, not a share of truth.")
+  end
 end

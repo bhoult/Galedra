@@ -2,7 +2,7 @@
 
 module Ledger
   module Appliers
-    # SET_TRUTH_EVALUABLE (spec 02 §3.3, constitution P-3): a designation of
+    # SET_TRUTH_EVALUABLE (spec 02 §3.3, constitution Article VI): a designation of
     # "not evaluable" is itself a contribution, always accepted by a different
     # principal, never automatically.
     module SetTruthEvaluable

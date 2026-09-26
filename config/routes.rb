@@ -20,6 +20,9 @@ Rails.application.routes.draw do
   # A reader's preferred model, remembered. A preference, not a claim.
   post "preferences/model", to: "preferences#model", as: :model_preference
   get "contact", to: "help#contact"
+  get "terms", to: "help#terms"
+  get "privacy", to: "help#privacy"
+  get "takedown", to: "help#takedown"
   # Admin (Stage 24): a website role, never a ledger one.
   namespace :admin do
     resources :content_reviews, only: [ :index ] do

@@ -81,7 +81,8 @@ class InvestigationsController < ApplicationController
     @headlines = @cards.values.map { |k| k[:plain][:headline] }
     @verdict = Investigations::Verdict.call(@claims, @seq, @model, results: @results)
     @summary = Investigation.summary(@cards.values, @verdict)
-    @share_line = Investigation.share_line(url: investigation_url(@investigation), **@summary.except(:badge))
+    @share_line = Investigation.share_line(@summary, url: investigation_url(@investigation),
+                                                     quote: @investigation.statement.presence || @claims.first&.canonical_text)
     @sources = @claims.flat_map { |c| c.evidence_claim_links.effective_at(@seq).includes(evidence_item: { source_location: :source }).map { |l| l.evidence_item.source_location.source } }
                       .uniq.reject(&:redacted?)
   end
@@ -128,7 +129,8 @@ class InvestigationsController < ApplicationController
     token = AssistantToken.find_by_token(session[:paste_token]) if session[:paste_token]
     return token if token&.usable?
 
-    name = authenticated? ? "Pasted by #{Current.user.email_address.split('@').first}" : "Pasted by hand"
+    shown = authenticated? ? Current.user.custodied_key&.contributor&.display_name.presence : nil
+    name = shown ? "Pasted by #{shown}" : "Pasted by hand"
     record, plaintext = Assistants::Connect.call(user: authenticated? ? Current.user : nil, name: name, provider: "other", model: "pasted")
     session[:paste_token] = plaintext
     record

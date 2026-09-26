@@ -121,7 +121,7 @@ RSpec.describe "OAuth for connectors (Stage 16)", type: :request do
     bundle["sources"].each { |s| s["retrieved_at"] = "2026-09-18T12:00:00Z" }
     result = mcp(tokens["access_token"], "tools/call", { name: "record_investigation", arguments: bundle }).dig("result", "structuredContent")
     expect(result["recorded"]).to be(true)
-    expect(result["attribution"]).to include("anonymous" => false, "principal" => "me")
+    expect(result["attribution"]).to include("anonymous" => false, "principal" => "a named contributor")
     expect(Claim.find(result["claims"].first["id"]).contribution.principal_contributor).to eq(user.custodied_key.contributor)
 
     post "/api/v1/investigations", params: bundle.merge("claims" => [ { "handle" => "z", "text" => "Attributed over REST.", "type" => "TEXTUAL" } ], "links" => [], "evidence" => [], "excerpts" => [], "sources" => []).to_json,

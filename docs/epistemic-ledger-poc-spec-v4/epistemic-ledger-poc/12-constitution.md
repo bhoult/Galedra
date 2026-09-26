@@ -3,14 +3,14 @@
 | | |
 |---|---|
 | Version | 1.0.0 (initial adoption) |
-| Status | Adopted with the POC spec v3 |
+| Status | Adopted with the POC spec v4; revised before first release on 2026-09-23 |
 | Amendment log | `CONSTITUTION-AMENDMENTS.md` |
 | Implementation map | `13-constitutional-compliance.md` |
-| Integrity | `sha256` of this file is published at `GET /api/v1/meta` as `constitution_hash` |
+| Integrity | `sha256` of this file is published at `GET /api/v1/meta` as `constitution_hash`, and each adopted version is recorded in the ledger as a signed `AMEND_CONSTITUTION` contribution carrying that hash |
 
 **Precedence.** This document outranks every other file in this repository. If a spec file, scoring model, or implementation choice conflicts with an Article, the Article governs and the conflict must be recorded in `13-constitutional-compliance.md` (as a known gap) or resolved by an explicit amendment under Article XXV. It is never resolved silently.
 
-**Reading the language.** "Shall" and "must" state binding commitments. "Should" states a strong default that may be departed from only with a documented reason. Examples are illustrative, not exhaustive.
+**Reading the language.** "Shall" and "must" state binding commitments. "Should" states a strong default that may be departed from only with a documented reason, and every such departure shall be recorded in `13-constitutional-compliance.md` where anyone can read it. A departure that is not recorded there is a violation, not a departure. Examples are illustrative, not exhaustive.
 
 **Scope.** The Articles describe the project, not the POC. Some are only partly realized in v0.1; `13-constitutional-compliance.md` says which, and how.
 
@@ -59,7 +59,7 @@ The system's role is to preserve and expose the reasons for and against believin
 
 ## Article II — Evidence Must Be Traceable
 
-Every material evidentiary contribution should be traceable to its provenance.
+Every material evidentiary contribution shall be traceable to its provenance.
 
 Where possible, the system shall preserve:
 
@@ -160,6 +160,8 @@ The inability to reach a conclusion is not a system failure.
 
 False certainty is.
 
+A designation that a claim is untestable, non-empirical, or outside a model's competence is itself a contribution subject to provenance, audit, and challenge. Such a designation shall not be used to shield a claim from evidence.
+
 ---
 
 ## Article VII — Probabilities Are Model-Conditional
@@ -240,6 +242,8 @@ Even high-reputation contributors must provide evidence where evidence is requir
 
 Anonymous or pseudonymous contributors may earn trust through a durable record of accurate work.
 
+Every standing the system grants, including the standing to audit, shall be reachable by any contributor through a durable record of audited work. A standing may also be granted by attestation, but no standing shall be reachable only by attestation, and every attestation shall be a signed, visible contribution open to challenge.
+
 ---
 
 ## Article XII — The System Must Resist Capture
@@ -267,13 +271,23 @@ Defenses against capture should include:
 - adversarial review;
 - and the ability to run alternative scoring models over the same evidence.
 
-No operator should be able to silently rewrite the epistemic history of the system.
+No operator shall be able to rewrite the epistemic history of the system, silently or openly. The only removal permitted is the visible removal described in Article XIII.
+
+**Powers held by roles.** Any role that holds a power over the shared record shall exercise it only through signed contributions that are publicly visible and open to challenge. This covers moderation, quarantine, removal, attestation, custody of the system key, and the adoption of amendments. A role may grant a procedural power. It shall not confer epistemic authority. A moderator's finding bears the same burden of evidence as anyone else's.
+
+**Defaults and selection.** Capture does not require rewriting history. It can also work through what is shown first and what is examined at all. The following shall be governed by published rules, and every change to them shall be recorded and visible:
+
+- the default scoring model;
+- search ranking;
+- task priority;
+- which claims the system proposes for examination;
+- and the wording of summary verdicts.
 
 ---
 
 ## Article XIII — Corrections Do Not Erase History
 
-Accepted contributions should not be silently rewritten or deleted merely because they were later found to be wrong.
+No contribution shall be rewritten or deleted, whether it was accepted, pending, rejected, or quarantined, and whether or not it was later found to be wrong. The only exception is the visible removal described below.
 
 Corrections should:
 
@@ -290,6 +304,10 @@ Users should be able to reconstruct:
 > what the system believed at a given time and why.
 
 Knowledge should evolve visibly.
+
+**Protection of persons.** The system shall not become an instrument for harming identifiable individuals. Claims about private persons, personal data, material whose publication is unlawful or unlicensed, and spam may be restricted. Disagreement with a claim, its politics, or its conclusion is never a ground for restriction. Every such restriction shall itself be recorded, attributed, and publicly visible as a restriction, even where its content cannot be.
+
+**Visible removal.** Content may be withdrawn only where law requires it or where this Article's protection of persons requires it. The fact of removal, its date, its stated basis, and the cryptographic record of what was removed shall remain.
 
 ---
 
@@ -313,6 +331,8 @@ Humans may do the same.
 Both remain subject to provenance, audit, evidence requirements, and correction.
 
 No model family should become a privileged source of truth.
+
+The system itself shall perform no model inference. It is a deterministic framework through which people and the AI agents they bring collaborate on a durable record of claims and the reasons for them. The framework consists of signed records, closed vocabularies, replayable projections, and versioned scoring. Every judgment that requires a model shall be made outside the system, by a person or by an agent acting for one, and shall enter it as an attributed contribution open to audit.
 
 ---
 
@@ -342,7 +362,7 @@ An individual may maintain a personal estimate, interpretation, or belief lens b
 - additional private evidence;
 - or subjective judgment.
 
-Personal belief must not silently modify the shared evidence layer.
+Personal belief must not modify the shared evidence layer. What a person believes may enter the shared layer only as an ordinary attributed contribution, bearing the same burden of provenance as any other.
 
 The system should help users explain:
 
@@ -411,7 +431,9 @@ For political claims, the same epistemic procedures must apply regardless of:
 
 The system should evaluate claims, not endorse political actors.
 
-It should not produce aggregate political winner scores, preferred candidates, or ideological conformity measures.
+It shall not produce aggregate political winner scores, preferred candidates, or ideological conformity measures. A summary over many claims shall say what it aggregates, and shall not stand as a verdict on a person or party whose statements were examined.
+
+Consistent procedure is not enough if the claims examined were chosen unevenly. The system shall make visible which claims it proposes for examination and why, so that selection can be inspected as readily as scoring.
 
 Political neutrality should arise from consistent process rather than artificial equivalence between unequal evidence.
 
@@ -419,7 +441,7 @@ Political neutrality should arise from consistent process rather than artificial
 
 ## Article XIX — Transparency Over Persuasion
 
-The system should not be optimized to persuade users toward a predetermined conclusion.
+The system shall not be optimized to persuade users toward a predetermined conclusion.
 
 Its primary responsibility is to expose:
 
@@ -529,7 +551,7 @@ Extraordinary conclusions should require correspondingly strong and well-audited
 
 These principles may evolve.
 
-Any constitutional change should be:
+Any constitutional change shall be:
 
 - explicit;
 - versioned;
@@ -546,7 +568,9 @@ A constitutional amendment should describe:
 4. what risks the change introduces;
 5. and whether it alters prior compatibility assumptions.
 
-The project should never drift into a different epistemic philosophy through undocumented implementation choices.
+An amendment is adopted by the project owner until a broader governance body exists. That is a concentration of authority, and it is stated here so that it is not hidden. An amendment takes effect only when it is recorded in the ledger as a signed `AMEND_CONSTITUTION` contribution carrying the new version and the hash of the new text. A conflict between this constitution and an implementation shall not be resolved by amending the constitution in the same change that introduces the conflict.
+
+The project shall never drift into a different epistemic philosophy through undocumented implementation choices.
 
 ---
 
@@ -567,7 +591,14 @@ Before introducing a major feature, ask:
 
 If a feature fails several of these questions, it likely violates the spirit of the project.
 
-**Recording the test.** For any feature that changes scoring, identity, reputation, moderation, visibility, or history, the answers to these ten questions shall be written down (in `IMPLEMENTATION.md` during the POC, and in the change's review record afterward). Any "no" to questions 1, 5, 6, 7, 8, or 9, or any "yes" to 3 or 4, requires a written justification or a design change.
+**Recording the test.** For any feature that changes scoring, identity, reputation, moderation, visibility, selection, or history, the answers to these ten questions shall be written down in the change's own record: its stage file under `implementation/` during the POC, and its review record afterward.
+
+The following require a written justification or a design change:
+
+- a "no" to question 1, 2, 5, 6, 7, 8, 9, or 10;
+- a "yes" to question 3 or 4.
+
+A justification shall be published with the change and is itself open to challenge. It does not become adequate merely because it was written.
 
 ---
 

@@ -21,6 +21,7 @@
     <p class="meta"><%= @card[:headline] %><% if @card[:stated] %> · <%= @card[:stated] %><% end %> · review checks <%= @card[:review_checks] %> · provisional until audited. The number is model-conditional, not a share of truth.</p>
   </div>
   <%# The link is what gets shared, so it is the thing to copy (2026-09-23). %>
-  <p class="meta">Link to share: <code data-copy><%= card_claim_url(@claim) %></code></p>
+  <p><strong>Share:</strong></p><p class="share-line" data-copy><%= Cards::ShareText.for_claim(@claim, @card, card_claim_url(@claim)) %></p>
+  <p class="meta">Or just the link: <code data-copy><%= card_claim_url(@claim) %></code></p>
   <p><%= link_to "See the evidence", claim_path(@claim) %> · <%= image_tag card_claim_path(@claim, format: :png), alt: "", class: "share-preview", width: 600, height: 315 %></p>
 </div>

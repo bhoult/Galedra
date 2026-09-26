@@ -482,10 +482,13 @@ main { overflow-wrap: break-word; }
 /* Copy buttons (enhance_controller). */
 /* The button sits above its block, never over it: laid over the text it hid
    part of an address that did not wrap. */
-.copy-wrap { display: flex; flex-direction: column; align-items: flex-end; margin: 0.6rem 0; }
-.copy-wrap > pre { width: 100%; margin: 0.3rem 0 0; order: 2; }
-.copy-wrap > .copy-button { order: 1; margin: 0; }
-.copy-button { font: inherit; font-size: 0.78rem; line-height: 1; padding: 0.4rem 0.65rem; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--accent-ink); cursor: pointer; vertical-align: middle; margin-left: 0.4rem; white-space: nowrap; }
+/* The copy button is an icon in the top right corner of the block it copies. */
+.copy-wrap { position: relative; margin: 0.6rem 0; }
+.copy-wrap > pre, .copy-wrap > .share-line { margin: 0; padding-right: 2.6rem; }
+.copy-wrap > .copy-button { position: absolute; top: 0.35rem; right: 0.35rem; margin: 0; }
+.copy-button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; line-height: 1; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--accent-ink); cursor: pointer; vertical-align: middle; }
+.copy-button.inline { width: 1.7rem; height: 1.7rem; margin-left: 0.35rem; }
+.copy-button.copied { color: #1b7f3b; border-color: #1b7f3b; }
 .copy-button:hover { background: var(--panel-2); }
 .copy-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -507,7 +510,8 @@ main { overflow-wrap: break-word; }
 @media (pointer: coarse) {
   input[type=text], input[type=email], input[type=password], input[type=search], input[type=url], select, textarea { font-size: 16px; }
   input[type=submit], button, .button, select, input[type=text], input[type=email], input[type=password], input[type=search], input[type=url] { min-height: 2.75rem; }
-  button.small, .button.small, input[type=submit].small, .copy-button { min-height: 2.25rem; }
+  button.small, .button.small, input[type=submit].small { min-height: 2.25rem; }
+  .copy-button { width: 2.5rem; height: 2.5rem; }
   header.site nav details.menu > summary { padding: 0.45rem 0; }
   header.site nav .menu-panel a { padding: 0.65rem 1rem; }
 }
@@ -554,7 +558,7 @@ header.site select, header.site input[type=submit], header.site button { min-hei
 /* A share line is a sentence somebody pastes into a post: set as text, not as
    code, with its copy button beside it. */
 .share-line { font-family: var(--sans); font-size: 0.95rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.55rem 0.75rem; margin: 0.3rem 0; display: block; overflow-wrap: anywhere; }
-.share-line + .copy-button { margin: 0.2rem 0 0.6rem; }
+.share-line { white-space: pre-line; }
 
 /* Labels sit on their boxes, whatever the markup put between them. */
 form label + br { display: none; }
@@ -571,3 +575,12 @@ details.agent-note > summary { background: var(--panel); border-radius: 6px; pad
   .card.topic h3 a { display: inline-block; padding: 0.4rem 0; }
   .card.topic p a { display: inline-block; padding: 0.45rem 0; }
 }
+
+/* The small validity badge beside an outline section, an investigation or a
+   claim (owner request, 2026-09-23): the icon only, its meaning on hover. */
+.reading-mark { display: inline-flex; vertical-align: -2px; margin-right: 0.3rem; cursor: help; }
+.reading-mark .badge-mark { width: 14px; height: 14px; }
+.tree .counts.state .reading-mark { margin-right: 0; }
+.score { font-variant-numeric: tabular-nums; cursor: help; }
+.score-line strong { font-variant-numeric: tabular-nums; }
+.tree-score { margin-left: 0.35rem; color: var(--muted); font-size: 0.78em; font-variant-numeric: tabular-nums; cursor: help; white-space: nowrap; }

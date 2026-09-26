@@ -15,7 +15,7 @@
   <% if @section %>
     <aside class="outline tree">
       <h2><%= link_to @section.root.heading, section_path(@section.root) %></h2>
-      <%= render "sections/tree", node: outline_tree, open_ids: open_ids, current_claim: @claim.id, seq: @seq %>
+      <%= render "sections/tree", node: outline_tree, open_ids: open_ids, current_claim: @claim.id, seq: @seq, model: @model %>
       <% if @sections.size > 1 %><p class="meta">Also in: <% (@sections - [ @section ]).each do |s| %><%= link_to s.heading, claim_path(@claim, section: s.id) %> <% end %></p><% end %>
     </aside>
   <% end %>

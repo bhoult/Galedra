@@ -123,7 +123,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
    [Why?]  [Show calculation]  [Model: ledger-default ▾]
    ```
 
-   The probability, trace, and graph live behind **Show calculation** and **Why?**. Users read 0.73 as "73% true" no matter how it is labeled, so the number is available but never the headline.
+   The trace and the graph live behind **Show calculation** and **Why?**. Users read 0.73 as "73% true" however it is labelled, so **the number is never the headline**. Since 2026-09-23 (owner decision), the probability is no longer hidden behind **Show calculation**. When a claim has one, it sits on a line under the headline, as "Score: 0.7300 under ledger-default@0.3.0 at snapshot 212", with the rules below.
 2. **When the number is shown**, it always carries model and snapshot, and sits next to state, review checks, stability, and independent lineage count.
 3. `INSUFFICIENT_EVIDENCE` and `NOT_APPLICABLE` show **no number at all**.
 4. `provisional` shows "Not yet independently audited." `contested` shows "Evidence points both ways."
@@ -184,6 +184,28 @@ Never produce a speaker- or party-level truth score. A speech view shows descrip
 ```
 
 No ranking, no comparison across speakers.
+
+**A reading of a section (owner decision, 2026-09-23).** Every section of an outline, and every
+investigation, may carry the reading of the claims under it. The reading has:
+
+- a validity badge on the ten-level scale of a claim;
+- a figure:
+  - for an investigation, the figure for every checkable claim holding at once, treating
+    them as independent, only when every checkable claim has a probability;
+  - for a section, the average score of the claims under it that have one, only once at
+    least half its checkable claims do;
+- hover text saying how many claims it was read from and how they split.
+
+An investigation is one statement, so one part against the evidence makes it lean against.
+A section is a collection of separate statements, so **its badge is read from its figure**.
+The average score goes through the default model's own `state_thresholds`, with the same
+0.9 and 0.1 splits a claim's badge uses. The badge and the number beside it therefore always
+agree. A section with too little scored to have an average is "Not checked yet".
+
+Both rules live in `Investigations::Verdict`. The reading is a reading of those
+claims and is labelled as one. It is never presented as a score for the speaker, the party,
+or the source (Article XVIII). The counts line above stays beside it. There is still no ranking,
+and no comparison across speakers.
 
 ---
 

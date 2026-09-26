@@ -14,6 +14,10 @@ import { Controller } from "@hotwired/stimulus"
 //    <pre>, and any element carrying data-copy (a token, an address, a share
 //    line). Copying the text is the point; selecting a 60-character token by
 //    hand on a phone is the thing it replaces.
+// Fixed markup, never built from page text.
+const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>'
+const COPIED_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+
 export default class extends Controller {
   connect() {
     this.enhance(this.element)
@@ -73,25 +77,34 @@ export default class extends Controller {
   addCopy(el) {
     if (el.dataset.copyReady || el.closest(".swagger-ui")) return
     el.dataset.copyReady = "1"
+    // An icon, not a word (owner, 2026-09-23): in the top right corner of a
+    // block (a <pre>, a share line), and beside an inline value. What it does
+    // is in its label and tooltip, and a tick replaces it for a moment once the
+    // text is on the clipboard.
     const button = document.createElement("button")
     button.type = "button"
     button.className = "copy-button"
-    button.textContent = "Copy"
+    button.innerHTML = COPY_ICON
+    button.title = "Copy"
     button.setAttribute("aria-label", "Copy to clipboard")
     button.addEventListener("click", async (event) => {
       event.preventDefault()
       const text = (el.dataset.copy && el.dataset.copy !== "" ? el.dataset.copy : el.innerText).trim()
       const done = await this.write(text)
-      button.textContent = done ? "Copied" : "Select and copy"
-      setTimeout(() => { button.textContent = "Copy" }, 1800)
+      button.innerHTML = done ? COPIED_ICON : COPY_ICON
+      button.title = done ? "Copied" : "Select the text and copy it"
+      button.classList.toggle("copied", done)
+      setTimeout(() => { button.innerHTML = COPY_ICON; button.title = "Copy"; button.classList.remove("copied") }, 1800)
     })
-    if (el.tagName === "PRE") {
+    const block = el.tagName === "PRE" || el.classList.contains("share-line")
+    if (block) {
       const wrap = document.createElement("div")
       wrap.className = "copy-wrap"
       el.parentNode.insertBefore(wrap, el)
       wrap.appendChild(el)
       wrap.appendChild(button)
     } else {
+      button.classList.add("inline")
       el.insertAdjacentElement("afterend", button)
     }
   }

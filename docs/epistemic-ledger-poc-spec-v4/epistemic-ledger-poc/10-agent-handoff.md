@@ -25,12 +25,12 @@ A locally runnable POC meeting the README's P0 Definition of Done, demonstrated 
 13. **Shared and personal stay separate.** Nothing user-specific or opinion-shaped is written to the log except as an ordinary, evidence-bearing contribution.
 14. **More than one model.** Scoring code must never assume a single model; the second model exists to keep that honest.
 15. **No text-uniqueness for claims.** Similarity proposes relationships; only an accepted `MERGE_CLAIMS` merges.
-16. **Answers first, numbers on request.** The default claim view is the answer card; probabilities sit behind Show calculation.
+16. **Answers first, numbers never the headline.** The default claim view is the answer card. A probability, when there is one, sits under the headline with its model and snapshot (owner decision, 2026-09-23); the trace sits behind Show calculation.
 17. **Determinism is not objectivity.** Never describe a score as objective in UI copy, docs, or API field names.
 
 ## Constitutional Test
 
-For every change that touches scoring, identity, reputation, moderation, visibility, or history, answer the ten questions at the end of `12-constitution.md` in `IMPLEMENTATION.md`. Treat any "no" to 1, 5, 6, 7, 8, or 9 — or "yes" to 3 or 4 — as a blocker until justified in writing. Do not edit `12-constitution.md`; propose changes in `CONSTITUTION-AMENDMENTS.md` under "Proposed."
+For every change that touches scoring, identity, reputation, moderation, visibility, selection, or history, answer the ten questions at the end of `12-constitution.md` in the stage's file under `implementation/`. Treat any "no" to 1, 2, 5, 6, 7, 8, 9, or 10, or any "yes" to 3 or 4, as a blocker until a justification is published with the change. Do not edit `12-constitution.md`; propose changes in `CONSTITUTION-AMENDMENTS.md` under "Proposed". An amendment takes effect when the owner adopts it and it is recorded as a signed `AMEND_CONSTITUTION` (Article XXV).
 
 ## Framework Decision (already made)
 

@@ -14,12 +14,13 @@
   <%= f.submit "Filter", class: "secondary" %>
 <% end %>
 <p class="meta">As of snapshot <%= @seq %><%= " under #{selected_model.full_name}" if selected_model %>.<% if params[:sort] == "references" %> Ordered by how often each claim was checked, looked up, viewed, or shared: a count of attention, not of truth or error. Filter by state to see, for instance, the most-met claims whose evidence contradicts them.<% end %></p>
-<table><tr><th>Claim</th><th>Type</th><th>Assessment</th><th>Review checks</th><th>References</th></tr>
+<table><tr><th>Claim</th><th>Type</th><th>Assessment</th><th>Score</th><th>Review checks</th><th>References</th></tr>
 <% @rows.each do |claim, result| %>
   <tr>
     <td><%= link_to claim.canonical_text, claim_path(claim, model: selected_model&.full_name, snapshot_seq: @seq) %></td>
     <td><%= claim.claim_type %></td>
-    <td><%= result ? state_label(result.assessment_state) : "no model released" %></td>
+    <td><%= claim_mark(result, model: selected_model, seq: @seq) if result %> <%= result ? state_label(result.assessment_state) : "no model released" %></td>
+    <td><%= score_cell(result, model: selected_model, seq: @seq) %></td>
     <td><%= result ? Cards::DisplayRules.checks_count(result.review_checklist) : "" %></td>
     <td><%= @references.fetch(claim.id, 0) %></td>
   </tr>

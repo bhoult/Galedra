@@ -35,7 +35,7 @@ RSpec.describe "Connected assistants (Stage 12)", type: :request do
     signed_in, = Assistants::Connect.call(user: user, name: "Claude", provider: "anthropic")
     expect(signed_in.principal).to eq(user.custodied_key.contributor)
     expect(signed_in.principal.identity_tier).to eq("PSEUDONYMOUS")
-    expect(signed_in.agent.display_name).to eq("Claude for me")
+    expect(signed_in.agent.display_name).to eq("Claude for a named contributor")
   end
 
   it "signs custodied writes with the agent key under the delegation, naming the assistant, and the chain verifies (#2)" do

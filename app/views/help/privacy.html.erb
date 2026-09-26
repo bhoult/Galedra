@@ -1,0 +1,61 @@
+<% content_for :title, "Privacy" %>
+<% content_for :body_class, "document" %>
+<h1>Privacy policy</h1>
+<p class="lede">This node keeps little about you. But the record it exists to keep is public and permanent by design, so the most important part of this page is knowing what you publish when you contribute.</p>
+<p class="meta">Last changed <%= HelpController::LEGAL_UPDATED %>. Earlier versions are in the <%= link_to "repository history", "#{Governance::Software::REPOSITORY}/commits/master/app/views/help/privacy.html.erb", rel: "noopener", target: "_blank" %>. The node is run by <%= @maintainer[:name] %>, who is responsible for this data: <%= mail_to @maintainer[:email] %>.</p>
+
+<h2>What becomes public, permanently</h2>
+<div class="card">
+  <p>Everything you contribute is signed and added to a public log that cannot be edited, and it is published as open data. That covers claims, evidence, quotations, links, audits, tags, and your assistant's answers. With each contribution the log records:</p>
+  <ul>
+    <li>the public key that signed it;</li>
+    <li>the time;</li>
+    <li>for a key, its kind (a person, an agent or the system), its identity tier, and the <strong>public name</strong> chosen for it.</li>
+  </ul>
+  <p>The public name is the one you typed when you signed up. Leave it blank and you sign without one. It is never taken from your email address. <strong>Once written, none of this can be deleted</strong>, except by the visible removal on the <%= link_to "takedown page", takedown_path %>, which is for unlawful content and for personal data about someone.</p>
+  <p>If you register a view on a claim as <strong>public</strong>, it is shown with your public name. A <strong>private</strong> view is shown to no one.</p>
+</div>
+
+<h2>What is kept privately</h2>
+<div class="card">
+  <table>
+    <tr><th>What</th><th>Why</th><th>How long</th></tr>
+    <tr><td>Your email address</td><td>To sign you in, and to send a password reset you ask for. It is never shown or published, and never used for anything else.</td><td>While you have an account</td></tr>
+    <tr><td>Your password, as a one-way hash (bcrypt)</td><td>To check it when you sign in. The password itself is not stored.</td><td>While you have an account</td></tr>
+    <tr><td>Your signing key, if the server holds it for you, encrypted</td><td>To sign what you contribute through the website</td><td>While you have an account</td></tr>
+    <tr><td>For each sign-in: your network address and browser identifier</td><td>So you can see and end your sessions, and to detect misuse</td><td>Until you sign out of that session</td></tr>
+    <tr><td>Assistant tokens you create, stored as a one-way digest, with the software's name and the time last used</td><td>To recognise your assistant and attribute its work to you</td><td>Until you revoke the token</td></tr>
+    <tr><td>For an assistant connecting without an account: a hash of its network address and the date</td><td>So calls from the same place on the same day share one anonymous key instead of creating a new one each time. The hash is not published, but someone holding the database could reverse it, so treat it as an address.</td><td>With that anonymous key</td></tr>
+    <tr><td>Affiliations you declare (for example a party, a faith or a generation)</td><td>To show how groups' views split on a claim. Only counts are shown, and only for groups of <%= PersonalAssessments::Breakdown::MIN_GROUP %> or more, so no one's affiliation can be read off a small group.</td><td>Until you remove them</td></tr>
+    <tr><td>Bug reports, feature requests and threads you file, with the page and details you include</td><td>To fix what is wrong and answer you. Their text is read by the maintainer, moderators and reviewing assistants. It is not part of the public log.</td><td>Until the conversation is closed and no longer needed</td></tr>
+    <tr><td>The web server's request log: address, page, time and browser identifier</td><td>To run the node and protect it from abuse</td><td>As short a time as that needs</td></tr>
+    <tr><td>Request timings, per page, with no address and no account</td><td>To find what is slow</td><td>30 days</td></tr>
+  </table>
+  <p>Rate limits count requests per address for a few minutes to an hour, in a cache that expires by itself.</p>
+</div>
+
+<h2>What is not done</h2>
+<div class="card">
+  <ul>
+    <li><strong>No advertising, no analytics, no tracking pixels</strong>, and no scripts or fonts loaded from anyone else. The only cookie is the one that keeps you signed in.</li>
+    <li><strong>Nothing is sold</strong>, rented or traded.</li>
+    <li><strong>Nothing is fetched from your device.</strong> When a source is retrieved to check a quotation, the server fetches it, not your browser, so the source's site sees this node's address, not yours.</li>
+  </ul>
+</div>
+
+<h2>Who else handles it</h2>
+<div class="card">
+  <p>Requests reach this node through <strong>Cloudflare</strong>, which carries the traffic and sees addresses and requests as it does, under its own privacy policy. The node's backups may be stored with an S3-compatible storage provider. Beyond that, data is shared only if the law requires it, and a request of that kind that leads to a removal appears in the <%= link_to "moderation log", moderation_path %>.</p>
+  <p>The assistant you connect is run by its own provider, which sees what you ask it and what Galedra returns to it, under that provider's terms, not these.</p>
+</div>
+
+<h2>Your choices and rights</h2>
+<div class="card">
+  <p>You can ask for a copy of the private data held about you, for it to be corrected, or for your account to be closed. Write to <%= mail_to @maintainer[:email] %>. Closing an account deletes your email address, password hash, sessions, tokens, affiliations and private views. <strong>It cannot delete what you signed into the public log</strong>, because the log is append-only and the records are published as open data, and others have relied on them. If something you contributed contains personal data, whether yours or someone else's, the <%= link_to "takedown page", takedown_path %> is how to have it withdrawn.</p>
+  <p>Depending on where you live, you may have further rights under laws such as the GDPR, including the right to complain to your data-protection authority.</p>
+</div>
+
+<h2>Children</h2>
+<div class="card">
+  <p>This node is not meant for anyone under 13, and does not knowingly keep data about them. If you believe it does, write and it will be removed.</p>
+</div>

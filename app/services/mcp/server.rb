@@ -572,10 +572,10 @@ module Mcp
     # the claim is still part of the outline's history. `merged_into_id` is a
     # column on the already-loaded row, so this costs no query.
     def outline_node(node)
-      { id: node[:section].id, heading: node[:section].heading, counts_line: Sections::Tree.counts_line(node[:counts]),
+      { id: node[:section].id, heading: node[:section].heading, counts_line: Sections::Tree.counts_line(node[:counts]), reading: Sections::Tree.reading(node),
         claims: node[:claims].map { |c| { id: c.id, text: c.canonical_text, state: node[:states][c.id], url: url_for(c),
                                           merged_into: c.merged_into_id }.compact },
-        children: node[:children].map { |ch| outline_node(ch) } }
+        children: node[:children].map { |ch| outline_node(ch) } }.compact
     end
 
     def tool_record_investigation(args)
@@ -1309,7 +1309,7 @@ module Mcp
     end
 
     def share_line_for(claim, card)
-      Investigation.share_line(headline: card[:plain][:headline], url: "#{url_for(claim)}/card", stated: card[:stated])
+      Cards::ShareText.for_claim(claim, card, "#{url_for(claim)}/card")
     end
 
     def find_task(args)

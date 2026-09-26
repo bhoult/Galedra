@@ -34,7 +34,8 @@ module Api
       def present(section, tree, seq, children: false)
         out = { id: section.id, heading: section.heading, root_id: section.root_id, parent_id: section.parent_id, depth: section.depth, position: section.position,
                 source_id: section.source_id, location_id: section.location_id, created_seq: section.created_seq, contribution_id: section.contribution_id,
-                counts: tree[:counts], pending_claims: tree[:pending], counts_line: Sections::Tree.counts_line(tree[:counts]) }
+                counts: tree[:counts], pending_claims: tree[:pending], counts_line: Sections::Tree.counts_line(tree[:counts]),
+                reading: Sections::Tree.reading(tree) }.compact
         if children
           out[:claims] = tree[:claims].map { |c| { id: c.id, text: c.canonical_text, type: c.claim_type, assessment_state: tree[:states][c.id] } }
           out[:children] = tree[:children].map { |ch| present(ch[:section], ch, seq, children: true) }

@@ -72,7 +72,8 @@ module Investigations
       url = "#{base_url}/investigations/#{investigation.id}"
       verdict = Verdict.call(investigation.claims, seq, Scoring::Registry.default_model)
       summary = Investigation.summary(claims.map { |c| c[:card] }, verdict)
-      { url: url, image_url: "#{url}/card.png", line: Investigation.share_line(url: url, **summary.except(:badge)), verdict: verdict,
+      quote = investigation.statement.presence || investigation.claims.first&.canonical_text
+      { url: url, image_url: "#{url}/card.png", line: Investigation.share_line(summary, url: url, quote: quote), verdict: verdict,
         note: "End your reply with share_line on its own line, exactly as given, so the person can paste it where they were going to post." }
     end
 
@@ -83,7 +84,7 @@ module Investigations
         { anonymous: true, adopt_url: Assistants::Adopt.adopt_url(token, base_url),
           note: "Recorded anonymously. To put it under your name, open adopt_url while signed in to Galedra." }
       else
-        { anonymous: false, principal: token.principal.display_name }
+        { anonymous: false, principal: token.principal.public_label }
       end
     end
 
@@ -197,7 +198,7 @@ module Investigations
       end
     end
 
-    # The whole outline's counts line and its page (06 §6), never a verdict.
+    # The whole outline's reading and its page (06 §6), never a verdict on the speaker.
     def outline_share_line(root, seq, url)
       Sections::Progress.share_line(root, seq, url)
     end

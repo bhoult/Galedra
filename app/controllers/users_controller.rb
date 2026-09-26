@@ -11,7 +11,7 @@ class UsersController < ApplicationController
     @user = User.new(params.require(:user).permit(:email_address, :password, :password_confirmation))
     if @user.valid?
       Users::Admins.create_first_or_ordinary!(@user)
-      Crypto::Custody.create_server_custodied(user: @user, display_name: @user.email_address.split("@").first)
+      Crypto::Custody.create_server_custodied(user: @user, display_name: Users::PublicName.chosen(params.dig(:user, :display_name)))
       start_new_session_for @user
       redirect_to root_path, notice: "Signed up. A server-held signing key was registered for you.#{' You are the first account, so you are an admin.' if @user.admin?}"
     else

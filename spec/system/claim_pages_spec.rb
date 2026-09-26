@@ -5,17 +5,21 @@ RSpec.describe "Claim pages (07 Phase 6 #3)", type: :system do
 
   let(:curator) { register_key(display_name: "Curator").first }
 
-  it "leads with the answer card and keeps the number behind Show calculation; review checks are a count" do
+  # Since 2026-09-23 (owner decision, 06 §4 rule 1) the score sits under the
+  # headline, with model and snapshot; it is still never the headline, and the
+  # trace stays behind Show calculation.
+  it "leads with the answer card, puts the score under the headline and never in it; review checks are a count" do
     graph = build_public_demo
     c2 = graph.claims["C2"]
     visit claim_path(c2, snapshot_seq: graph.checkpoints["S5"])
 
     expect(page).to have_css(".card .headline", text: "Unresolved")
+    expect(page).not_to have_css(".card .headline", text: "0.5247")
+    expect(page).to have_css(".card .score-line", text: "Score: 0.5247 under #{Scoring::Registry.default_model.full_name} at snapshot #{graph.checkpoints['S5']}")
     expect(page).to have_text("review checks 3 of 4")
-    expect(page).not_to have_text("0.5247")
     expect(page.text).not_to match(/\d+% of evidence|coverage:\s*(high|medium|low)/i)
 
-    expect(page).not_to have_text("0.5247")
+    expect(page).not_to have_css("pre#trace")
     click_link "Show calculation"
     within("#calculation") do
       expect(page).to have_text("0.5247 under #{Scoring::Registry.default_model.full_name} at snapshot #{graph.checkpoints['S5']}")
@@ -23,7 +27,7 @@ RSpec.describe "Claim pages (07 Phase 6 #3)", type: :system do
     end
     expect(page).to have_css("pre#trace", text: '"probability": "0.5247"')
     click_link "Hide calculation"
-    expect(page).not_to have_text("0.5247")
+    expect(page).not_to have_css("pre#trace", visible: true)
     expect(page).to have_text("Main unresolved issue")
     expect(page).to have_text("A narrower version of this claim is supported.")
   end

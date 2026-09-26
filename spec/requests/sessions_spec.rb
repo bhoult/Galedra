@@ -33,6 +33,6 @@ RSpec.describe "Sessions", type: :request do
 
     post "/users", params: { user: { email_address: "new@example.com", password: password, password_confirmation: password } }
     expect(response).to redirect_to("/")
-    expect(User.find_by!(email_address: "new@example.com").custodied_key.contributor.display_name).to eq("new")
+    expect(User.find_by!(email_address: "new@example.com").custodied_key.contributor.display_name).to be_nil
   end
 end

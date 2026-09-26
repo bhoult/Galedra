@@ -26,7 +26,11 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
     verdict = share["verdict"]
     expect(verdict).to include("headline" => "Parts of this go against the evidence.", "sentence" => "1 of 2 checkable claims goes against the evidence; 1 holds up so far")
     expect(verdict["stated"]).to match(/\A0\.\d{4} under #{Regexp.escape(Scoring::Registry.default_model.full_name)} at snapshot \d+ for all claims together\z/)
-    expect(data["share_line"]).to eq("Checked in Galedra: Parts of this go against the evidence. (1 of 2 checkable claims goes against the evidence; 1 holds up so far) #{verdict['stated']}. #{share['url']}")
+    score = Scoring::Decimal.fixed(BigDecimal(verdict["figure"]), 2)
+    lines = data["share_line"].lines(chomp: true)
+    expect(lines[0]).to start_with("Checked in Galedra: score #{score}, mostly against")
+    expect(lines[1]).to start_with("“").and end_with("”")
+    expect(lines[2]).to eq(share["url"])
     expect(share["note"]).to include("End your reply")
 
     get share["url"]
@@ -48,7 +52,10 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
     # An existing claim carries its own share line.
     ban = data["claims"].find { |c| c["handle"] == "ban" }
     data, = call_tool("get_claim", { claim_id: ban["id"] })
-    expect(data["share_line"]).to eq("Checked in Galedra: #{data.dig('card', 'plain', 'headline')} #{data.dig('card', 'stated')}. #{ban['url']}/card")
+    expect(data["share_line"]).to start_with("Checked in Galedra: score #{Scoring::Decimal.fixed(BigDecimal(data.dig('card', 'probability')), 2)}, ")
+    expect(data["share_line"]).to end_with("\n#{ban['url']}/card")
+    expect(data["share_line"]).not_to include("ledger-default")
+    expect(data["share_line"]).not_to include("snapshot")
     expect(data.dig("card", "stated")).to match(/\A0\.\d{4} under #{Regexp.escape(Scoring::Registry.default_model.full_name)} at snapshot \d+\z/)
     data, = call_tool("search_claims", { query: "Brackenridge bicycles" })
     expect(data["claims"].first["share_line"]).to start_with("Checked in Galedra: ")
@@ -59,7 +66,7 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
   it "works without a statement, gives one headline when one claim answers, and rejects an oversized statement" do
     data, err = call_tool("record_investigation", { "claims" => [ { "handle" => "c", "text" => "A single unsourced claim about kites.", "type" => "OBSERVATIONAL" } ] })
     expect(err).to be(false), data.inspect
-    expect(data["share_line"]).to eq("Checked in Galedra: Nobody has checked this yet. #{data['share']['url']}")
+    expect(data["share_line"]).to eq("Checked in Galedra: not checked yet\n“A single unsourced claim about kites.”\n#{data['share']['url']}")
     expect(data["claims"].first.dig("card", "stated")).to be_nil
     get data["share"]["url"]
     expect(response).to have_http_status(:ok)
@@ -71,7 +78,7 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
                                                     "claims" => [ { "handle" => "k", "attach_to" => kites }, { "handle" => "n", "text" => "Schools should teach kite-making instead of algebra.", "type" => "NORMATIVE" } ] })
     expect(err).to be(false), data.inspect
     expect(data["share"]["verdict"]).to include("headline" => "Not settled yet.", "sentence" => "1 not yet settled; 1 not a checkable fact", "stated" => nil, "badge" => "not_checked")
-    expect(data["share_line"]).to eq("Checked in Galedra: Not settled yet. (1 not yet settled; 1 not a checkable fact) #{data['share']['url']}")
+    expect(data["share_line"]).to eq("Checked in Galedra: not checked yet\n“Kites are amazing and schools should teach kite-making instead of algebra.”\n#{data['share']['url']}")
     get data["share"]["url"]
     expect(response.body).to include("A single unsourced claim about kites.").and include("Not a checkable fact")
 

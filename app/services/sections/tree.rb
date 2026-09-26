@@ -2,11 +2,18 @@
 
 module Sections
   # The counted tree under a root at a seq, with per-section counts (Stage 20).
-  # No section, root, source, or speaker ever gets a probability, headline, or
-  # badge: only counts by assessment state in the 06 §6 form, with its fixed
-  # note. Claims appear only when accepted; proposals are a count.
+  # Claims appear only when accepted; proposals are a count.
+  #
+  # Each section also carries `verdict`: the reading of every claim under it,
+  # on the same scale as an investigation (Investigations::Verdict), read by
+  # proportion because a section is a collection of separate statements, with
+  # a figure only when every checkable claim
+  # under it has a probability. Until 2026-09-23 no section had one, by 06 §6;
+  # the owner asked for a badge and a figure at every level of an outline, and
+  # 06 §6 now says what that reading is and what it never is: a score for the
+  # speaker or the source (Article XVIII).
   module Tree
-    NOTE = "Counts depend on extraction granularity. There is never a score for a section, a source, or a speaker."
+    NOTE = "Counts depend on extraction granularity. The badge on a section reads the claims filed under it, and is never a score for the speaker or the source."
     STATES = %w[SUPPORTED LEANS_SUPPORTED UNRESOLVED LEANS_CONTRADICTED CONTRADICTED INSUFFICIENT_EVIDENCE NOT_APPLICABLE].freeze
 
     module_function
@@ -38,8 +45,12 @@ module Sections
         subtree = by_parent.fetch(section.id, []).map { |child| node.call(child, level + 1) }
         counts = tally(counted.map { |c| states[c.id] })
         subtree.each { |ch| counts = merge(counts, ch[:counts]) }
+        results = counted.filter_map { |c| scored[c.id] } + subtree.flat_map { |ch| ch[:results] }
         { section: section, children: depth && level >= depth ? [] : subtree, claims: counted,
           states: counted.to_h { |c| [ c.id, states[c.id] ] },
+          scores: counted.to_h { |c| [ c.id, scored[c.id] ] },
+          results: results,
+          verdict: model && results.any? ? Investigations::Verdict.summarize(results, seq, model, collection: true) : nil,
           pending: pending + subtree.sum { |ch| ch[:pending] }, counts: counts }
       end
       node.call(root, 0)
@@ -55,6 +66,16 @@ module Sections
     end
 
     def merge(a, b) = a.merge(b) { |_, x, y| x + y }
+
+    # The reading of a node for the API and MCP: what the page shows as a small
+    # badge, in words. Nil when nothing under it has been scored.
+    def reading(node)
+      v = node[:verdict]
+      return nil if v.nil?
+
+      { badge: v[:badge].to_s, label: Cards::Badge.for_key(v[:badge])[:label], headline: v[:headline], sentence: v[:sentence],
+        figure: v[:figure], stated: v[:stated], note: "A reading of the claims under this section, never a score for the speaker or the source." }.compact
+    end
 
     # "168 extracted claims · 131 truth-evaluable · 74 SUPPORTED …" (06 §6).
     def counts_line(counts)

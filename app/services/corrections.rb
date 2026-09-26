@@ -134,7 +134,7 @@ module Corrections
     end
     proposer = c.principal_contributor
     { contribution_id: c.id, kind: c.action_type, seq: c.seq, claim_ids: claims.map(&:id), claims: claims.map { |k| k.canonical_text.to_s[0, 160] },
-      proposed_by: proposer.nil? || proposer.anonymous? ? "an anonymous contributor" : (proposer.display_name.presence || "a named contributor"),
+      proposed_by: proposer.nil? ? "an anonymous contributor" : proposer.public_label,
       proposer_contributor_id: proposer&.id, summary: summary }
   end
 
@@ -200,6 +200,6 @@ module Corrections
 
   def describe_principal(contribution)
     p = contribution.principal_contributor
-    p.nil? || p.anonymous? ? "an anonymous contributor" : (p.display_name.presence || "a named contributor")
+    p.nil? ? "an anonymous contributor" : p.public_label
   end
 end

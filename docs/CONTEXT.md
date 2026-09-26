@@ -354,6 +354,23 @@ in hand. There is one `galedra_test`, and two runs truncating and seeding it con
 will fail in ways unrelated to the code. Re-running serially gave 0. Before believing a
 sudden batch of failures, check that nothing else is using the database.
 
+**Calling a failing spec "flaky" and moving on — twice.** `claim_pages_spec` and
+`answers_spec` were each noted as "failed once, passed on rerun" and left alone. The real
+cause was in a test helper. `result_rows` ordered a task result's rows by `created_seq`,
+which every row of one result shares, so Postgres broke the tie either way. About one run
+in thirty, the demo's handle `C2` named the NORMATIVE claim, and the page scored a claim
+the test never meant. It looked like a score that changed between runs, which is an
+Invariant 4 alarm. It took four steps to get to the bottom of it:
+
+- `rspec --bisect`, whose "minimal reproduction" then passed;
+- a loop of the whole file until it failed, 1 in 30;
+- a dump of the trace on each run;
+- reading the claim type in the failing trace.
+
+**A spec that fails even once has a cause, and ordering by a column that ties is the
+first thing to look for.** Rows from one contribution are ordered by the op index in
+their derived id, which is what `result_rows` does now.
+
 **Not knowing when an investigation has finished.** A refusal arrived missing the successor
 id it is built to carry. Six queries ruled out truncation, stale data, an unaccepted merge
 and a stale process, and none of them explained it — and then came several more mechanisms
