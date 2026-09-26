@@ -1,0 +1,270 @@
+<%# The 45-second film on the landing page: one inline SVG, animated by film.css and played by the film
+    controller when it comes into view. Every shape is drawn here, so nothing loads from another host and the
+    text stays sharp at any width, a phone's included. Without JavaScript, or when the reader prefers reduced
+    motion, it shows its last frame. The t-classes are start times in tenths of a second (t204 starts at 20.4 s).
+    The badges are the check page's own (Cards::Badge), so the film cannot drift from what a check shows. %>
+<%
+  claims = [
+    [ "QUANTITATIVE", 128, "Half the world’s electricity is clean.", :leans_against ],
+    [ "QUANTITATIVE", 128, "Half of all the energy used is clean.", :mostly_against ],
+    [ "RHETORICAL", 112, "Fossil fuels are finished.", :not_checkable ]
+  ]
+  ghosts = [ [ 70, 96, "M440 150C360 150 300 144 220 144" ], [ 40, 262, "M440 270C340 270 290 310 190 310" ],
+             [ 70, 428, "M440 390C340 390 320 476 220 476" ], [ 1060, 96, "M840 150C920 150 980 144 1060 144" ],
+             [ 1090, 262, "M840 270C940 270 990 310 1090 310" ], [ 1060, 428, "M840 390C940 390 960 476 1060 476" ] ]
+  entries = %w[claim claim claim evidence evidence evidence]
+  sources = [ [ 120, "GRID DATA · 2024", "M880 182C825 182 825 306 770 306", "contradicts", 244 ],
+              [ 240, "ENERGY REVIEW · 2024", "M880 302C825 302 825 364 770 364", "contradicts", 333 ],
+              [ 360, "AGENCY REPORT · 2025", "M880 422H770", "supports", 422 ] ]
+  badge = ->(key, size) { Cards::Badge.svg(key, size: size) }
+  label = ->(key) { Cards::Badge.for_key(key)[:label] }
+  color = ->(key) { Cards::Badge.for_key(key)[:color] }
+  mini_post = lambda do |avatar, name_width|
+    safe_join([
+      tag.rect(width: 340, height: 168, rx: 16, fill: "#fffdf9"),
+      tag.circle(cx: 34, cy: 36, r: 16, fill: avatar),
+      tag.rect(x: 58, y: 26, width: name_width, height: 10, rx: 5, fill: "#3a3833"),
+      tag.rect(x: 58, y: 42, width: 64, height: 8, rx: 4, fill: "#cfc9bb"),
+      tag.text("Clean energy already powers", x: 22, y: 92, class: "fm-mini-text"),
+      tag.text("half the world.", x: 22, y: 120, class: "fm-mini-text"),
+      tag.text("Fossil fuels are finished.", x: 22, y: 148, class: "fm-mini-sub")
+    ])
+  end
+  reply = lambda do |avatar, line|
+    safe_join([
+      tag.rect(width: 340, height: 150, rx: 16, fill: "#fffdf9"),
+      tag.circle(cx: 30, cy: 30, r: 14, fill: avatar),
+      tag.rect(x: 52, y: 22, width: 84, height: 9, rx: 4.5, fill: "#3a3833"),
+      tag.text(line, x: 20, y: 72, class: "fm-reply-text"),
+      tag.rect(x: 16, y: 86, width: 308, height: 50, rx: 10, fill: "#f1eee6", stroke: "#e0dcd2"),
+      tag.g(badge.call(:leans_against, 26), transform: "translate(28 98)"),
+      tag.text("Checked in Galedra · leans against", x: 64, y: 107, class: "fm-link-title"),
+      tag.text("galedra.org/investigations/01a0…", x: 64, y: 125, class: "fm-link-url")
+    ])
+  end
+%>
+<figure class="film" data-controller="film" data-action="animationend->film#ended">
+  <div class="film-frame">
+    <svg class="film-stage" viewBox="0 0 1280 720" role="img" aria-labelledby="film-title film-desc" focusable="false">
+      <title id="film-title">How Galedra checks a claim</title>
+      <desc id="film-desc">A post claims that clean energy already powers half the world and that fossil fuels are finished, and it spreads. Before reposting it, a person asks their assistant to check it in Galedra. The assistant splits it into claims: two figures that can be checked, and one rhetorical line that cannot. Each figure is read against real sources, and the claims, the quoted passages and the evidence go into Galedra's signed log. The check page shows reasons, not a verdict: the electricity figure leans against, since low-carbon sources made about 40% of the world's electricity in 2024; the figure for all energy is mostly against; the rhetorical line is not a checkable fact. It gives a link to post instead of the rumour. The person replies with the link, and the next person to meet the same claim starts from the kept check instead of from nothing.</desc>
+      <defs>
+        <radialGradient id="fm-glow-a" cx="86%" cy="4%" r="66%"><stop offset="0" stop-color="#2c5a86" stop-opacity=".6"/><stop offset="1" stop-color="#2c5a86" stop-opacity="0"/></radialGradient>
+        <radialGradient id="fm-glow-b" cx="4%" cy="100%" r="56%"><stop offset="0" stop-color="#8a6a3a" stop-opacity=".26"/><stop offset="1" stop-color="#8a6a3a" stop-opacity="0"/></radialGradient>
+        <clipPath id="fm-panel"><rect x="24" y="202" width="352" height="96" rx="10"/></clipPath>
+      </defs>
+      <rect width="1280" height="720" fill="#111a24"/>
+      <rect width="1280" height="720" fill="url(#fm-glow-a)"/>
+      <rect width="1280" height="720" fill="url(#fm-glow-b)"/>
+      <rect class="fm-clock" width="1" height="1" fill="none"/>
+
+      <%# 1. A post, spreading: copies of it branch off to every side. %>
+      <g class="fm-scene1">
+        <g fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round" opacity=".6">
+          <% ghosts.each_with_index do |(_, _, path), i| %>
+            <path class="fm-draw t<%= 24 + i * 3 %>" d="<%= path %>" pathLength="1"/>
+          <% end %>
+        </g>
+        <g opacity=".85">
+        <% ghosts.each_with_index do |(x, y, _), i| %>
+          <g class="fm-pop t<%= 30 + i * 3 %>">
+            <rect x="<%= x %>" y="<%= y %>" width="150" height="96" rx="12" fill="#fffdf9"/>
+            <circle cx="<%= x + 22 %>" cy="<%= y + 22 %>" r="10" fill="<%= i.even? ? "#c9a77c" : "#9bb58a" %>"/>
+            <rect x="<%= x + 40 %>" y="<%= y + 15 %>" width="70" height="7" rx="3.5" fill="#3a3833"/>
+            <rect x="<%= x + 40 %>" y="<%= y + 27 %>" width="46" height="6" rx="3" fill="#cfc9bb"/>
+            <rect x="<%= x + 14 %>" y="<%= y + 46 %>" width="122" height="8" rx="4" fill="#6a675f"/>
+            <rect x="<%= x + 14 %>" y="<%= y + 60 %>" width="88" height="8" rx="4" fill="#6a675f"/>
+            <rect x="<%= x + 14 %>" y="<%= y + 76 %>" width="122" height="10" rx="4" fill="#dbe7f0"/>
+          </g>
+        <% end %>
+        </g>
+      </g>
+
+      <%# The post itself: centred, then aside while it is checked, then gone. %>
+      <g transform="translate(440 96)">
+        <g class="fm-post">
+          <rect width="400" height="344" rx="18" fill="#fffdf9"/>
+          <circle cx="42" cy="44" r="20" fill="#c9a77c"/>
+          <rect x="74" y="31" width="118" height="12" rx="6" fill="#3a3833"/>
+          <rect x="74" y="51" width="76" height="9" rx="4.5" fill="#cfc9bb"/>
+          <text x="24" y="112" class="fm-post-text">Clean energy already</text>
+          <text x="24" y="148" class="fm-post-text">powers half the world.</text>
+          <text x="24" y="184" class="fm-post-sub">Fossil fuels are finished.</text>
+          <g clip-path="url(#fm-panel)">
+            <rect x="24" y="202" width="352" height="96" fill="#dbe7f0"/>
+            <circle cx="330" cy="230" r="14" fill="#f3d27a"/>
+            <path d="M24 282Q120 262 200 276T376 270V298H24Z" fill="#b9cfae"/>
+            <g stroke="#fffdf9" stroke-linecap="round">
+              <path d="M110 284V232M170 286V246" stroke-width="4"/>
+              <g class="fm-spin fm-spin-a" stroke-width="3.5"><path d="M110 232V206M110 232L132.5 245M110 232L87.5 245"/></g>
+              <g class="fm-spin fm-spin-b" stroke-width="3"><path d="M170 246V226M170 246L187.3 256M170 246L152.7 256"/></g>
+            </g>
+          </g>
+          <g transform="translate(24 304)" fill="none" stroke="#6a675f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 8V6a3 3 0 0 1 3-3h13M15 0l3 3-3 3M22 12v2a3 3 0 0 1-3 3H6M9 20l-3-3 3-3"/>
+          </g>
+          <text x="56" y="322" class="fm-count fm-count1">12</text>
+          <text x="56" y="322" class="fm-count fm-count2">1.4k</text>
+          <text x="56" y="322" class="fm-count fm-count3">52k</text>
+          <path d="M160 324c-6-4-10-7-10-11a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 4-4 7-10 11z" fill="none" stroke="#6a675f" stroke-width="2.2" stroke-linejoin="round"/>
+        </g>
+      </g>
+
+      <%# 2. Before reposting: "check this", and the assistant splits it into claims. %>
+      <g class="fm-scene2">
+        <g class="fm-pop t102">
+          <rect x="80" y="434" width="288" height="78" rx="18" fill="#2c5a86"/>
+          <path d="M330 510l24 16-4-18z" fill="#2c5a86"/>
+          <text x="100" y="466" class="fm-bubble">Check this in Galedra</text>
+          <text x="100" y="494" class="fm-bubble">before I post it.</text>
+        </g>
+        <g class="fm-pop t108">
+          <rect x="380" y="285" width="124" height="30" rx="15" fill="#172536" stroke="#8db6de" stroke-width="1.5"/>
+          <text x="442" y="305" class="fm-kicker" text-anchor="middle" fill="#cfe0f0">ASSISTANT</text>
+        </g>
+        <g fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round">
+          <path class="fm-draw t114" d="M504 300C552 300 552 188 600 188" pathLength="1"/>
+          <path class="fm-draw t120" d="M504 300C552 300 552 288 600 288" pathLength="1"/>
+          <path class="fm-draw t126" d="M504 300C552 300 552 388 600 388" pathLength="1"/>
+        </g>
+      </g>
+
+      <%# The claims: split out of the post, then filed on the left while they are checked. %>
+      <% claims.each_with_index do |(type, tag_width, text, _), i| %>
+        <g transform="translate(600 <%= 150 + i * 100 %>)">
+          <g class="fm-chip fm-chip<%= i + 1 %>">
+            <rect width="560" height="76" rx="14" fill="#fffdf9"/>
+            <rect x="18" y="14" width="<%= tag_width %>" height="22" rx="11" fill="#e3ecf5"/>
+            <text x="<%= 18 + tag_width / 2 %>" y="29.5" class="fm-tag" text-anchor="middle" fill="#2c5a86"><%= type %></text>
+            <text x="18" y="62" class="fm-claim"><%= text %></text>
+          </g>
+        </g>
+      <% end %>
+
+      <%# 3. The record: each claim, each source and each passage becomes a signed entry in the log. %>
+      <g class="fm-scene3">
+        <text x="640" y="94" class="fm-kicker fm-pop t186" text-anchor="middle" fill="#8db6de">GALEDRA · THE SIGNED LOG</text>
+        <g fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round">
+          <path class="fm-draw t189" d="M453 177C482 177 482 132 510 132" pathLength="1"/>
+          <path class="fm-draw t195" d="M453 277C482 277 482 190 510 190" pathLength="1"/>
+          <path class="fm-draw t201" d="M453 377C482 377 482 248 510 248" pathLength="1"/>
+        </g>
+        <% entries.each_with_index do |kind, i| %>
+          <% y = 110 + i * 58 %>
+          <g class="fm-rise t<%= [ 198, 204, 210, 240, 246, 252 ][i] %>">
+            <% if i.positive? %><path d="M534 <%= y - 14 %>V<%= y %>" stroke="#3d5b7a" stroke-width="2"/><% end %>
+            <rect x="510" y="<%= y %>" width="260" height="44" rx="9" fill="#172536" stroke="#3d5b7a" stroke-width="1.5"/>
+            <text x="526" y="<%= y + 28 %>" class="fm-seq"><%= 7598 + i %></text>
+            <text x="592" y="<%= y + 28 %>" class="fm-kind"><%= kind %></text>
+            <circle cx="696" cy="<%= y + 22 %>" r="4.5" fill="none" stroke="#8db6de" stroke-width="2"/>
+            <path d="M700.5 <%= y + 22 %>H710M706 <%= y + 22 %>v4M710 <%= y + 22 %>v3" fill="none" stroke="#8db6de" stroke-width="2" stroke-linecap="round"/>
+            <text x="716" y="<%= y + 27 %>" class="fm-signed">signed</text>
+          </g>
+        <% end %>
+        <% sources.each_with_index do |(y, kicker, _, _, _), i| %>
+          <g class="fm-pop t<%= 204 + i * 6 %>">
+            <rect x="880" y="<%= y %>" width="330" height="96" rx="12" fill="#fffdf9"/>
+            <text x="898" y="<%= y + 26 %>" class="fm-mini" fill="#6a675f"><%= kicker %></text>
+            <rect class="fm-grow t<%= 222 + i * 6 %>" x="892" y="<%= y + 52 %>" width="302" height="20" rx="4" fill="#cfe0f0"/>
+            <rect x="898" y="<%= y + 40 %>" width="250" height="8" rx="4" fill="#d9d3c6"/>
+            <rect x="898" y="<%= y + 58 %>" width="290" height="8" rx="4" fill="#8a8578"/>
+            <rect x="898" y="<%= y + 76 %>" width="200" height="8" rx="4" fill="#d9d3c6"/>
+          </g>
+        <% end %>
+        <g fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round">
+          <% sources.each_with_index do |(_, _, path, _, _), i| %>
+            <path class="fm-draw t<%= 225 + i * 6 %>" d="<%= path %>" pathLength="1"/>
+          <% end %>
+        </g>
+        <% sources.each_with_index do |(_, _, _, stance, mid), i| %>
+          <g class="fm-pop t<%= 243 + i * 6 %>">
+            <rect x="775" y="<%= mid - 12 %>" width="100" height="24" rx="12" fill="#111a24" stroke="#8db6de" stroke-width="1.5"/>
+            <text x="825" y="<%= mid + 4.5 %>" class="fm-stance" text-anchor="middle"><%= stance %></text>
+          </g>
+        <% end %>
+      </g>
+
+      <%# 4. The check page: reasons, not a verdict, and a link to post instead of the rumour. %>
+      <g class="fm-scene4">
+        <g transform="translate(300 70)">
+          <g class="fm-rise t282">
+            <rect width="680" height="500" rx="16" fill="#fffdf9"/>
+            <text x="36" y="44" class="fm-kicker" fill="#6a675f">CHECKED, NOT SETTLED</text>
+            <g class="fm-stamp t294">
+              <g transform="translate(40 64)"><%= badge.call(:leans_against, 68) %></g>
+              <text x="74" y="156" class="fm-badge-label" text-anchor="middle" fill="<%= color.call(:leans_against) %>">Leans</text>
+              <text x="74" y="173" class="fm-badge-label" text-anchor="middle" fill="<%= color.call(:leans_against) %>">against</text>
+            </g>
+            <g class="fm-fade t288">
+              <text x="134" y="94" class="fm-statement">“Clean energy already powers half</text>
+              <text x="134" y="126" class="fm-statement">the world. Fossil fuels are finished.”</text>
+            </g>
+            <g class="fm-fade t300">
+              <text x="134" y="168" class="fm-say"><tspan font-weight="700">Say instead:</tspan> Low-carbon sources made about</text>
+              <text x="134" y="194" class="fm-say">40% of the world’s electricity in 2024.</text>
+            </g>
+            <path class="fm-grow t300" d="M36 222H644" stroke="#e0dcd2" stroke-width="1.5"/>
+            <% claims.each_with_index do |(_, _, text, key), i| %>
+              <g class="fm-rise t<%= 306 + i * 6 %>">
+                <g transform="translate(36 <%= 240 + i * 50 %>)"><%= badge.call(key, 28) %></g>
+                <text x="80" y="<%= 260 + i * 50 %>" class="fm-row"><%= text %></text>
+                <text x="644" y="<%= 259 + i * 50 %>" class="fm-row-label" text-anchor="end" fill="<%= color.call(key) %>"><%= label.call(key) %></text>
+              </g>
+            <% end %>
+            <g class="fm-rise t324">
+              <rect x="36" y="400" width="608" height="76" rx="10" fill="#f1eee6" stroke="#e0dcd2"/>
+              <text x="54" y="430" class="fm-share">Checked in Galedra: leans against · not yet reviewed by anyone else</text>
+              <text x="54" y="458" class="fm-share-url">galedra.org/investigations/01a0…</text>
+              <rect class="fm-grow t336" x="54" y="463" width="262" height="2" fill="#2c5a86"/>
+            </g>
+          </g>
+        </g>
+      </g>
+
+      <%# 5. Posted in reply, and kept: the next person to meet the claim starts from the check. %>
+      <g class="fm-fade t417">
+        <g transform="translate(551 44) scale(.66)">
+          <g stroke="#8db6de" stroke-width="2.6" fill="none" stroke-linecap="round">
+            <path d="M14 50L23 34M32 50L23 34M32 50L41 34M50 50L41 34M23 34L32 18M41 34L32 18M14 50H50M23 34H41"/>
+          </g>
+          <g fill="#cfe0f0"><circle cx="14" cy="50" r="5.5"/><circle cx="32" cy="50" r="5.5"/><circle cx="50" cy="50" r="5.5"/><circle cx="23" cy="34" r="5.5"/><circle cx="41" cy="34" r="5.5"/></g>
+          <circle cx="32" cy="18" r="5.5" fill="#111a24" stroke="#cfe0f0" stroke-width="2.5"/>
+        </g>
+        <text x="600" y="80" class="fm-wordmark">Galedra</text>
+      </g>
+      <g class="fm-pop t372">
+        <% [ 230, 270, 310 ].each_with_index do |y, i| %>
+          <rect x="560" y="<%= y %>" width="160" height="30" rx="7" fill="#172536" stroke="#3d5b7a" stroke-width="1.5"/>
+          <text x="574" y="<%= y + 20 %>" class="fm-seq-small"><%= 7598 + i * 2 %></text>
+          <rect x="626" y="<%= y + 11 %>" width="<%= [ 76, 60, 70 ][i] %>" height="8" rx="4" fill="#3d5b7a"/>
+        <% end %>
+        <text x="640" y="372" class="fm-kicker" text-anchor="middle" fill="#8db6de">THE RECORD</text>
+      </g>
+      <g transform="translate(90 140)"><g class="fm-rise t375"><%= mini_post.call("#c9a77c", 96) %></g></g>
+      <path class="fm-draw t381" d="M112 308V366H130" fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round" opacity=".7" pathLength="1"/>
+      <g transform="translate(130 326)"><g class="fm-rise t384"><%= reply.call("#8aa7c4", "I checked this before sharing it:") %></g></g>
+      <path class="fm-draw t387" d="M470 420C520 420 520 285 560 285" fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round" pathLength="1"/>
+      <g transform="translate(850 140)"><g class="fm-rise t390"><%= mini_post.call("#9bb58a", 80) %></g></g>
+      <path class="fm-draw t399" d="M720 285C760 285 780 420 850 420" fill="none" stroke="#8db6de" stroke-width="2.5" stroke-linecap="round" pathLength="1"/>
+      <g class="fm-pop t408">
+        <rect x="709" y="340" width="130" height="24" rx="12" fill="#111a24" stroke="#8db6de" stroke-width="1.5"/>
+        <text x="774" y="356.5" class="fm-stance" text-anchor="middle">found, not redone</text>
+      </g>
+      <g transform="translate(850 326)"><g class="fm-pop t411"><%= reply.call("#b88fb0", "Already checked in Galedra:") %></g></g>
+
+      <%# Captions, one per beat; the last one stays. %>
+      <text x="640" y="648" class="fm-cap fm-cap1" text-anchor="middle">A claim spreads in the time it takes to read it.</text>
+      <text x="640" y="648" class="fm-cap fm-cap2" text-anchor="middle">Your assistant splits it into claims it can check.</text>
+      <text x="640" y="648" class="fm-cap fm-cap3" text-anchor="middle">Real sources, exact passages, every step signed.</text>
+      <text x="640" y="648" class="fm-cap fm-cap4" text-anchor="middle">Reasons, not verdicts, and a link to post.</text>
+      <text x="640" y="648" class="fm-cap fm-cap5" text-anchor="middle">The next person starts from the check.</text>
+      <text x="640" y="648" class="fm-cap fm-cap6" text-anchor="middle">Checked once, kept for everyone.</text>
+    </svg>
+  </div>
+  <div class="film-bar"><span class="film-progress"></span></div>
+  <div class="film-controls" data-film-target="controls" hidden>
+    <button type="button" class="secondary small" data-film-target="toggle" data-action="film#toggle" aria-pressed="false">Pause</button>
+    <button type="button" class="secondary small" data-film-target="replay" data-action="film#replay">Replay</button>
+  </div>
+  <figcaption>The loop the record makes possible: the check is kept, so the next person to meet the same claim starts from it instead of from nothing.</figcaption>
+</figure>

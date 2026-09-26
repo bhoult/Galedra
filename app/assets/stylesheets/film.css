@@ -1,0 +1,189 @@
+/* The 45-second film on the landing page (home/_film.html.erb): one inline
+   SVG. Generic motions take a start time from a t-class (tenths of a
+   second); scenes, the post, the claims and the captions follow 45-second
+   tracks. The film controller starts it when it comes into view; paused, it
+   holds; without JavaScript or with reduced motion it shows its last frame. */
+
+figure.film { margin: 1.8rem 0 0; }
+.film-frame { overflow: hidden; border: 1px solid var(--line-strong); border-radius: 14px; background: #111a24; box-shadow: 0 30px 60px -36px rgba(17, 26, 36, 0.55); }
+.film-stage { display: block; width: 100%; height: auto; }
+
+.film-stage .fm-post-text { font: 400 30px var(--serif); fill: var(--ink); }
+.film-stage .fm-post-sub { font: 400 20px var(--sans); fill: #4a4843; }
+.film-stage .fm-count { font: 700 17px var(--sans); fill: #4a4843; }
+.film-stage .fm-bubble { font: 500 19px var(--sans); fill: #fff; }
+.film-stage .fm-kicker { font: 700 13px var(--sans); letter-spacing: 0.16em; }
+.film-stage .fm-tag { font: 700 11px var(--sans); letter-spacing: 0.12em; }
+.film-stage .fm-claim { font: 400 23px var(--serif); fill: var(--ink); }
+.film-stage .fm-mini { font: 700 11px var(--sans); letter-spacing: 0.14em; }
+.film-stage .fm-seq { font: 500 15px var(--mono); fill: #9fc3e6; }
+.film-stage .fm-seq-small { font: 500 13px var(--mono); fill: #9fc3e6; }
+.film-stage .fm-kind { font: 500 16px var(--sans); fill: #e8eef5; }
+.film-stage .fm-signed { font: 500 12px var(--sans); fill: #8db6de; }
+.film-stage .fm-stance { font: 600 12px var(--sans); fill: #cfe0f0; }
+.film-stage .fm-badge-label { font: 700 14px var(--sans); }
+.film-stage .fm-statement { font: 400 25px var(--serif); fill: var(--ink); }
+.film-stage .fm-say { font: 400 17px var(--sans); fill: #2a2925; }
+.film-stage .fm-row { font: 400 19px var(--serif); fill: var(--ink); }
+.film-stage .fm-row-label { font: 700 13px var(--sans); }
+.film-stage .fm-share { font: 400 15px var(--sans); fill: var(--ink); }
+.film-stage .fm-share-url { font: 500 15px var(--sans); fill: var(--accent); }
+.film-stage .fm-mini-text { font: 400 21px var(--serif); fill: var(--ink); }
+.film-stage .fm-mini-sub { font: 400 15px var(--sans); fill: #4a4843; }
+.film-stage .fm-reply-text { font: 400 15px var(--sans); fill: #2a2925; }
+.film-stage .fm-link-title { font: 700 13.5px var(--sans); fill: var(--ink); }
+.film-stage .fm-link-url { font: 500 12.5px var(--sans); fill: var(--accent); }
+.film-stage .fm-wordmark { font: 700 34px var(--serif); fill: #f3f0e8; }
+.film-stage .fm-cap { font: 500 44px var(--serif); fill: #f3f0e8; }
+
+.film-bar { height: 3px; margin-top: 0.8rem; overflow: hidden; border-radius: 3px; background: var(--line); }
+.film-progress { display: block; height: 100%; background: var(--accent); transform-origin: left center; animation: fmProgress 45s linear both; }
+.film-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 0.7rem; }
+.film-controls[hidden], .film-controls button[hidden] { display: none; }
+figure.film figcaption { width: fit-content; margin: 0.6rem auto 0; padding: 0.25rem 0.7rem; border-radius: 6px; background: rgba(255, 253, 249, 0.9); color: var(--muted); font-size: 0.92rem; text-align: center; }
+
+/* Generic motions. */
+.fm-draw, .fm-grow, .fm-pop, .fm-fade, .fm-rise, .fm-stamp {
+  animation-duration: 0.8s; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); animation-fill-mode: both; transform-box: fill-box;
+}
+.fm-draw { animation-name: fmDraw; animation-duration: 1.4s; stroke-dasharray: 1; }
+.fm-grow { animation-name: fmGrow; transform-origin: left center; }
+.fm-pop { animation-name: fmPop; animation-duration: 0.7s; transform-origin: center; }
+.fm-fade { animation-name: fmFade; animation-duration: 0.7s; }
+.fm-rise { animation-name: fmRise; }
+.fm-stamp { animation-name: fmStamp; animation-duration: 0.6s; animation-timing-function: cubic-bezier(0.3, 1.4, 0.5, 1); transform-origin: center; }
+.fm-spin { animation: fmSpin 4s linear infinite; transform-box: view-box; }
+.fm-spin-a { transform-origin: 110px 232px; }
+.fm-spin-b { transform-origin: 170px 246px; animation-duration: 3s; }
+
+@keyframes fmDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fmGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fmPop { 0% { opacity: 0; transform: scale(0.4); } 70% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes fmFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fmRise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes fmStamp { from { opacity: 0; transform: scale(1.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes fmSpin { to { transform: rotate(360deg); } }
+@keyframes fmProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fmClock { from { opacity: 0; } to { opacity: 0; } }
+
+/* Start times. */
+.film-stage .t24 { animation-delay: 2.4s; }
+.film-stage .t27 { animation-delay: 2.7s; }
+.film-stage .t30 { animation-delay: 3.0s; }
+.film-stage .t33 { animation-delay: 3.3s; }
+.film-stage .t36 { animation-delay: 3.6s; }
+.film-stage .t39 { animation-delay: 3.9s; }
+.film-stage .t42 { animation-delay: 4.2s; }
+.film-stage .t45 { animation-delay: 4.5s; }
+.film-stage .t102 { animation-delay: 10.2s; }
+.film-stage .t108 { animation-delay: 10.8s; }
+.film-stage .t114 { animation-delay: 11.4s; }
+.film-stage .t120 { animation-delay: 12.0s; }
+.film-stage .t126 { animation-delay: 12.6s; }
+.film-stage .t186 { animation-delay: 18.6s; }
+.film-stage .t189 { animation-delay: 18.9s; }
+.film-stage .t195 { animation-delay: 19.5s; }
+.film-stage .t198 { animation-delay: 19.8s; }
+.film-stage .t201 { animation-delay: 20.1s; }
+.film-stage .t204 { animation-delay: 20.4s; }
+.film-stage .t210 { animation-delay: 21.0s; }
+.film-stage .t216 { animation-delay: 21.6s; }
+.film-stage .t222 { animation-delay: 22.2s; }
+.film-stage .t225 { animation-delay: 22.5s; }
+.film-stage .t228 { animation-delay: 22.8s; }
+.film-stage .t231 { animation-delay: 23.1s; }
+.film-stage .t234 { animation-delay: 23.4s; }
+.film-stage .t237 { animation-delay: 23.7s; }
+.film-stage .t240 { animation-delay: 24.0s; }
+.film-stage .t243 { animation-delay: 24.3s; }
+.film-stage .t246 { animation-delay: 24.6s; }
+.film-stage .t249 { animation-delay: 24.9s; }
+.film-stage .t252 { animation-delay: 25.2s; }
+.film-stage .t255 { animation-delay: 25.5s; }
+.film-stage .t282 { animation-delay: 28.2s; }
+.film-stage .t288 { animation-delay: 28.8s; }
+.film-stage .t294 { animation-delay: 29.4s; }
+.film-stage .t300 { animation-delay: 30.0s; }
+.film-stage .t306 { animation-delay: 30.6s; }
+.film-stage .t312 { animation-delay: 31.2s; }
+.film-stage .t318 { animation-delay: 31.8s; }
+.film-stage .t324 { animation-delay: 32.4s; }
+.film-stage .t336 { animation-delay: 33.6s; }
+.film-stage .t372 { animation-delay: 37.2s; }
+.film-stage .t375 { animation-delay: 37.5s; }
+.film-stage .t381 { animation-delay: 38.1s; }
+.film-stage .t384 { animation-delay: 38.4s; }
+.film-stage .t387 { animation-delay: 38.7s; }
+.film-stage .t390 { animation-delay: 39.0s; }
+.film-stage .t399 { animation-delay: 39.9s; }
+.film-stage .t408 { animation-delay: 40.8s; }
+.film-stage .t411 { animation-delay: 41.1s; }
+.film-stage .t417 { animation-delay: 41.7s; }
+
+/* The whole film's length: its end is the "done" signal. */
+.fm-clock { animation: fmClock 45s linear both; }
+
+/* Scenes leave on the 45-second track (1% = 0.45 s). */
+.fm-scene1 { animation: fmScene1 45s linear both; }
+.fm-scene2 { animation: fmScene2 45s linear both; }
+.fm-scene3 { animation: fmScene3 45s linear both; }
+.fm-scene4 { animation: fmScene4 45s linear both; }
+@keyframes fmScene1 { 0%, 18.67% { opacity: 1; } 20%, 100% { opacity: 0; } }
+@keyframes fmScene2 { 0%, 38.67% { opacity: 1; } 40%, 100% { opacity: 0; } }
+@keyframes fmScene3 { 0%, 61.33% { opacity: 1; } 62.67%, 100% { opacity: 0; } }
+@keyframes fmScene4 { 0%, 81.33% { opacity: 1; } 82.67%, 100% { opacity: 0; } }
+
+/* The post: rises (0.6 s), steps aside to be checked (8.7 s), goes (17.4 s).
+   The claims: out of the post (11.4 s), filed on the left (17.4 s), gone with
+   the log (27.6 s). */
+.fm-post, .fm-chip { transform-box: fill-box; transform-origin: 0 0; }
+.fm-post { animation: fmPost 45s cubic-bezier(0.45, 0, 0.25, 1) both; }
+.fm-chip { animation: fmChip 45s cubic-bezier(0.45, 0, 0.25, 1) both; }
+.fm-chip2 { animation-delay: 0.75s; }
+.fm-chip3 { animation-delay: 1.5s; }
+@keyframes fmPost {
+  0%, 1.33% { opacity: 0; transform: translate(0, 24px) scale(1); }
+  3.11%, 19.33% { opacity: 1; transform: translate(0, 0) scale(1); }
+  22%, 38.67% { opacity: 1; transform: translate(-360px, 70px) scale(0.72); }
+  40%, 100% { opacity: 0; transform: translate(-360px, 70px) scale(0.72); }
+}
+@keyframes fmChip {
+  0%, 25.33% { opacity: 0; transform: translate(-60px, 0) scale(1); }
+  27.11%, 38.67% { opacity: 1; transform: translate(0, 0) scale(1); }
+  41.33%, 61.33% { opacity: 1; transform: translate(-550px, 0) scale(0.72); }
+  62.67%, 100% { opacity: 0; transform: translate(-550px, 0) scale(0.72); }
+}
+
+/* The repost count climbs while the copies spread. */
+.fm-count1 { animation: fmCount1 45s linear both; }
+.fm-count2 { animation: fmCount2 45s linear both; }
+.fm-count3 { animation: fmCount3 45s linear both; }
+@keyframes fmCount1 { 0%, 7.33% { opacity: 1; } 7.78%, 100% { opacity: 0; } }
+@keyframes fmCount2 { 0%, 7.33% { opacity: 0; } 7.78%, 12.67% { opacity: 1; } 13.11%, 100% { opacity: 0; } }
+@keyframes fmCount3 { 0%, 12.67% { opacity: 0; } 13.11%, 100% { opacity: 1; } }
+
+/* Captions, one per beat; the last one stays. */
+.fm-cap { transform-box: fill-box; }
+.fm-cap1 { animation: fmCap1 45s linear both; }
+.fm-cap2 { animation: fmCap2 45s linear both; }
+.fm-cap3 { animation: fmCap3 45s linear both; }
+.fm-cap4 { animation: fmCap4 45s linear both; }
+.fm-cap5 { animation: fmCap5 45s linear both; }
+.fm-cap6 { animation: fmCap6 45s linear both; }
+@keyframes fmCap1 { 0%, 2% { opacity: 0; transform: translateY(10px); } 3.33%, 18% { opacity: 1; transform: none; } 19.33%, 100% { opacity: 0; transform: none; } }
+@keyframes fmCap2 { 0%, 21.33% { opacity: 0; transform: translateY(10px); } 22.67%, 38% { opacity: 1; transform: none; } 39.33%, 100% { opacity: 0; transform: none; } }
+@keyframes fmCap3 { 0%, 40.67% { opacity: 0; transform: translateY(10px); } 42%, 60% { opacity: 1; transform: none; } 61.33%, 100% { opacity: 0; transform: none; } }
+@keyframes fmCap4 { 0%, 63.33% { opacity: 0; transform: translateY(10px); } 64.67%, 80% { opacity: 1; transform: none; } 81.33%, 100% { opacity: 0; transform: none; } }
+@keyframes fmCap5 { 0%, 83.33% { opacity: 0; transform: translateY(10px); } 84.67%, 92.67% { opacity: 1; transform: none; } 94%, 100% { opacity: 0; transform: none; } }
+@keyframes fmCap6 { 0%, 94.67% { opacity: 0; transform: translateY(10px); } 96%, 100% { opacity: 1; transform: none; } }
+
+/* Playing, paused, and the still last frame: held at the first frame until
+   the controller plays it; with reduced motion, still until asked to play.
+   Without JavaScript the landing page's noscript style stills it too. */
+.film .film-stage *, .film .film-progress { animation-play-state: paused; }
+.film.is-playing:not(.is-paused) .film-stage *, .film.is-playing:not(.is-paused) .film-progress { animation-play-state: running; }
+@media (prefers-reduced-motion: reduce) {
+  .film:not(.is-playing) .film-stage *, .film:not(.is-playing) .film-progress {
+    animation-duration: 0s !important; animation-delay: 0s !important; animation-play-state: running !important;
+  }
+}
