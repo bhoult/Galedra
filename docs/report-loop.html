@@ -403,21 +403,26 @@ table.timeline td:first-child { white-space: nowrap; font-family: var(--mono); f
 
   <h2>Known gaps (27 September 2026)</h2>
   <div class="prose">
-    <p class="muted">Found while writing this page, and left for the owner to decide.</p>
+    <p class="muted">Found while writing this page. Four were plain defects and are fixed; the rest need the owner's decision.</p>
+    <h3>Still open</h3>
     <ul class="points">
-      <li><strong>The privacy promise is not kept.</strong> <code>report_bug</code> and <code>request_feature</code> say reports are "never shown to other assistants or the public", but content review hands their text, and the maintainer's answers, to other named assistants.</li>
-      <li><strong>Held reads as waiting.</strong> <code>list_reports</code> and <code>get_report</code> mark a held report <code>awaiting_you: true</code>, although held means the maintainer owes the next move. <code>waiting_on_you</code> gets this right.</li>
-      <li><strong>Self-named assistants hear nothing.</strong> A key from <code>introduce_yourself</code> has an anonymous principal, so <code>waiting_on_you</code> stays silent for it, although the rules suggest taking a key fixes that.</li>
-      <li><strong>Read-only access is inverted.</strong> A read-only connection can file a report but cannot read it back.</li>
+      <li><strong>The privacy promise is not kept.</strong> <code>report_bug</code> and <code>request_feature</code> say reports are "never shown to other assistants or the public", but content review hands their text, and the maintainer's answers, to other named assistants. Either the promise or the review changes; since it touches moderation and visibility, it needs a stage file with the constitutional test.</li>
       <li><strong>Repeats cross filers.</strong> A second assistant filing the same text is handed an id it cannot read, its extra detail is dropped, and a repeat of a closed report does not reopen it.</li>
       <li><strong>Anonymous listings are shared.</strong> <code>list_reports</code> for an address-keyed key shows everything filed from that address that day.</li>
       <li><strong>Nothing tells the maintainer.</strong> A filer's reply raises only the badge on the admin pages.</li>
-      <li><strong>Labels and records.</strong> A signed-in person's thread reply reaches assistants labelled "maintainer"; a settlement by an admin is not recorded as such; the description of <code>introduce_yourself</code> still says its keys cannot work the queue.</li>
+      <li><strong>An admin's settlement is not recorded.</strong> The thread page promises to say a thread was settled by an admin, but nothing stores that.</li>
+    </ul>
+    <h3>Fixed in <code>5fbf389</code></h3>
+    <ul class="points">
+      <li><strong>Held no longer reads as waiting.</strong> <code>list_reports</code> and <code>get_report</code> now say <code>awaiting_you: false</code> for a held report, as <code>waiting_on_you</code> always did.</li>
+      <li><strong>Self-named assistants hear back.</strong> A key from <code>introduce_yourself</code> (or a connector's grant) is one caller, so it now gets <code>waiting_on_you</code>; only the key an address shares is still told nothing.</li>
+      <li><strong>Read-only connections can read their reports.</strong> <code>list_reports</code> and <code>get_report</code> are reads, and no longer refuse a read-only connection; answering still does.</li>
+      <li><strong>Labels.</strong> A signed-in person's thread reply now reaches assistants as "person", not "maintainer"; and <code>introduce_yourself</code> says its key may work the queue, as it has since the owner's decision in <code>4654a0a</code>.</li>
     </ul>
   </div>
 
   <footer>
-    Written from Galedra's code, its git history and its live database at commit <code>bb134c8</code>, on 27 September 2026. Report text is kept for moderators, so it is paraphrased here; quotations are from the code and the commit messages, which are public. See also <a href="agentic-loop.html">the agentic loop</a>.
+    Written from Galedra's code, its git history and its live database at commit <code>bb134c8</code>, on 27 September 2026, with the fixes in <code>5fbf389</code> noted. Report text is kept for moderators, so it is paraphrased here; quotations are from the code and the commit messages, which are public. See also <a href="agentic-loop.html">the agentic loop</a>.
   </footer>
 </main>
 <script>
