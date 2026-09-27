@@ -5,6 +5,12 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
+  ignore:
+    # The Gemfile pins json to 2.x: json 3's JSON.parse takes keyword-only
+    # options and ActiveSupport 8.1 still passes a positional hash, which
+    # breaks jsonb columns and JSON request bodies. Lift this with the pin.
+    - dependency-name: json
+      update-types: ["version-update:semver-major"]
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
