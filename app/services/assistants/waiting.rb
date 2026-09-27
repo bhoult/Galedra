@@ -25,10 +25,13 @@ module Assistants
   # - **open** — filed and not yet answered. Said as a count, because the useful
   #   thing to know is "you have already told them; do not tell them again".
   #
-  # Anonymous connections get nothing at all. `filer_token_ids` scopes them to
-  # their own token, but that token is shared by everyone behind one address for
-  # a day, so "their own" is not a person — and a notice nobody asked for is the
-  # wrong place to find that out.
+  # Address-keyed connections get nothing at all. `filer_token_ids` scopes them
+  # to their own token, but that token is shared by everyone behind one address
+  # for a day, so "their own" is not a person — and a notice nobody asked for is
+  # the wrong place to find that out. Other anonymous tokens are one caller
+  # each: a token an assistant minted for itself with introduce_yourself, or a
+  # connector's grant, is a stable identity whose own filings are its own, and
+  # introduce_yourself promises exactly this notice.
   module Waiting
     module_function
 
@@ -36,13 +39,13 @@ module Assistants
     # something. Two statements, both on an indexed column.
     def for(token)
       return nil if token.nil?
-      # Never to an anonymous caller. `Assistants::Connect.for_source` keys an
-      # anonymous token by sha256(address|date), so one row serves everyone
-      # behind an address that day — pushing report ids at it would hand one
-      # caller another's filings unasked, which is precisely what the note below
-      # says must not happen. Asking for them with list_reports is a separate
-      # question and is scoped the same way it always was.
-      return nil if token.anonymous?
+      # Never to an address-keyed caller. `Assistants::Connect.for_source` keys
+      # it by sha256(address|date), so one row serves everyone behind an address
+      # that day — pushing report ids at it would hand one caller another's
+      # filings unasked, which is precisely what the note below says must not
+      # happen. Asking for them with list_reports is a separate question and is
+      # scoped the same way it always was.
+      return nil if token.address_keyed?
 
       ids = token.filer_token_ids
       return nil if ids.empty?

@@ -3,9 +3,10 @@
 module Assistants
   # An assistant naming itself and taking a credential of its own.
   #
-  # The credential grants nothing that a caller without one did not already
-  # have: the principal is anonymous, so the task queue still refuses it and
-  # adoption by a signed-in person is still the only way through. What it
+  # The principal stays anonymous — nobody has vouched for it — but the token is
+  # a stable identity, so it may work the task queue (owner decision, 2026-09-22;
+  # Mcp::Server#require_delegation!), hears what it left hanging
+  # (Assistants::Waiting), and can be adopted by a signed-in person. What it
   # changes is that the caller stops being keyed by the address it happens to
   # arrive from (Assistants::Connect.for_source), which is what an assistant
   # running in someone's cloud cannot keep.

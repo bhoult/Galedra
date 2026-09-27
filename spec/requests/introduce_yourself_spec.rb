@@ -86,6 +86,21 @@ RSpec.describe "An assistant naming itself", type: :request do
     expect(call_tool("next_task", {}, token: token)["errors"]).to be_nil
   end
 
+  # The reply promised "you are told what you left hanging", while
+  # Assistants::Waiting said nothing to any anonymous token. Only the token an
+  # address shares is nobody in particular; this one is one caller.
+  it "is told what it left hanging, as its reply says" do
+    data = introduce
+    expect(data["note"]).to include("you are told what you left hanging").and include("may work the task queue")
+    record = AssistantToken.find_by(token_digest: AssistantToken.digest(data["token"]))
+    report = BugReport.record!(happened: "A refusal named no remedy", expected: "one named", token: record).first
+    maintainer = User.create!(email_address: "maintainer@example.com", password: "correct horse battery staple", admin: true)
+    report.answer!(body: "It names one now. Does that settle it?", user: maintainer)
+
+    waiting = call_tool("list_topics", {}, token: data["token"])["waiting_on_you"]
+    expect(waiting["answered"]).to eq([ report.id ])
+  end
+
   # And the token everyone behind one address shares still may not: a result
   # recorded under it names nobody who could be asked about it.
   it "is not the same as the token an address is given" do

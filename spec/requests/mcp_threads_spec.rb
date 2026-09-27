@@ -141,4 +141,16 @@ RSpec.describe "Threads on determinations over MCP (Stage 37)", type: :request d
     thread = DeterminationThread.find(data["thread_id"])
     expect(thread).to have_attributes(subject_type: "EvidenceClaimLink", subject_id: link.id)
   end
+
+  # A signed-in person replying on the thread's page is stored as "maintainer",
+  # the only other kind a turn has, and assistants were told the maintainer had
+  # spoken. The page says Person.
+  it "calls a signed-in person's reply a person's, as the page does" do
+    first = open_thread
+    thread = DeterminationThread.find(first["thread_id"])
+    thread.respond!(body: "I checked the figures on the page myself.", user: person("d@example.com"))
+
+    data, = call_tool("get_thread", { thread_id: thread.id })
+    expect(data["turns"].map { |t| t["from"] }).to eq(%w[person])
+  end
 end

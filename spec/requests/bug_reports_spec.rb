@@ -169,6 +169,25 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
     expect(back["status"]).to eq("OPEN")
   end
 
+  # list_reports and get_report are advertised readOnlyHint, and a read-only
+  # connection was refused them the way writes are: it could file a report and
+  # never read the answer. Answering is a write and stays refused.
+  it "lets a read-only connection read back what it filed, and not answer it" do
+    call_tool("report_bug", { happened: "A page timed out", expected: "it to load" })
+    report = BugReport.last
+    record = AssistantToken.find_by(token_digest: AssistantToken.digest(token))
+    server = Mcp::Server.new(token: record, base_url: "http://www.example.com", read_only: true)
+    call = lambda do |name, args|
+      server.handle({ "jsonrpc" => "2.0", "id" => 1, "method" => "tools/call", "params" => { "name" => name, "arguments" => args } })
+            .last.dig(:result, :structuredContent)
+    end
+
+    expect(call.call("list_reports", {})[:reports].map { |r| r[:id] }).to eq([ report.id ])
+    expect(call.call("get_report", { "report_id" => report.id })[:id]).to eq(report.id)
+    refused = call.call("respond_to_report", { "report_id" => report.id, "body" => "Still broken.", "satisfied" => false })
+    expect(refused[:errors].first[:code]).to eq("INSUFFICIENT_SCOPE")
+  end
+
   # The timeout's licence was "if the reporter does not respond for three hours
   # and you think it is settled". `answer!` could only say the first half, so an
   # answer that agreed to work not yet done would close itself on a fix nobody
@@ -188,8 +207,14 @@ RSpec.describe "Bug reports from assistants and people", type: :request do
 
     data, = call_tool("get_report", { "report_id" => report.id })
     expect(data).to include("held" => true, "settles_at" => nil)
-    row = call_tool("list_reports", {}).first["reports"].find { |r| r["id"] == report.id }
+    # Held is ANSWERED, but the maintainer owes the next move: the lists said
+    # awaiting_you beside held, next to a note saying held is not waiting on you.
+    expect(data["awaiting_you"]).to be(false)
+    list = call_tool("list_reports", {}).first
+    row = list["reports"].find { |r| r["id"] == report.id }
     expect(row["held"]).to be(true)
+    expect(row["awaiting_you"]).to be(false)
+    expect(list["awaiting_you"]).to eq(0)
 
     # The lists tell the two apart, and carve one out of the other so the filter's
     # numbers still sum.
