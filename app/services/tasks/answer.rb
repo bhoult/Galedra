@@ -10,19 +10,44 @@ module Tasks
     RESERVED = %w[target packet].freeze
     SECTIONS = %w[sources excerpts claims edges evidence links groups supersede inferences].freeze
 
+    # What "say what you covered" means for each kind of task. The words differ:
+    # a verification reads one passage, so asking it for "the terms you tried"
+    # asked for a search it had been told not to do (feature request
+    # 01a0e987-e18a, 2026-09-28). One place, read by answer_with and by the
+    # refusal for a null without coverage, because the two had drifted apart:
+    # coverage was required for every null outcome of six task types and only one
+    # packet said so, so a worker learned of it from six refusals in one run
+    # (01a0e979-7433, 01a0e979-c4d0).
+    COVERAGE = {
+      "EVIDENCE_VERIFICATION" => "what you read (the packet's passage, and the page around it if you opened it) and why it does not settle the claim",
+      "OPPOSING_EVIDENCE_SEARCH" => "the terms you tried, where you looked, and why you concluded absence",
+      "SOURCE_INDEPENDENCE_CHECK" => "which counted items you compared and what you checked about where each one comes from",
+      "QUALIFIER_CHECK" => "which counted passages you read, which omissions you looked for, and why none is material or why you cannot tell",
+      "INFERENCE_REVIEW" => "which premises you read and why you cannot say whether the step follows",
+      "CLAIM_EXTRACTION" => "which excerpts you read and why they assert nothing checkable"
+    }.freeze
+
+    # The words a link takes, from the model's own lists. next_task promises that
+    # answer_with says exactly what to send, and it named the fields but not their
+    # words, so a worker sent SUPPORTS, OPPOSE, UNCLEAR and PARTIAL, one refusal
+    # each (01a0e97c, 01a0e971, 01a0e987-bca0, 01a0e976).
+    STRENGTH_WORDS = "strength is one of #{EvidenceClaimLink::STRENGTHS.join(', ')}, and says how strongly the passage " \
+                     "bears on the claim, whatever the outcome"
+    LINK_WORDS = "direction is one of #{EvidenceClaimLink::DIRECTIONS.join(', ')}; #{STRENGTH_WORDS}"
+
     ANSWER_WITH = {
       "EVIDENCE_VERIFICATION" =>
-        "Read only the passage in context.untrusted_excerpt. Decide whether it directly bears on the claim. If it does, answer with evidence: [{handle, excerpt: \"packet\", statement}] and links: [{evidence, claim: \"target\", direction, strength, steps}]. Outcome CONFIRMED (the passage directly supports the claim), PARTIAL, NOT_SUPPORTED, or CANNOT_DETERMINE. Add no sources here.",
+        "Read only the passage in context.untrusted_excerpt. Decide whether it directly bears on the claim. If it does, answer with evidence: [{handle, excerpt: \"packet\", statement}] and links: [{evidence, claim: \"target\", direction, strength, steps}], where #{LINK_WORDS}. Outcome CONFIRMED (the passage directly supports the claim), PARTIAL, NOT_SUPPORTED, or CANNOT_DETERMINE. CANNOT_DETERMINE takes an empty answer, with no link, and searched beside it: #{COVERAGE['EVIDENCE_VERIFICATION']}. Add no sources here.",
       "OPPOSING_EVIDENCE_SEARCH" =>
-        "Search for evidence in context.search_direction; sources already counted are listed so you look elsewhere. Read what you find yourself. Answer FOUND with sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], evidence: [{handle, excerpt, statement}], links: [{evidence, claim: \"target\", direction, strength, steps}]. Answer NONE_FOUND with an empty answer when a real search found nothing, and put what you covered in searched: the terms, where you looked, and why you concluded absence. That is a result, not a failure, and the coverage is what makes it one.",
+        "Search for evidence in context.search_direction; sources already counted are listed so you look elsewhere. Read what you find yourself. Answer FOUND with sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], evidence: [{handle, excerpt, statement}], links: [{evidence, claim: \"target\", direction, strength, steps}], where #{LINK_WORDS}. Answer NONE_FOUND with an empty answer when a real search found nothing, and put what you covered in searched: #{COVERAGE['OPPOSING_EVIDENCE_SEARCH']}. That is a result, not a failure, and the coverage is what makes it one.",
       "SOURCE_INDEPENDENCE_CHECK" =>
-        "Decide which of context.counted_evidence share one upstream origin (same press release, dataset, primary text, author). Answer GROUPED with groups: [{handle, type, description, members: [evidence_item_id, ...]}] using the ids from the packet; INDEPENDENT with an empty answer when none share an origin; CANNOT_DETERMINE when you cannot tell.",
+        "Decide which of context.counted_evidence share one upstream origin (same press release, dataset, primary text, author). Answer GROUPED with groups: [{handle, type, description, members: [evidence_item_id, ...]}] using the ids from the packet; INDEPENDENT with an empty answer when none share an origin; CANNOT_DETERMINE when you cannot tell. INDEPENDENT and CANNOT_DETERMINE each need searched beside the answer: #{COVERAGE['SOURCE_INDEPENDENCE_CHECK']}.",
       "QUALIFIER_CHECK" =>
-        "Look in context.counted_links for omitted time ranges, populations, denominators, baselines, sampling limits, jurisdictions, or translations. Answer QUALIFIERS_FOUND with evidence and links of direction QUALIFY or CONTRADICT on claim: \"target\", or a narrower claim in claims: [{handle, text, type}] plus edges: [{from: handle, to: \"target\", type: \"NARROWS\"}], or supersede: [{link_id, direction, strength, steps, reason}] to revise a counted link. When the passage that shows the omission is not recorded yet, quote it here: sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], with your evidence pointing at the excerpt's handle. NONE_MATERIAL with an empty answer when nothing material is missing; CANNOT_DETERMINE otherwise.",
+        "Look in context.counted_links for omitted time ranges, populations, denominators, baselines, sampling limits, jurisdictions, or translations. Answer QUALIFIERS_FOUND with evidence and links of direction QUALIFY or CONTRADICT on claim: \"target\", or a narrower claim in claims: [{handle, text, type}] plus edges: [{from: handle, to: \"target\", type: \"NARROWS\"}], or supersede: [{link_id, direction, strength, steps, reason}] to revise a counted link; #{STRENGTH_WORDS}. When the passage that shows the omission is not recorded yet, quote it here: sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], with your evidence pointing at the excerpt's handle. NONE_MATERIAL with an empty answer when nothing material is missing; CANNOT_DETERMINE otherwise. Both need searched beside the answer: #{COVERAGE['QUALIFIER_CHECK']}.",
       "INFERENCE_REVIEW" =>
-        "Read context.premises and context.untrusted_rule. Answer VALID with an empty answer when the conclusion follows from the premises as stated; MISSING_PREMISE with claims: [{handle, text, type}] naming what the step silently assumes and inferences: [{handle, conclusion: \"target\", premises: [{claim, polarity}, ...], type, rule}] giving the corrected step (premises may be claim ids, handles, or \"target\"'s own premise claim ids); NON_SEQUITUR with a reason in the rule of a corrected inference or with an empty answer; CANNOT_DETERMINE otherwise. Do not judge whether the premises are true.",
+        "Read context.premises and context.untrusted_rule. Answer VALID with an empty answer when the conclusion follows from the premises as stated; MISSING_PREMISE with claims: [{handle, text, type}] naming what the step silently assumes and inferences: [{handle, conclusion: \"target\", premises: [{claim, polarity}, ...], type, rule}] giving the corrected step (premises may be claim ids, handles, or \"target\"'s own premise claim ids); NON_SEQUITUR with a reason in the rule of a corrected inference or with an empty answer; CANNOT_DETERMINE otherwise, with searched beside the answer: #{COVERAGE['INFERENCE_REVIEW']}. Do not judge whether the premises are true.",
       "CLAIM_EXTRACTION" =>
-        "Split context.excerpts into atomic claims: claims: [{handle, text, type}], one assertion each, typed. Outcome CLAIMS_FOUND or NO_CLAIMS. Do not evaluate them."
+        "Split context.excerpts into atomic claims: claims: [{handle, text, type}], one assertion each, typed. Outcome CLAIMS_FOUND, or NO_CLAIMS with searched beside the answer: #{COVERAGE['CLAIM_EXTRACTION']}. Do not evaluate them."
     }.freeze
 
     RULES = "Read the sources yourself; Galedra never fetches URLs. Only quoted passages are evidence. A documented null result is a result. Never invent a source or pad an answer to have something to submit."

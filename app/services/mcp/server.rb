@@ -175,7 +175,7 @@ module Mcp
       { name: "revise_link", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "Revise an evidence link (its direction, strength, or interpretive steps) by id from get_claim's evidence. Your own link is revised now; someone else's is a proposal. Give a reason.",
         inputSchema: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction reason] },
-        outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" }, new_link_id: { type: "string" } } } },
+        outputSchema: { type: "object", properties: { accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, contribution_id: { type: "string" }, new_link_id: { type: [ "string", "null" ] } } } },
       { name: "open_thread", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Raise a concern about HOW a determination was made — not about the world, and not about Galedra. Threads are for things like: this statement's figures are not in the passage it rests on; these two sources may share an origin; these two items answer different questions and the card does not say so. A defect in Galedra is report_bug. A claim being false is a contribution: record the evidence with add_evidence. A thread guides evidence gathering and never determines it, so nothing here moves a score. The same concern raised twice on one subject is counted on the thread that already holds it rather than starting a second.",
         inputSchema: { type: "object", properties: { subject_type: { type: "string", enum: DeterminationThread::SUBJECTS }, subject_id: { type: "string" },
@@ -257,11 +257,11 @@ module Mcp
       { name: "next_affiliation_review", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
         description: "The next affiliation someone asked to add to the vocabulary (a group a person counts themselves in: Democrat, Atheist, Millennial …) that your principal has not judged and did not ask for. Returns what was asked, the deduplicator's proposal, the vocabulary, and the rules. Part of \"work N open tasks in Galedra\". Needs a connected, non-anonymous assistant.",
         inputSchema: { type: "object", properties: {} },
-        outputSchema: { type: "object", properties: { available: { type: "boolean" }, normalized: { type: "string" }, asked_for: { type: "string" }, people: { type: "integer" }, proposal: { type: "object" }, vocabulary: { type: "array" }, rules: { type: "string" }, consensus: { type: "object" }, answer_with: { type: "string" } } } },
+        outputSchema: { type: "object", properties: { available: { type: "boolean" }, normalized: { type: "string" }, asked_for: { type: "string" }, people: { type: "integer" }, proposal: { type: [ "object", "null" ], description: "The deduplicator's guess at an existing affiliation, or null when it had none" }, vocabulary: { type: "array" }, rules: { type: "string" }, consensus: { type: "object" }, answer_with: { type: "string" } } } },
       { name: "submit_affiliation_review", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         description: "Your verdict on an affiliation request: MERGE with slug (it is an existing affiliation under another name), ADD with label and group_slug (a real affiliation the vocabulary lacks), or DECLINE (not an affiliation, a slur, a joke, or a private individual). Verdicts from different principals settle it; the requester's own never counts.",
         inputSchema: { type: "object", properties: { normalized: { type: "string" }, verdict: { type: "string", enum: %w[MERGE ADD DECLINE] }, slug: { type: "string" }, label: { type: "string" }, group_slug: { type: "string" }, reason: { type: "string" } }, required: %w[normalized verdict] },
-        outputSchema: { type: "object", properties: { normalized: { type: "string" }, settled: { type: "boolean" }, status: { type: "string" }, became: { type: "string" }, consensus: { type: "object" }, note: { type: "string" } } } },
+        outputSchema: { type: "object", properties: { normalized: { type: "string" }, settled: { type: "boolean" }, status: { type: "string" }, became: { type: [ "string", "null" ], description: "The affiliation it settled as, or null while it waits or when it was declined" }, consensus: { type: "object" }, note: { type: "string" } } } },
       # OpenAI's read-and-fetch connector shape (ChatGPT search and deep research): a
       # `search` returning ids, titles, and URLs, and a `fetch` returning one document.
       { name: "search", annotations: { readOnlyHint: true, openWorldHint: false }, description: "Search Galedra's accepted claims. Returns ids, titles (the claim text with its plain headline), and URLs. Use fetch on an id for the full card, evidence, and why.",
@@ -463,7 +463,6 @@ module Mcp
         log_call(name, args, started, outcome: "bad_arguments", detail: e.message)
         raise
       end
-      log_call(name, args, started, outcome: outcome_of(name, data))
       note = guidance(name, args)
       data = data.merge(guidance: note) if data.is_a?(Hash) && note
       # A session ends and the next one starts knowing nothing, so the node says
@@ -471,7 +470,17 @@ module Mcp
       # Absent entirely when there is nothing (Assistants::Waiting).
       waiting = Assistants::Waiting.for(@token)
       data = data.merge(waiting_on_you: waiting) if data.is_a?(Hash) && waiting
-      { content: [ { type: "text", text: JSON.pretty_generate(data) } ], structuredContent: data, isError: false }
+      text = JSON.pretty_generate(data)
+      # A result that breaks its own outputSchema is refused by the caller's
+      # client, not here, so without this the log says ok for a call that failed
+      # (Mcp::Output). The suite fails on it (spec/support/mcp_output_contract.rb).
+      broken = Output.errors(tool, JSON.parse(text))
+      if broken.any?
+        log_call(name, args, started, outcome: "output_invalid", detail: broken.join("; "))
+      else
+        log_call(name, args, started, outcome: outcome_of(name, data))
+      end
+      { content: [ { type: "text", text: text } ], structuredContent: data, isError: false }
     end
 
     def tool_search_claims(args)
@@ -1368,12 +1377,24 @@ module Mcp
     # `01a0ca28` asking for a worker token type, because nothing at the point of
     # refusal said that adoption existed. A refusal that names the rule and not
     # the remedy leaves a worker to invent one.
+    #
+    # Adoption keeps an identity only if the next call arrives as the same one,
+    # and an address-keyed session is the address. A cloud connector's calls
+    # leave from several: on 2026-09-28 one worker's came from three, so every
+    # refusal minted a fresh adoption link and the person's adoption of the last
+    # one never applied (feature request 01a0e94e). What works whatever the
+    # address is a token the caller presents, and the connector screen that
+    # takes only a URL needs the URL form, so the refusal names every way in.
     def anonymous_remedy
       adopt = Assistants::Adopt.adopt_url(@token, @base_url)
       [ "working tasks needs a connected assistant with a person behind it.",
+        ("This session is known only by the address you are calling from. If your calls leave from more than one " \
+         "address, as a cloud connector's often do, each is a separate session and adopting this one does not carry " \
+         "to the next: call introduce_yourself and send the token it returns on every call, and you stay one identity " \
+         "whatever address you call from." if @token&.address_keyed?),
         ("Ask the person to open #{adopt} while signed in: that adopts this session's work under their key, " \
          "and you keep the token you are already using — nothing is re-minted and nothing you have recorded is orphaned." if adopt),
-        "Or connect under a name at #{@base_url}/assistants/new (OAuth or a token) and try again." ].compact.join(" ")
+        self.class.ways_in(@base_url) ].compact.join(" ")
     end
 
     def nothing_available(types, domains, target_id)

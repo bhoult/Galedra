@@ -24,9 +24,10 @@ module Ledger
                         "else's link it becomes a proposal. If the disagreement is about how the determination " \
                         "was made rather than about one link, open_thread records it where a reader of the claim " \
                         "will see it."
-      REMEDY_FOR_OP = "Ops outside the list belong outside the task: record_investigation for new sources and " \
-                      "claims, add_evidence for a passage on an existing claim, revise_link for a link that is " \
-                      "wrong, open_thread if the determination itself is what you disagree with. Submitting what " \
+      OUTSIDE_THE_TASK = "record_investigation for new sources and claims, add_evidence for a passage on an " \
+                         "existing claim, revise_link for a link that is wrong, open_thread if the determination " \
+                         "itself is what you disagree with"
+      REMEDY_FOR_OP = "Ops outside the list belong outside the task: #{OUTSIDE_THE_TASK}. Submitting what " \
                       "the packet allows and doing the rest afterwards is the ordinary way through."
 
       OpValidated = Struct.new(:payload, :contributor, :delegation, :action_type, :envelope, :in_task, :created_ids, keyword_init: true)
@@ -40,7 +41,7 @@ module Ledger
         reject("TASK_UNKNOWN", "$.task_id", "no such task") if task.nil?
         assignment = TaskAssignment.latest_for(task.id, validated.contributor.id)
         reject("LEASE_MISSING", "$.task_id", "this task is not leased to the signer") if assignment.nil?
-        reject("LEASE_NOT_ACTIVE", "$.task_id", "lease is #{assignment.status.downcase}") unless assignment.status == "LEASED"
+        reject("LEASE_NOT_ACTIVE", "$.task_id", lease_not_active(assignment)) unless assignment.status == "LEASED"
         # The server's own clock goes in the message. An assistant has no reliable
         # sense of the wall time, so "expired at 06:27:13Z" alone reads as a
         # future instant to a caller whose idea of now is hours stale — one filed
@@ -82,9 +83,9 @@ module Ledger
         # before the lesser one.
         if Tasks::Answer::ABSENCES.include?(p["outcome"].to_s) && p["searched"].to_s.strip.empty?
           reject("SCHEMA_INVALID", path("searched"),
-                 "#{p['outcome']} says you looked and found nothing, so say what you covered: the terms you tried, " \
-                 "where you looked, and why you concluded absence. A null is worth what its coverage is worth, and a " \
-                 "reader cannot tell a thorough search from a glance. searched is an argument of submit_task, beside answer.")
+                 "#{p['outcome']} says you looked and found nothing, so say what you covered: " \
+                 "#{Tasks::Answer::COVERAGE.fetch(task.task_type)}. A null is worth what its coverage is worth, and a " \
+                 "reader cannot tell a thorough look from a glance. searched is an argument of submit_task, beside answer.")
         end
         ops = p["ops"]
         reject("SCHEMA_INVALID", path("ops"), "expected an array") unless ops.is_a?(Array)
@@ -114,6 +115,23 @@ module Ledger
           end
           scope_op!(task, op, i, refs)
         end
+      end
+
+      # "lease is submitted" was true and useless to the one caller who gets it:
+      # a worker whose first answer was recorded, sending a second. One had lost
+      # the reply to its first submission and could not tell whether it counted;
+      # another changed its mind three seconds later and read the refusal as the
+      # task having been handed out twice (feature requests 01a0e977 and 01a0e98b,
+      # 2026-09-28). So say which answer stands and where the rest goes. Ids, a
+      # seq and an outcome word only: nothing a caller wrote (Invariant 11).
+      def self.lease_not_active(assignment)
+        base = "lease is #{assignment.status.downcase}"
+        prior = assignment.status == "SUBMITTED" && Contribution.find_by(id: assignment.result_contribution_id)
+        return base unless prior
+
+        "#{base}: you answered this task already, as contribution #{prior.id} at seq #{prior.seq} " \
+          "(outcome #{prior.payload['outcome']}, #{prior.current_status}), and that answer stands; a lease takes one. " \
+          "If the first reply was lost, it counted. What a second answer would add goes outside the task: #{OUTSIDE_THE_TASK}."
       end
 
       # Type-specific scope rules (04 §6 step 7 and the 04 §2 table).

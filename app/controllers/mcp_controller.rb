@@ -9,7 +9,15 @@
 class McpController < ActionController::API
   include AssistantAuth
 
-  rate_limit to: 120, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore
+  # The budget is for work, one per assistant token, shared by every worker
+  # using it. It was also being spent by the GET this server answers 405: one
+  # worker's connector sent 1,051 of those beside about a thousand tool calls on
+  # 2026-09-28, a fifth of each minute's allowance, and in the minutes its 429s
+  # fell the tool calls alone were under the limit (feature request 01a0e968).
+  # The probe keeps a limit of its own, so neither kind of request is unbounded.
+  CALLS_PER_MINUTE = 120
+  rate_limit to: CALLS_PER_MINUTE, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore, only: :create
+  rate_limit to: CALLS_PER_MINUTE, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore, only: :show, name: "probe"
 
   def create
     return unauthorized if auth_required? && (current_assistant_token.nil? || !current_assistant_token.usable?)
@@ -31,6 +39,17 @@ class McpController < ActionController::API
   end
 
   private
+
+  # When, not only that. A worker told "slow down and try again in a minute"
+  # stopped cold mid-batch rather than pausing (01a0e968). The window is fixed
+  # and at most a minute long, so sixty seconds is an honest upper bound.
+  def too_many_requests
+    response.set_header("Retry-After", "60")
+    render json: { errors: [ { code: "RATE_LIMITED", path: "$", retry_after_seconds: 60,
+                               detail: "at most #{CALLS_PER_MINUTE} calls a minute for one assistant token, shared by every worker using it, " \
+                                       "and this minute's are spent. Wait up to 60 seconds (Retry-After) and carry on where you were: " \
+                                       "a lease you hold stays yours until it expires." } ] }, status: :too_many_requests
+  end
 
   # Path defaults, read without touching the request body (which may not be JSON yet).
   def auth_required? = request.path_parameters[:require_auth].present?

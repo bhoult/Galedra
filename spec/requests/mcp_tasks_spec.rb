@@ -295,6 +295,57 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(data["answers_wanted_for_you"]).to eq(before["answers_wanted_for_you"] - 3), "all three of that task's answers are now beyond this caller"
   end
 
+  # "lease is submitted" was all a second answer to one lease was told. One
+  # worker had lost the reply to its first and could not tell whether it had
+  # counted; another sent a different outcome three seconds after its first and
+  # read the refusal as the task having been leased to it twice (01a0e977,
+  # 01a0e98b, 2026-09-28). The refusal names the answer that stands.
+  it "tells a second answer to one lease which answer stands" do
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", required_assignments: Audits::Policy.independent_checks, target: curated_claim.first)
+    leased, = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
+    first, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "CANNOT_DETERMINE", answer: {},
+                                            searched: "Read the counted passage; it does not say which workers were surveyed." })
+    expect(err).to be(false)
+
+    data, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_MATERIAL", answer: {},
+                                           searched: "Read it again and found nothing material." })
+    expect(err).to be(true)
+    expect(errors_of(data)).to eq([ "LEASE_NOT_ACTIVE" ])
+    detail = data["errors"].first["detail"]
+    expect(detail).to include(first["contribution_id"], "CANNOT_DETERMINE", "ACCEPTED", "that answer stands", "record_investigation")
+    expect(detail).to include("seq #{Contribution.find(first['contribution_id']).seq}")
+  end
+
+  # The packet promises answer_with says exactly what to send. It left out the
+  # coverage every null outcome requires for five of six task types, so a worker
+  # met the requirement as six refusals in one run (01a0e979-7433,
+  # 01a0e979-c4d0), and it named the link fields without their words (01a0e97c,
+  # 01a0e971, 01a0e987-bca0, 01a0e976). Checked for every type, so the next rule
+  # added to the applier cannot go unmentioned in the packet again.
+  it "says in every packet what the applier will ask of a null and of a link" do
+    Tasks::Types::ALL.each do |type|
+      text = Tasks::Answer::ANSWER_WITH.fetch(type)
+      absences = Tasks::Types.spec(type)[:outcomes] & Tasks::Answer::ABSENCES
+      if absences.any?
+        expect(text).to include("searched"), "#{type} answer_with never mentions searched, which #{absences.join(' and ')} require"
+        expect(text).to include(Tasks::Answer::COVERAGE.fetch(type)), "#{type}: the packet and the refusal describe coverage differently"
+      end
+      words = (text.include?("strength") ? EvidenceClaimLink::STRENGTHS : []) + (text.include?("links: [{") ? EvidenceClaimLink::DIRECTIONS : [])
+      words.each { |word| expect(text).to include(word), "#{type} answer_with asks for a link's fields without naming #{word}" }
+    end
+  end
+
+  it "asks a null verification for what was read, not for a search it was told not to do" do
+    claim, location, = curated_claim
+    Tasks::Create.call(task_type: "EVIDENCE_VERIFICATION", target: claim, location: location)
+    leased, = call_tool("next_task", { types: [ "EVIDENCE_VERIFICATION" ] })
+    data, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "CANNOT_DETERMINE", answer: {} })
+    expect(err).to be(true)
+    detail = data["errors"].first["detail"]
+    expect(detail).to include(Tasks::Answer::COVERAGE.fetch("EVIDENCE_VERIFICATION"))
+    expect(detail).not_to include("the terms you tried")
+  end
+
   # An anonymous caller has taken nothing, so the two numbers agree — and that
   # is the honest answer rather than a missing field.
   it "gives a caller with nothing of its own the same number twice" do
@@ -481,7 +532,7 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     data, err = call_tool("next_task", {}, nil)
     expect(err).to be(true)
     expect(errors_of(data)).to include("TOKEN_INVALID")
-    expect(data["errors"].first["detail"]).to include("connect under a name")
+    expect(data["errors"].first["detail"]).to include("/assistants/new", "/mcp/<token>")
 
     record = AssistantToken.find_by(token_digest: AssistantToken.digest(token))
     status, body = Mcp::Server.new(token: record, base_url: "http://www.example.com", read_only: true)

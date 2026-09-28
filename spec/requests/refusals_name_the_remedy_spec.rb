@@ -151,6 +151,19 @@ RSpec.describe "A refusal says what to do instead", type: :request do
       expect(detail).to include("keep the token you are already using")
     end
 
+    # An anonymous session keyed on the caller's address is that address, and a
+    # cloud connector calls from several: one worker's refusals minted a fresh
+    # adoption link on every call, so adopting any of them changed nothing
+    # (01a0e94e, 2026-09-28). The refusal has to say so, and name the route that
+    # survives it — a presented token, by header or in the URL.
+    it "tells an address-keyed session that adoption will not follow a changing address" do
+      data = rpc_tool("next_task", {})
+      detail = data["errors"].map { |e| e["detail"] }.join(" ")
+
+      expect(AssistantToken.order(:created_at).last).to be_address_keyed
+      expect(detail).to include("more than one address", "introduce_yourself", "http://www.example.com/mcp/<token>", "Authorization: Bearer")
+    end
+
     # A remedy is worth what its link is worth: /adopt/:code has to be routed,
     # or the advice sends a worker to a 404 and it files a feature request
     # instead.
