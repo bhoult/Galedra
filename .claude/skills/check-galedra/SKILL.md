@@ -57,6 +57,9 @@ $G logs 3h | grep -o 'tool=[a-z_]* outcome=[a-z_]*' | sort | uniq -c | sort -rn
 $G logs 3h | grep -E 'outcome=(refused|bad_arguments|output_invalid)|Completed (429|5..)'
 ```
 
+Production records request metrics (since 2026-09-28): `$G rails metrics:report` names what
+the workers actually hit, with the statement count per action, which the log does not carry.
+
 **Save the log before you deploy.** `bin/deploy` recreates the app container, and `$G logs`
 reads only the current one, so everything before the restart is gone. On 2026-09-28 the one
 empty `next_task` two reports were about happened in a container a later deploy replaced, and

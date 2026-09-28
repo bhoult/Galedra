@@ -214,8 +214,9 @@ The first account to sign up is the admin; `/admin/users` grants admin and moder
 reviews live outside the log and never reach scoring; see `implementation/implemented/personal-views.md`. Reviews are settled
 by `Reviews::Consensus` (two agreeing principals, or one uncontradicted after 48 hours), never by the author. `Ledger::Node` is this node's
 identity (`LEDGER_NODE_URL`); `/about` and `/api/v1/meta` show the build (`GALEDRA_REVISION` at image build).
-Request metrics (Stage 40) are off unless `LEDGER_REQUEST_METRICS` is on, which this node's
-`.env` sets and `spec/rails_helper.rb` forces off for the suite. `request_tallies` counts
+Request metrics (Stage 40) are off unless `LEDGER_REQUEST_METRICS` is on, which the development
+`.env` sets, galedra.org sets since 2026-09-28 (`galedra-server/secrets/galedra.env`), and
+`spec/rails_helper.rb` forces off for the suite. `request_tallies` counts
 every call per action per hour; `request_samples` keeps the ones over 500 ms or 200
 statements, with the head seq beside them. `bin/rails metrics:report` reads them,
 `metrics:prune` keeps 30 days, and `bin/rails 'metrics:clear[claims#show]'` drops an action's
