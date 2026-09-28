@@ -57,6 +57,13 @@ $G logs 3h | grep -o 'tool=[a-z_]* outcome=[a-z_]*' | sort | uniq -c | sort -rn
 $G logs 3h | grep -E 'outcome=(refused|bad_arguments|output_invalid)|Completed (429|5..)'
 ```
 
+**Save the log before you deploy.** `bin/deploy` recreates the app container, and `$G logs`
+reads only the current one, so everything before the restart is gone. On 2026-09-28 the one
+empty `next_task` two reports were about happened in a container a later deploy replaced, and
+it could not be read afterwards: `$G logs <since> > scratchpad/prodlog-<rev>.txt` first. And
+say in the answer when you restarted: a worker's calls fail for the minute a deploy takes,
+and it will file them as transport faults.
+
 `outcome=output_invalid` is a result the server built and its own `outputSchema` forbids. The
 caller's client discards it, so it is a failed call although nothing was raised here; before
 that outcome existed the same calls logged `ok`. The `Started` lines carry an MCP token in

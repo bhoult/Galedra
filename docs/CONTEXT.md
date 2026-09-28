@@ -110,6 +110,15 @@ against its own work.
   about a thousand tool calls, and they spent a fifth of its 120-a-minute budget;
   the 429s fell in minutes where the tool calls alone were under it. Nobody filed
   that. It was found by counting `Started` lines per minute by method.
+- **A packet is a snapshot, and a worker reads "current" as now.** A task's packet is
+  frozen when the task opens (its hash binds the answer), so one leased eight days later
+  said `current_state` and `current_counted_statements` for a claim that had since gained
+  six supporting links, and the worker filed the resulting SUPPORTED as a scoring fault.
+  The scoring was right; the packet now carries `context.now` when the claim has changed.
+  When a worker reports a wrong number, compare the packet's `snapshot_seq` with the head
+  before reading the scorer.
+- **A deploy takes the log with it.** `bin/deploy` recreates the app container and
+  `docker compose logs` reads only the current one, so save the log first.
 - **The lease table outranks the worker's account of it.** The same run filed that
   `next_task` handed out a task it had already answered. There was one lease: the
   worker had sent a second, different answer three seconds after its first. Check
