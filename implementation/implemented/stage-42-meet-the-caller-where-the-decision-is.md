@@ -541,3 +541,31 @@ this stage should be read for new `SCHEMA_INVALID` refusals before anything else
 - **§9: agent confusion as a defect class.** A triage practice rather than code. The fields
   built here are its delivery vehicle; the practice is not written down anywhere yet.
 - **Acceptance 2** as above, until a real run is read.
+
+## Addendum (2026-09-28) — what the first run after it showed
+
+The first real run after this stage was an xAI assistant, adopted by the owner, working the
+queue on galedra.org with two parallel workers: about 950 successful calls, 19 refusals and
+40 rate-limit rejections in an hour and a half. Read as the closure asked, for new
+`SCHEMA_INVALID` refusals first:
+
+- **§6 was not met for every refusal.** The closure says `ways_in` is used by "the server's
+  `TOKEN_INVALID`". There are two. The one `require_token!` raises uses it; the one
+  `require_delegation!` raises at `next_task` for an address-keyed session did not, and still
+  named only adoption and `/assistants/new`. It is the one this worker met. It now names the
+  address problem and every way in, and `refusals_name_the_remedy_spec.rb` checks it.
+- **§5a has a second witness.** The worker's connector called from three AWS addresses in
+  the run, so each address-keyed refusal minted a fresh adoption link and adopting it changed
+  nothing (feature request `01a0e94e`). The person got through by adopting a self-minted token
+  and putting it in the connector URL. Still an owner decision.
+- **§1 held.** Every enum refusal named the accepted words, and the worker got it right on the
+  next call each time. What the refusals exposed was the packet, not the schema: `answer_with`
+  named link fields without their words, and never mentioned the coverage the applier requires
+  for five of six task types' null outcomes. Six refusals in the run were that. Fixed in
+  `Tasks::Answer` (`COVERAGE`, `LINK_WORDS`), with a spec that fails if a packet stops naming
+  what the applier asks.
+- **A class this stage did not look at:** a result that breaks its own `outputSchema`. The
+  worker's client discarded `next_affiliation_review` three times (`proposal` null under a
+  schema saying object) while this node logged `outcome=ok`. `Mcp::Output` now logs such a
+  result as `outcome=output_invalid`, and `spec/support/mcp_output_contract.rb` holds every
+  spec's tool results to their schemas.

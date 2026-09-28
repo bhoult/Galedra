@@ -31,6 +31,12 @@ only does that if each session leaves it truer than it found it.
 server side.** Not a scripted test — an actual task, with the person asking for
 what they actually want.
 
+**Since 2026-09-28 the assistants connect to galedra.org**, so the server side is
+production's log and database, read through `~/programming/galedra-server/bin/galedra`
+(the `check-galedra` skill says how). Development's copy of the reports stopped at
+2026-09-27; fixes are still made and tested here, and reach the workers only when the
+owner deploys.
+
 This found, in one session: a two-hour transcript recorded as thirteen claims; a
 livelock handing out the same unworkable task forever; page renders at 18
 seconds; and the worst one, a scorer counting a transcript's own sentence as
@@ -92,6 +98,23 @@ against its own work.
   what found every slow path that day. During a connector run it is worth reading
   between batches: it says what the assistant actually hit, rather than what the
   watcher guessed it hit.
+- **`outcome=ok` is what the server sent, not what the caller received.** A client
+  that reads output schemas throws away a result that breaks its own schema, so on
+  2026-09-28 `next_affiliation_review` failed three times for a worker while this
+  log said ok (a `proposal` of null under a schema saying object). Such a result now
+  logs `outcome=output_invalid`, and every spec holds tool results to their schemas
+  (`spec/support/mcp_output_contract.rb`). One run's evidence; it found only that
+  class, but the class had been invisible from this side until then.
+- **Count every request class against a limit, not only the ones that do work.**
+  The same worker's connector sent 1,051 `GET /mcp` probes, answered 405, beside
+  about a thousand tool calls, and they spent a fifth of its 120-a-minute budget;
+  the 429s fell in minutes where the tool calls alone were under it. Nobody filed
+  that. It was found by counting `Started` lines per minute by method.
+- **The lease table outranks the worker's account of it.** The same run filed that
+  `next_task` handed out a task it had already answered. There was one lease: the
+  worker had sent a second, different answer three seconds after its first. Check
+  `task_assignments` and the log's order of calls before believing a sequence of
+  events a worker reconstructs, particularly one running several workers at once.
 
 ## The four record folders
 
