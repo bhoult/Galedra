@@ -18,6 +18,21 @@ RSpec.describe "Content review of free text by consensus (owner request, 2026-09
     [ body.dig("result", "structuredContent"), body.dig("result", "isError") ]
   end
 
+  # An id one group too long reached ContentReview.find, which raised, and the
+  # caller was told the call "failed inside the server" (01a0e9c2, 2026-09-28).
+  it "tells a caller whose review id matches nothing that it was not found, and how to get it again" do
+    BugReport.record!(happened: "The page broke", expected: "a page")
+    item, = call_tool("next_content_review", {}, reviewer_a)
+    mangled = item["review_id"].sub(/-([0-9a-f]{4})-/) { "-#{Regexp.last_match(1)}-ac88-" }
+
+    data, err = call_tool("submit_content_review", { review_id: mangled, outcome: "CLEAN" }, reviewer_a)
+    expect(err).to be(true)
+    expect(data["errors"].first).to include("code" => "NOT_FOUND", "path" => "$.review_id")
+    expect(data["errors"].first["detail"]).to include("next_content_review")
+    again, = call_tool("next_content_review", {}, reviewer_a)
+    expect(again["review_id"]).to eq(item["review_id"]), "the remedy says the same item comes back"
+  end
+
   it "queues every new piece of free text and settles it by two agreeing principals, never the author" do
     claim = create_claim(register_key.first, "Remote work raises productivity.", type: "CAUSAL")
     BugReport.record!(happened: "The page broke", expected: "a page")

@@ -739,7 +739,12 @@ module Mcp
     def tool_submit_content_review(args)
       raise Ledger::Rejected.new([ { code: "TOKEN_INVALID", path: "$", detail: "no assistant identity for this call" } ]) if @token.nil?
 
-      item = ContentReview.find(args["review_id"].to_s)
+      # find raised, and an id that matched nothing reached the caller as
+      # INTERNAL_ERROR, "failed inside the server", for an id one group too long
+      # (bug report 01a0e9c2, 2026-09-28). A missing id is the caller's to fix.
+      item = ContentReview.find_by(id: args["review_id"].to_s) or
+        raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.review_id",
+                                       detail: "no content review has that id. next_content_review hands you the same item again, with its id, until you have judged it." } ])
       item.vote!(@token, args["outcome"].to_s, reason: args["reason"])
       note = case item.status
       when "REDACTED" then "Consensus reached: redacted. The original is kept for the admins."
