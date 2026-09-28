@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -308,6 +308,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_200000) do
     t.index ["seq"], name: "index_contributions_on_seq", unique: true
     t.index ["signer_key_id", "received_at"], name: "index_contributions_on_signer_key_id_and_received_at"
     t.index ["signer_key_id"], name: "index_contributions_on_signer_key_id"
+    t.index ["task_id", "seq"], name: "index_contributions_on_task_id_and_seq"
   end
 
   create_table "contributors", id: :uuid, default: nil, force: :cascade do |t|

@@ -14,8 +14,15 @@ module Tasks
     # than the author has looked. Filtering here rather than flagging inside the
     # scorer keeps the trace shape unchanged, so no new model version is needed
     # for a feature that must not move the number anyway (Invariants 4 and 7).
+    #
+    # Which results were self-performed is one question for the claim's whole
+    # set. It was one per result, and on galedra.org's first day that was
+    # 39,459 statements, the most-called in the scoring path after the lookup
+    # the task_id index fixed (pg_stat_statements, 2026-09-28).
     def for(claim_id, seq)
-      pairs = accepted_results(claim_id, seq).reject { |_, result| self_performed?(result) }
+      pairs = accepted_results(claim_id, seq)
+      own = self_performed_among(pairs.map { |_, result| result.id })
+      pairs = pairs.reject { |_, result| own.include?(result.id) }
       pairs.map { |task, result| { "check" => CHECK_FOR.fetch(task.task_type), "by" => task.id, "result_contribution_id" => result.id } }
     end
 
@@ -46,8 +53,10 @@ module Tasks
       assignments.select { |a| standing.include?(a.result_contribution_id) }
     end
 
-    def self_performed?(result)
-      TaskAssignment.where(result_contribution_id: result.id, self_performed: true).exists?
+    def self_performed_among(result_ids)
+      return Set.new if result_ids.empty?
+
+      TaskAssignment.where(result_contribution_id: result_ids, self_performed: true).distinct.pluck(:result_contribution_id).to_set
     end
 
     def opposing_search_done?(contribution_id, seq)
