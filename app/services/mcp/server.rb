@@ -741,10 +741,13 @@ module Mcp
 
       # find raised, and an id that matched nothing reached the caller as
       # INTERNAL_ERROR, "failed inside the server", for an id one group too long
-      # (bug report 01a0e9c2, 2026-09-28). A missing id is the caller's to fix.
-      item = ContentReview.find_by(id: args["review_id"].to_s) or
+      # (bug report 01a0e9c2, 2026-09-28). A missing id is the caller's to fix,
+      # and the next one was a character off a real review, sent as "copied
+      # exactly" (01a0e9cf), so the near miss is named as it is for claims.
+      id = args["review_id"].to_s
+      item = ContentReview.find_by(id: id) or
         raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.review_id",
-                                       detail: "no content review has that id. next_content_review hands you the same item again, with its id, until you have judged it." } ])
+                                       detail: "no content review has that id#{near_miss_hint(ContentReview, id).presence || "."} next_content_review hands you the same item again, with its id, until you have judged it." } ])
       item.vote!(@token, args["outcome"].to_s, reason: args["reason"])
       note = case item.status
       when "REDACTED" then "Consensus reached: redacted. The original is kept for the admins."

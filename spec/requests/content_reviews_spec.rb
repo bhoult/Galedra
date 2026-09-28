@@ -31,6 +31,12 @@ RSpec.describe "Content review of free text by consensus (owner request, 2026-09
     expect(data["errors"].first["detail"]).to include("next_content_review")
     again, = call_tool("next_content_review", {}, reviewer_a)
     expect(again["review_id"]).to eq(item["review_id"]), "the remedy says the same item comes back"
+
+    # One character off a real id, sent as "copied exactly" (01a0e9cf).
+    last = item["review_id"][-1]
+    retyped = item["review_id"][0..-2] + (last == "0" ? "1" : "0")
+    data, = call_tool("submit_content_review", { review_id: retyped, outcome: "CLEAN" }, reviewer_a)
+    expect(data["errors"].first["detail"]).to include("Did you mean #{item['review_id']}?")
   end
 
   it "queues every new piece of free text and settles it by two agreeing principals, never the author" do

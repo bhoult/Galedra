@@ -219,6 +219,29 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(again["reason"]).not_to include("daily lease limit"), "the caller asked about one claim, not the queue"
   end
 
+  # A packet is frozen when its task opens. One built eight days before it was
+  # leased listed nothing counted on a claim that had since gained six
+  # supporting links, and the worker filed the SUPPORTED it then saw as a
+  # scoring fault (01a0e9cd-3006, 2026-09-28). The packet stays as it was; what
+  # has changed since is said beside it.
+  it "says what has changed about the claim since its packet was built" do
+    claim, location, = curated_claim
+    Tasks::Create.call(task_type: "OPPOSING_EVIDENCE_SEARCH", target: claim)
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: create_claim(curator, "An unrelated claim about offices.", type: "CAUSAL"))
+
+    unchanged, = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
+    expect(unchanged["context"]).not_to have_key("now"), "nothing about that claim has changed, so there is nothing to say"
+
+    link_evidence(curator, create_evidence(curator, location, statement: "The survey reports productivity rose."), claim)
+    data, = call_tool("next_task", { types: [ "OPPOSING_EVIDENCE_SEARCH" ] })
+    now = data["context"]["now"]
+    expect(now).to include("state" => Scoring::Score.call(claim, Contribution.maximum(:seq), model).assessment_state,
+                           "counted_links" => { "SUPPORT" => 2 })
+    expect(now["built_at_seq"]).to be < now["seq"]
+    expect(now["note"]).to include("built at seq #{now['built_at_seq']}", "2 SUPPORT counted")
+    expect(data["context"]["current_counted_statements"].size).to eq(1), "the packet itself is not rebuilt: its hash binds the answer"
+  end
+
   # A worker filtering by section was told about the whole queue, and in terms
   # of a daily lease limit that does not exist, so it asked twice for a reset
   # time (01a0e9c4, 01a0e9c9, 2026-09-28). The reason describes the tasks that
@@ -352,8 +375,9 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
         expect(text).to include("searched"), "#{type} answer_with never mentions searched, which #{absences.join(' and ')} require"
         expect(text).to include(Tasks::Answer::COVERAGE.fetch(type)), "#{type}: the packet and the refusal describe coverage differently"
       end
-      words = (text.include?("strength") ? EvidenceClaimLink::STRENGTHS : []) + (text.include?("links: [{") ? EvidenceClaimLink::DIRECTIONS : [])
-      words.each { |word| expect(text).to include(word), "#{type} answer_with asks for a link's fields without naming #{word}" }
+      words = (text.include?("strength") ? EvidenceClaimLink::STRENGTHS : []) + (text.include?("links: [{") ? EvidenceClaimLink::DIRECTIONS : []) +
+              (text.include?("sources: [{") ? Source::TYPES : [])
+      words.each { |word| expect(text).to include(word), "#{type} answer_with asks for a field without naming its word #{word}" }
     end
   end
 

@@ -34,16 +34,18 @@ module Tasks
     STRENGTH_WORDS = "strength is one of #{EvidenceClaimLink::STRENGTHS.join(', ')}, and says how strongly the passage " \
                      "bears on the claim, whatever the outcome"
     LINK_WORDS = "direction is one of #{EvidenceClaimLink::DIRECTIONS.join(', ')}; #{STRENGTH_WORDS}"
+    # The same gap for a source's type: SECONDARY_REPORT, one refusal (01a0e9d2).
+    SOURCE_WORDS = "a source's type is one of #{Source::TYPES.join(', ')}"
 
     ANSWER_WITH = {
       "EVIDENCE_VERIFICATION" =>
         "Read only the passage in context.untrusted_excerpt. Decide whether it directly bears on the claim. If it does, answer with evidence: [{handle, excerpt: \"packet\", statement}] and links: [{evidence, claim: \"target\", direction, strength, steps}], where #{LINK_WORDS}. Outcome CONFIRMED (the passage directly supports the claim), PARTIAL, NOT_SUPPORTED, or CANNOT_DETERMINE. CANNOT_DETERMINE takes an empty answer, with no link, and searched beside it: #{COVERAGE['EVIDENCE_VERIFICATION']}. Add no sources here.",
       "OPPOSING_EVIDENCE_SEARCH" =>
-        "Search for evidence in context.search_direction; sources already counted are listed so you look elsewhere. Read what you find yourself. Answer FOUND with sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], evidence: [{handle, excerpt, statement}], links: [{evidence, claim: \"target\", direction, strength, steps}], where #{LINK_WORDS}. Answer NONE_FOUND with an empty answer when a real search found nothing, and put what you covered in searched: #{COVERAGE['OPPOSING_EVIDENCE_SEARCH']}. That is a result, not a failure, and the coverage is what makes it one.",
+        "Search for evidence in context.search_direction; sources already counted are listed so you look elsewhere. Read what you find yourself. Answer FOUND with sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], evidence: [{handle, excerpt, statement}], links: [{evidence, claim: \"target\", direction, strength, steps}], where #{SOURCE_WORDS}, and a link's #{LINK_WORDS}. No claims or edges here: a new claim goes through record_investigation. Answer NONE_FOUND with an empty answer when a real search found nothing, and put what you covered in searched: #{COVERAGE['OPPOSING_EVIDENCE_SEARCH']}. That is a result, not a failure, and the coverage is what makes it one.",
       "SOURCE_INDEPENDENCE_CHECK" =>
         "Decide which of context.counted_evidence share one upstream origin (same press release, dataset, primary text, author). Answer GROUPED with groups: [{handle, type, description, members: [evidence_item_id, ...]}] using the ids from the packet; INDEPENDENT with an empty answer when none share an origin; CANNOT_DETERMINE when you cannot tell. INDEPENDENT and CANNOT_DETERMINE each need searched beside the answer: #{COVERAGE['SOURCE_INDEPENDENCE_CHECK']}.",
       "QUALIFIER_CHECK" =>
-        "Look in context.counted_links for omitted time ranges, populations, denominators, baselines, sampling limits, jurisdictions, or translations. Answer QUALIFIERS_FOUND with evidence and links of direction QUALIFY or CONTRADICT on claim: \"target\", or a narrower claim in claims: [{handle, text, type}] plus edges: [{from: handle, to: \"target\", type: \"NARROWS\"}], or supersede: [{link_id, direction, strength, steps, reason}] to revise a counted link; #{STRENGTH_WORDS}. When the passage that shows the omission is not recorded yet, quote it here: sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], with your evidence pointing at the excerpt's handle. NONE_MATERIAL with an empty answer when nothing material is missing; CANNOT_DETERMINE otherwise. Both need searched beside the answer: #{COVERAGE['QUALIFIER_CHECK']}.",
+        "Look in context.counted_links for omitted time ranges, populations, denominators, baselines, sampling limits, jurisdictions, or translations. Answer QUALIFIERS_FOUND with evidence and links of direction QUALIFY or CONTRADICT on claim: \"target\", or a narrower claim in claims: [{handle, text, type}] plus edges: [{from: handle, to: \"target\", type: \"NARROWS\"}], or supersede: [{link_id, direction, strength, steps, reason}] to revise a counted link; #{STRENGTH_WORDS}. When the passage that shows the omission is not recorded yet, quote it here: sources: [{handle, type, title, url, retrieved_at}], excerpts: [{handle, source, text, kind}], with your evidence pointing at the excerpt's handle; #{SOURCE_WORDS}. NONE_MATERIAL with an empty answer when nothing material is missing; CANNOT_DETERMINE otherwise. Both need searched beside the answer: #{COVERAGE['QUALIFIER_CHECK']}.",
       "INFERENCE_REVIEW" =>
         "Read context.premises and context.untrusted_rule. Answer VALID with an empty answer when the conclusion follows from the premises as stated; MISSING_PREMISE with claims: [{handle, text, type}] naming what the step silently assumes and inferences: [{handle, conclusion: \"target\", premises: [{claim, polarity}, ...], type, rule}] giving the corrected step (premises may be claim ids, handles, or \"target\"'s own premise claim ids); NON_SEQUITUR with a reason in the rule of a corrected inference or with an empty answer; CANNOT_DETERMINE otherwise, with searched beside the answer: #{COVERAGE['INFERENCE_REVIEW']}. Do not judge whether the premises are true.",
       "CLAIM_EXTRACTION" =>
@@ -73,6 +75,8 @@ module Tasks
                     "#{' Interrupted means the passage is present: the page puts markup inside it, which a reader skips and our matcher cannot. Confirm it if the passage is faithful to what a reader of the page reads.' if finding == 'INTERRUPTED'}"
         })
       end
+      now = now_for(task, packet)
+      context = context.merge("now" => now) if now
       if task.section_id && (section = Section.find_by(id: task.section_id))
         context = context.merge("section" => { "id" => section.id, "path" => section.path, "url" => "#{base_url}/sections/#{section.id}",
                                                "note" => "Read this section of the source yourself, between the anchor and the next section's; the packet's excerpt is only the anchor." })
@@ -81,6 +85,34 @@ module Tasks
         target: packet["target"].merge("url" => target_url), context: context,
         outcomes: spec[:outcomes], constraints: constraints(packet, spec), moves: moves(task, assignment), lease_expires_at: assignment.lease_expires_at.utc.iso8601,
         task_url: "#{base_url}/tasks/#{task.id}", answer_with: ANSWER_WITH.fetch(task.task_type), rules: RULES }
+    end
+
+    # A packet is built when its task opens and its hash binds the answer to
+    # it, so it is never rebuilt. A task can wait days, though, and then its
+    # current_state and counted statements describe a claim as it no longer is.
+    # A worker was sent to search for support, from a packet built eight days
+    # earlier that listed nothing counted, on a claim that had since gained six
+    # supporting links, and filed the SUPPORTED it then saw as a scoring fault
+    # (bug report 01a0e9cd-3006, 2026-09-28). So the packet says what has
+    # changed, beside what it froze. Two grouped counts and a cached score.
+    def now_for(task, packet)
+      return nil unless task.target_type == "CLAIM"
+
+      built = packet["snapshot_seq"].to_i
+      head = Contribution.maximum(:seq).to_i
+      claim = Claim.find_by(id: task.target_id)
+      return nil if claim.nil? || head <= built
+
+      counted = claim.evidence_claim_links.effective_at(head).group(:direction).count
+      return nil if counted == claim.evidence_claim_links.effective_at(built).group(:direction).count
+
+      model = Scoring::Registry.default_model
+      state = model && Scoring::Score.call(claim, head, model).assessment_state
+      tally = counted.sort.map { |direction, n| "#{n} #{direction}" }.join(", ").presence || "nothing"
+      { "built_at_seq" => built, "seq" => head, "state" => state, "counted_links" => counted.sort.to_h,
+        "note" => "This packet was built at seq #{built}, when the task opened, and is kept as it was. The claim has changed since: " \
+                  "at seq #{head} it is #{state} with #{tally} counted. Where the packet and this disagree, this is the claim now; " \
+                  "get_claim shows its evidence as it stands." }
     end
 
     # What answering can and cannot change, said before the work rather than
