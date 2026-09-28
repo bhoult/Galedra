@@ -1219,7 +1219,9 @@ module Mcp
       target_id = args["claim_id"].presence && find_claim("claim_id" => args["claim_id"]).id
       assignment = Tasks::Lease.next(contributor: @token.agent, delegation: @token.delegation, types: types, domains: domains, target_id: target_id,
                                      section_id: args["section_id"].presence, settleable: args["settleable"].present?)
-      return { available: false, reason: nothing_available(types, domains, target_id) } if assignment.nil?
+      if assignment.nil?
+        return { available: false, reason: nothing_available(types, domains, target_id, section_id: args["section_id"].presence, settleable: args["settleable"].present?) }
+      end
 
       { available: true }.merge(Tasks::Answer.present(assignment.task, assignment, base_url: @base_url))
     end
@@ -1402,27 +1404,44 @@ module Mcp
         self.class.ways_in(@base_url) ].compact.join(" ")
     end
 
-    def nothing_available(types, domains, target_id)
+    # Why next_task found nothing, asked of the same tasks it searched. It used
+    # to ignore section_id and settleable, so a worker whose section was used up
+    # was told about the whole queue, and its last branch named a daily lease
+    # limit that does not exist: the only lease limit is hourly and is refused
+    # as LEASE_LIMIT. A worker went looking for a reset time that was never
+    # coming and filed twice for one (feature requests 01a0e9c4, 01a0e9c9,
+    # 2026-09-28). Counts are asked as sets, never one task at a time.
+    def nothing_available(types, domains, target_id, section_id: nil, settleable: false)
       perms = @token.delegation.permissions
       allowed_types = Array(perms["allowed_task_types"])
       allowed_domains = Array(perms["domains"])
       scope = Task.where(status: %w[OPEN LEASED], task_type: (types.presence || allowed_types) & allowed_types, domain: (domains.presence || allowed_domains) & allowed_domains)
       scope = scope.where(target_id: target_id) if target_id
+      scope = scope.where(section_id: Tasks::Lease.subtree_ids(section_id)) if section_id
+      scope = scope.where(target_type: "CLAIM", target_id: Tasks::Lease.scoreable_claim_ids) if settleable
       open = Tasks::Status.open_among(scope)
+      where = target_id ? "on this claim" : section_id ? "in this section" : "in scope"
       # Most specific first. Asking about one claim and being told a general
       # truth about the queue is the fault this whole field exists to avoid, and
       # the own-work branch used to fire on claims Stage 34 expressly allows a
       # principal to check, telling it to wait for someone else.
       if open.empty?
-        "no open tasks in the types (#{(types.presence || allowed_types).join(', ')}) and domains this assistant may work; nothing to do right now"
+        "no open tasks #{where} in the types (#{(types.presence || allowed_types).join(', ')}) and domains this assistant may work; nothing to do right now"
       elsif open.all? { |t| Tasks::Lease.answered_by?(t, @token.principal) }
-        "you have already answered #{target_id ? 'every open task on this claim' : 'every open task in scope'}, and a principal answers each one once. " \
+        "you have already answered every open task #{where}, and a principal answers each one once. " \
         "Nothing can be added to a result by leasing its task again; what those need now is a different principal's assistant"
       elsif open.all? { |t| Tasks::Lease.own_target?(t, @token.principal) && !Tasks::Lease::SELF_CHECKABLE.include?(t.task_type) }
-        "the only open tasks are ones nobody may work on their own principal's claims — an audit, an independence check, an inference review, " \
+        "the only open tasks #{where} are ones nobody may work on their own principal's claims — an audit, an independence check, an inference review, " \
         "or a blind check your principal asked for; a different person's assistant must do those"
       else
-        "every open task is already leased or submitted by this principal, or the daily lease limit is reached"
+        ids = open.map(&:id)
+        kin = Tasks::Lease.kin_principal_ids(@token.principal)
+        mine = TaskAssignment.where(task_id: ids).where("contributor_id = :c OR principal_contributor_id IN (:p)", c: @token.agent.id, p: kin)
+        answered = mine.where(status: "SUBMITTED").distinct.count(:task_id)
+        held = mine.where(status: "LEASED").distinct.count(:task_id)
+        "none of the #{open.size} open tasks #{where} can go to this assistant now: #{answered} your principal has answered, #{held} are leased " \
+          "to you and not yet answered (answer or release_task them), and the rest are checks a different person must do. This is not a " \
+          "limit and has no reset time; widen the filters, or record what you find without a lease through add_evidence or record_investigation"
       end
     end
 

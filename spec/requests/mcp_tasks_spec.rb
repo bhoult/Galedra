@@ -219,6 +219,28 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(again["reason"]).not_to include("daily lease limit"), "the caller asked about one claim, not the queue"
   end
 
+  # A worker filtering by section was told about the whole queue, and in terms
+  # of a daily lease limit that does not exist, so it asked twice for a reset
+  # time (01a0e9c4, 01a0e9c9, 2026-09-28). The reason describes the tasks that
+  # were searched, and names no limit that is not there.
+  it "explains an empty section in terms of that section, and names no daily limit" do
+    source = create_source(curator, title: "An episode")
+    created = append(action_type: "CREATE_SECTION", key_pair: curator, payload: { "source_id" => source.id, "sections" => [ { "heading" => "Episode" } ] })
+    section = Section.where(contribution_id: created.contribution.id).first
+    inside = create_claim(curator, "Remote work raised output by 14 per cent.", type: "QUANTITATIVE", section_id: section.id)
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", required_assignments: Audits::Policy.independent_checks, target: inside, section_id: section.id)
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: create_claim(curator, "Office work lowered output.", type: "CAUSAL"))
+
+    leased, = call_tool("next_task", { "section_id" => section.id, "types" => [ "QUALIFIER_CHECK" ] })
+    call_tool("submit_task", { task_id: leased["task_id"], outcome: "NONE_MATERIAL", answer: {}, searched: "Read the counted passage for omitted populations." })
+
+    again, err = call_tool("next_task", { "section_id" => section.id, "types" => [ "QUALIFIER_CHECK" ] })
+    expect(err).to be(false)
+    expect(again["available"]).to be(false)
+    expect(again["reason"]).to include("already answered every open task in this section")
+    expect(again["reason"]).not_to include("daily")
+  end
+
   # The task type is named for the usual case, but BuildContext picks the
   # direction per claim: a claim nothing yet supports is sent looking FOR
   # evidence. `moves` said "against" either way, so a worker was told the
