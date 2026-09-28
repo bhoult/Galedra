@@ -20,7 +20,8 @@ module Api
       rate_limit to: 20, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore
 
       rescue_from Assistants::CapReached do |e|
-        render json: { errors: [ { code: "DAILY_CAP", path: "$", detail: e.message } ] }, status: :too_many_requests
+        response.set_header("Retry-After", e.retry_after_seconds.to_s) if e.retry_after_seconds
+        render json: { errors: [ e.to_error ] }, status: :too_many_requests
       end
 
       def create

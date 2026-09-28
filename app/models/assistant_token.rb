@@ -82,13 +82,28 @@ class AssistantToken < ApplicationRecord
   # A rolling hour rather than a calendar one: with a fixed boundary an agent
   # can spend a full cap at 10:59 and another at 11:01, so the window that is
   # meant to bound a runaway briefly allows twice the rate.
-  def writes_this_hour
-    Contribution.where(signer_key_id: agent.key_id).where.not(action_type: "REGISTER_KEY").where("received_at >= ?", 1.hour.ago).count
-  end
+  def writes_this_hour = writes_in_the_last_hour.count
 
   def over_hourly_cap? = writes_this_hour >= hourly_cap
 
+  # The window rolls, so a write frees when the oldest one in it turns an hour old.
+  def seconds_until_a_write_frees
+    oldest = writes_in_the_last_hour.minimum(:received_at)
+    oldest ? [ (oldest + 1.hour - Time.current).ceil, 1 ].max : 0
+  end
+
+  def hourly_cap_reached
+    wait = seconds_until_a_write_frees
+    Assistants::CapReached.new("this assistant has reached its hourly limit of #{hourly_cap} writes, counted over the last rolling hour; " \
+                               "the next one frees in #{wait} seconds (retry_after_seconds), and another each time an older write turns an hour old",
+                               retry_after_seconds: wait)
+  end
+
   private
+
+  def writes_in_the_last_hour
+    Contribution.where(signer_key_id: agent.key_id).where.not(action_type: "REGISTER_KEY").where("received_at >= ?", 1.hour.ago)
+  end
 
   def assign_adoption_code
     self.adoption_code ||= "adopt_#{SecureRandom.urlsafe_base64(18)}"

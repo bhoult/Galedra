@@ -320,7 +320,7 @@ module Mcp
     rescue Ledger::Rejected => e
       [ 200, tool_error(id, e.errors, era, **call) ]
     rescue Assistants::CapReached => e
-      [ 200, tool_error(id, [ { code: "DAILY_CAP", path: "$", detail: e.message } ], era, **call) ]
+      [ 200, tool_error(id, [ e.to_error ], era, **call) ]
     rescue ActiveRecord::RecordInvalid => e
       # A validation that reaches here is still a refusal, and a refusal the
       # caller can read beats a bare 422 with nothing in it. One of these cost an

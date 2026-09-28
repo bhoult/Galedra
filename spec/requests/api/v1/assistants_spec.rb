@@ -128,6 +128,11 @@ RSpec.describe "Connected assistants (Stage 12)", type: :request do
     expect(response).to have_http_status(:too_many_requests)
     expect(response.parsed_body["errors"].first).to include("code" => "DAILY_CAP")
     expect(response.parsed_body["errors"].first["detail"]).to include("hourly limit of 2 writes")
+    # When, as a number: a worker at the cap was told only that it "resumes as
+    # the last hour rolls past" and filed twice for the figure (01a0e9d4).
+    wait = response.parsed_body["errors"].first["retry_after_seconds"]
+    expect(wait).to be_between(3500, 3600)
+    expect(response.headers["Retry-After"]).to eq(wait.to_s)
     expect(record.reload.writes_this_hour).to eq(2)
 
     travel_to(Time.current.tomorrow.beginning_of_day + 1.hour) do

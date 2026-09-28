@@ -8,6 +8,7 @@ require "rails_helper"
 # cold instead of pausing (feature request 01a0e968).
 RSpec.describe "MCP rate limit", type: :request do
   include EnvHelpers
+  include ActiveSupport::Testing::TimeHelpers
 
   let(:token) { Assistants::Connect.call(name: "Grok", provider: "xai").last }
   let(:headers) { { "CONTENT_TYPE" => "application/json", "ACCEPT" => "application/json, text/event-stream", "Authorization" => "Bearer #{token}" } }
@@ -31,6 +32,23 @@ RSpec.describe "MCP rate limit", type: :request do
       (McpController::CALLS_PER_MINUTE + 1).times { get "/mcp", headers: headers }
       expect(response).to have_http_status(:too_many_requests)
     end
+  end
+
+  # The hourly write cap said only that it "resumes as the last hour rolls
+  # past"; a worker filed twice for the number (01a0e9d4-9115, 01a0e9d4-9ade).
+  it "says when the hourly write cap next frees a write" do
+    record, secret = Assistants::Connect.call(name: "Grok", provider: "xai", hourly_cap: 1)
+    call = ->(text) { post "/mcp", params: { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "record_investigation", arguments: { claims: [ { handle: "c", text: text, type: "OBSERVATIONAL" } ] } } }.to_json,
+                                  headers: headers.merge("Authorization" => "Bearer #{secret}") }
+    call.("The first claim about offices.")
+    travel 10.minutes do
+      call.("A second claim about offices.")
+      error = response.parsed_body.dig("result", "structuredContent", "errors").first
+      expect(error).to include("code" => "DAILY_CAP")
+      expect(error["retry_after_seconds"]).to be_between(2990, 3001), "the first write turns an hour old fifty minutes from now"
+      expect(error["detail"]).to include("frees in #{error['retry_after_seconds']} seconds")
+    end
+    expect(record.reload.writes_this_hour).to be >= 1
   end
 
   it "says when to come back, and that the budget is shared by the token's workers" do
