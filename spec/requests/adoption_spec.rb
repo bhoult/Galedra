@@ -40,6 +40,17 @@ RSpec.describe "Adopting anonymous work (after Stage 14)", type: :request do
     expect(anonymous_key.reload).not_to be_anonymous
     expect(anonymous_key.adopted_by_key_id).to eq(adopter.key_id)
     expect(anonymous_key.identity_tier).to eq("PSEUDONYMOUS")
+
+    # A person is behind it now, so it works at the caps an assistant minted
+    # with a person gets. An adopted worker stopped at 500 writes and 500 leases
+    # an hour on 2026-09-28, which the owner called normal use for an agent.
+    token = AssistantToken.find_by!(user: user)
+    old_delegation = AgentDelegation.where(delegate_contributor_id: token.agent_contributor_id).order(:created_seq).first
+    expect(token.hourly_cap).to eq(Assistants::Connect::NAMED_HOURLY_CAP)
+    expect(token.delegation.max_tasks_per_hour).to eq(Assistants::Connect::NAMED_HOURLY_CAP)
+    expect(token.delegation.principal).to eq(old_delegation.principal), "whose work it is does not change, only how much"
+    expect(token.delegation.permissions).to eq(old_delegation.permissions)
+    expect { Assistants::Connect.raise_to_named_caps!(token.reload) }.not_to(change { Contribution.where(action_type: "DELEGATE").count })
     expect(Ledger::Verify.call.status).to eq("CHAIN_VERIFIED")
 
     get contributor_path(anonymous_key)

@@ -94,8 +94,9 @@ class AssistantToken < ApplicationRecord
 
   def hourly_cap_reached
     wait = seconds_until_a_write_frees
+    adopt = " A person who opens this assistant's adoption link while signed in raises it to #{Assistants::Connect::NAMED_HOURLY_CAP}." if anonymous? && hourly_cap < Assistants::Connect::NAMED_HOURLY_CAP
     Assistants::CapReached.new("this assistant has reached its hourly limit of #{hourly_cap} writes, counted over the last rolling hour; " \
-                               "the next one frees in #{wait} seconds (retry_after_seconds), and another each time an older write turns an hour old",
+                               "the next one frees in #{wait} seconds (retry_after_seconds), and another each time an older write turns an hour old.#{adopt}",
                                retry_after_seconds: wait)
   end
 

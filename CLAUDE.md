@@ -397,6 +397,11 @@ P0 Definition of Done.
 
 ## Decisions reserved for the owner
 
+Decided 2026-09-28: an agent working the queue at about two calls a second is normal use. The MCP limit is 600
+calls a minute per token (`McpController::CALLS_PER_MINUTE`), and an adopted assistant gets the named caps, 5,000
+writes and 5,000 leases an hour, as one minted with a person always did (`Assistants::Connect.raise_to_named_caps!`;
+`bin/rails assistants:named_caps` for tokens adopted earlier). Address-keyed anonymous tokens stay at 500.
+
 Decided 2026-09-23: the constitution is revised in place as 1.0.0 before first release. P-1 (protection of
 persons), P-2 (visible removal), P-3 (unknowability designations are claims) and P-5 (the ledger runs no model)
 are folded into Articles XIII, VI and XIV. The text also closes the loopholes found in the 2026-09-23 review:

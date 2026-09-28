@@ -15,7 +15,12 @@ class McpController < ActionController::API
   # 2026-09-28, a fifth of each minute's allowance, and in the minutes its 429s
   # fell the tool calls alone were under the limit (feature request 01a0e968).
   # The probe keeps a limit of its own, so neither kind of request is unbounded.
-  CALLS_PER_MINUTE = 120
+  #
+  # Six hundred since 2026-09-28, when the owner called that worker's pace
+  # normal for an agent: two workers peaked at about 130 calls a minute, which
+  # cost 14% of the droplet's one core. Five times that is still short of the
+  # whole core, so one runaway token cannot take the node from everyone else.
+  CALLS_PER_MINUTE = 600
   rate_limit to: CALLS_PER_MINUTE, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore, only: :create
   rate_limit to: CALLS_PER_MINUTE, within: 1.minute, by: -> { assistant_rate_limit_key }, with: -> { too_many_requests }, store: Assistants::RateLimitStore, only: :show, name: "probe"
 

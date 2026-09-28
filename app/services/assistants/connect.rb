@@ -66,10 +66,28 @@ module Assistants
       Crypto::Custody.create_server_custodied(display_name: "Anonymous", identity_tier: "ANONYMOUS")
     end
 
-    def delegate(principal, agent, hourly_cap)
+    # A person behind an assistant earns the named caps whenever the person
+    # arrives: at the mint, or later by adoption. Adoption used to leave a
+    # self-minted token at 500 writes and 500 leases an hour, and a worker the
+    # owner had adopted stopped at both on 2026-09-28 (feature requests
+    # 01a0e968, 01a0e9d4-9115, 01a0e9d4-9ade). The owner's word: "this is
+    # normal usage for an agent." The lease limit is part of the signed
+    # delegation, so it rises by a new DELEGATE from the same principal with the
+    # same permissions: whose work it is does not change, only how much of it.
+    # Idempotent; bin/rails assistants:named_caps applies it to tokens adopted
+    # before this existed.
+    def raise_to_named_caps!(token)
+      old = token.delegation
+      delegation = old.max_tasks_per_hour && old.max_tasks_per_hour < NAMED_HOURLY_CAP ? delegate(old.principal, token.agent, NAMED_HOURLY_CAP, permissions: old.permissions) : old
+      token.update!(hourly_cap: [ token.hourly_cap, NAMED_HOURLY_CAP ].max, delegation: delegation)
+      token
+    end
+
+    DEFAULT_PERMISSIONS = { "allowed_task_types" => Tasks::Types::ALL, "direct_work" => true, "allowed_actions" => [ "ACCEPT" ] }.freeze
+
+    def delegate(principal, agent, hourly_cap, permissions: DEFAULT_PERMISSIONS.merge("domains" => Audits::Policy.domains))
       now = Time.now.utc
-      payload = { "delegate_key_id" => agent.key_id,
-                  "permissions" => { "allowed_task_types" => Tasks::Types::ALL, "domains" => Audits::Policy.domains, "direct_work" => true, "allowed_actions" => [ "ACCEPT" ] },
+      payload = { "delegate_key_id" => agent.key_id, "permissions" => permissions,
                   "max_tasks_per_hour" => hourly_cap, "valid_from" => (now - 1.minute).iso8601, "valid_until" => (now + VALIDITY).iso8601 }
       envelope = Contributions::Envelope.build(action_type: "DELEGATE", payload: payload, key_pair: Crypto::Custody.signer_for_contributor(principal))
       result = Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)

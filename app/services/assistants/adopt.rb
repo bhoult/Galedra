@@ -22,6 +22,7 @@ module Assistants
                                               key_pair: Crypto::Custody.signer_for(user))
       result = Ledger::Append.call(envelope, custody: Crypto::Custody::SERVER)
       token.update!(user: user)
+      Connect.raise_to_named_caps!(token)
       result.contribution
     end
 
