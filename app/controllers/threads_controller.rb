@@ -28,8 +28,7 @@ class ThreadsController < ApplicationController
   end
 
   def create
-    subject = DeterminationThread::SUBJECTS.include?(params[:subject_type].to_s) &&
-              params[:subject_type].to_s.constantize.find_by(id: params[:subject_id].to_s)
+    subject = DeterminationThread.subject_class(params[:subject_type])&.find_by(id: params[:subject_id].to_s)
     return redirect_back fallback_location: threads_path, alert: "Unknown subject." unless subject
     return redirect_back fallback_location: threads_path, alert: "Say what is wrong with how this was made." if params[:concern].to_s.strip.empty?
 

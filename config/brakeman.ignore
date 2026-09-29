@@ -1,0 +1,50 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "file": "app/services/contributors/tally.rb",
+      "line": 90,
+      "confidence": "Medium",
+      "fingerprint": "76651de3f3f49816baae925c1135e4dd3971ce78c7a6b6bcda542127271206f2",
+      "note": "Reviewed 2026-09-29: every interpolated value goes through connection.quote (since and each principal id); the rest is literal SQL."
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "check_name": "LinkToHref",
+      "file": "app/views/contributors/show.html.erb",
+      "line": 10,
+      "confidence": "Weak",
+      "fingerprint": "8da6a704dafdc991ab95097476fe949b4a046bc229dfcbdc404d91384b6a0760",
+      "note": "Reviewed 2026-09-29: home_node_url is the key's home_url, refused by the REGISTER_KEY applier unless it is an http(s) URL (Contributor.home_url?), else this node's own URL."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "file": "app/services/users/admins.rb",
+      "line": 18,
+      "confidence": "Medium",
+      "fingerprint": "c9320339409981f752e712f5690eb9add1405e6ac9833c8f5d756c0c925ead36",
+      "note": "Reviewed 2026-09-29: lock_key is Zlib.crc32 of a fixed string, an integer computed from a literal."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "file": "app/services/claims/search.rb",
+      "line": 26,
+      "confidence": "Weak",
+      "fingerprint": "cc46a12fb053f66e8a3f45c12336464a11b7dec5cf93b7fa02738973d8a32c06",
+      "note": "Reviewed 2026-09-29: the lexemes come from Postgres's own plainto_tsquery, are kept only if they match /\\A[[:alnum:]_-]+\\z/, and are bound through sanitize_sql."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "file": "app/services/affiliations/resolve.rb",
+      "line": 44,
+      "confidence": "Medium",
+      "fingerprint": "d2566b6a2123dadbf1154a2d8a991bed6b7c7fb2e069ff276c702f5ff5101b72",
+      "note": "Reviewed 2026-09-29: every value in the VALUES list and the compared text goes through connection.quote; the options come from config/affiliations.yml."
+    }
+  ],
+  "brakeman_version": "8.0.6"
+}

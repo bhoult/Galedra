@@ -875,9 +875,10 @@ module Mcp
 
     def thread_subject(args)
       type = args["subject_type"].to_s
-      raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.subject_type", detail: "expected one of #{DeterminationThread::SUBJECTS.join(', ')}" } ]) unless DeterminationThread::SUBJECTS.include?(type)
+      klass = DeterminationThread.subject_class(type)
+      raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.subject_type", detail: "expected one of #{DeterminationThread::SUBJECTS.join(', ')}" } ]) unless klass
 
-      type.constantize.find_by(id: args["subject_id"].to_s) or
+      klass.find_by(id: args["subject_id"].to_s) or
         raise Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.subject_id", detail: "no #{type.underscore.humanize.downcase} with that id" } ])
     end
 

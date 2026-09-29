@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips42t64
+
       - name: Checkout code
         uses: actions/checkout@v7
 
@@ -80,7 +83,10 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev postgresql-client
+        # libvips (libvips42t64 on Ubuntu 24.04) because ruby-vips loads it at boot (3d5403f); the
+        # production image has it and CI did not, so every job that booted the app
+        # failed from 2026-09-23.
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev postgresql-client libvips42t64
 
       - name: Checkout code
         uses: actions/checkout@v7
@@ -113,7 +119,10 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev postgresql-client
+        # libvips (libvips42t64 on Ubuntu 24.04) because ruby-vips loads it at boot (3d5403f); the
+        # production image has it and CI did not, so every job that booted the app
+        # failed from 2026-09-23.
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev postgresql-client libvips42t64
 
       - name: Checkout code
         uses: actions/checkout@v7

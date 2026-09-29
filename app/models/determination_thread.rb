@@ -33,6 +33,12 @@ class DeterminationThread < ApplicationRecord
   WINDOW = 30.days
   SUBJECTS = %w[Claim EvidenceClaimLink EvidenceItem SourceLocation TaskAssignment].freeze
 
+  # The class a caller named, if it is one of SUBJECTS. What is constantized is
+  # the list's own string, never the caller's: both callers checked the list
+  # first, so this was safe, but it read as reflection on a request parameter
+  # and kept CI's security scan failing on a High warning (2026-09-29).
+  def self.subject_class(name) = SUBJECTS.find { |subject| subject == name.to_s }&.constantize
+
   belongs_to :assistant_token, optional: true
   belongs_to :user, optional: true
   belongs_to :cites, class_name: "DeterminationThread", foreign_key: :cites_thread_id, optional: true, inverse_of: false
