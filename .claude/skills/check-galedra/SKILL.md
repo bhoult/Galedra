@@ -60,6 +60,11 @@ $G logs 3h | grep -E 'outcome=(refused|bad_arguments|output_invalid)|Completed (
 Production records request metrics (since 2026-09-28): `$G rails metrics:report` names what
 the workers actually hit, with the statement count per action, which the log does not carry.
 
+**The log is short-lived; the metrics are not.** It keeps 10 × 50 MB since 2026-09-29, about
+two days; before that it kept 30 MB, which a crawler on the claim pages filled in three hours
+and took a night's worker traffic and two `INTERNAL_ERROR`s with it. Read the log early in a
+pass, and lean on `$G rails metrics:report` for anything older.
+
 **Save the log before you deploy.** `bin/deploy` recreates the app container, and `$G logs`
 reads only the current one, so everything before the restart is gone. On 2026-09-28 the one
 empty `next_task` two reports were about happened in a container a later deploy replaced, and

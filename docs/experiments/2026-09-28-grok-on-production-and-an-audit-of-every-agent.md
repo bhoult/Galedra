@@ -142,6 +142,16 @@ silence as a contradiction or a speaker's say-so as direct support.
   says so, with no reason recorded, while the opposing-evidence packet tells the worker
   "Galedra's own fetch of the page follows on its own". 168 of Grok's passages and 177 of
   Muse's have never been checked by the node.
+- **F4. Requests from the overnight queue that are the owner's (2026-09-29):** an
+  `economics/energy` topic (`01a0ea50`); whether a qualifier check may carry a SUPPORT link
+  for the narrower claim it adds, which spec 04 now forbids (`01a0ea67`, `01a0eb13`; the
+  packet now says so and routes it through `add_evidence` with the new `created_claims`);
+  groups in `record_investigation` naming existing evidence ids (`01a0ea54`, `01a0eac2`); and
+  the card saying nothing when a claim's only weighted evidence is its own source beside a
+  zero-weight independent link (`01a0eb22`).
+- **F5. Two INTERNAL_ERRORs during parallel writes could not be read** (`01a0ead4`,
+  `01a0eae6`): the container log kept 30 MB, about three hours under a crawler. It keeps
+  10 × 50 MB since 2026-09-29; `01a0ead4` is held until it recurs.
 - **F3. Whether to fix the NOT_FOUND matcher's false negatives**, and whether a task should
   ever ask if a link's strength is deserved (§3). Both change what readers are told.
 
