@@ -19,6 +19,10 @@ RSpec.describe "Paste an investigation (after Stage 14)", type: :request do
     expect(response.body).to include("Recorded")
     expect(response.body).to include("The evidence leans against this.")
     expect(response.body).to include("Say instead:")
+    # Review completeness beside the score, for the whole and each claim (owner, 2026-09-29).
+    get investigation_path(Investigation.order(:created_at).last)
+    expect(response.body).to include("counted in review coverage")
+    expect(response.body).to include("of 4 review checks done")
     token = AssistantToken.last
     expect(token.software["agent_name"]).to eq("Pasted by hand")
     expect(token.principal).to be_anonymous

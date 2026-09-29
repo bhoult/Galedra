@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -504,6 +504,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_220000) do
     t.integer "snapshot_seq", null: false
     t.text "statement"
     t.datetime "updated_at", null: false
+    t.index "to_tsvector('english'::regconfig, statement)", name: "index_investigations_on_statement_fts", using: :gin
     t.index ["claim_ids"], name: "index_investigations_on_claim_ids", using: :gin
     t.index ["created_at"], name: "index_investigations_on_created_at"
   end
@@ -670,6 +671,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_220000) do
     t.bigint "redacted_by_seq"
     t.uuid "root_id", null: false
     t.uuid "source_id", null: false
+    t.index "to_tsvector('english'::regconfig, (heading)::text)", name: "index_sections_on_heading_fts", using: :gin
     t.index ["contribution_id"], name: "index_sections_on_contribution_id"
     t.index ["reading_location_id"], name: "index_sections_on_reading_location_id"
     t.index ["root_id", "parent_id", "position"], name: "index_sections_on_root_id_and_parent_id_and_position"
@@ -866,6 +868,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_220000) do
     t.string "locator_type", null: false
     t.bigint "redacted_by_seq"
     t.uuid "source_id", null: false
+    t.index "to_tsvector('english'::regconfig, excerpt)", name: "index_source_locations_on_excerpt_fts", using: :gin
     t.index ["contribution_id"], name: "index_source_locations_on_contribution_id"
     t.index ["created_seq"], name: "index_source_locations_on_created_seq"
     t.index ["invalidated_seq"], name: "index_source_locations_on_invalidated_seq"

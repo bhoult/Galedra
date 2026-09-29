@@ -31,6 +31,7 @@
     <header class="site">
       <%= link_to root_path, class: "brand" do %><%= image_tag "logo.svg", alt: "", class: "brand-mark", width: 26, height: 26 %> Galedra<% end %>
       <%= render "layouts/nav" %>
+      <%= form_with url: search_path, method: :get, class: "site-search", role: "search" do %><%= search_field_tag :q, nil, placeholder: "Search", "aria-label": "Search outlines, statements, claims and passages", maxlength: Search::Text::MAX_QUERY_CHARS %><% end %>
       <div class="account">
         <%# Open reports, at the right of the bar, for the person whose job they are. %>
         <%= render "layouts/model_picker" %>

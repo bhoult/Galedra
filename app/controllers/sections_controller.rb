@@ -35,6 +35,11 @@ class SectionsController < ApplicationController
     @text = Sections::Text.call(@section, @seq)
     @share_line = Sections::Progress.share_line(@section.root, @seq, section_url(@section.root))
     @current_claim = params[:claim].presence
+    # How complete the review is, per claim in the tree and for the section
+    # being read (owner request, 2026-09-29). One batch for every claim the
+    # tree shows, from scores the tree has already computed.
+    @meters = Cards::Completeness.for_results(tree_results(@tree), @seq)
+    @review = Cards::Completeness.total(tree_results(@subtree).keys.filter_map { |id| @meters[id] })
   end
 
   # The same page for an outline: whoever broke the source into sections counts
@@ -68,5 +73,14 @@ class SectionsController < ApplicationController
     result = Ui::Write.call(Current.user, "CREATE_SECTION", payload)
     root = Section.find(Ledger::Ids.derive(result.contribution.id, "section", 0))
     redirect_to section_path(root.root_id), notice: "Outline recorded as a signed contribution."
+  end
+
+  private
+
+  # Every claim's score result in a tree, keyed by claim id.
+  def tree_results(node, into = {})
+    into.merge!(node[:scores] || {})
+    Array(node[:children]).each { |child| tree_results(child, into) }
+    into
   end
 end

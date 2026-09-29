@@ -20,6 +20,7 @@
     <% if @summary[:detail].present? %><p><strong><%= @summary[:headline] %></strong> <%= @summary[:detail] %>.</p><% end %>
     <% if @summary[:stated] %><p class="meta"><%= @summary[:stated] %>.<% if @claims.size > 1 %> <%= @verdict[:note] %><% end %></p><% end %>
     <p class="meta"><%= @claims.size > 1 ? "The statement as a whole, read from the #{@claims.size} claims below. Each claim is scored on its own; this reading only counts them." : "What was asked, and where it stands." %> Provisional until audited.</p>
+    <%= completeness_bar(@review) %>
     <p><strong>Share:</strong></p><p class="share-line" data-copy><%= @share_line %></p>
   </div>
   <% if @claims.size > 1 %><h2>Claim by claim</h2><% end %>
@@ -31,6 +32,7 @@
       <p class="claim-text">“<%= claim.canonical_text %>”</p>
       <% if card[:plain][:say_instead] %><p class="say-instead"><strong>Say instead:</strong> <%= card[:plain][:say_instead] %></p><% end %>
       <p class="meta status-line" title="<%= card[:headline] %><% if card[:stated] %> · <%= card[:stated] %><% end %> · review checks <%= card[:review_checks] %> · provisional until audited."><%= card[:headline] %><% if card[:stated] %> · <%= card[:stated] %><% end %> · review checks <%= card[:review_checks] %> · provisional until audited.</p>
+      <p class="meta"><%= completeness_meter(@meters[claim.id]) %></p>
       <p><%= link_to "See the evidence", claim_path(claim) %> · <%= link_to "Claim card", card_claim_path(claim) %></p>
     </div>
   <% end %>

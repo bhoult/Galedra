@@ -47,6 +47,15 @@ header.site .brand-mark { width: 26px; height: 26px; display: block; }
 header.site nav { display: flex; gap: 0.2rem 1rem; flex-wrap: wrap; font-size: 0.95rem; }
 header.site nav a { color: var(--ink); opacity: 0.85; padding: 0.15rem 0; border-bottom: 2px solid transparent; }
 header.site nav a:hover { opacity: 1; text-decoration: none; border-bottom-color: var(--accent); }
+header.site .site-search { margin: 0; }
+header.site .site-search input { width: 11rem; max-width: 100%; padding: 0.25rem 0.55rem; font-size: 0.9rem; border: 1px solid var(--line); border-radius: 999px; background: #fff; }
+.search-form { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0 1.5rem; }
+.search-form input[type=search] { flex: 1 1 18rem; min-width: 0; padding: 0.45rem 0.7rem; font-size: 1rem; }
+.search-group { margin: 1.6rem 0; }
+.search-hit { padding: 0.55rem 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.search-hit p { margin: 0.15rem 0; }
+.search-snippet mark, .search-title mark { background: #fff1b8; color: inherit; padding: 0 0.1em; }
+@media (max-width: 640px) { header.site .site-search { order: 3; flex: 1 1 100%; } header.site .site-search input { width: 100%; } }
 header.site .account { margin-left: auto; display: flex; align-items: center; gap: 0.8rem; font-size: 0.92rem; }
 /* Open bug reports / feature requests, for admins only. Reads as one pill; the
    two halves link to their own lists. */
@@ -577,3 +586,18 @@ details.agent-note > summary { background: var(--panel); border-radius: 6px; pad
 .score { font-variant-numeric: tabular-nums; cursor: help; }
 .score-line strong { font-variant-numeric: tabular-nums; }
 .tree-score { margin-left: 0.35rem; color: var(--muted); font-size: 0.78em; font-variant-numeric: tabular-nums; cursor: help; white-space: nowrap; }
+
+/* Review completeness (Cards::Completeness): solid = counted in review coverage,
+   hatched = done only by the claim's own author, empty = not done. */
+.meter { display: inline-flex; align-items: center; gap: 3px; flex-wrap: wrap; vertical-align: middle; }
+.meter-seg { display: inline-block; width: 1.1em; height: 0.6em; border: 1px solid var(--accent); border-radius: 2px; background: transparent; }
+.meter-seg.counted { background: var(--accent); }
+.meter-seg.own { background: repeating-linear-gradient(135deg, var(--accent) 0 2px, transparent 2px 5px); }
+.meter.compact { gap: 2px; margin-left: 0.4rem; }
+.meter.compact .meter-seg { width: 0.6em; height: 0.45em; }
+.meter-text { margin-left: 0.45rem; font-size: 0.85rem; color: var(--muted); }
+.meter-bar-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem 0.6rem; margin: 0.4rem 0; }
+.meter-bar { display: inline-flex; width: 12rem; max-width: 100%; height: 0.7rem; border: 1px solid var(--accent); border-radius: 3px; overflow: hidden; }
+.meter-fill.counted { background: var(--accent); }
+.meter-fill.own { background: repeating-linear-gradient(135deg, var(--accent) 0 2px, transparent 2px 5px); }
+.meter-bar-line .meter-text { margin-left: 0; }

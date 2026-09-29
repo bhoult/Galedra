@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get "llms.txt", to: "discovery#llms", as: :llms, defaults: { format: "text" }
   get "constitution", to: "home#constitution"
   get "faq", to: "home#faq"
+  get "search", to: "search#index", as: :search
   get "docs", to: "help#docs"
   get "docs/api", to: "help#api", as: :api_docs
   get "about", to: "help#about"

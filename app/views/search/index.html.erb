@@ -1,0 +1,63 @@
+<% content_for :title, @query.present? ? "Search: #{@query}" : "Search" %>
+<h1>Search</h1>
+<p class="muted">
+  Finds words in outlines (a section's heading, and the text it quotes and reads), in the
+  statements people asked to have checked, in claims, and in every other quoted passage.
+  Put a phrase in quotes to match it exactly; <code>-word</code> leaves a word out.
+  Nothing withheld by moderation is searched.
+</p>
+<%= form_with url: search_path, method: :get, class: "search-form", role: "search" do %>
+  <%= search_field_tag :q, @query, placeholder: "Words from a section, a statement or a quotation", "aria-label": "Search the record", maxlength: Search::Text::MAX_QUERY_CHARS, autofocus: @query.blank? %>
+  <%= submit_tag "Search", name: nil %>
+<% end %>
+
+<% if @too_long %>
+  <p class="flash">A search is at most <%= Search::Text::MAX_QUERY_CHARS %> characters: a few distinctive words, not a whole passage.</p>
+<% elsif @query.present? && @result.empty? %>
+  <p>Nothing recorded contains all of <strong><%= @query %></strong>. Try fewer or more distinctive words.</p>
+<% elsif @query.present? %>
+  <% cap = Search::Text::LIMIT %>
+  <% if @result.sections.any? %>
+    <section class="search-group">
+      <h2>In outlines <span class="muted">(<%= @result.sections.size %><%= "+" if @result.sections.size == cap %>)</span></h2>
+      <% @result.sections.each do |s| %>
+        <div class="search-hit">
+          <p class="search-title"><%= link_to s[:heading_html], section_path(s[:id]) %><% if s[:outline] %> <span class="muted">in <%= link_to s[:outline], section_path(s[:root_id]) %></span><% end %></p>
+          <% if s[:snippet_html] %><p class="search-snippet">“<%= s[:snippet_html] %>”</p><% end %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+  <% if @result.investigations.any? %>
+    <section class="search-group">
+      <h2>In statements checked <span class="muted">(<%= @result.investigations.size %><%= "+" if @result.investigations.size == cap %>)</span></h2>
+      <% @result.investigations.each do |i| %>
+        <div class="search-hit">
+          <p class="search-snippet"><%= link_to i[:section_id] ? section_path(i[:section_id]) : investigation_path(i[:id]) do %>“<%= i[:snippet_html] %>”<% end %></p>
+          <p class="muted small"><%= i[:created_at].to_date.iso8601 %><% if i[:claims].positive? %> · <%= pluralize(i[:claims], "claim") %><% end %></p>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+  <% if @result.claims.any? %>
+    <section class="search-group">
+      <h2>In claims <span class="muted">(<%= @result.claims.size %><%= "+" if @result.claims.size == cap %>)</span></h2>
+      <% @result.claims.each do |c| %>
+        <div class="search-hit">
+          <p class="search-title"><%= link_to c[:text_html], claim_path(c[:id]) %><% unless c[:status] == "ACTIVE" %> <span class="muted small"><%= c[:status].downcase %></span><% end %></p>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+  <% if @result.passages.any? %>
+    <section class="search-group">
+      <h2>In quoted passages <span class="muted">(<%= @result.passages.size %><%= "+" if @result.passages.size == cap %>)</span></h2>
+      <% @result.passages.each do |p| %>
+        <div class="search-hit">
+          <p class="search-snippet"><%= link_to p[:claim_id] ? claim_path(p[:claim_id]) : source_path(p[:source_id]) do %>“<%= p[:snippet_html] %>”<% end %></p>
+          <p class="muted small">from <%= link_to (p[:source_title].presence || p[:source_uri].presence || "a source"), source_path(p[:source_id]) %></p>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+<% end %>

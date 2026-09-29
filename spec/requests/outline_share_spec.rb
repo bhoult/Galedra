@@ -37,6 +37,11 @@ RSpec.describe "Sharing and following an outline (Stage 22)", type: :request do
     expect(response.body).to include('property="og:title" content="State of the union"')
     expect(response.body).to include('og:description" content="Not checked yet · not yet reviewed by anyone else. 5 claims from this source')
     expect(response.body).to include("2 of 2 leaves extracted")
+    # How complete the review is, for the whole and per claim (owner, 2026-09-29).
+    # One claim has a primary source among its evidence: one check of twenty.
+    expect(response.body).to include('aria-label="Review 5% done · 5% counted in review coverage (5 claims, 20 checks)"')
+    expect(response.body).to include("2 of 2 leaves extracted")
+    expect(response.body.scan('class="meter compact"').size).to eq(5)
 
     get "/weaknesses"
     expect(response.body).to include("unfinished outlines (1)").and include("State of the union")

@@ -126,6 +126,40 @@ module DisplayHelper
                                                        title: [ "#{badge[:label]} (#{result.assessment_state})", figure, "provisional until audited" ].compact.join(" · "))
   end
 
+  # How complete a claim's review is (Cards::Completeness): a segment per
+  # checklist item, solid when counted in review coverage, hatched when only the
+  # claim's own author did it, empty when not done. Words say it too, so the
+  # meter never depends on telling the fills apart.
+  def completeness_meter(meter, compact: false)
+    return "".html_safe if meter.nil? || meter[:total].zero?
+
+    segments = safe_join(meter[:segments].map do |s|
+      tag.span("", class: "meter-seg #{s[:state]}", title: "#{s[:label].upcase_first}: #{Cards::Completeness::STATES[s[:state]]}")
+    end)
+    words = "#{meter[:counted] + meter[:own]} of #{meter[:total]} review checks done · #{meter[:counted]} counted"
+    words += " · #{meter[:own]} by the author only" if meter[:own].positive?
+    tag.span(class: "meter#{' compact' if compact}", role: "img", "aria-label": words, title: compact ? words : nil) do
+      compact ? segments : segments + tag.span(words, class: "meter-text")
+    end
+  end
+
+  # The same for a whole investigation or outline: one bar, counted then the
+  # author's own, with the counts in words beside it.
+  def completeness_bar(total, extra: nil)
+    return "".html_safe if total[:total].zero?
+
+    own_percent = total[:done_percent] - total[:counted_percent]
+    words = "Review #{total[:done_percent]}% done · #{total[:counted_percent]}% counted in review coverage"
+    words += " · #{own_percent}% by the claims' own author only" if own_percent.positive?
+    words += " (#{pluralize(total[:claims], 'claim')}, #{total[:total]} checks)"
+    tag.div(class: "meter-bar-line") do
+      tag.span(class: "meter-bar", role: "img", "aria-label": words) do
+        tag.span("", class: "meter-fill counted", style: "width: #{total[:counted_percent]}%") +
+          tag.span("", class: "meter-fill own", style: "width: #{own_percent}%")
+      end + tag.span([ words, extra ].compact.join(" · "), class: "meter-text")
+    end
+  end
+
   # The figure beside a heading in an outline tree, small and muted, with what
   # it is on hover. Nothing when the section has too little scored to have one.
   def tree_score(verdict)

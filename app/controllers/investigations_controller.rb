@@ -78,6 +78,9 @@ class InvestigationsController < ApplicationController
     # Scored once, as a set; the verdict below used to score every claim again.
     @results = Scoring::Score.call_many(@claims, @seq, @model)
     @cards = @claims.to_h { |c| [ c.id, Cards::ClaimCard.call(c, @seq, @model, @results[c.id]) ] }
+    # How complete the review is, beside the score (owner request, 2026-09-29).
+    @meters = Cards::Completeness.for_results(@results, @seq)
+    @review = Cards::Completeness.total(@meters.values)
     @headlines = @cards.values.map { |k| k[:plain][:headline] }
     @verdict = Investigations::Verdict.call(@claims, @seq, @model, results: @results)
     @summary = Investigation.summary(@cards.values, @verdict)
