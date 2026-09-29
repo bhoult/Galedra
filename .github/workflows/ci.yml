@@ -102,7 +102,10 @@ jobs:
           DB_HOST: localhost
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-        run: bin/rails db:prepare && bundle exec rspec
+        # The schema, not db:prepare: on a fresh database prepare also seeds the
+        # public demo, which needs a system key this job does not set, and a
+        # seeded test database breaks the suite, which pins its own key (CLAUDE.md).
+        run: bin/rails db:create db:schema:load && bundle exec rspec
 
   demo:
     runs-on: ubuntu-latest
