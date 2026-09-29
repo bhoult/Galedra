@@ -150,7 +150,9 @@ relax a rule the owner set is theirs; say so in the answer rather than doing it.
 request is reasonable but larger than this pass, record it in the stage file it belongs to
 and say where it went.
 
-Run the suite and RuboCop before committing. Put the report id **in the commit body** — the
+Run the suite and RuboCop before committing, and look at CI after pushing
+(`gh run list --branch master --limit 3`). It was red for six days while fifteen commits went
+over it unread, which also made every Dependabot pull request look broken. Put the report id **in the commit body** — the
 subject line is one short imperative sentence with no prefix, and no subject in this
 repository's history carries an id — and in a comment beside the guard, so the arc is
 traceable from either end.

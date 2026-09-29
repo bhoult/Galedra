@@ -410,6 +410,13 @@ proposed and discarded. Measurements that rule out every candidate have told you
 record it as observed and unexplained. The cost of a plausible story in a record is higher
 than the cost of a gap, because the next reader cannot tell them apart.
 
+**Pushing over a red CI without looking.** CI failed on master from 2026-09-23 to 2026-09-29:
+the runner lacked libvips after `ruby-vips` became a direct dependency, Brakeman had six
+warnings (one reading as reflection on a request parameter), and the test job seeded the demo
+into its own database. Fifteen commits in one session were pushed over it, each run locally
+green, and every Dependabot pull request looked broken for the same reason. `gh run list
+--branch master` after a push is the whole check.
+
 ## Scoring, briefly, because it is the sharp edge
 
 Scores are **versioned**: same seq and model give a byte-identical trace, so a
