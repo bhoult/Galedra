@@ -4,6 +4,7 @@
 <div class="card">
   <p class="headline"><%= card[:headline] %></p>
   <% if card[:stated] %><p class="meta score-line" title="Model-conditional, not a share of truth. The trace is under Show calculation.">Score: <%= card[:stated] %></p><% end %>
+  <% if (meter = local_assigns[:meter]) %><p class="meta"><%= completeness_meter(meter) %></p><% end %>
   <p class="meta">
     <%= pluralize(card[:independent_lineages], "independent evidence lineage") %> ·
     review checks <%= card[:review_checks] %> ·

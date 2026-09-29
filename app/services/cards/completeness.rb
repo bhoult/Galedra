@@ -61,6 +61,26 @@ module Cards
         done_percent: n.zero? ? 0 : ((counted + own) * 100 / n), counted_percent: n.zero? ? 0 : (counted * 100 / n) }
     end
 
+    # Every claim's score result in an outline tree (Sections::Tree), by id.
+    def tree_results(node, into = {})
+      into.merge!(node[:scores] || {})
+      Array(node[:children]).each { |child| tree_results(child, into) }
+      into
+    end
+
+    # {section_id => total} for every section in a tree: the gauge beside each
+    # heading, summed over the claims beneath it.
+    def section_totals(tree, meters)
+      totals = {}
+      collect = lambda do |node|
+        beneath = (node[:scores] || {}).keys.filter_map { |id| meters[id] } + Array(node[:children]).flat_map { |child| collect.call(child) }
+        totals[node[:section].id] = total(beneath) if node[:section]
+        beneath
+      end
+      collect.call(tree)
+      totals
+    end
+
     # {claim_id => Set of task types} the claim's own author has answered with a
     # result standing at seq. Four statements however many claims: this runs
     # under an outline of hundreds (the per-row defect CLAUDE.md warns about).

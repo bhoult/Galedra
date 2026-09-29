@@ -40,6 +40,10 @@ class InvestigationsController < ApplicationController
       claims = @claims_for[i.id]
       [ i.id, claims.any? ? Investigations::Verdict.call(claims, @seq, @model, results: results) : nil ]
     end
+    # The completeness gauge wherever a score shows (owner, 2026-09-29): one
+    # batch for the page, from the scores already computed.
+    meters = Cards::Completeness.for_results(results, @seq)
+    @reviews = @investigations.to_h { |i| [ i.id, Cards::Completeness.total(@claims_for[i.id].filter_map { |c| meters[c.id] }) ] }
   end
 
   def new

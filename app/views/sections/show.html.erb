@@ -10,7 +10,7 @@
 <div class="with-outline">
   <aside class="outline tree">
     <h2><%= reading_mark(@tree[:verdict], of: "in this outline") %><%= link_to @section.root.heading, section_path(@section.root), data: { turbo_frame: outline_frame } %></h2>
-    <%= render "sections/tree", node: @tree, open_ids: open_ids, current_claim: @current_claim, current_section: @section.id, seq: @seq, model: @model, meters: @meters %>
+    <%= render "sections/tree", node: @tree, open_ids: open_ids, current_claim: @current_claim, current_section: @section.id, seq: @seq, model: @model, meters: @meters, section_reviews: @section_reviews %>
   </aside>
   <%# Only this reloads when a section is chosen. The outline beside it stays in
       the page, which is what lets it animate and what stops a menu click from
@@ -29,7 +29,7 @@
     <blockquote class="passage"><%= simple_format(@section.location.excerpt) %></blockquote>
     <p class="meta">The opening words of this section, quoted exactly. This is what is hashed and checked against the source.</p>
   <% end %>
-  <% if (figure = @subtree.dig(:verdict, :stated)) %><p class="meta score-line" title="<%= @subtree[:verdict][:note] %>">Score: <strong><%= @subtree[:verdict][:figure] %></strong> · <%= figure %></p><% end %>
+  <%= score_line(@subtree[:verdict]) %>
   <%= completeness_bar(@review, extra: (@section.parent_id.nil? ? "#{@progress[:leaves_extracted]} of #{@progress[:leaves]} leaves extracted" : nil)) %>
   <p><strong><%= Sections::Tree.counts_line(@subtree[:counts]) %></strong><% if @subtree[:pending].positive? %> · <%= @subtree[:pending] %> proposed claims awaiting acceptance<% end %></p>
   <% if @subtree[:children].empty? && @subtree[:claims].empty? %><p class="muted">Nothing under this section yet. Its claims arrive when the extraction task below is worked.</p><% end %>

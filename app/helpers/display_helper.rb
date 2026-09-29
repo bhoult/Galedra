@@ -144,20 +144,34 @@ module DisplayHelper
   end
 
   # The same for a whole investigation or outline: one bar, counted then the
-  # author's own, with the counts in words beside it.
-  def completeness_bar(total, extra: nil)
-    return "".html_safe if total[:total].zero?
+  # author's own, with the counts in words. `style` is :full (the words beside
+  # it), :row (a short form, for a list), or :inline (the bar alone, the words
+  # on hover and for a screen reader, for a tree heading).
+  def completeness_bar(total, extra: nil, style: :full)
+    return "".html_safe if total.nil? || total[:total].zero?
 
     own_percent = total[:done_percent] - total[:counted_percent]
     words = "Review #{total[:done_percent]}% done · #{total[:counted_percent]}% counted in review coverage"
     words += " · #{own_percent}% by the claims' own author only" if own_percent.positive?
     words += " (#{pluralize(total[:claims], 'claim')}, #{total[:total]} checks)"
-    tag.div(class: "meter-bar-line") do
-      tag.span(class: "meter-bar", role: "img", "aria-label": words) do
-        tag.span("", class: "meter-fill counted", style: "width: #{total[:counted_percent]}%") +
-          tag.span("", class: "meter-fill own", style: "width: #{own_percent}%")
-      end + tag.span([ words, extra ].compact.join(" · "), class: "meter-text")
+    bar = tag.span(class: "meter-bar #{style}", role: "img", "aria-label": words, title: style == :full ? nil : words) do
+      tag.span("", class: "meter-fill counted", style: "width: #{total[:counted_percent]}%") +
+        tag.span("", class: "meter-fill own", style: "width: #{own_percent}%")
     end
+    return bar if style == :inline
+
+    text = style == :row ? "Review #{total[:done_percent]}% · #{total[:counted_percent]}% counted" : [ words, extra ].compact.join(" · ")
+    tag.span(class: "meter-bar-line #{style}") { bar + tag.span(text, class: "meter-text") }
+  end
+
+  # "Score: 0.7758 under ledger-default@0.3.0 at snapshot 26058 for all claims
+  # together". The stated text begins with the figure, and the line printed it
+  # twice, bold and then again (owner, 2026-09-29).
+  def score_line(verdict)
+    return "".html_safe unless verdict&.dig(:figure)
+
+    rest = verdict[:stated].to_s.delete_prefix(verdict[:figure].to_s).strip
+    tag.p(class: "meta score-line", title: verdict[:note]) { safe_join([ "Score: ", tag.strong(verdict[:figure]), (" #{rest}" if rest.present?) ].compact) }
   end
 
   # The figure beside a heading in an outline tree, small and muted, with what

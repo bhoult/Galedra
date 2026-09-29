@@ -10,6 +10,10 @@ class SourcesController < ApplicationController
     @locations = @source.source_locations.active_at(@seq).order(:created_seq)
     @cards = selected_model && !@quarantine ? Cards::SourceCard.call(@source, @seq, selected_model) : nil
     @tasks = Task.where(target_type: "CLAIM", target_id: @cards ? @cards[:cards].map { |c| c[:claim_id] } : []).order(:created_at)
+    # The completeness gauge beside each card's score (owner, 2026-09-29); the
+    # scores are cached, so this is one batch.
+    claims = @cards ? Claim.where(id: @cards[:cards].map { |c| c[:claim_id] }).to_a : []
+    @meters = claims.any? ? Cards::Completeness.for_results(Scoring::Score.call_many(claims, @seq, selected_model), @seq) : {}
   end
 
   def analyze

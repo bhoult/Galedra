@@ -14,6 +14,9 @@ class SectionsController < ApplicationController
     end
     @rows = roots.map { |r| [ r, Sections::Tree.call(r, @seq, model: selected_model), Sections::Progress.call(r, @seq) ] }
     @rows = @rows.sort_by { |_, _, p| [ -p[:open_tasks], -p[:claims] ] } unless params[:sort] == "newest"
+    results = @rows.each_with_object({}) { |(_, tree, _), all| Cards::Completeness.tree_results(tree, all) }
+    meters = Cards::Completeness.for_results(results, @seq)
+    @reviews = @rows.to_h { |root, tree, _| [ root.id, Cards::Completeness.total(Cards::Completeness.tree_results(tree).keys.filter_map { |id| meters[id] }) ] }
   end
 
   def show
@@ -38,8 +41,9 @@ class SectionsController < ApplicationController
     # How complete the review is, per claim in the tree and for the section
     # being read (owner request, 2026-09-29). One batch for every claim the
     # tree shows, from scores the tree has already computed.
-    @meters = Cards::Completeness.for_results(tree_results(@tree), @seq)
-    @review = Cards::Completeness.total(tree_results(@subtree).keys.filter_map { |id| @meters[id] })
+    @meters = Cards::Completeness.for_results(Cards::Completeness.tree_results(@tree), @seq)
+    @section_reviews = Cards::Completeness.section_totals(@tree, @meters)
+    @review = @section_reviews[@section.id] || Cards::Completeness.total([])
   end
 
   # The same page for an outline: whoever broke the source into sections counts
@@ -76,11 +80,4 @@ class SectionsController < ApplicationController
   end
 
   private
-
-  # Every claim's score result in a tree, keyed by claim id.
-  def tree_results(node, into = {})
-    into.merge!(node[:scores] || {})
-    Array(node[:children]).each { |child| tree_results(child, into) }
-    into
-  end
 end

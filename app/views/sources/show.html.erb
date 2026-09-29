@@ -53,7 +53,7 @@
       <% if c[:quarantined] %><div class="card"><p class="headline">Quarantined</p></div>
       <% else %>
         <p><%= link_to c[:text], claim_path(c[:claim_id]) %> <span class="badge"><%= c[:type] %></span></p>
-        <%= render "shared/card", card: c[:card] %>
+        <%= render "shared/card", card: c[:card], meter: @meters[c[:claim_id]] %>
       <% end %>
     <% end %>
     <% if authenticated? && @cards[:cards].any? %>

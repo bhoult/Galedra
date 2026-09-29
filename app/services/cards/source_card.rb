@@ -32,8 +32,11 @@ module Cards
       counts = states.tally
       parts = []
       parts << "#{counts['UNRESOLVED']} unresolved" if counts["UNRESOLVED"]
-      parts << "#{counts['LEANS_CONTRADICTED'] + counts.fetch('CONTRADICTED', 0)} leans contradicted or contradicted" if counts["LEANS_CONTRADICTED"] || counts["CONTRADICTED"]
-      parts << "#{counts['SUPPORTED'] + counts.fetch('LEANS_SUPPORTED', 0)} supported or leans supported" if counts["SUPPORTED"] || counts["LEANS_SUPPORTED"]
+      # fetch on both sides: a source whose claims were all CONTRADICTED, or all
+      # LEANS_SUPPORTED, added nil to a number and its page answered 500 (found
+      # adding the completeness gauge, 2026-09-29).
+      parts << "#{counts.fetch('LEANS_CONTRADICTED', 0) + counts.fetch('CONTRADICTED', 0)} leans contradicted or contradicted" if counts["LEANS_CONTRADICTED"] || counts["CONTRADICTED"]
+      parts << "#{counts.fetch('SUPPORTED', 0) + counts.fetch('LEANS_SUPPORTED', 0)} supported or leans supported" if counts["SUPPORTED"] || counts["LEANS_SUPPORTED"]
       parts << "#{counts['INSUFFICIENT_EVIDENCE']} with insufficient evidence" if counts["INSUFFICIENT_EVIDENCE"]
       model_dependent = cards.count { |c| c.dig(:card, :labels)&.any? { |l| l.include?("modeling choices") } }
       parts << "#{model_dependent} model-dependent" if model_dependent.positive?

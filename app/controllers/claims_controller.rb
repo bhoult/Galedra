@@ -27,6 +27,7 @@ class ClaimsController < ApplicationController
     @references = ClaimReference.counts_for(claims.map(&:id), kind: @counted_kind, since: @since)
     scored = selected_model ? Scoring::Score.call_many(claims.to_a, @seq, selected_model) : {}
     @rows = claims.map { |c| [ c, scored[c.id] ] }
+    @meters = Cards::Completeness.for_results(scored, @seq)
     @rows = @rows.select { |_, r| r&.assessment_state == params[:state] } if params[:state].present?
   end
 
@@ -45,8 +46,10 @@ class ClaimsController < ApplicationController
 
     ClaimReference.count!(@claim.id, "SHARED")
     @model = Scoring::Registry.default_model
-    @card = Cards::ClaimCard.call(@claim, @seq, @model)
+    result = Scoring::Score.call(@claim, @seq, @model)
+    @card = Cards::ClaimCard.call(@claim, @seq, @model, result)
     @plain = @card[:plain]
+    @meter = Cards::Completeness.for_results({ @claim.id => result }, @seq)[@claim.id]
     respond_to do |format|
       format.html
       format.png { send_data Cards::Image.render(@claim, @seq, @model, @card), type: "image/png", disposition: "inline" }
@@ -76,6 +79,7 @@ class ClaimsController < ApplicationController
     @model = selected_model
     @result = @model && Scoring::Score.call(@claim, @seq, @model)
     @card = @model && Cards::ClaimCard.call(@claim, @seq, @model, @result)
+    @meter = @result && Cards::Completeness.for_results({ @claim.id => @result }, @seq)[@claim.id]
     @assessment = @model && Graph::Presenter.assessment(@result, @seq, @model)
     # Stage 34: checks the claim's own author performed. Kept out of the
     # checklist above, which is what independent review means, and shown

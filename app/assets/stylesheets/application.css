@@ -597,6 +597,9 @@ details.agent-note > summary { background: var(--panel); border-radius: 6px; pad
 .meter.compact .meter-seg { width: 0.6em; height: 0.45em; }
 .meter-text { margin-left: 0.45rem; font-size: 0.85rem; color: var(--muted); }
 .meter-bar-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem 0.6rem; margin: 0.4rem 0; }
+.meter-bar-line.row { display: inline-flex; margin: 0; }
+.meter-bar.row { width: 5rem; height: 0.55rem; }
+.meter-bar.inline { width: 2.4rem; height: 0.45rem; margin-left: 0.35rem; vertical-align: middle; }
 .meter-bar { display: inline-flex; width: 12rem; max-width: 100%; height: 0.7rem; border: 1px solid var(--accent); border-radius: 3px; overflow: hidden; }
 .meter-fill.counted { background: var(--accent); }
 .meter-fill.own { background: repeating-linear-gradient(135deg, var(--accent) 0 2px, transparent 2px 5px); }

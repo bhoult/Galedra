@@ -21,7 +21,7 @@
     <td><%= claim.claim_type %></td>
     <td><%= claim_mark(result, model: selected_model, seq: @seq) if result %> <%= result ? state_label(result.assessment_state) : "no model released" %></td>
     <td><%= score_cell(result, model: selected_model, seq: @seq) %></td>
-    <td><%= result ? Cards::DisplayRules.checks_count(result.review_checklist) : "" %></td>
+    <td><%= completeness_meter(@meters[claim.id], compact: true) %> <%= result ? Cards::DisplayRules.checks_count(result.review_checklist) : "" %></td>
     <td><%= @references.fetch(claim.id, 0) %></td>
   </tr>
 <% end %></table>

@@ -4,6 +4,7 @@
 <% current_section = local_assigns.fetch(:current_section, nil) %>
 <% model = local_assigns.fetch(:model, nil) %>
 <% meters = local_assigns.fetch(:meters, {}) %>
+<% section_reviews = local_assigns.fetch(:section_reviews, {}) %>
 <%# The controller goes on the outermost list only: clicks bubble, so one
     listener covers every branch, and one per level meant a click was handled
     again by each list above it. %>
@@ -12,14 +13,14 @@
     <% count = tag.span(child[:counts]["claims"].to_s + (child[:pending].positive? ? "+#{child[:pending]}" : ""),
                         class: "counts",
                         title: pluralize(child[:counts]["claims"], "claim") + (child[:pending].positive? ? ", #{child[:pending]} proposed" : "")) %>
-    <% heading = reading_mark(child[:verdict], of: "under this section") + link_to(child[:section].heading, section_path(child[:section]), data: { turbo_frame: outline_frame }) + tree_score(child[:verdict]) %>
+    <% heading = reading_mark(child[:verdict], of: "under this section") + link_to(child[:section].heading, section_path(child[:section]), data: { turbo_frame: outline_frame }) + tree_score(child[:verdict]) + completeness_bar(section_reviews[child[:section].id], style: :inline) %>
     <% classes = "#{'current' if child[:section].id == current_section}" %>
     <li>
       <% if child[:children].any? || child[:claims].any? %>
         <details <%= "open" if open_ids.include?(child[:section].id) %>>
           <summary class="<%= classes %>"><%= count %><%= heading %></summary>
           <div class="reveal">
-            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq, model: model, meters: meters, root: false %>
+            <%= render "sections/tree", node: child, open_ids: open_ids, current_claim: current_claim, current_section: current_section, seq: seq, model: model, meters: meters, section_reviews: section_reviews, root: false %>
           </div>
         </details>
       <% else %>

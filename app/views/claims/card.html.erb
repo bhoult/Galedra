@@ -18,6 +18,7 @@
     <p class="headline"><%= @plain[:headline] %></p>
     <p class="claim-text">“<%= @claim.canonical_text %>”</p>
     <% if @plain[:say_instead] %><p class="say-instead"><strong>Say instead:</strong> <%= @plain[:say_instead] %></p><% end %>
+    <p class="meta"><%= completeness_meter(@meter) %></p>
     <p class="meta"><%= @card[:headline] %><% if @card[:stated] %> · <%= @card[:stated] %><% end %> · review checks <%= @card[:review_checks] %> · provisional until audited. The number is model-conditional, not a share of truth.</p>
   </div>
   <%# The link is what gets shared, so it is the thing to copy (2026-09-23). %>
