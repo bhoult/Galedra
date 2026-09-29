@@ -223,8 +223,20 @@ module Investigations
           add.call(path, "expected an object") && next unless item.is_a?(Hash)
           if section != "links"
             handle = item["handle"]
-            add.call("#{path}.handle", "expected a unique string handle") if !handle.is_a?(String) || handle.empty? || handles.key?(handle)
-            handles[handle] = section if handle.is_a?(String)
+            if !handle.is_a?(String) || handle.empty?
+              add.call("#{path}.handle", "expected a unique string handle")
+            elsif handles.key?(handle)
+              # Kept for the section that named it first. Overwriting it made
+              # an evidence item pointing at an excerpt whose handle a claim
+              # later reused fail with "must name an excerpt handle", which it
+              # had; and the collision itself never said what collided (feature
+              # requests 01a0ea47, 01a0eae6, 2026-09-28). The handle is echoed
+              # only when it has a handle's shape: it is the caller's text.
+              named = Tasks::Answer::HANDLE.match?(handle) ? "\"#{handle}\" " : ""
+              add.call("#{path}.handle", "the handle #{named}is already used in #{handles[handle]}; a handle names one thing across sources, excerpts, claims, evidence and groups")
+            else
+              handles[handle] = section
+            end
           end
           send(:"check_#{section}", item, path, handles, add, bundle)
         end

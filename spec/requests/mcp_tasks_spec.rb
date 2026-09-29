@@ -361,6 +361,33 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
     expect(detail).to include("seq #{Contribution.find(first['contribution_id']).seq}")
   end
 
+  # A worker sent a task id three characters off the one it had leased, was
+  # told only "no such task", and filed it while the lease ran out (01a0eb02).
+  it "answers an unknown task id with the leases the caller holds" do
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: curated_claim.first)
+    leased, = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
+    wrong = leased["task_id"].sub(/\A(.{4})(.{4})/) { "#{Regexp.last_match(1)}ffff" }
+    data, err = call_tool("submit_task", { task_id: wrong, outcome: "NONE_MATERIAL", answer: {}, searched: "Read the counted passage." })
+    expect(err).to be(true)
+    expect(data["errors"].first).to include("code" => "NOT_FOUND")
+    expect(data["errors"].first["detail"]).to include("The leases you hold now: #{leased['task_id']}")
+  end
+
+  # A narrower claim added by a qualifier check had no id in the reply, so it
+  # could not be given the support the task cannot carry (01a0ea6a).
+  it "returns the ids of claims a result created" do
+    claim, = curated_claim
+    Tasks::Create.call(task_type: "QUALIFIER_CHECK", target: claim)
+    leased, = call_tool("next_task", { types: [ "QUALIFIER_CHECK" ] })
+    data, err = call_tool("submit_task", { task_id: leased["task_id"], outcome: "QUALIFIERS_FOUND",
+                                           answer: { "claims" => [ { "handle" => "n", "text" => "Remote work raised reported productivity in one survey.", "type" => "CAUSAL" } ],
+                                                     "edges" => [ { "from" => "n", "to" => "target", "type" => "NARROWS" } ] } })
+    expect(err).to be(false), data.inspect
+    created = data["created_claims"]
+    expect(created.size).to eq(1)
+    expect(Claim.find(created.first["id"]).canonical_text).to start_with("Remote work raised reported productivity")
+  end
+
   # The packet promises answer_with says exactly what to send. It left out the
   # coverage every null outcome requires for five of six task types, so a worker
   # met the requirement as six refusals in one run (01a0e979-7433,
@@ -376,8 +403,12 @@ RSpec.describe "Work open tasks from a connector (Stage 18)", type: :request do
         expect(text).to include(Tasks::Answer::COVERAGE.fetch(type)), "#{type}: the packet and the refusal describe coverage differently"
       end
       words = (text.include?("strength") ? EvidenceClaimLink::STRENGTHS : []) + (text.include?("links: [{") ? EvidenceClaimLink::DIRECTIONS : []) +
-              (text.include?("sources: [{") ? Source::TYPES : [])
+              (text.include?("sources: [{") ? Source::TYPES : []) + (text.include?("excerpts: [{") ? %w[QUOTE TRANSCRIPTION] : [])
       words.each { |word| expect(text).to include(word), "#{type} answer_with asks for a field without naming its word #{word}" }
+      # The op budget, where a found source can blow it (01a0eb92).
+      if Tasks::Types.allowed_ops(type).include?("CREATE_SOURCE") && type == "OPPOSING_EVIDENCE_SEARCH"
+        expect(text).to include("at most #{Tasks::Types.spec(type)[:max_ops]} ops")
+      end
     end
   end
 

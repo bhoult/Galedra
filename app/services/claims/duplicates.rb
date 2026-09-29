@@ -15,7 +15,11 @@ module Claims
       # literal built by hand is one careless edit from not being, and this
       # takes contributor-supplied text (security audit, 2026-09-19).
       similarity = ActiveRecord::Base.sanitize_sql_array([ "similarity(canonical_text, ?)", text ])
-      scope = Claim.live.accepted.where.not(id: Governance::Quarantines.quarantined_claim_ids)
+      # Current claims only. Every caller offers the result as something to
+      # write against (attach_to, a narrower candidate, a search hit), and a
+      # merged or superseded claim is refused with CLAIM_NOT_CURRENT; one worker
+      # met that four times in a night through search (01a0ea0e and others).
+      scope = Claim.live.accepted.where(status: "ACTIVE").where.not(id: Governance::Quarantines.quarantined_claim_ids)
                    .where("similarity(canonical_text, ?) >= ?", text, threshold)
       scope = scope.where.not(id: exclude_id) if exclude_id
       scope.select(Arel.sql("claims.*, #{similarity} AS similarity"))

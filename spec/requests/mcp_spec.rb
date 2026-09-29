@@ -24,6 +24,20 @@ RSpec.describe "MCP endpoint (Stage 14)", type: :request do
     end
   end
 
+  # A claim reusing an excerpt's handle overwrote it, so the evidence pointing
+  # at that excerpt was told it named no excerpt, which it did, and the
+  # collision never said what collided (01a0ea47, 01a0eae6).
+  it "names a reused handle and keeps it for what named it first" do
+    b = bundle
+    excerpt = b["evidence"].first["excerpt"]
+    b["claims"].first["handle"] = excerpt
+    expect { Investigations::Validate.call(b) }.to raise_error(Ledger::Rejected) { |e|
+      details = e.errors.map { |x| x[:detail] }
+      expect(details).to include(a_string_including("the handle \"#{excerpt}\" is already used in excerpts"))
+      expect(details).not_to include("must name an excerpt handle")
+    }
+  end
+
   # Guidance asks for a report "equally when you got the job done but the way
   # through was wasteful"; the hint on the refusal itself said "if this stopped
   # you", and the hint is the text a caller reads at the moment it would decide.

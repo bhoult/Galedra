@@ -106,6 +106,12 @@ RSpec.describe "A refusal says what to do instead", type: :request do
            payload: { "from_claim_id" => gone.id, "into_claim_id" => live.id, "basis" => "SAME_ASSERTION" })
 
     expect(listed.call).to eq([ live.id ]), "a claim the write path refuses must not be offered as work"
+
+    # search_claims too: a worker searched, wrote against a merged claim and
+    # was refused, four times in a night (01a0ea0e, 01a0ea2a, 01a0ea31, 01a0ea41).
+    found = Mcp::Server.new(token: token, base_url: "http://localhost:3000")
+                       .call_tool("name" => "search_claims", "arguments" => { "query" => "claim merged" })[:structuredContent][:claims].map { |c| c[:id] }
+    expect(found).not_to include(gone.id)
   end
 
   # The worklist used to offer these, so the refusal was the first anyone heard

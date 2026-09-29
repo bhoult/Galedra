@@ -57,7 +57,15 @@ module Cards
       latest = locations.map(&:source_id).uniq.index_with { |id| SourceRetrieval.latest_for(id, seq) }
       findings = locations.filter_map { |location| latest[location.source_id]&.finding_for(location.id) }
       labels = []
-      labels << "A quoted passage was not found on the page when Galedra fetched it." if findings.include?("NOT_FOUND")
+      # Which page, because a claim can carry several passages and the label
+      # alone sent a worker to re-check two quotations the server had never
+      # looked at, while the one it had not found, on another site, dropped a
+      # word (bug report 01a0ea4b, 2026-09-28). The host is graph content.
+      missing = locations.select { |location| latest[location.source_id]&.finding_for(location.id) == "NOT_FOUND" }
+                         .filter_map { |location| URI.parse(location.source.canonical_uri.to_s).host&.delete_prefix("www.") rescue nil }.uniq.sort
+      if findings.include?("NOT_FOUND")
+        labels << "A quoted passage#{" from #{missing.to_sentence}" if missing.any?} was not found on the page when Galedra fetched it."
+      end
       # Said separately from NOT_FOUND, because they are different facts and
       # sharing a sentence was the whole complaint: a primary source published as
       # a PDF read as a passage that could not be found.

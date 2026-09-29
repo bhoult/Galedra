@@ -173,7 +173,9 @@ RSpec.describe "Source retrieval by a trusted job (Stage 17)" do
     expect(ReputationEvent.count).to eq(0)
 
     card = Cards::ClaimCard.call(claim, after_seq, model)
-    expect(card[:labels]).to include("A quoted passage was not found on the page when Galedra fetched it.")
+    # Named by site, because a claim with several passages sent a worker to
+    # re-check the wrong ones (01a0ea4b).
+    expect(card[:labels]).to include("A quoted passage from example.org was not found on the page when Galedra fetched it.")
     # present now also reads self_performed, because what answering can change
     # depends on whose work it is.
     assignment = Struct.new(:lease_expires_at, :self_performed).new(1.hour.from_now, false)

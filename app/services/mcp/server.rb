@@ -157,6 +157,7 @@ module Mcp
                                                        supersede: { type: "array", items: { type: "object", properties: { link_id: { type: "string" }, direction: { type: "string", enum: EvidenceClaimLink::DIRECTIONS }, strength: { type: "string", enum: EvidenceClaimLink::STRENGTHS }, steps: { type: "integer" }, reason: { type: "string" } }, required: %w[link_id direction] } } } } },
                        required: %w[task_id outcome] },
         outputSchema: { type: "object", properties: { task_id: { type: "string" }, contribution_id: { type: "string" }, accepted: { type: "boolean" }, status: { type: "string" }, note: { type: "string" }, items: { type: "integer" }, task_url: { type: "string" }, claim: { type: "object" },
+                                                      created_claims: { type: "array", description: "Claims this answer created, such as a narrower claim from a qualifier check: their ids, for add_evidence", items: { type: "object", properties: { id: { type: "string" }, url: { type: "string" } } } },
                                                       self_performed: { type: "boolean", description: "True when you checked your own principal's work. Recorded as such, and it never raises review_coverage." },
                                                       review_coverage: { type: "string", description: "The claim's review coverage after this result: how much of the checking was done by someone else. Self-performed checks leave it where it was." } } } },
       { name: "release_task", annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -493,19 +494,24 @@ module Mcp
         raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$.query", detail: "query is at most #{MAX_QUERY_CHARS} characters: a few distinctive words, not the text of a claim" } ])
       end
 
+      # Current claims only, as list_claims has been since Stage 41. A merged or
+      # superseded claim found here was written against and refused with
+      # CLAIM_NOT_CURRENT, and one worker filed that four times in a night
+      # (feature requests 01a0ea0e, 01a0ea2a, 01a0ea31, 01a0ea41). The claim it
+      # became matches on its own account.
       seq = Contribution.maximum(:seq) || 0
       model = Scoring::Registry.default_model
-      scope = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
+      scope = Claim.counted_at(seq).where(status: "ACTIVE").where.not(id: Governance::Quarantines.quarantined_claim_ids)
                    .where("to_tsvector('english', canonical_text) @@ plainto_tsquery('english', ?)", query)
                    .order(created_seq: :desc).limit(args.fetch("limit", 10).to_i.clamp(1, 50))
       if args["source_id"].present?
-        scope = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
+        scope = Claim.counted_at(seq).where(status: "ACTIVE").where.not(id: Governance::Quarantines.quarantined_claim_ids)
                      .where(id: EvidenceClaimLink.joins(evidence_item: :source_location).where(source_locations: { source_id: args["source_id"].to_s }).select(:claim_id))
                      .order(created_seq: :desc).limit(50)
       end
       claims = scope.to_a
       if claims.empty? && args["source_id"].blank?
-        base = Claim.counted_at(seq).where.not(id: Governance::Quarantines.quarantined_claim_ids)
+        base = Claim.counted_at(seq).where(status: "ACTIVE").where.not(id: Governance::Quarantines.quarantined_claim_ids)
         claims = Claims::Search.most_terms(base, query, limit: args.fetch("limit", 10).to_i.clamp(1, 50)).to_a
         claims = Claims::Duplicates.candidates(query, limit: 10).to_a if claims.empty?
       end
@@ -1246,6 +1252,11 @@ module Mcp
       out = { task_id: task.id, contribution_id: result.contribution.id, accepted: accepted, status: accepted ? "ACCEPTED" : result.contribution.current_status,
               items: result.contribution.payload["ops"].size, task_url: "#{@base_url}/tasks/#{task.id}",
               self_performed: self_performed, note: note }
+      # A narrower claim added by a qualifier check had no id anywhere in the
+      # reply, so the worker could not give it the support the task could not
+      # carry (feature request 01a0ea6a, 2026-09-28).
+      created = Claim.where(contribution_id: result.contribution.id).order(:id).pluck(:id)
+      out[:created_claims] = created.map { |id| { id: id, url: "#{@base_url}/claims/#{id}" } } if created.any?
       if task.target_type == "CLAIM"
         seq = Contribution.maximum(:seq)
         model = Scoring::Registry.default_model
@@ -1346,7 +1357,20 @@ module Mcp
       id = args["task_id"].to_s
       raise ArgumentError, "task_id is required" if id.empty?
 
-      Task.find_by(id: id) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.task_id", detail: "no such task" } ]))
+      Task.find_by(id: id) || raise(Ledger::Rejected.new([ { code: "NOT_FOUND", path: "$.task_id", detail: "no such task#{near_miss_hint(Task, id).presence || "."}#{held_leases_hint}" } ]))
+    end
+
+    # The leases this caller holds, because the id that matches nothing is
+    # usually one of them, copied wrong: a worker sent 01a0eaff-729e-… for the
+    # lease it held on 01a0eb00-729e-…, was told only "no such task", and filed
+    # it as a server fault while the lease ran out unused (bug report 01a0eb02,
+    # 2026-09-29). Three characters off, so the near miss alone cannot find it.
+    def held_leases_hint
+      return "" if @token.nil?
+
+      held = TaskAssignment.where(contributor_id: @token.agent_contributor_id, status: "LEASED")
+                           .where("lease_expires_at > ?", Time.current).order(:created_at).limit(5).pluck(:task_id)
+      held.empty? ? " You hold no live lease." : " The leases you hold now: #{held.join(', ')}."
     end
 
     # Leasing needs a delegation with a principal someone can hold to account (Stage 18 owner decision).
