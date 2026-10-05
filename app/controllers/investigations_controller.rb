@@ -88,8 +88,12 @@ class InvestigationsController < ApplicationController
     @headlines = @cards.values.map { |k| k[:plain][:headline] }
     @verdict = Investigations::Verdict.call(@claims, @seq, @model, results: @results)
     @summary = Investigation.summary(@cards.values, @verdict)
+    # Stage 45: this check's own first readings, and whether the page is still
+    # only that. Display beside the scores; nothing above reads it.
+    @preliminaries = Investigations::Preliminary.for_investigation(@investigation, @seq)
+    @reading = Investigations::Preliminary.reading(@claims, @results, @preliminaries)
     @share_line = Investigation.share_line(@summary, url: investigation_url(@investigation),
-                                                     quote: @investigation.statement.presence || @claims.first&.canonical_text)
+                                                     quote: @investigation.statement.presence || @claims.first&.canonical_text, reading: @reading)
     @sources = @claims.flat_map { |c| c.evidence_claim_links.effective_at(@seq).includes(evidence_item: { source_location: :source }).map { |l| l.evidence_item.source_location.source } }
                       .uniq.reject(&:redacted?)
   end

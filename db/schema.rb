@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -500,6 +500,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.uuid "assistant_token_id", null: false
     t.uuid "claim_ids", default: [], null: false, array: true
     t.datetime "created_at", null: false
+    t.uuid "preliminary_contribution_ids", default: [], null: false, array: true
     t.uuid "section_id"
     t.integer "snapshot_seq", null: false
     t.text "statement"
@@ -569,6 +570,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "visibility", default: "PRIVATE", null: false
     t.index ["claim_id", "stance"], name: "index_personal_assessments_on_claim_id_and_stance"
     t.index ["user_id", "claim_id"], name: "index_personal_assessments_on_user_id_and_claim_id", unique: true
+  end
+
+  create_table "preliminary_results", id: :uuid, default: nil, force: :cascade do |t|
+    t.bigint "accepted_seq"
+    t.uuid "claim_id", null: false
+    t.uuid "contribution_id", null: false
+    t.bigint "created_seq", null: false
+    t.string "expectation", null: false
+    t.bigint "invalidated_seq"
+    t.jsonb "leads", default: [], null: false
+    t.string "model"
+    t.uuid "principal_contributor_id"
+    t.text "rationale"
+    t.bigint "redacted_by_seq"
+    t.index ["claim_id"], name: "index_preliminary_results_on_claim_id"
+    t.index ["contribution_id"], name: "index_preliminary_results_on_contribution_id"
   end
 
   create_table "quarantines", id: :uuid, default: nil, force: :cascade do |t|

@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-10-05.1"
+  VERSION = "2026-10-05.2"
 
   # The first sentence is a routing rule, and it is first on purpose. It is the
   # only one that has to be read *before* a tool is called, so it cannot live
@@ -60,14 +60,38 @@ module Guidance
   # about 25 claims", and the claim count is the assistant's own output, so
   # choosing to record a handful of claims was what made recording a handful of
   # claims permitted. A two-hour transcript went in as thirteen claims.
-  SIZE = "The size rule: measure the input, not your answer. Do the whole check now, with record_investigation, only when " \
-         "the source runs under about 3,000 words and you can read every source it needs right now. Anything longer goes " \
+  #
+  # Until Stage 45 it also said "and you can read every source it needs right
+  # now", which forbade recording anything before the reading was done and is
+  # where a thirty-minute wait for the first link came from. The size test is
+  # now about the input alone; the order of the work is CHECK's.
+  #
+  # MAX_CHECK_WORDS is the one number: Analyze text refuses a paste over it for
+  # the same reason (Stage 46), so the two cannot drift.
+  MAX_CHECK_WORDS = 3_000
+
+  SIZE = "The size rule: measure the input, not your answer. A statement or a source under about " \
+         "#{MAX_CHECK_WORDS.to_fs(:delimited)} words is one check, recorded with record_investigation. Anything longer goes " \
          "through create_outline first, however few claims you think it makes. The count of claims is your own output, so " \
          "it can never be the thing that decides: a long source recorded as a handful of claims has not been checked, it " \
          "has been summarised, and the claims left out are the ones nobody will come back for. Two hours of talk holds a " \
          "hundred checkable assertions or more."
 
-  CHECK = "add_evidence takes one excerpt, so when a source supports a claim in two places, or supports several claims, use " \
+  # Stage 45: the person is waiting on the first link, so the first pass ends
+  # the turn. Pinned by spec/services/guidance_preliminary_spec.rb.
+  END_TURN = "Then end your turn: give the person the share_line and offer to find sources for each claim. Do not carry on " \
+             "reading sources in the same turn: in a chat the person sees nothing until your turn ends, so carrying on makes " \
+             "them wait half an hour for a link that already exists."
+
+  CHECK = "A check is two passes. The first pass is at once: break the statement into its atomic claims, search for each, and " \
+          "record them all in one record_investigation call, each with preliminary — your own expectation (EXPECTED_TO_HOLD, " \
+          "EXPECTED_TO_HOLD_IN_PART, EXPECTED_NOT_TO_HOLD or NO_EXPECTATION), why, the links you would cite, and your model " \
+          "— and with sources and excerpts only for pages you have actually read and can quote. #{END_TURN} The second pass " \
+          "is when they say yes: find and quote sources for each claim and add them with record_investigation and attach_to, " \
+          "which fills in the same page. A preliminary result is your unsourced first reading, never the result: never " \
+          "describe it as the result, and never repeat its expectation without saying it is unsourced. Leave preliminary off " \
+          "a NORMATIVE claim and off any claim in an outline. " \
+          "add_evidence takes one excerpt, so when a source supports a claim in two places, or supports several claims, use " \
           "record_investigation instead, with attach_to on the claims that already exist: it takes sources, excerpts, evidence " \
           "and links together by handle and the source is declared once. " \
           "Recording a check: record the whole statement in one record_investigation call, every claim it makes, new ones " \

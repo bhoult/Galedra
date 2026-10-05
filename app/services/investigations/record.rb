@@ -30,8 +30,9 @@ module Investigations
 
       ids = {}
       count = 0
+      preliminaries = []
       Contribution.transaction do
-        count = append_all(token, bundle, ids)
+        count = append_all(token, bundle, ids, preliminaries)
       end
       tasks = open_tasks(token, bundle, ids)
       seq = Contribution.maximum(:seq)
@@ -41,7 +42,7 @@ module Investigations
         { handle: c["handle"], id: claim.id, created: c["attach_to"].nil?, url: "#{base_url}/claims/#{claim.id}",
           card: Cards::ClaimCard.call(claim, seq, model) }
       end
-      share = share_for(token, bundle, claims, seq, base_url)
+      share = share_for(token, bundle, claims, seq, base_url, preliminaries)
       ClaimReference.count!(claims.map { |c| c[:id] }, "CHECKED")
       # The one thing the caller is meant to do with this result comes first. It
       # used to sit eighth, nested inside `share`, behind an array of cards —
@@ -57,7 +58,7 @@ module Investigations
     # The page that answers what was asked, and the one line to paste (after Stage 19).
     # Stage 21: when every claim sits under one outline, the share line is that
     # outline's counts and page, never a verdict for a speech or an episode.
-    def share_for(token, bundle, claims, seq, base_url)
+    def share_for(token, bundle, claims, seq, base_url, preliminaries = [])
       roots = bundle.fetch("claims", []).map { |c| c["section"].presence && Section.find_by(id: c["section"])&.root_id }
       if roots.any? && roots.uniq.size == 1 && roots.none?(&:nil?)
         root = Section.find(roots.first)
@@ -68,13 +69,23 @@ module Investigations
                  note: "A section check: the share line is the whole outline's counts and page. End your reply with it on its own line, exactly as given." }
       end
       investigation = Investigation.create!(id: SecureRandom.uuid_v7, assistant_token: token, statement: bundle["statement"].presence,
-                                            claim_ids: claims.map { |c| c[:id] }, snapshot_seq: seq)
+                                            claim_ids: claims.map { |c| c[:id] }, snapshot_seq: seq, preliminary_contribution_ids: preliminaries)
       url = "#{base_url}/investigations/#{investigation.id}"
-      verdict = Verdict.call(investigation.claims, seq, Scoring::Registry.default_model)
+      model = Scoring::Registry.default_model
+      recorded = investigation.claims
+      results = Scoring::Score.call_many(recorded, seq, model)
+      verdict = Verdict.call(recorded, seq, model, results: results)
       summary = Investigation.summary(claims.map { |c| c[:card] }, verdict)
-      quote = investigation.statement.presence || investigation.claims.first&.canonical_text
-      { url: url, image_url: "#{url}/card.png", line: Investigation.share_line(summary, url: url, quote: quote), verdict: verdict,
-        note: "End your reply with share_line on its own line, exactly as given, so the person can paste it where they were going to post." }
+      reading = Preliminary.reading(recorded, results, Preliminary.for_investigation(investigation, seq))
+      quote = investigation.statement.presence || recorded.first&.canonical_text
+      note = "End your reply with share_line on its own line, exactly as given, so the person can paste it where they were going to post."
+      if reading[:preliminary]
+        note = "This is a preliminary result: your first reading, unsourced. Say so whenever you repeat it, never call it the result, " \
+               "then end your turn with share_line on its own line, exactly as given, and offer to find sources for each claim. " \
+               "The page fills in as sources arrive."
+      end
+      { url: url, image_url: "#{url}/card.png", line: Investigation.share_line(summary, url: url, quote: quote, reading: reading), verdict: verdict,
+        preliminary: reading[:preliminary], note: note }
     end
 
     # Anonymous work carries an adoption link: opened while signed in, it puts
@@ -88,7 +99,7 @@ module Investigations
       end
     end
 
-    def append_all(token, bundle, ids)
+    def append_all(token, bundle, ids, preliminaries = [])
       count = 0
       write = lambda do |action, payload, handle, kind, model|
         result = Assistants::Write.call(token, action, payload)
@@ -135,6 +146,16 @@ module Investigations
         write.call("CREATE_CLAIM", payload, c["handle"], "claim", Claim)
         topics = Array(c["topics"]).reject(&:blank?)
         write.call("TAG_CLAIM", { "claim_id" => ids[c["handle"]], "topics" => topics }, nil, nil, nil) if topics.any?
+      end
+      # Stage 45: an assistant's first reading of each claim, after every claim
+      # exists so attach_to and new claims are treated alike. Never evidence.
+      bundle.fetch("claims", []).each do |c|
+        pre = c["preliminary"]
+        next unless pre.is_a?(Hash)
+
+        payload = { "claim_id" => ids.fetch(c["handle"]), "expectation" => pre["expectation"], "rationale" => pre["rationale"],
+                    "leads" => Array(pre["leads"]), "model" => pre["model"].presence }.compact
+        preliminaries << write.call("CREATE_PRELIMINARY_RESULT", payload, nil, nil, nil).contribution.id
       end
       bundle.fetch("evidence", []).each do |ev|
         payload = { "source_location_id" => ids.fetch(ev["excerpt"]), "observation_type" => ev.fetch("observation_type", "DIRECT_TEXT"), "statement" => ev["statement"] }
@@ -303,6 +324,30 @@ module Investigations
       unknown = topics.reject { |t| Topics.valid?(t) }
       add.call("#{path}.topics", "not in the vocabulary: #{unknown.join(', ')}; see /api/v1/topics") if unknown.any?
       add.call("#{path}.topics", "at most #{Topics::MAX_PER_CLAIM} topics") if topics.size > Topics::MAX_PER_CLAIM
+      check_preliminary(c, "#{path}.preliminary", add) unless c["preliminary"].nil?
+    end
+
+    # Stage 45. The applier holds the same rules; they are checked here too so a
+    # refusal names the bundle's own path rather than a payload's.
+    def check_preliminary(c, path, add)
+      pre = c["preliminary"]
+      return add.call(path, "expected an object: {expectation, rationale, leads, model}") unless pre.is_a?(Hash)
+
+      add.call("#{path}.expectation", "expected one of #{PreliminaryResult::EXPECTATIONS.join(', ')}") unless PreliminaryResult::EXPECTATIONS.include?(pre["expectation"])
+      unless pre["rationale"].is_a?(String) && pre["rationale"].present? && pre["rationale"].length <= PreliminaryResult::MAX_RATIONALE
+        add.call("#{path}.rationale", "required: why you expect what you expect, in at most #{PreliminaryResult::MAX_RATIONALE} characters")
+      end
+      leads = pre.fetch("leads", [])
+      unless leads.is_a?(Array) && leads.size <= PreliminaryResult::MAX_LEADS && leads.all? { |l| l.is_a?(String) && Ledger::Appliers::CreatePreliminaryResult.web_url?(l) }
+        add.call("#{path}.leads", "at most #{PreliminaryResult::MAX_LEADS} http or https links you cited; Galedra never fetches them")
+      end
+      model = pre["model"]
+      add.call("#{path}.model", "the model that produced the reading, as a string of at most #{PreliminaryResult::MAX_MODEL_CHARS} characters") unless model.nil? || (model.is_a?(String) && model.length <= PreliminaryResult::MAX_MODEL_CHARS)
+      if c["section"].present?
+        add.call(path, "a preliminary result is for a short check, not a claim filed in an outline section; record the claim's evidence instead")
+      end
+      type = c["attach_to"] ? Claim.find_by(id: c["attach_to"].to_s)&.claim_type : c["type"]
+      add.call(path, "a NORMATIVE claim is not a checkable fact, and its page already says so; leave preliminary off it") if type == "NORMATIVE"
     end
 
     def check_evidence(ev, path, handles, add, _bundle)

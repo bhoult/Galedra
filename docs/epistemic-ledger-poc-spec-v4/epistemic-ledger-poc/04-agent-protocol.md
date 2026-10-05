@@ -155,6 +155,8 @@ Same inputs → same packet bytes (excluding timestamps and signature).
 
 **Contributor `note` fields are never included in any packet.** They are free text from untrusted parties and are the easiest injection path between agents.
 
+**Preliminary results (02 §3.3) are never included in any packet either**: not the expectation, the rationale, the leads or the model (Stage 45). A verifier told what an assistant expected is anchored before reading anything, and the leads are the first assistant's choices, not the claim's evidence.
+
 ---
 
 ## 6. Server-Side Validation Pipeline

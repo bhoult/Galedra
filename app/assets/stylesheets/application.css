@@ -604,3 +604,13 @@ details.agent-note > summary { background: var(--panel); border-radius: 6px; pad
 .meter-fill.counted { background: var(--accent); }
 .meter-fill.own { background: repeating-linear-gradient(135deg, var(--accent) 0 2px, transparent 2px 5px); }
 .meter-bar-line .meter-text { margin-left: 0; }
+
+/* Stage 45: an assistant's first reading. A stamp in words, never a badge from the
+   ten-level scale, and a dashed rule so it never reads as a scored card. */
+.answer.badged .preliminary-stamp { color: var(--muted); }
+.preliminary-stamp .stamp { display: inline-block; border: 2px dashed currentColor; border-radius: 6px; padding: 0.35rem 0.3rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.preliminary { clear: both; border-left: 3px dashed var(--line-strong); padding: 0.1rem 0 0.1rem 0.9rem; margin: 0.6rem 0; }
+.preliminary .preliminary-label { color: var(--muted); font-size: 0.86rem; margin: 0 0 0.3rem; }
+.preliminary-beneath { clear: both; font-size: 0.9rem; margin: 0.4rem 0; }
+.preliminary-beneath summary { cursor: pointer; }
+ul.leads { margin: 0.2rem 0 0.4rem; padding-left: 1.2rem; font-size: 0.88rem; overflow-wrap: anywhere; }

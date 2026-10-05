@@ -42,8 +42,12 @@ class Investigation < ApplicationRecord
   end
 
   # What to paste (Cards::ShareText): the badge, the score when there is one,
-  # the statement, and the link.
-  def self.share_line(summary, url:, quote:)
+  # the statement, and the link. While the check holds only an assistant's
+  # first reading (Stage 45, Investigations::Preliminary.reading), that reading,
+  # labelled as unsourced and an AI's, in place of a badge there is not yet.
+  def self.share_line(summary, url:, quote:, reading: nil)
+    return Cards::ShareText.preliminary(phrase: reading[:phrase], url: url, quote: quote) if reading&.dig(:preliminary)
+
     Cards::ShareText.call(label: summary[:label], figure: summary[:figure], quote: quote, url: url, reviewed: summary[:reviewed])
   end
 

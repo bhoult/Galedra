@@ -32,6 +32,17 @@ module Cards
       lines.join("\n")
     end
 
+    # Stage 45: while a check holds only an assistant's first reading, the line
+    # carries that reading and says in the same breath what it is, because the
+    # share line is the part that leaves the site (owner, 2026-10-05). No badge
+    # and no score: there is none yet.
+    def preliminary(phrase:, url:, quote: nil)
+      lines = [ "#{Investigations::Preliminary::SHARE_PREFIX}: #{phrase}" ]
+      lines << "“#{excerpt(quote)}”" if quote.present?
+      lines << url.to_s
+      lines.join("\n")
+    end
+
     # For one claim, from its card.
     def for_claim(claim, card, url)
       call(label: Badge.for(card[:assessment_state], card[:probability])[:label], figure: card[:probability],

@@ -38,7 +38,8 @@ module Ledger
       "RETRIEVE_SOURCE" => "Ledger::Appliers::RetrieveSource",
       "CREATE_SECTION" => "Ledger::Appliers::CreateSection",
       "PLACE_CLAIM" => "Ledger::Appliers::PlaceClaim",
-      "CREATE_INFERENCE" => "Ledger::Appliers::CreateInference"
+      "CREATE_INFERENCE" => "Ledger::Appliers::CreateInference",
+      "CREATE_PRELIMINARY_RESULT" => "Ledger::Appliers::CreatePreliminaryResult"
     }.freeze
 
     def self.for(action_type)

@@ -136,6 +136,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
 10. `NOT_APPLICABLE` always shows its reason in plain words (e.g. "This is a value judgment; the system maps its premises but does not assign it a probability").
 11. **A model selector** is always available next to the assessment. The default model is labeled as a default, not as "the" answer (Art. XIX).
 12. **No persuasive framing.** No color-coding of claims as true/false, no "debunked"/"confirmed" badges, no ranking of claims by how "wrong" they are. States use neutral wording and neutral colors.
+13. **A preliminary result is never a score** (Stage 45, 02 §3.3). While every checkable claim in a check sits at `INSUFFICIENT_EVIDENCE` and some carry an assistant's first reading recorded with that check, the check page, its card image and its share line lead with that reading in words, labelled "Preliminary · an assistant's first reading (model, as declared), not yet checked against sources", with no badge from the ten-level scale and no figure. The share line then reads "Preliminary (AI, not yet sourced): expected to …" (owner decision, 2026-10-05). Once a claim has another state, its badge and headline lead and the reading moves beneath them; where the two point opposite ways the line says so, rather than one quietly replacing the other. The top card counts the parts' expectations by the same rule as the statement's reading (§6) and stores no overall judgment. Outlines never carry one.
 
 ---
 
@@ -145,7 +146,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
 
 **Analyze text** — paste text → stub/LLM proposes claims → user edits, splits, types each (atomicity warnings inline; private-individual checkbox) → submit accepted claims → optional "create verification tasks."
 
-**Claim page** — sections in order: Claim · Assessment (per §4) · Why (from `/why`) · Evidence for · Evidence against · Qualifications · Suppressed as dependent · Claim edges · Review checklist · Summary · Contribution history · Score trace (collapsible JSON) · Snapshot picker.
+**Claim page** — sections in order: Claim · Assessment (per §4) · Why (from `/why`) · Evidence for · Evidence against · Qualifications · Preliminary readings (every assistant's first reading, attributed, beneath the evidence; rule 13) · Suppressed as dependent · Claim edges · Review checklist · Summary · Contribution history · Score trace (collapsible JSON) · Snapshot picker.
 
 **Evidence page** — source, exact locator, excerpt, content hash, linked claims, creating contribution, audits.
 

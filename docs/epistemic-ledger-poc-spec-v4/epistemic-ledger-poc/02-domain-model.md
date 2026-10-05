@@ -253,6 +253,25 @@ note                text nullable  (display only; never fed to scoring or to oth
 created_seq, invalidated_seq, accepted_seq
 ```
 
+#### `preliminary_results` (P1, Stage 45)
+
+```text
+id, claim_id
+expectation         EXPECTED_TO_HOLD | EXPECTED_TO_HOLD_IN_PART | EXPECTED_NOT_TO_HOLD | NO_EXPECTATION
+rationale           text, at most 600 characters (display only; never fed to scoring or to any packet)
+leads               jsonb, at most five http(s) links the assistant cited (never fetched, never evidence)
+model               string nullable: the model as the assistant declares it, never verified
+principal_contributor_id
+created_seq, invalidated_seq, accepted_seq, redacted_by_seq
+```
+
+An assistant's first reading of one claim, from what it already knew, recorded with
+`CREATE_PRELIMINARY_RESULT` before any source is read into the ledger. It is an attributed
+contribution (Art. XIV), not evidence and not a verdict: scoring never reads it, so 03 is
+unchanged and the score cache does not move for it; no packet carries it (04 §5); and it is
+shown only beside the claim's own state (06 §4 rule 13). It is refused on a `NORMATIVE`
+claim and on a claim placed in an outline.
+
 ### 3.4 Audits, reputation, tasks
 
 #### `audits`
@@ -395,6 +414,7 @@ ACCEPT                     INVALIDATE               AUDIT
 REGISTER_KEY               DELEGATE                 REVOKE_KEY          REVOKE_DELEGATION
 QUARANTINE                 RELEASE_QUARANTINE       TAKEDOWN
 RELEASE_SCORING_MODEL      AMEND_CONSTITUTION
+CREATE_PRELIMINARY_RESULT  (P1, Stage 45: an assistant's first reading of one claim; §3.3)
 ```
 
 One contribution = one action type. `TASK_RESULT` may carry an ordered list of ops (max 20) applied atomically.

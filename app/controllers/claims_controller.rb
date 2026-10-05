@@ -97,6 +97,9 @@ class ClaimsController < ApplicationController
     @link_contributions = Contribution.where(id: @claim.evidence_claim_links.where(arel_lteq(@seq)).select(:contribution_id)).in_order
     @warnings = Claims::Atomicity.warnings(@claim.canonical_text)
     @topics = ClaimTopic.current_at(@seq).where(claim_id: @claim.id).includes(:contribution).order(:created_seq)
+    # Stage 45: every assistant's first reading of this claim, from every check
+    # it was recorded in. Shown beneath the evidence; the assessment never reads it.
+    @preliminary_results = PreliminaryResult.counted_at(@seq).where(claim_id: @claim.id).includes(contribution: :contributor).order(:created_seq)
     # Rule 1: the number and the trace are rendered only when asked for.
     @show_calculation = params[:calculation].present?
     # The working, not just the answer: read off the trace and the model's

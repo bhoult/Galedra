@@ -1,0 +1,32 @@
+<%# Stage 45: an assistant's first reading of one claim. Never a badge from the
+    ten-level scale and never a figure: the badge scale belongs to scores.
+    full: true while the claim has no state from evidence (the reading leads);
+    false once it has one (the reading moves beneath the claim's own state). %>
+<% signer = pre.contribution.contributor %>
+<% who = link_to(signer&.display_name.presence || short_id(pre.contribution.signer_key_id), contribution_path(pre.contribution_id)) %>
+<% if full %>
+  <div class="preliminary">
+    <p class="preliminary-label"><strong>Preliminary</strong> · an assistant's first reading (<%= Investigations::Preliminary.declared(pre) %>), not yet checked against sources.</p>
+    <% if pre.redacted_by_seq %>
+      <p class="muted">This first reading was taken down at <%= seq_link(pre.redacted_by_seq) %>.</p>
+    <% else %>
+      <p><strong><%= pre.words.upcase_first %>.</strong> <%= pre.rationale %></p>
+      <% if pre.leads.any? %>
+        <p class="meta"><%= Investigations::Preliminary::LEADS_NOTE %></p>
+        <ul class="leads"><% pre.leads.each do |lead| %><li><%= safe_source_link(lead) %></li><% end %></ul>
+      <% end %>
+    <% end %>
+    <p class="meta">Recorded by <%= who %> at <%= seq_link(pre.created_seq) %>.</p>
+  </div>
+<% else %>
+  <details class="preliminary-beneath">
+    <summary><%= Investigations::Preliminary.beneath(pre, state) %> <span class="muted">An assistant's first reading (<%= Investigations::Preliminary.declared(pre) %>), recorded before any source was read.</span></summary>
+    <% if pre.redacted_by_seq %>
+      <p class="muted">Taken down at <%= seq_link(pre.redacted_by_seq) %>.</p>
+    <% else %>
+      <p><%= pre.rationale %></p>
+      <% if pre.leads.any? %><p class="meta"><%= Investigations::Preliminary::LEADS_NOTE %></p><ul class="leads"><% pre.leads.each do |lead| %><li><%= safe_source_link(lead) %></li><% end %></ul><% end %>
+    <% end %>
+    <p class="meta">Recorded by <%= who %> at <%= seq_link(pre.created_seq) %>.</p>
+  </details>
+<% end %>

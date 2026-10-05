@@ -18,7 +18,8 @@ module Ledger
       "claim_edges" => [],
       "independence_group_assignments" => [],
       "claim_merges" => [],
-      "claim_evaluability_settings" => []
+      "claim_evaluability_settings" => [],
+      "preliminary_results" => %w[rationale leads model]
     }.freeze
     SYSTEM_COLUMNS = %w[id contribution_id created_seq invalidated_seq accepted_seq redacted_by_seq].freeze
 

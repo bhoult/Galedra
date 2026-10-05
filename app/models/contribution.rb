@@ -51,7 +51,7 @@ class Contribution < ApplicationRecord
 
   PROJECTION_MODELS = %w[Source SourceLocation Claim ClaimEdge IndependenceGroup IndependenceGroupAssignment
                          EvidenceItem EvidenceClaimLink ClaimMerge ClaimEvaluabilitySetting ClaimTopic SourceRetrieval
-                         Section ClaimPlacement Inference InferencePremise].freeze
+                         Section ClaimPlacement Inference InferencePremise PreliminaryResult].freeze
 
   # Which projection tables each action type can write, so a question about
   # one contribution asks the one or two tables it can have rows in instead of
@@ -74,6 +74,7 @@ class Contribution < ApplicationRecord
     "ASSIGN_INDEPENDENCE_GROUP" => %w[IndependenceGroupAssignment], "MERGE_CLAIMS" => %w[ClaimMerge],
     "TAG_CLAIM" => %w[ClaimTopic], "CREATE_SECTION" => %w[Section], "PLACE_CLAIM" => %w[ClaimPlacement],
     "CREATE_INFERENCE" => %w[ClaimEdge Inference InferencePremise], "RETRIEVE_SOURCE" => %w[SourceRetrieval],
+    "CREATE_PRELIMINARY_RESULT" => %w[PreliminaryResult],
     "TASK_RESULT" => nil, "TAKEDOWN" => nil,
     "REGISTER_KEY" => [], "DELEGATE" => [], "REVOKE_KEY" => [], "REVOKE_DELEGATION" => [], "ADOPT_KEY" => [],
     "ACCEPT" => [], "INVALIDATE" => [], "AUDIT" => [], "QUARANTINE" => [], "RELEASE_QUARANTINE" => [],

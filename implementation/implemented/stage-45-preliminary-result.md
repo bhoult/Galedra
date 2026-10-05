@@ -1,6 +1,6 @@
 # Stage 45 — A preliminary result while the sources are read
 
-**Status:** planned 2026-10-05 · not started · the owner took all three decisions on 2026-10-05 (marked **Owner**)
+**Status:** built 2026-10-05 · tagged `stage-45-preliminary-result` · the owner took all three decisions on 2026-10-05 (marked **Owner**)
 
 **Tag:** `stage-45-preliminary-result` · **Spec:** 02 §1.1 and §3 (contributions and
 projections), 04 §5 (packets), 06 §4 (display rules), 06 §5 (pages), Articles I (claims are
@@ -231,3 +231,102 @@ A thirty-minute wait before there is anything to paste is the first thing a new 
 
 The per-model agreement measure in question 10, and any use of it, which waits on Stage 44's
 accuracy benchmark.
+
+## How it closed (2026-10-05)
+
+### What was resolved
+
+Every deliverable (§1 to §6) and acceptance criteria 1 to 9. An assistant records each claim
+with its own first reading in the same `record_investigation` call that records the claims,
+and gets the link back at once. The check page, its card image and its share line lead with
+that reading, labelled as an AI's and unsourced, until evidence gives a claim a state of its
+own. The reading never reaches a score or a packet.
+
+### How
+
+- **The action type.** `CREATE_PRELIMINARY_RESULT`
+  (`app/services/ledger/appliers/create_preliminary_result.rb`) projects into
+  `preliminary_results` (`db/migrate/20261005200000_create_preliminary_results.rb`,
+  `PreliminaryResult`). It is registered in every list a new epistemic type has to be in:
+  `Ledger::ActionTypes::EPISTEMIC`, `Ledger::Appliers::REGISTRY`,
+  `Contribution::PROJECTION_MODELS` and `PROJECTIONS_BY_ACTION` (held by
+  `spec/models/contribution_spec.rb`), `Scoring::Watermark::NONE`,
+  `Ledger::Redaction::REDACTABLE` (`rationale`, `leads`, `model`) and
+  `Attribution::Participants`. Two of those fail silently when missed. Without the watermark
+  entry, a twenty-claim first pass would have marked every claim on the node twenty times and
+  undone Stage 38. Without the redaction entry, the first takedown of a reading would have
+  raised `KeyError`.
+- **The bundle.** `preliminary: { expectation, rationale, leads, model }` sits on each claim
+  of `record_investigation`'s input schema, so the OpenAPI document carries it too.
+  `Investigations::Validate.check_preliminary` refuses a bad one under the bundle's own path,
+  such as `$.claims[0].preliminary`. The applier holds the same rules for a direct write
+  (`PRELIMINARY_NOT_FOR_OUTLINES`, `PRELIMINARY_NOT_CHECKABLE`).
+  `Investigation#preliminary_contribution_ids` records which readings belong to which check.
+- **The display.** `Investigations::Preliminary` decides whether a check is preliminary:
+  every checkable claim is at `INSUFFICIENT_EVIDENCE` and at least one carries this check's
+  reading. It also composes the top card's count, the share line's few words, the line
+  beneath a scored claim, and the disagreement sentence. Its consumers are
+  `app/views/shared/_preliminary.html.erb`, the check page, the claim page's "Preliminary
+  readings", the og tags, `Cards::StatementImage` and `Cards::ShareText.preliminary`.
+  `Verdict`, `Investigation.summary`, the badge and the figure are computed exactly as before.
+- **The guidance** is version `2026-10-05.2`.
+  - `Guidance::SIZE` no longer says "and you can read every source it needs right now". That
+    clause was where the thirty minutes came from.
+  - `Guidance::CHECK` describes the two passes.
+  - `Guidance::END_TURN` is the stop-and-offer sentence.
+  - `Guidance::MAX_CHECK_WORDS` is the one size number, which Stage 46 reads.
+  - The `record_investigation` description names the first pass.
+  - The skill is untouched.
+- **The spec.** 02 §3.3 (the table) and §3.6 (the type), 04 §5 (excluded from packets), 06 §4
+  rule 13 and §5 (the claim page), 13's rows for XIV and XIX, and `REVIEW-NOTES.md` entry P.
+  `FULL-SPEC.md` was regenerated. The reference scorer still prints `ALL PASS`, since nothing
+  in 03 changed.
+- **The guard.** `spec/requests/preliminary_result_spec.rb` has one example per acceptance
+  criterion, and acceptance 6 also takes a reading down.
+  - Acceptance 3 builds the scoring input before and after a reading is appended, finds the
+    two equal, and gets the same trace hash from each under every released model. It also
+    checks that the watermark did not move.
+  - Acceptance 4 builds every claim packet type and finds no expectation word, rationale or
+    lead in the bytes.
+
+**Decided while building**, each the simplest reversible reading:
+
+- The rationale is required. The plan capped it at 600 characters without saying whether it
+  could be empty, and a reading with no reason is an assertion nobody can audit. The model is
+  optional and shown as "model not declared" when absent.
+- A reading is accepted on the same rule as the claim it sits on: a person, or an assistant
+  with direct work. TAG_CLAIM's own-claim rule was not copied. A reading on someone else's
+  claim is attributed and moves nothing, and the plan wants two checks sharing a claim to
+  carry a reading each.
+- Disagreement is flagged only for opposite directions: expected to hold under a state
+  against, or expected not to hold under a state for. "In part" never disagrees.
+- The statement's few words follow `Verdict`'s counting rule:
+  - all expected not to hold gives "expected not to hold up";
+  - any expected not to hold gives "expected to hold up only in part";
+  - any expected to hold in part gives "expected to mostly hold up";
+  - otherwise "expected to hold up".
+
+  A single claim uses its own words.
+- `get_claim`, `fetch` and `search_claims` do not return readings. Another assistant reading a
+  claim through a tool is the case rule 3 guards against, so tool output stays as it was. The
+  claim page shows them to people.
+
+### What remains
+
+- **The per-model agreement measure** in question 10, and any use of it. It waits on Stage
+  44's accuracy benchmark, as the plan said.
+- **Deployment.** Connected assistants receive guidance `2026-10-05.2`, and with it the first
+  pass, only once galedra.org is deployed. That waits on the owner.
+- **Real assistants following the new guidance are unmeasured.** No run of the external-agent
+  loop in `docs/CONTEXT.md` has been made against this stage. Until one is, how often an
+  assistant stops after the first pass, and how often it fills in `preliminary` at all, is
+  unknown.
+- **The paste flow's example bundle** at `/investigations/new` does not show `preliminary`.
+  A person pasting a bundle can include it, but the example does not teach it.
+- **Found while building, not this stage's.** A takedown of a contribution whose table has no
+  entry in `Ledger::Redaction::REDACTABLE` raises. On 2026-10-05 a `TAG_CLAIM` takedown in
+  the test suite raised `KeyError: key not found: "claim_topics"`. The same gap is expected
+  for sections, placements, inferences and source retrievals but was not run. Those tables
+  also lack the `redacted_by_seq` column that `Redaction.apply!` writes. This stage gave
+  `preliminary_results` both, and its spec takes one down.
+

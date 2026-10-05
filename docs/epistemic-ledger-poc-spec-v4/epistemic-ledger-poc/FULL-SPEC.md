@@ -1202,6 +1202,25 @@ note                text nullable  (display only; never fed to scoring or to oth
 created_seq, invalidated_seq, accepted_seq
 ```
 
+#### `preliminary_results` (P1, Stage 45)
+
+```text
+id, claim_id
+expectation         EXPECTED_TO_HOLD | EXPECTED_TO_HOLD_IN_PART | EXPECTED_NOT_TO_HOLD | NO_EXPECTATION
+rationale           text, at most 600 characters (display only; never fed to scoring or to any packet)
+leads               jsonb, at most five http(s) links the assistant cited (never fetched, never evidence)
+model               string nullable: the model as the assistant declares it, never verified
+principal_contributor_id
+created_seq, invalidated_seq, accepted_seq, redacted_by_seq
+```
+
+An assistant's first reading of one claim, from what it already knew, recorded with
+`CREATE_PRELIMINARY_RESULT` before any source is read into the ledger. It is an attributed
+contribution (Art. XIV), not evidence and not a verdict: scoring never reads it, so 03 is
+unchanged and the score cache does not move for it; no packet carries it (04 §5); and it is
+shown only beside the claim's own state (06 §4 rule 13). It is refused on a `NORMATIVE`
+claim and on a claim placed in an outline.
+
 ### 3.4 Audits, reputation, tasks
 
 #### `audits`
@@ -1344,6 +1363,7 @@ ACCEPT                     INVALIDATE               AUDIT
 REGISTER_KEY               DELEGATE                 REVOKE_KEY          REVOKE_DELEGATION
 QUARANTINE                 RELEASE_QUARANTINE       TAKEDOWN
 RELEASE_SCORING_MODEL      AMEND_CONSTITUTION
+CREATE_PRELIMINARY_RESULT  (P1, Stage 45: an assistant's first reading of one claim; §3.3)
 ```
 
 One contribution = one action type. `TASK_RESULT` may carry an ordered list of ops (max 20) applied atomically.
@@ -1894,6 +1914,8 @@ Same inputs → same packet bytes (excluding timestamps and signature).
 
 **Contributor `note` fields are never included in any packet.** They are free text from untrusted parties and are the easiest injection path between agents.
 
+**Preliminary results (02 §3.3) are never included in any packet either**: not the expectation, the rationale, the leads or the model (Stage 45). A verifier told what an assistant expected is anchored before reading anything, and the leads are the first assistant's choices, not the claim's evidence.
+
 ---
 
 ## 6. Server-Side Validation Pipeline
@@ -2363,6 +2385,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
 10. `NOT_APPLICABLE` always shows its reason in plain words (e.g. "This is a value judgment; the system maps its premises but does not assign it a probability").
 11. **A model selector** is always available next to the assessment. The default model is labeled as a default, not as "the" answer (Art. XIX).
 12. **No persuasive framing.** No color-coding of claims as true/false, no "debunked"/"confirmed" badges, no ranking of claims by how "wrong" they are. States use neutral wording and neutral colors.
+13. **A preliminary result is never a score** (Stage 45, 02 §3.3). While every checkable claim in a check sits at `INSUFFICIENT_EVIDENCE` and some carry an assistant's first reading recorded with that check, the check page, its card image and its share line lead with that reading in words, labelled "Preliminary · an assistant's first reading (model, as declared), not yet checked against sources", with no badge from the ten-level scale and no figure. The share line then reads "Preliminary (AI, not yet sourced): expected to …" (owner decision, 2026-10-05). Once a claim has another state, its badge and headline lead and the reading moves beneath them; where the two point opposite ways the line says so, rather than one quietly replacing the other. The top card counts the parts' expectations by the same rule as the statement's reading (§6) and stores no overall judgment. Outlines never carry one.
 
 ---
 
@@ -2372,7 +2395,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
 
 **Analyze text** — paste text → stub/LLM proposes claims → user edits, splits, types each (atomicity warnings inline; private-individual checkbox) → submit accepted claims → optional "create verification tasks."
 
-**Claim page** — sections in order: Claim · Assessment (per §4) · Why (from `/why`) · Evidence for · Evidence against · Qualifications · Suppressed as dependent · Claim edges · Review checklist · Summary · Contribution history · Score trace (collapsible JSON) · Snapshot picker.
+**Claim page** — sections in order: Claim · Assessment (per §4) · Why (from `/why`) · Evidence for · Evidence against · Qualifications · Preliminary readings (every assistant's first reading, attributed, beneath the evidence; rule 13) · Suppressed as dependent · Claim edges · Review checklist · Summary · Contribution history · Score trace (collapsible JSON) · Snapshot picker.
 
 **Evidence page** — source, exact locator, excerpt, content hash, linked claims, creating contribution, audits.
 
@@ -3305,12 +3328,12 @@ Status: **P0** implemented in POC · **P1** planned after P0 · **Partial** P0 i
 | XI Identity ≠ evidence | 05 §2–3 | **Gap** | Pseudonymous reputation supported. **Not as stated before 2026-09-23:** `identity_tier` does reach scores, through audits. A self-registered key can claim ESTABLISHED, and ESTABLISHED can audit (audit M1). **Earned standing is unreachable:** AUDIT reputation comes only from one's own audits being audited, and auditing needs the tier or that reputation, so no contributor can earn the standing to audit. Stage 43 M1 carries both the fix and an earned route |
 | XII Resist capture | 02 §1.2 chain, 05 §5, §9 deterministic sampling, §13 visible moderation, 03 §13 multiple models | Partial / **Gap** | Two scoring models ship in P0 so "alternative models over the same evidence" is exercised, not just promised. Governance of the system key is open (09 §15). **Gaps against the 2026-09-23 text.** Powers held by roles: moderator appointment (`/admin/users`) is not a signed contribution. Defaults and selection: the default model is set in configuration (`LEDGER_DEFAULT_MODEL`, read by `Scoring::Registry.default_model`), with no signed record or published rule. Task priority asks `default_model_at`, which ignores that setting, so the two would disagree as soon as a newer model is released without being made the default. Search ranking and task priority are code, not published rules. Summary verdict wording is not governed. Stage 43 G1–G3 |
 | XIII Corrections keep history | 02 §1.3, §5; snapshot views; 05 §13 | P0 | Removal via visible `TAKEDOWN` with a stated legal basis; replay reports `CHAIN_VERIFIED_WITH_REDACTIONS` rather than claiming completeness. Quarantine reasons are the closed list this Article names (protection of persons). Nothing in the app deletes a contribution of any status: the DB role cannot |
-| XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification; Invariant 18 | P0 | Humans are audited by the same rules as agents. The system runs no model: the only `Llm::Adapter` is the deterministic stub. **Gap (audit M10):** an agent auditor is compared by its own id, not its principal's |
+| XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification; Invariant 18 | P0 | Humans are audited by the same rules as agents. The system runs no model: the only `Llm::Adapter` is the deterministic stub. An assistant's first reading of a claim enters as a signed `CREATE_PRELIMINARY_RESULT` (Stage 45, 02 §3.3), never as evidence and never in a packet. **Gap (audit M10):** an agent auditor is compared by its own id, not its principal's |
 | XV Shared vs. personal belief | 02 §3.6a reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
 | XVI Localized disagreement | 06 `/compare` (model vs. model) | Partial | P0 shows *which links and config keys* explain a difference between two models. Localizing disagreement between people needs lenses (P1) |
 | XVII Normative ≠ empirical | 01 §4, 03 §11 | P0 | `NOT_APPLICABLE` with a stated reason |
 | XVIII Political neutrality | 06 §6 | P1 view, rule P0 / **Gap** | No speaker/party scores anywhere; same pipeline for all claims. **Gaps against the 2026-09-23 text:** an investigation of one speaker's statement carries a single headline ("Checks out so far.") that reads as a verdict on it (audit M13). Why a claim is proposed for examination (task priority, the weaknesses list) is not shown. **Since 2026-09-23 (owner decision)** every outline section carries a badge and, when every checkable claim under it has a probability, a figure (06 §6). The hover says how many claims it was read from and that it reads those claims, not whoever made them. That is the XVIII line it must hold: an outline titled after a speaker's statement still gets a badge at its root |
-| XIX Transparency over persuasion | 06 §4, model selector | P0 | Users may choose any released model and see every trace |
+| XIX Transparency over persuasion | 06 §4, model selector | P0 | Users may choose any released model and see every trace. A preliminary result is labelled as an AI's unsourced reading wherever it travels, and when the sources turn against it the page says so rather than replacing one with the other (06 §4 rule 13, Stage 45) |
 | XX Evidence endures | 02 §1 (log is source of record), 03 §13 | P0 | Old model versions stay loadable |
 | XXI Cumulative research | 04 | P0 | Small leased tasks; results become durable ops |
 | XXII Reveal weaknesses | 06 §5 Weaknesses page, 01 §6 "what would most change this" | Partial | Suspicious contribution-cluster detection is P1 (05 §16) |

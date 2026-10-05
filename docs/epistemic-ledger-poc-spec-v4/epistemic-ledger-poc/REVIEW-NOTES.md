@@ -273,6 +273,30 @@ proportion rule could put "Leans against" beside an average of 0.70. A section's
 its average read through the model's state bands, the same bands that set a single claim's
 state.
 
+## P. A preliminary result while the sources are read (2026-10-05)
+
+**What changed.** The owner compared a check through Galedra with asking a frontier
+assistant directly: the assistant answers in under thirty seconds, and Galedra took about
+thirty minutes before there was a link to paste, because the guidance said to read every
+source before recording anything. An assistant's own first reading of each claim is now
+recorded at once as a `CREATE_PRELIMINARY_RESULT` (02 §3.3, §3.6). The check page, its card
+image and its share line lead with that reading while no claim has a state from evidence,
+and each claim's reading moves beneath its own state once evidence arrives (06 §4 rule 13).
+
+**What it is not.** It is not evidence and not a verdict. Scoring never reads it, so 03, the
+scoring configs and every golden value are unchanged. The score cache's watermark does not
+move for it. No task packet carries it (04 §5), and outlines never get one. A spec scores the
+same claim with and without a reading under every released model and gets identical traces.
+
+**Owner decisions taken the same day.** The expectation is a closed list of four, worded
+apart from the badge labels and the state names. The share line carries it, labelled as an
+AI's unsourced reading. The assistant ends its turn after the first pass and offers to
+source each claim, because in a chat the person sees nothing until the turn ends.
+
+**The guidance changed with it.** `Guidance::SIZE` said to record "only when ... you can
+read every source it needs right now". That sentence was the thirty minutes, and it is gone:
+the size rule is now about the input alone, and the order of the work is `Guidance::CHECK`'s.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-4 and P-6? (P-1, P-2, P-3 and P-5 were adopted into 1.0.0 on 2026-09-23.)

@@ -29,6 +29,7 @@ module Attribution
       "SET_TRUTH_EVALUABLE" => "ruled on whether a claim is checkable",
       "TAG_CLAIM" => "tagged a claim", "CREATE_SECTION" => "outlined the source",
       "PLACE_CLAIM" => "placed a claim in the outline", "CREATE_INFERENCE" => "drew an inference",
+      "CREATE_PRELIMINARY_RESULT" => "gave a first reading",
       "TASK_RESULT" => "answered a task", "AUDIT" => "audited an entry", "ACCEPT" => "accepted an entry",
       "INVALIDATE" => "invalidated an entry", "QUARANTINE" => "quarantined something",
       "RELEASE_QUARANTINE" => "released a quarantine", "TAKEDOWN" => "took content down"
@@ -63,6 +64,7 @@ module Attribution
       found += ClaimMerge.where(from_claim_id: ids).or(ClaimMerge.where(into_claim_id: ids)).pluck(:contribution_id)
       found += Inference.where(conclusion_claim_id: ids).pluck(:contribution_id)
       found += InferencePremise.where(claim_id: ids).pluck(:contribution_id)
+      found += PreliminaryResult.where(claim_id: ids).pluck(:contribution_id)
       found + evidence_chain(ids)
     end
 

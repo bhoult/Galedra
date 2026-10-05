@@ -99,6 +99,10 @@ RSpec.describe "Who initiated a piece of work", type: :request do
   # it walked a withheld claim's whole evidence chain and published every key
   # behind it. One statement to close a side door is not a price worth haggling
   # over.
+  #
+  # And one more on 2026-10-05 (Stage 45): an assistant's preliminary result on
+  # a claim is work on the check, so its author is listed, which is one query
+  # for the whole set. It is a table, not a row: 24 claims still cost one.
   it "counts the whole set in a bounded number of statements" do
     pair, = register_key(display_name: "Curator")
     source = create_source(pair, title: "A report")
@@ -112,7 +116,7 @@ RSpec.describe "Who initiated a piece of work", type: :request do
     counter = ->(*, payload) { n += 1 unless payload[:name].to_s == "SCHEMA" || payload[:sql].to_s.start_with?("BEGIN", "COMMIT") }
     ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get "/investigations/#{investigation.id}/contributors" }
     expect(response).to have_http_status(:ok)
-    expect(n).to be <= 21, "#{n} statements for #{claims.size} claims"
+    expect(n).to be <= 22, "#{n} statements for #{claims.size} claims"
   end
 
   # One partial, so the two pages cannot drift into saying different things about

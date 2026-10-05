@@ -34,10 +34,12 @@ module Scoring
     # Cannot reach `Scoring::BuildInput` at all: keys and delegations, the topic
     # vocabulary, outlines (a section's source is fixed at creation; what a
     # claim is *placed* in is PLACE_CLAIM, which is precise below), source
-    # fetches, inferences, and releasing a model — which gets its own cache key
+    # fetches, inferences, an assistant's preliminary result (Stage 45: never a
+    # score input, by rule), and releasing a model — which gets its own cache key
     # by being part of it.
     NONE = %w[REGISTER_KEY DELEGATE REVOKE_DELEGATION ADOPT_KEY RELEASE_SCORING_MODEL
-              AMEND_CONSTITUTION TAG_CLAIM CREATE_SECTION RETRIEVE_SOURCE CREATE_INFERENCE].freeze
+              AMEND_CONSTITUTION TAG_CLAIM CREATE_SECTION RETRIEVE_SOURCE CREATE_INFERENCE
+              CREATE_PRELIMINARY_RESULT].freeze
 
     # Types whose reach is known claim by claim. Everything not here and not in
     # NONE marks the whole table: REVOKE_KEY, whose compromise window can

@@ -2,8 +2,13 @@
 <% content_for :head do %>
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Galedra">
-  <meta property="og:title" content="<%= @summary[:headline] %>">
-  <meta property="og:description" content="<%= [ "“#{Cards::ShareText.excerpt(@investigation.statement.presence || @claims.first&.canonical_text)}”", "Checked in Galedra, an epistemic ledger. Provisional until audited." ].join(" ") %>">
+  <% if @reading[:preliminary] %>
+    <meta property="og:title" content="<%= "#{Investigations::Preliminary::SHARE_PREFIX}: #{@reading[:phrase]}" %>">
+    <meta property="og:description" content="<%= [ "“#{Cards::ShareText.excerpt(@investigation.statement.presence || @claims.first&.canonical_text)}”", "An assistant's first reading, being checked against sources in Galedra, an epistemic ledger." ].join(" ") %>">
+  <% else %>
+    <meta property="og:title" content="<%= @summary[:headline] %>">
+    <meta property="og:description" content="<%= [ "“#{Cards::ShareText.excerpt(@investigation.statement.presence || @claims.first&.canonical_text)}”", "Checked in Galedra, an epistemic ledger. Provisional until audited." ].join(" ") %>">
+  <% end %>
   <meta property="og:url" content="<%= investigation_url(@investigation) %>">
   <meta property="og:image" content="<%= card_investigation_url(@investigation, format: :png) %>">
   <meta property="og:image:width" content="1200">
@@ -12,10 +17,15 @@
   <meta name="twitter:image" content="<%= card_investigation_url(@investigation, format: :png) %>">
 <% end %>
 <div class="share">
-  <p class="eyebrow">Checked, not settled</p>
+  <p class="eyebrow"><%= @reading[:preliminary] ? "Preliminary, being checked" : "Checked, not settled" %></p>
   <% top = Cards::Badge.for_key(@summary[:badge]) %>
   <div class="card answer badged">
-    <figure class="badge-validity" style="color: <%= top[:color] %>"><%= Cards::Badge.svg(top[:key], size: 56) %><figcaption class="badge-label"><%= top[:label] %></figcaption></figure>
+    <% if @reading[:preliminary] %>
+      <%# Stage 45: no badge from the scale and no figure while only a first reading exists; the badge scale belongs to scores. %>
+      <figure class="badge-validity preliminary-stamp"><span class="stamp">Preliminary</span></figure>
+    <% else %>
+      <figure class="badge-validity" style="color: <%= top[:color] %>"><%= Cards::Badge.svg(top[:key], size: 56) %><figcaption class="badge-label"><%= top[:label] %></figcaption></figure>
+    <% end %>
     <% asked = @investigation.statement.presence || @claims.first&.canonical_text %>
     <%# A statement may be a whole passage (up to Investigation::MAX_STATEMENT_CHARS): its opening words lead, and the rest is one click away. %>
     <% if asked.to_s.length > 600 %>
@@ -24,22 +34,36 @@
     <% else %>
       <p class="claim-text">“<%= asked %>”</p>
     <% end %>
-    <% if @summary[:detail].present? %><p><strong><%= @summary[:headline] %></strong> <%= @summary[:detail] %>.</p><% end %>
-    <% if @summary[:stated] %><p class="meta"><%= @summary[:stated] %>.<% if @claims.size > 1 %> <%= @verdict[:note] %><% end %></p><% end %>
-    <p class="meta"><%= @claims.size > 1 ? "The statement as a whole, read from the #{@claims.size} claims below. Each claim is scored on its own; this reading only counts them." : "What was asked, and where it stands." %> Provisional until audited.</p>
-    <%= completeness_bar(@review) %>
+    <% if @reading[:preliminary] %>
+      <p><strong><%= @reading[:sentence] %></strong></p>
+      <p class="meta"><%= Investigations::Preliminary::LABEL %> It is not a score and moves nothing; each claim below is being checked against sources, and this page fills in as they are read.</p>
+    <% else %>
+      <% if @summary[:detail].present? %><p><strong><%= @summary[:headline] %></strong> <%= @summary[:detail] %>.</p><% end %>
+      <% if @summary[:stated] %><p class="meta"><%= @summary[:stated] %>.<% if @claims.size > 1 %> <%= @verdict[:note] %><% end %></p><% end %>
+      <p class="meta"><%= @claims.size > 1 ? "The statement as a whole, read from the #{@claims.size} claims below. Each claim is scored on its own; this reading only counts them." : "What was asked, and where it stands." %> Provisional until audited.</p>
+      <%= completeness_bar(@review) %>
+    <% end %>
     <p><strong>Share:</strong></p><p class="share-line" data-copy><%= @share_line %></p>
   </div>
   <% if @claims.size > 1 %><h2>Claim by claim</h2><% end %>
   <% @claims.each do |claim| %>
     <% card = @cards[claim.id] %>
-    <% badge = Cards::Badge.for(@results[claim.id].assessment_state, @results[claim.id].probability) %>
+    <% state = @results[claim.id].assessment_state %>
+    <% badge = Cards::Badge.for(state, @results[claim.id].probability) %>
+    <% pre = @preliminaries[claim.id] %>
+    <% leading = pre && state == "INSUFFICIENT_EVIDENCE" %>
     <div class="card answer badged">
-      <figure class="badge-validity" style="color: <%= badge[:color] %>"><%= Cards::Badge.svg(badge[:key], size: 56) %><figcaption class="badge-label"><%= badge[:label] %></figcaption></figure>
+      <% if leading %>
+        <figure class="badge-validity preliminary-stamp"><span class="stamp">Preliminary</span></figure>
+      <% else %>
+        <figure class="badge-validity" style="color: <%= badge[:color] %>"><%= Cards::Badge.svg(badge[:key], size: 56) %><figcaption class="badge-label"><%= badge[:label] %></figcaption></figure>
+      <% end %>
       <p class="claim-text">“<%= claim.canonical_text %>”</p>
+      <% if leading %><%= render "shared/preliminary", pre: pre, state: state, full: true %><% end %>
       <% if card[:plain][:say_instead] %><p class="say-instead"><strong>Say instead:</strong> <%= card[:plain][:say_instead] %></p><% end %>
       <p class="meta status-line" title="<%= card[:headline] %><% if card[:stated] %> · <%= card[:stated] %><% end %> · review checks <%= card[:review_checks] %> · provisional until audited."><%= card[:headline] %><% if card[:stated] %> · <%= card[:stated] %><% end %> · review checks <%= card[:review_checks] %> · provisional until audited.</p>
       <p class="meta"><%= completeness_meter(@meters[claim.id]) %></p>
+      <% if pre && !leading %><%= render "shared/preliminary", pre: pre, state: state, full: false %><% end %>
       <p><%= link_to "See the evidence", claim_path(claim) %> · <%= link_to "Claim card", card_claim_path(claim) %></p>
     </div>
   <% end %>

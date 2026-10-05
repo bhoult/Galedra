@@ -176,6 +176,12 @@
   <h2>Qualifications</h2>
   <%= render "claims/links", links: @evidence[:counted].select { |l| %w[QUALIFY NEUTRAL].include?(l[:direction]) } %>
   <% if @evidence[:pending].any? %><h2>Pending links</h2><%= render "claims/links", links: @evidence[:pending] %><% end %>
+  <% if @preliminary_results.any? %>
+    <h2 id="preliminary">Preliminary readings</h2>
+    <p class="meta">What assistants expected before any source was read into Galedra. Never evidence, never part of the assessment above, and never shown to anyone checking this claim.</p>
+    <% open = @result.nil? || @result.assessment_state == "INSUFFICIENT_EVIDENCE" %>
+    <% @preliminary_results.each do |pre| %><%= render "shared/preliminary", pre: pre, state: @result&.assessment_state, full: open %><% end %>
+  <% end %>
 
   <h2>Suppressed as dependent</h2>
   <% suppressed = @result ? @result.trace["links"].select { |l| l["reason"] == "dependent_strongest_only" } : [] %>
