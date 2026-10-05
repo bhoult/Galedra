@@ -104,6 +104,8 @@ installed. Stage 0 records the exact versions it ends up using.
 | 42 | Meet the caller where the decision is made | built; §5a an owner decision | [implementation/implemented/stage-42-meet-the-caller-where-the-decision-is.md](implementation/implemented/stage-42-meet-the-caller-where-the-decision-is.md) |
 | 43 | An open door and a guarded record | planned; closes the constitution's recorded Gaps; four items wait on the owner | [implementation/planned/stage-43-open-door-guarded-record.md](implementation/planned/stage-43-open-door-guarded-record.md) |
 | 44 | From working to used | planned; most items wait on the owner | [implementation/planned/stage-44-from-working-to-used.md](implementation/planned/stage-44-from-working-to-used.md) |
+| 45 | A preliminary result while the sources are read | planned; owner decisions taken 2026-10-05 | [implementation/planned/stage-45-preliminary-result.md](implementation/planned/stage-45-preliminary-result.md) |
+| 46 | The atomic breakdown comes from an assistant, not a sentence splitter | planned; owner decision taken 2026-10-05 | [implementation/planned/stage-46-atomic-breakdown-by-the-assistant.md](implementation/planned/stage-46-atomic-breakdown-by-the-assistant.md) |
 
 Work done between stages, each with its own dated entry:
 
