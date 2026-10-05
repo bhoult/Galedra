@@ -126,7 +126,7 @@ module Investigations
         add = ->(path, detail) { errors << { code: "SCHEMA_INVALID", path: path, detail: detail } }
         raise Ledger::Rejected.new([ { code: "SCHEMA_INVALID", path: "$", detail: "expected an object" } ]) unless bundle.is_a?(Hash)
         statement = bundle["statement"]
-        add.call("$.statement", "the title and link of what is being checked, at most #{Investigation::MAX_STATEMENT_CHARS} characters") unless statement.nil? || (statement.is_a?(String) && statement.length <= Investigation::MAX_STATEMENT_CHARS)
+        add.call("$.statement", "the title and link of what is being checked, at most #{Investigation::MAX_OUTLINE_STATEMENT_CHARS} characters") unless statement.nil? || (statement.is_a?(String) && statement.length <= Investigation::MAX_OUTLINE_STATEMENT_CHARS)
         if bundle["parent_section_id"]
           add.call("$.parent_section_id", "no such section") unless Section.live.exists?(id: bundle["parent_section_id"].to_s)
         else

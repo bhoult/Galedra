@@ -23,7 +23,7 @@ The topics are: `check` (recording what you read), `outline` (a source too large
 ## How to start
 
 1. **When to use it.** A message that is just `galedra:` followed by text — a pasted post, a sentence they were about to share — means: check this before I share it, record the whole statement, and end with the share line. No other instruction is needed.
-2. **Search first.** Call `search_claims` (or `GET /api/v1/claims?q=`) with the key words. If an accepted claim already matches, report its card and URL and stop unless you have new evidence to add.
+2. **Search first, one claim at a time.** Break the text into its atomic claims, then call `search_claims` (or `GET /api/v1/claims?q=`) once per claim with that claim's key words. A whole paragraph as one query matches nothing, so every claim in it would look new. Claims Galedra already holds are attached rather than recorded again. If the text is a single claim Galedra already holds, report its card and URL and stop unless you have new evidence to add.
 3. **Follow the guidance that comes back** with that first result, which tells you how to read, split, record and report. If you are not on MCP, fetch the guidance endpoint above before you record anything.
 
 ## The two rules worth repeating here

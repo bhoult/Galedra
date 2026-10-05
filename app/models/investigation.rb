@@ -2,7 +2,13 @@
 # as they would post it, and the claims that answer it. The page at
 # /investigations/:id is the link to paste. Claims and cards come from the log.
 class Investigation < ApplicationRecord
-  MAX_STATEMENT_CHARS = 2_000
+  # The text the person wanted checked, whole. The cap is Guidance::SIZE's limit
+  # for one record_investigation call, about 3,000 words. It was 2,000
+  # characters until 2026-10-05, so a paragraph the size rule said to record
+  # whole had to be cut or summarised to fit (owner).
+  MAX_STATEMENT_CHARS = 20_000
+  # An outline's statement is its title and link, never its text.
+  MAX_OUTLINE_STATEMENT_CHARS = 2_000
 
   belongs_to :assistant_token
 

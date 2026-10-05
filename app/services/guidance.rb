@@ -20,7 +20,7 @@
 # VERSION changes whenever the words do; a host that shows guidance to a person
 # can use it to tell a stale copy from a current one.
 module Guidance
-  VERSION = "2026-09-23.2"
+  VERSION = "2026-10-05.1"
 
   # The first sentence is a routing rule, and it is first on purpose. It is the
   # only one that has to be read *before* a tool is called, so it cannot live
@@ -45,7 +45,11 @@ module Guidance
 
   START = "A message that is just \"galedra:\" (or \"Galedra:\") followed by text means: check this before I share it, " \
           "record the whole statement, and end with the share line; no other instruction is needed. " \
-          "Search Galedra before recording, with search_claims. Do your own reading: Galedra never fetches URLs. " \
+          "Search Galedra before recording, one claim at a time: break the text into its atomic claims first, then call " \
+          "search_claims once per claim with that claim's key words. Never search with the whole statement: a match has to " \
+          "contain at least half the query's distinct words, so a paragraph as one query finds nothing and every claim in " \
+          "it looks new. Give the claims Galedra already holds as attach_to and record the rest. Do your own reading: " \
+          "Galedra never fetches URLs. " \
           "If you are calling without a token, call introduce_yourself once: say what you are called and who makes " \
           "you, and keep the token it returns. Without one you are keyed by the address you call from, so an " \
           "assistant whose egress rotates arrives as a stranger every call — it cannot read the answers to its own " \

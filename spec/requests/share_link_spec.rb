@@ -82,10 +82,28 @@ RSpec.describe "The link to paste (after Stage 19)", type: :request do
     get data["share"]["url"]
     expect(response.body).to include("A single unsourced claim about kites.").and include("Not a checkable fact")
 
-    data, err = call_tool("record_investigation", { "statement" => "x" * 2_001, "claims" => [ { "handle" => "c", "text" => "Another claim about kites.", "type" => "OBSERVATIONAL" } ] })
+    data, err = call_tool("record_investigation", { "statement" => "x" * (Investigation::MAX_STATEMENT_CHARS + 1), "claims" => [ { "handle" => "c", "text" => "Another claim about kites.", "type" => "OBSERVATIONAL" } ] })
     expect(err).to be(true)
     expect(data["errors"].first["path"]).to eq("$.statement")
     expect(Investigation.count).to eq(2)
+
+    # A pasted passage is kept whole (the cap was 2,000 characters until
+    # 2026-10-05), but only its opening words travel: the share line, the link
+    # preview and the page's headline quote are excerpts, and the page holds
+    # the rest behind one click.
+    passage = "#{'Kites fly higher in a strong wind. ' * 220}\n\n#{'Kite string should be waxed. ' * 220}The last sentence is about the reel."
+    expect(passage.length).to be_between(2_001, Investigation::MAX_STATEMENT_CHARS)
+    data, err = call_tool("record_investigation", { "statement" => passage, "claims" => [ { "handle" => "c", "text" => "Kites fly higher in a strong wind.", "type" => "OBSERVATIONAL" } ], "on_duplicate" => "create" })
+    expect(err).to be(false), data.inspect
+    expect(Investigation.order(:created_at).last.statement).to eq(passage)
+    quote = data["share_line"].lines[1].strip
+    expect(quote.length).to be <= Cards::ShareText::MAX_QUOTE + 3
+    expect(quote).to end_with("…”")
+    get data["share"]["url"]
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("The whole text").and include("The last sentence is about the reel.")
+    description = Nokogiri::HTML(response.body).at_css('meta[property="og:description"]')["content"]
+    expect(description).not_to include("The last sentence is about the reel.")
   end
 
   it "maps every state to one of ten badges, from green through amber to red, never in true-or-false words" do

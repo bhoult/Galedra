@@ -3,7 +3,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Galedra">
   <meta property="og:title" content="<%= @summary[:headline] %>">
-  <meta property="og:description" content="<%= [ "“#{@investigation.statement.presence || @claims.first&.canonical_text}”", "Checked in Galedra, an epistemic ledger. Provisional until audited." ].join(" ") %>">
+  <meta property="og:description" content="<%= [ "“#{Cards::ShareText.excerpt(@investigation.statement.presence || @claims.first&.canonical_text)}”", "Checked in Galedra, an epistemic ledger. Provisional until audited." ].join(" ") %>">
   <meta property="og:url" content="<%= investigation_url(@investigation) %>">
   <meta property="og:image" content="<%= card_investigation_url(@investigation, format: :png) %>">
   <meta property="og:image:width" content="1200">
@@ -16,7 +16,14 @@
   <% top = Cards::Badge.for_key(@summary[:badge]) %>
   <div class="card answer badged">
     <figure class="badge-validity" style="color: <%= top[:color] %>"><%= Cards::Badge.svg(top[:key], size: 56) %><figcaption class="badge-label"><%= top[:label] %></figcaption></figure>
-    <p class="claim-text">“<%= @investigation.statement.presence || @claims.first&.canonical_text %>”</p>
+    <% asked = @investigation.statement.presence || @claims.first&.canonical_text %>
+    <%# A statement may be a whole passage (up to Investigation::MAX_STATEMENT_CHARS): its opening words lead, and the rest is one click away. %>
+    <% if asked.to_s.length > 600 %>
+      <p class="claim-text">“<%= Cards::ShareText.excerpt(asked) %>”</p>
+      <details class="statement-full"><summary>The whole text (<%= pluralize(asked.split.size, "word") %>)</summary><%= simple_format(h(asked), {}, sanitize: false) %></details>
+    <% else %>
+      <p class="claim-text">“<%= asked %>”</p>
+    <% end %>
     <% if @summary[:detail].present? %><p><strong><%= @summary[:headline] %></strong> <%= @summary[:detail] %>.</p><% end %>
     <% if @summary[:stated] %><p class="meta"><%= @summary[:stated] %>.<% if @claims.size > 1 %> <%= @verdict[:note] %><% end %></p><% end %>
     <p class="meta"><%= @claims.size > 1 ? "The statement as a whole, read from the #{@claims.size} claims below. Each claim is scored on its own; this reading only counts them." : "What was asked, and where it stands." %> Provisional until audited.</p>

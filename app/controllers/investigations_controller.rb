@@ -104,7 +104,7 @@ class InvestigationsController < ApplicationController
     # it this page walked a withheld claim's whole evidence chain and published,
     # to anonymous visitors, every key that wrote it — a stub at the claim's own
     # URL and a side door here (Invariant 12, spec 05 §13; code review).
-    @subject = @investigation.title
+    @subject = Cards::ShareText.excerpt(@investigation.title)
     @back = investigation_path(@investigation)
     @back_label = "the check"
     visible = @investigation.claim_ids - Governance::Quarantines.quarantined_claim_ids
