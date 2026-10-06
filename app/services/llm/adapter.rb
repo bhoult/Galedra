@@ -6,6 +6,11 @@ module Llm
   # the stub is the only adapter, and no adapter that calls a model is added
   # here. A function that needs a model becomes a task or a tool for a
   # connected assistant, whose answer is a signed contribution open to audit.
+  #
+  # Claim extraction was here until Stage 46: a sentence splitter behind
+  # extract_claims proposed the claims for Analyze text. It split on
+  # punctuation and guessed types from keywords, which is not a breakdown, and
+  # it is gone; Analyze text opens CLAIM_EXTRACTION tasks instead.
   module Adapter
     ENV_KEY = "LEDGER_LLM_ADAPTER"
 
@@ -26,11 +31,6 @@ module Llm
     # input: Summaries::Input hash. Returns [{"text" =>, "cites" => []}].
     def summarize(input, type:)
       Summaries::StubGenerator.sentences(input, type: type)
-    end
-
-    # Returns [{"canonical_text" =>, "claim_type" =>}] proposals for Analyze text.
-    def extract_claims(text)
-      Claims::Extract.call(text)
     end
 
     # Maps a requested affiliation to an existing one: {slug:, confidence:}

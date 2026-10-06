@@ -143,6 +143,7 @@ module Investigations
         end
         payload = { "canonical_text" => c["text"], "claim_type" => c["type"], "affirms_not_private_individual" => true, "qualifiers" => qualifiers }
         payload["section_id"] = c["section"] if c["section"].present?
+        payload["source_id"] = c["source"] if c["source"].present? # Stage 46: filed under the text pasted into Analyze text
         write.call("CREATE_CLAIM", payload, c["handle"], "claim", Claim)
         topics = Array(c["topics"]).reject(&:blank?)
         write.call("TAG_CLAIM", { "claim_id" => ids[c["handle"]], "topics" => topics }, nil, nil, nil) if topics.any?
@@ -204,6 +205,12 @@ module Investigations
       opened = Tasks::OpenVerification.call(claims, created_by: token.agent, priority_factor: factor, location_for: location_for)
       bundle.fetch("inferences", []).each { |inf| Inferences::Record.open_review(Inference.find(ids[inf["handle"]]), created_by: token.agent, priority_factor: factor) && (opened += 1) }
       cancel_extraction_tasks(token, bundle)
+      # Stage 46: claims filed under a pasted text by that text's own principal
+      # are its breakdown, so the extraction tasks the paste opened close.
+      bundle.fetch("claims", []).filter_map { |c| c["source"].presence }.uniq.each do |source_id|
+        source = Source.find_by(id: source_id)
+        Sources::Paste.cancel_extraction!(source, token.principal_contributor_id) if source
+      end
       opened
     end
 
@@ -320,6 +327,10 @@ module Investigations
         add.call("#{path}.type", "expected one of #{Claim::TYPES.join(', ')}") unless Claim::TYPES.include?(c["type"])
       end
       add.call("#{path}.section", "no such section") if c["section"].present? && !Section.live.exists?(id: c["section"].to_s)
+      if c["source"].present?
+        add.call("#{path}.source", "source files a new claim under the text it was taken from; a claim given by attach_to already exists, so leave source off it") if c["attach_to"]
+        add.call("#{path}.source", "no such source; source takes the id of a text pasted under Analyze text") unless Source.where(invalidated_seq: nil).exists?(id: c["source"].to_s)
+      end
       topics = Array(c["topics"])
       unknown = topics.reject { |t| Topics.valid?(t) }
       add.call("#{path}.topics", "not in the vocabulary: #{unknown.join(', ')}; see /api/v1/topics") if unknown.any?

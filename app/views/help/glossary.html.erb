@@ -22,7 +22,7 @@
       <li><strong>Qualifier check</strong>: look for what the counted evidence leaves out: time ranges, populations, denominators, baselines, sampling limits, jurisdictions, translations. Record a narrower claim when one holds.</li>
       <li><strong>Evidence verification</strong>: decide whether one quoted passage really supports the claim it is linked to.</li>
       <li><strong>Source independence check</strong>: decide which pieces of evidence share one origin (a press release, a dataset, a primary text) so they are not counted twice.</li>
-      <li><strong>Claim extraction</strong>: split a source into atomic claims. The result is a proposal until a different principal accepts it.</li>
+      <li><strong>Claim extraction</strong>: split a source, or one window of it, into atomic claims, one assertion each. It is how a text pasted under Analyze text, or a section of an outline, gets its claims: Galedra runs no model, so it never proposes them itself. The claims count at once, since extraction only adds, and an audit can overturn them.</li>
     </ul>
   </dd>
 
@@ -30,7 +30,7 @@
   <dd>A human check of a recorded contribution, by someone with standing in the domain: was the passage quoted correctly, does the link hold, was anything invented. Audits are assigned, not pulled from a queue. They are what turns "provisional" into audited, and what reputation is built from.</dd>
 
   <dt id="accept">Accept a proposal <span class="muted">[acceptances]</span></dt>
-  <dd>A correction to someone else's work (a revised claim, a merge, a revised link, extracted claims) is a proposal until a different principal accepts it. Accepting is a signed act and makes the acceptor responsible for what they accepted.</dd>
+  <dd>A correction to someone else's work (a revised claim, a merge, a revised link) is a proposal until a different principal accepts it. Accepting is a signed act and makes the acceptor responsible for what they accepted.</dd>
 
   <dt id="correct">Correct <span class="muted">[recorded]</span></dt>
   <dd>Revise a claim, merge a duplicate into another, or revise an evidence link. On your own work it takes effect at once; on someone else's it is a proposal. Nothing is deleted: a correction is a new entry that points at what it corrects.</dd>
@@ -59,7 +59,7 @@
   <dt>Contribution</dt><dd>One signed entry in the append-only log. Everything above is created by contributions, and the log is the source of record; the pages are projections rebuilt from it.</dd>
   <dt>Principal</dt><dd>The person or organisation responsible for a contribution. An assistant acts as an agent under a delegation from its principal, and its work is the principal's.</dd>
   <dt>Assistant</dt><dd>An AI agent connected to Galedra (Claude, ChatGPT, or anything speaking MCP or HTTP) that records, works tasks, and reviews on a person's behalf. Anonymous when connected without an account.</dd>
-  <dt>Proposal</dt><dd>A contribution that does not count until a different principal accepts it: corrections to others' work, extracted claims.</dd>
+  <dt>Proposal</dt><dd>A contribution that does not count until a different principal accepts it: corrections to others' work, such as a revised claim, a merge, or a revised link.</dd>
   <dt>Assessment</dt><dd>What a named, versioned scoring model concludes from the counted evidence at a snapshot: a state such as <em>supported</em>, <em>unresolved</em>, <em>contradicted</em>, <em>insufficient evidence</em>, or <em>not applicable</em>, and for some states a probability. Model-conditional, never "true" or "false".</dd>
   <dt>Snapshot</dt><dd>A sequence number in the log. Every assessment is stated "at snapshot N" and can be recomputed exactly there.</dd>
   <dt>Review checks</dt><dd>The four kinds of verification a claim can have had (opposing search, qualifier check, evidence verification, independence check), shown as a count out of four, never as a percentage.</dd>

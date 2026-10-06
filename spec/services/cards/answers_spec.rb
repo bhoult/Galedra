@@ -135,14 +135,21 @@ RSpec.describe "Answer cards, why, summaries, and weaknesses (07 Phase 6 #1, #2;
     expect(response).to have_http_status(422)
   end
 
-  it "extracts claim proposals deterministically from the memo, with types and an extra textual claim per citation" do
+  # Stage 46: this example used to prove the stub split the memo into claims.
+  # It now proves the server proposes none: Analyze text opens an extraction
+  # task for an assistant, and the adapter has no extractor at all. Its last two
+  # assertions are the Invariant 18 guard and outlived the extractor.
+  it "proposes no claims from the memo: Analyze text opens an extraction task, and the adapter has no extractor" do
     memo = "Remote work boosts productivity: 62% of remote workers report higher productivity (Journal of Distributed Work Research, 2025). Companies should adopt remote work."
-    proposals = Llm::Adapter.current.extract_claims(memo)
-    texts = proposals.map { |p| [ p["canonical_text"], p["claim_type"] ] }
-    expect(texts).to include([ "Remote work boosts productivity.", "CAUSAL" ], [ "62% of remote workers report higher productivity.", "QUANTITATIVE" ],
-                             [ "Journal of Distributed Work Research (2025) reports that 62% of remote workers report higher productivity.", "TEXTUAL" ],
-                             [ "Companies should adopt remote work.", "NORMATIVE" ])
-    expect(proposals.first).to have_key("warnings")
+    password = "correct horse battery staple"
+    post "/users", params: { user: { email_address: "memo@example.com", password: password, password_confirmation: password } }
+    claims = Claim.count
+    post "/analyze", params: { title: "AI-drafted memo", text: memo }
+    source = Source.find_by!(title: "AI-drafted memo")
+    expect(response).to redirect_to("/sources/#{source.id}/analyze")
+    expect(Claim.count).to eq(claims)
+    expect(Task.where(task_type: "CLAIM_EXTRACTION", target_type: "SOURCE", target_id: source.id, status: "OPEN").count).to eq(1)
+    expect(Llm::Adapter.current.class.public_instance_methods(false)).not_to include(:extract_claims)
     expect(Llm::Adapter.current.name).to eq("stub-v0.1")
     with_env("LEDGER_LLM_ADAPTER" => "gpt") { expect { Llm::Adapter.current }.to raise_error(ArgumentError) }
   end

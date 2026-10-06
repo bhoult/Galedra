@@ -123,7 +123,7 @@ Acceptance: both run on a clean database, print every golden value with PASS/FAI
 
 ## Phase 8 (P1) — Extensions
 
-Real LLM adapter behind `Llm::Adapter` (stub remains default), questions/hypotheses, dedup candidate edges (pg_trgm → pgvector), export bundles and PROV/nanopublication mappings, embeddable answer cards, verification-diversity constraints, audit-cost reporting, political-speech view.
+~~Real LLM adapter behind `Llm::Adapter` (stub remains default)~~ (struck in Stage 46: Article XIV's last paragraph and Invariant 18 forbid it; a function that needs a model is a task or a tool for a connected assistant), questions/hypotheses, dedup candidate edges (pg_trgm → pgvector), export bundles and PROV/nanopublication mappings, embeddable answer cards, verification-diversity constraints, audit-cost reporting, political-speech view.
 
 ---
 

@@ -1,6 +1,6 @@
 # Stage 46 — The atomic breakdown comes from an assistant, not a sentence splitter
 
-**Status:** planned 2026-10-05 · not started · the owner's one decision taken 2026-10-05 (marked **Owner**)
+**Status:** built 2026-10-05 · tagged `stage-46-atomic-breakdown` · the owner's one decision taken 2026-10-05 (marked **Owner**)
 
 **Tag:** `stage-46-atomic-breakdown` · **Spec:** 02 §4 (atomicity), 04 §2 (task types),
 06 §5 (Analyze text, the per-source answer card), Articles IV (atomicity), XIV (contributors,
@@ -154,3 +154,91 @@ assistant and enters as a signed contribution.
 ## What remains after this stage
 
 Whether the two paste pages become one, decided once both have been used.
+
+## How it closed (2026-10-05)
+
+### What was resolved
+
+Deliverables 1 to 4, and acceptance 1, 2, 3, 5 and 6. Analyze text stores the text and opens
+its breakdown, and the server proposes nothing. The breakdown is done one of three ways:
+
+- by the person's own assistant, through a prompt the page gives them;
+- by a volunteer's assistant, through the extraction tasks;
+- by the person, on a form.
+
+### How
+
+- **`Sources::Paste`** (`app/services/sources/paste.rb`) refuses a paste over
+  `Guidance::MAX_CHECK_WORDS`, the constant Stage 45 introduced for the size rule. It names
+  the outline route and records nothing. Otherwise it records the source and a location
+  over the whole text, as before. It then opens one `CLAIM_EXTRACTION` task per reading
+  window.
+- **Reading windows, which the plan missed.** A packet carries at most 2,000 characters of
+  excerpt (`Tasks::Types::EXCERPT_CAP`). The plan's single task over a 3,000-word paste would
+  have read the first ~350 words and returned claims as if it had read them all, which is
+  the failure the size rule exists to prevent. `Sources::Paste.windows` therefore cuts the
+  text into exact slices no longer than a packet carries. Each cut is at a paragraph break
+  where there is one in the window's second half, otherwise at the last space. This chooses
+  where a reader's page ends, never what a claim is. A text short enough for one window gets
+  one task over the whole-text location, as before.
+- **The person's own assistant, which the plan also missed.** `Tasks::Lease` never hands a
+  principal an extraction task on its own source, since only the routine checks are
+  self-checkable (Stage 34). The plan's route, "a connected assistant answers by working that
+  task", was therefore closed to the one assistant the person actually has. The prompt
+  instead asks that assistant to record the breakdown as a check, with
+  `record_investigation`.
+  - Each claim carries a new `source` field, which becomes `CREATE_CLAIM`'s existing
+    `source_id`.
+  - The check gets a page, a share line and Stage 45's first readings.
+  - When the recorder is the text's own principal, `Sources::Paste.cancel_extraction!`
+    closes the open tasks, by the same rule as an outline's leaves.
+  - A stranger filing under someone else's text leaves the tasks open.
+  - `source` is refused with `attach_to`.
+- **The form.** `sources#analyze` shows the prompt, the tasks and an empty form of five rows.
+  - Live warnings while typing would need script, so they are approximated by "Check
+    wording", which re-renders with `Claims::Atomicity`'s warnings and records nothing.
+  - A row without the private-individual affirmation now stops the whole form before
+    anything is written, and the writes are one transaction, so a refusal on any row
+    appends none of them. Before, the rows ahead of a refused one had already been
+    recorded.
+- **Deleted.** `Claims::Extract`, and `Llm::Adapter#extract_claims` with it. The adapter keeps
+  `summarize` and `resolve_affiliation`, which both have callers.
+- **Copy.** `analyze/new` now says what happens, and links to Record an investigation, which
+  links back. The breakdown page, the FAQ, the glossary, the dashboard card and the source
+  page's link were updated. The glossary also had extraction as a proposal awaiting
+  acceptance, which has been untrue since 2026-09-19, when extraction began to be accepted on
+  submission; that is corrected.
+- **The spec.**
+  - 06 §5's Analyze text line is rewritten.
+  - 07 Phase 8's "Real LLM adapter" is struck.
+  - 13's XIV row is updated.
+  - The README's walkthrough no longer sends a new user to paste the memo and "follow the
+    answer cards".
+  - The Watchers README's atomicity line said the stub proposed four claims; it never did.
+  - `REVIEW-NOTES.md` has entry Q, and `FULL-SPEC.md` was regenerated.
+  - 08 §2 and the per-source answer card line in 06 stay true and are unchanged. No golden
+    value is touched.
+- **The guard.**
+  - `spec/requests/analyze_text_breakdown_spec.rb` has one example per acceptance criterion,
+    plus the own-assistant route and the reading windows. The windows example checks that
+    every excerpt fits a packet, that together they hold every word in order, and that each
+    is an exact slice of the source.
+  - `spec/system/analyze_text_spec.rb` is rewritten for the form.
+  - The memo example in `spec/services/cards/answers_spec.rb` now proves the server proposes
+    nothing. It keeps the two Invariant 18 assertions.
+
+### What remains
+
+- **Acceptance 4 (`bin/demo` prints PASS)** was not run locally. It resets the development
+  log, and that is someone's working data. A grep before the stage found the demo never used
+  the extractor. CI's demo job runs it on push.
+- **The owner's decision on merging the two paste pages**, deferred until both are used.
+- **Real assistants given the prompt are unmeasured.** No run of the external-agent loop has
+  checked whether a connected assistant fills in `source` from the prompt.
+- **Deployment** waits on the owner.
+- **Found, not this stage's.** "Create verification tasks" on a source page points every
+  claim's evidence check at the location over the whole text. That packet's excerpt stops at
+  2,000 characters, so a claim taken from late in a long paste is checked against an excerpt
+  that does not contain it. The whole-text location predates this stage. Before it, Analyze
+  text had no size limit at all.
+

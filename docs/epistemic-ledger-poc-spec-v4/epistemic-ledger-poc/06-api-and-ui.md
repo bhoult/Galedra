@@ -144,7 +144,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
 
 **Home** — Analyze text · Browse claims · Task board · Recent audits · Log.
 
-**Analyze text** — paste text → stub/LLM proposes claims → user edits, splits, types each (atomicity warnings inline; private-individual checkbox) → submit accepted claims → optional "create verification tasks."
+**Analyze text** — paste text (at most the size rule's 3,000 words; longer goes to an outline) → stored as a signed source → one `CLAIM_EXTRACTION` task per reading window a packet carries whole → the claims are recorded by an assistant (a volunteer's, working a task, or the person's own, through `record_investigation` with each claim's `source`) or by the person on a form (atomicity warnings on "Check wording"; private-individual checkbox) → optional "create verification tasks." The server proposes no claims: Galedra runs no model (Invariant 18), and the stub extractor that proposed them until Stage 46 split on punctuation, which is not a breakdown. When the text's own principal records its breakdown, the open extraction tasks close.
 
 **Claim page** — sections in order: Claim · Assessment (per §4) · Why (from `/why`) · Evidence for · Evidence against · Qualifications · Preliminary readings (every assistant's first reading, attributed, beneath the evidence; rule 13) · Suppressed as dependent · Claim edges · Review checklist · Summary · Contribution history · Score trace (collapsible JSON) · Snapshot picker.
 

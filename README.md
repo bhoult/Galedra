@@ -183,9 +183,10 @@ bin/demo --reset              # the public demo: prints PASS for every golden ro
 bin/demo --example watchers --reset
 ```
 
-Then open http://localhost:3000, sign up, paste the memo paragraph from the demo into
-**Analyze text**, and follow the answer cards down to signatures, hash chain, score
-traces, audits, and snapshots. `examples/agent/` is the standalone agent client.
+Then open http://localhost:3000, open a claim from the demo, and follow its answer card down
+to signatures, hash chain, score traces, audits, and snapshots. Signed in, **Analyze text**
+stores a pasted paragraph and opens its breakdown into claims for an assistant or for you on
+a form; Galedra proposes no claims itself. `examples/agent/` is the standalone agent client.
 
 **Check before you post.** Give ChatGPT, Claude, or any MCP client the address on
 `/assistants/new` (`https://<host>/mcp/connect`, OAuth). When it connects, Galedra asks

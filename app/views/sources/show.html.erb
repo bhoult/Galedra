@@ -59,7 +59,7 @@
     <% if authenticated? && @cards[:cards].any? %>
       <%= button_to "Create verification tasks", tasks_source_path(@source), method: :post %>
     <% end %>
-    <% if authenticated? %><p><%= link_to "Propose more claims from this text", analyze_source_path(@source) %></p><% end %>
+    <% if authenticated? %><p><%= link_to "Break this text into claims", analyze_source_path(@source) %></p><% end %>
   <% end %>
 
   <% if @tasks.any? %>

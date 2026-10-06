@@ -182,7 +182,7 @@ T1 is shown in full in 04 §3. T3 is identical in shape with `C5`'s text. T2:
 
 The stub agents are deterministic fixtures, not heuristics: `AgentVerifier` reads its answer for each seeded task from `examples/agent/fixtures.json` (T1 → `CONFIRMED`, T2 → `NONE_FOUND`, T4 → `GROUPED`); `AgentBad` always returns `CONFIRMED` with a `DIRECT` support link. A keyword-matching stub would be flaky and would teach nothing.
 
-Atomicity demo (UI, not a task): pasting "The Watchers descended, taught metallurgy, fathered giants, and caused corruption." triggers the atomicity warning, and the stub extractor proposes four claims.
+Atomicity demo (UI, not a task): typing "The Watchers descended, taught metallurgy, fathered giants, and caused corruption." as one claim on Analyze text's form and pressing Check wording triggers the atomicity warning; split, it is four claims. (Until Stage 46 this line said a stub extractor proposed the four. It never did: it returned the sentence whole with the warning, and it is deleted.)
 
 ---
 

@@ -2393,7 +2393,7 @@ The UI renders `card` by default and `assessment` under **Show calculation**. AP
 
 **Home** — Analyze text · Browse claims · Task board · Recent audits · Log.
 
-**Analyze text** — paste text → stub/LLM proposes claims → user edits, splits, types each (atomicity warnings inline; private-individual checkbox) → submit accepted claims → optional "create verification tasks."
+**Analyze text** — paste text (at most the size rule's 3,000 words; longer goes to an outline) → stored as a signed source → one `CLAIM_EXTRACTION` task per reading window a packet carries whole → the claims are recorded by an assistant (a volunteer's, working a task, or the person's own, through `record_investigation` with each claim's `source`) or by the person on a form (atomicity warnings on "Check wording"; private-individual checkbox) → optional "create verification tasks." The server proposes no claims: Galedra runs no model (Invariant 18), and the stub extractor that proposed them until Stage 46 split on punctuation, which is not a breakdown. When the text's own principal records its breakdown, the open extraction tasks close.
 
 **Claim page** — sections in order: Claim · Assessment (per §4) · Why (from `/why`) · Evidence for · Evidence against · Qualifications · Preliminary readings (every assistant's first reading, attributed, beneath the evidence; rule 13) · Suppressed as dependent · Claim edges · Review checklist · Summary · Contribution history · Score trace (collapsible JSON) · Snapshot picker.
 
@@ -2601,7 +2601,7 @@ Acceptance: both run on a clean database, print every golden value with PASS/FAI
 
 ## Phase 8 (P1) — Extensions
 
-Real LLM adapter behind `Llm::Adapter` (stub remains default), questions/hypotheses, dedup candidate edges (pg_trgm → pgvector), export bundles and PROV/nanopublication mappings, embeddable answer cards, verification-diversity constraints, audit-cost reporting, political-speech view.
+~~Real LLM adapter behind `Llm::Adapter` (stub remains default)~~ (struck in Stage 46: Article XIV's last paragraph and Invariant 18 forbid it; a function that needs a model is a task or a tool for a connected assistant), questions/hypotheses, dedup candidate edges (pg_trgm → pgvector), export bundles and PROV/nanopublication mappings, embeddable answer cards, verification-diversity constraints, audit-cost reporting, political-speech view.
 
 ---
 
@@ -3328,7 +3328,7 @@ Status: **P0** implemented in POC · **P1** planned after P0 · **Partial** P0 i
 | XI Identity ≠ evidence | 05 §2–3 | **Gap** | Pseudonymous reputation supported. **Not as stated before 2026-09-23:** `identity_tier` does reach scores, through audits. A self-registered key can claim ESTABLISHED, and ESTABLISHED can audit (audit M1). **Earned standing is unreachable:** AUDIT reputation comes only from one's own audits being audited, and auditing needs the tier or that reputation, so no contributor can earn the standing to audit. Stage 43 M1 carries both the fix and an earned route |
 | XII Resist capture | 02 §1.2 chain, 05 §5, §9 deterministic sampling, §13 visible moderation, 03 §13 multiple models | Partial / **Gap** | Two scoring models ship in P0 so "alternative models over the same evidence" is exercised, not just promised. Governance of the system key is open (09 §15). **Gaps against the 2026-09-23 text.** Powers held by roles: moderator appointment (`/admin/users`) is not a signed contribution. Defaults and selection: the default model is set in configuration (`LEDGER_DEFAULT_MODEL`, read by `Scoring::Registry.default_model`), with no signed record or published rule. Task priority asks `default_model_at`, which ignores that setting, so the two would disagree as soon as a newer model is released without being made the default. Search ranking and task priority are code, not published rules. Summary verdict wording is not governed. Stage 43 G1–G3 |
 | XIII Corrections keep history | 02 §1.3, §5; snapshot views; 05 §13 | P0 | Removal via visible `TAKEDOWN` with a stated legal basis; replay reports `CHAIN_VERIFIED_WITH_REDACTIONS` rather than claiming completeness. Quarantine reasons are the closed list this Article names (protection of persons). Nothing in the app deletes a contribution of any status: the DB role cannot |
-| XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification; Invariant 18 | P0 | Humans are audited by the same rules as agents. The system runs no model: the only `Llm::Adapter` is the deterministic stub. An assistant's first reading of a claim enters as a signed `CREATE_PRELIMINARY_RESULT` (Stage 45, 02 §3.3), never as evidence and never in a packet. **Gap (audit M10):** an agent auditor is compared by its own id, not its principal's |
+| XIV Contributors, not oracles | 03 §6 `MODEL_OUTPUT` = 0, 04 §6, 04 §8 no self-certification; Invariant 18 | P0 | Humans are audited by the same rules as agents. The system runs no model: the only `Llm::Adapter` is the deterministic stub. An assistant's first reading of a claim enters as a signed `CREATE_PRELIMINARY_RESULT` (Stage 45, 02 §3.3), never as evidence and never in a packet. Analyze text no longer proposes claims from a sentence splitter: the breakdown is a `CLAIM_EXTRACTION` task or an assistant's recorded check (Stage 46, 06 §5). **Gap (audit M10):** an agent auditor is compared by its own id, not its principal's |
 | XV Shared vs. personal belief | 02 §3.6a reserved, 06 §4 rule 9 | P1 | P0 guarantees nothing personal writes to the shared log; personal lenses ship in P1 |
 | XVI Localized disagreement | 06 `/compare` (model vs. model) | Partial | P0 shows *which links and config keys* explain a difference between two models. Localizing disagreement between people needs lenses (P1) |
 | XVII Normative ≠ empirical | 01 §4, 03 §11 | P0 | `NOT_APPLICABLE` with a stated reason |
@@ -3656,7 +3656,7 @@ T1 is shown in full in 04 §3. T3 is identical in shape with `C5`'s text. T2:
 
 The stub agents are deterministic fixtures, not heuristics: `AgentVerifier` reads its answer for each seeded task from `examples/agent/fixtures.json` (T1 → `CONFIRMED`, T2 → `NONE_FOUND`, T4 → `GROUPED`); `AgentBad` always returns `CONFIRMED` with a `DIRECT` support link. A keyword-matching stub would be flaky and would teach nothing.
 
-Atomicity demo (UI, not a task): pasting "The Watchers descended, taught metallurgy, fathered giants, and caused corruption." triggers the atomicity warning, and the stub extractor proposes four claims.
+Atomicity demo (UI, not a task): typing "The Watchers descended, taught metallurgy, fathered giants, and caused corruption." as one claim on Analyze text's form and pressing Check wording triggers the atomicity warning; split, it is four claims. (Until Stage 46 this line said a stub extractor proposed the four. It never did: it returned the sentence whole with the warning, and it is deleted.)
 
 ---
 

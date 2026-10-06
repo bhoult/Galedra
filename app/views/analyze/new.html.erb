@@ -1,9 +1,16 @@
 <% content_for :title, "Analyze text" %>
 <h1>Analyze text</h1>
-<p class="muted">Paste a paragraph, an AI-drafted memo, or a passage. It is stored as a signed source; the stub extractor then proposes atomic claims for you to edit, split, type, and submit.</p>
+<p class="muted">Paste a paragraph, an AI-drafted memo, or a passage of up to <%= ::Sources::Paste::MAX_WORDS.to_fs(:delimited) %> words. It is stored as a signed source, and Galedra opens its breakdown into atomic claims: for your own assistant, for any volunteer's, or for you on a form. Galedra does not propose the claims itself.</p>
+<p class="meta">Have an assistant's draft bundle (the JSON) rather than the text? Paste it on <%= link_to "Record an investigation", new_investigation_path %>.</p>
+<% if @too_long %>
+  <div class="card errors">
+    <p class="headline">Too long for one check</p>
+    <p>This text runs to <%= @too_long.to_fs(:delimited) %> words. Past <%= ::Sources::Paste::MAX_WORDS.to_fs(:delimited) %>, one breakdown reads only part of it and the rest is never checked. Nothing was recorded. Ask an assistant connected to Galedra to outline it with <code>create_outline</code>: it records the text's structure and opens a breakdown for each section, which several volunteers can share.</p>
+  </div>
+<% end %>
 <%= form_with url: analyze_path, method: :post do |f| %>
-  <label>Title <%= f.text_field :title, placeholder: "AI-drafted memo" %></label>
-  <label>Source type <%= f.select :source_type, Source::TYPES.map { |t| [ t, t ] }, { selected: "OTHER" } %></label>
-  <label>Text <%= f.text_area :text, required: true %></label>
+  <label>Title <%= f.text_field :title, placeholder: "AI-drafted memo", value: params[:title] %></label>
+  <label>Source type <%= f.select :source_type, Source::TYPES.map { |t| [ t, t ] }, { selected: params[:source_type].presence || "OTHER" } %></label>
+  <label>Text <%= f.text_area :text, required: true, value: @text %></label>
   <%= f.submit "Analyze" %>
 <% end %>

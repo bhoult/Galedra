@@ -297,6 +297,32 @@ source each claim, because in a chat the person sees nothing until the turn ends
 read every source it needs right now". That sentence was the thirty minutes, and it is gone:
 the size rule is now about the input alone, and the order of the work is `Guidance::CHECK`'s.
 
+## Q. The atomic breakdown comes from an assistant, not a sentence splitter (2026-10-05)
+
+**What changed.** Analyze text proposed claims from `Claims::Extract`, a stub behind
+`Llm::Adapter#extract_claims` that split on punctuation and guessed a type from keywords.
+Run on five ordinary statements, it left every compound assertion whole and shattered "Dr.
+Smith of the U.S. Dept. of Energy" into five claims. It also credited a study with the
+writer's own gloss. It passed its one spec because that spec's memo was the input it was
+written for. The extractor is deleted. Analyze text now stores the text and opens one
+`CLAIM_EXTRACTION` task per reading window. The person can hand a prompt to their own
+assistant, which records the claims with `record_investigation` and files each under the
+text with a claim's `source`. They can also type the claims on a form (06 §5).
+
+**What building it found.** The plan set the paste limit at the size rule's 3,000 words. A
+packet carries at most 2,000 characters of excerpt (`Tasks::Types::EXCERPT_CAP`), and Analyze
+text made one location over the whole text. So one task on a 3,000-word paste would have
+read its first 350 words and returned claims as though it had read them all. The text is now
+read in windows no longer than a packet carries, ending at a paragraph break where there is
+one, with one task per window.
+
+**What changed elsewhere.** The text's own principal could not lease the extraction task on
+its own source: extraction is not a check a principal may perform on its own work. The
+person's own assistant therefore records the breakdown as a check, which also gives it the
+check page and the share line, and that closes the open tasks. 07 Phase 8's "Real LLM
+adapter" is struck, since Article XIV and Invariant 18 already forbade it. No golden value
+is touched: the demo never used the extractor.
+
 ## Open questions for the project owner
 
 - Adopt, revise, or reject proposed amendments P-4 and P-6? (P-1, P-2, P-3 and P-5 were adopted into 1.0.0 on 2026-09-23.)
