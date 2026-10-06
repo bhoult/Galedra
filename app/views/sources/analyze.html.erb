@@ -20,7 +20,8 @@
 
 <h2>By hand</h2>
 <p class="meta">One assertion per claim: split anything joined by "and", a list, or a "because". Keep what a text says (<code>TEXTUAL</code>) apart from whether it is true, and an opinion (<code>NORMATIVE</code>) apart from a fact. Check wording shows where a claim may hold more than one assertion, and records nothing.</p>
-<%= form_with url: claims_source_path(@source), method: :post do |f| %>
+<%# Not through Turbo: "Check wording" answers the POST with the form itself (200), and Turbo Drive drops a form response that is not a redirect. %>
+<%= form_with url: claims_source_path(@source), method: :post, data: { turbo: false } do |f| %>
   <% @rows.each_with_index do |row, i| %>
     <div class="proposal">
       <label>Claim <%= text_field_tag "claims[#{i}][canonical_text]", row["canonical_text"] %></label>

@@ -30,12 +30,16 @@ module Investigations
     end
 
     # { preliminary:, phrase:, sentence: } for a set of claims and their scores.
+    # A reading that was taken down keeps its stub beneath its claim, but its
+    # expectation survives redaction, so it is left out here: otherwise the
+    # share line, og tags and card would go on repeating what was removed.
     def reading(claims, results, by_claim)
+      shown = by_claim.reject { |_, pre| pre.redacted_by_seq }
       checkable = claims.reject { |c| results[c.id]&.assessment_state == "NOT_APPLICABLE" }
       open = checkable.all? { |c| results[c.id]&.assessment_state == "INSUFFICIENT_EVIDENCE" }
-      preliminary = checkable.any? && open && checkable.any? { |c| by_claim[c.id] }
-      expectations = checkable.filter_map { |c| by_claim[c.id]&.expectation }
-      { preliminary: preliminary, phrase: phrase(expectations), sentence: sentence(checkable, by_claim) }
+      preliminary = checkable.any? && open && checkable.any? { |c| shown[c.id] }
+      expectations = checkable.filter_map { |c| shown[c.id]&.expectation }
+      { preliminary: preliminary, phrase: phrase(expectations), sentence: sentence(checkable, shown) }
     end
 
     # The whole statement in a few words, by the same counting rule Verdict
@@ -43,10 +47,11 @@ module Investigations
     # never as a badge. No overall judgment is stored: the statement is not a
     # log object, and a count of the parts says what they add up to.
     def phrase(expectations)
-      return PreliminaryResult::WORDS.fetch(expectations.first) if expectations.size == 1
-
       said = expectations - %w[NO_EXPECTATION]
       return PreliminaryResult::WORDS.fetch("NO_EXPECTATION") if said.empty?
+      # One part that said something speaks for itself, whatever the parts
+      # with no expectation beside it: "in part" stays "in part".
+      return PreliminaryResult::WORDS.fetch(said.first) if said.size == 1
       return "expected not to hold up" if said.all?("EXPECTED_NOT_TO_HOLD")
       return "expected to hold up only in part" if said.include?("EXPECTED_NOT_TO_HOLD")
       return "expected to mostly hold up" if said.include?("EXPECTED_TO_HOLD_IN_PART")
@@ -77,7 +82,9 @@ module Investigations
     # replacing one with the other: a first reading the sources overturned is
     # information about how far a thirty-second check can be trusted.
     def beneath(pre, state)
-      if pre.expectation == "EXPECTED_TO_HOLD" && Verdict::AGAINST.include?(state)
+      if pre.redacted_by_seq
+        "A first reading of this claim was taken down."
+      elsif pre.expectation == "EXPECTED_TO_HOLD" && Verdict::AGAINST.include?(state)
         "The first reading expected this to hold up; the sources so far lean against it."
       elsif pre.expectation == "EXPECTED_NOT_TO_HOLD" && Verdict::FOR.include?(state)
         "The first reading expected this not to hold up; the sources so far lean towards it."
@@ -88,6 +95,8 @@ module Investigations
 
     # What a model is shown as: as declared, never verified (Stage 27's rule).
     def declared(pre)
+      return "taken down" if pre.redacted_by_seq
+
       pre.model.present? ? "#{pre.model}, as declared" : "model not declared"
     end
   end

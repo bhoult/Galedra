@@ -91,6 +91,9 @@ class InvestigationsController < ApplicationController
     # Stage 45: this check's own first readings, and whether the page is still
     # only that. Display beside the scores; nothing above reads it.
     @preliminaries = Investigations::Preliminary.for_investigation(@investigation, @seq)
+    # Each reading's card names who recorded it: one load for the set, not a
+    # contribution and a contributor per claim (as ClaimsController#show does).
+    ActiveRecord::Associations::Preloader.new(records: @preliminaries.values, associations: { contribution: :contributor }).call
     @reading = Investigations::Preliminary.reading(@claims, @results, @preliminaries)
     @share_line = Investigation.share_line(@summary, url: investigation_url(@investigation),
                                                      quote: @investigation.statement.presence || @claims.first&.canonical_text, reading: @reading)

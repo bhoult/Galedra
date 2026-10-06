@@ -5,7 +5,7 @@
 <% if @too_long %>
   <div class="card errors">
     <p class="headline">Too long for one check</p>
-    <p>This text runs to <%= @too_long.to_fs(:delimited) %> words. Past <%= ::Sources::Paste::MAX_WORDS.to_fs(:delimited) %>, one breakdown reads only part of it and the rest is never checked. Nothing was recorded. Ask an assistant connected to Galedra to outline it with <code>create_outline</code>: it records the text's structure and opens a breakdown for each section, which several volunteers can share.</p>
+    <p>This text runs to <%= @too_long.words.to_fs(:delimited) %> words and <%= @too_long.chars.to_fs(:delimited) %> characters. Past <%= ::Sources::Paste::MAX_WORDS.to_fs(:delimited) %> words or <%= ::Sources::Paste::MAX_CHARS.to_fs(:delimited) %> characters, one breakdown reads only part of it and the rest is never checked. Nothing was recorded. Ask an assistant connected to Galedra to outline it with <code>create_outline</code>: it records the text's structure and opens a breakdown for each section, which several volunteers can share.</p>
   </div>
 <% end %>
 <%= form_with url: analyze_path, method: :post do |f| %>

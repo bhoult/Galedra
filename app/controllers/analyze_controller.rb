@@ -12,7 +12,7 @@ class AnalyzeController < ApplicationController
     redirect_to analyze_source_path(source)
   rescue Sources::Paste::TooLong => e
     @text = text
-    @too_long = e.words
+    @too_long = e
     render :new, status: :unprocessable_content
   end
 end

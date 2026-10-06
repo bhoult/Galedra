@@ -349,12 +349,15 @@ module Investigations
         add.call("#{path}.rationale", "required: why you expect what you expect, in at most #{PreliminaryResult::MAX_RATIONALE} characters")
       end
       leads = pre.fetch("leads", [])
-      unless leads.is_a?(Array) && leads.size <= PreliminaryResult::MAX_LEADS && leads.all? { |l| l.is_a?(String) && Ledger::Appliers::CreatePreliminaryResult.web_url?(l) }
-        add.call("#{path}.leads", "at most #{PreliminaryResult::MAX_LEADS} http or https links you cited; Galedra never fetches them")
+      unless leads.is_a?(Array) && leads.size <= PreliminaryResult::MAX_LEADS &&
+             leads.all? { |l| l.is_a?(String) && l.length <= PreliminaryResult::MAX_LEAD_CHARS && Ledger::Appliers::CreatePreliminaryResult.web_url?(l) }
+        add.call("#{path}.leads", "at most #{PreliminaryResult::MAX_LEADS} http or https links you cited, each at most #{PreliminaryResult::MAX_LEAD_CHARS} characters; Galedra never fetches them")
       end
       model = pre["model"]
       add.call("#{path}.model", "the model that produced the reading, as a string of at most #{PreliminaryResult::MAX_MODEL_CHARS} characters") unless model.nil? || (model.is_a?(String) && model.length <= PreliminaryResult::MAX_MODEL_CHARS)
-      if c["section"].present?
+      # An attach_to claim can already sit in an outline without naming a
+      # section here; the applier refuses that too, but under its payload path.
+      if c["section"].present? || (c["attach_to"] && ClaimPlacement.live.exists?(claim_id: c["attach_to"].to_s))
         add.call(path, "a preliminary result is for a short check, not a claim filed in an outline section; record the claim's evidence instead")
       end
       type = c["attach_to"] ? Claim.find_by(id: c["attach_to"].to_s)&.claim_type : c["type"]

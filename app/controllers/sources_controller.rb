@@ -48,17 +48,29 @@ class SourcesController < ApplicationController
 
     # One transaction, as Investigations::Record does: a refusal on any row
     # (a claim too long, a topic not in the vocabulary) appends none of them.
+    # A row identical to one already logged is the same entry (the idempotency
+    # key), so only rows that appended something are counted.
+    created = 0
     Contribution.transaction do
       rows.each do |row|
         payload = { "canonical_text" => row["canonical_text"], "claim_type" => row["claim_type"],
                     "affirms_not_private_individual" => true, "source_id" => @source.id }
         result = Ui::Write.call(Current.user, "CREATE_CLAIM", payload)
+        created += 1 if result.created
         topics = row["topics"].first(Topics::MAX_PER_CLAIM)
         Ui::Write.call(Current.user, "TAG_CLAIM", { "claim_id" => Ledger::Ids.derive(result.contribution.id, "claim"), "topics" => topics }) if topics.any?
       end
     end
     Sources::Paste.cancel_extraction!(@source, Ui::Write.contributor_for(Current.user)&.id)
-    redirect_to source_path(@source), notice: "#{rows.size} claim#{'s' unless rows.size == 1} recorded as signed contributions."
+    redirect_to source_path(@source), notice: "#{created} claim#{'s' unless created == 1} recorded as signed contributions."
+  rescue Ledger::Rejected => e
+    # Kept on this page with what was typed, as Record an investigation does.
+    # ApplicationController's redirect_back would drop the rows, and after
+    # "Check wording" the referer is this POST-only URL, which has no GET.
+    @rows = rows_with_blanks(rows || [])
+    @error = "#{e.errors.map { |x| "#{x[:code]}: #{x[:detail]}" }.join('; ')}. Nothing was recorded."
+    prepare_breakdown
+    render :analyze, status: :unprocessable_content
   end
 
   # "Create verification tasks": opposing search and qualifier check for each

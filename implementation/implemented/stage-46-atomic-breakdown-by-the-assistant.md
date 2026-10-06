@@ -247,3 +247,29 @@ its breakdown, and the server proposes nothing. The breakdown is done one of thr
   that does not contain it. The whole-text location predates this stage. Before it, Analyze
   text had no size limit at all.
 
+
+### Code review, 2026-10-05
+
+Found after the stage closed and fixed the same day. Each fix has an example in
+`spec/requests/analyze_text_breakdown_spec.rb` that fails against the code above.
+
+- **"Check wording" did nothing in a browser.** It answers the POST with the form itself
+  (200), and Turbo Drive drops a form response that is not a redirect. The system spec runs
+  on `rack_test`, without Turbo, so it passed. The form now opts out of Turbo, as
+  `assistants/new` already did for the same reason.
+- **A refused row lost the form.** A `Ledger::Rejected` inside the transaction (a claim over
+  `Claim::MAX_TEXT_CHARS`, a topic outside the vocabulary) fell to `ApplicationController`'s
+  `redirect_back`. That dropped every typed row, and after "Check wording" the referer is
+  the POST-only claims URL, which has no GET. `create_claims` now renders the form again,
+  with the rows and the refusal, and records nothing.
+- **Words did not bound the prompt.** The prompt hands the text on as `statement`, which
+  `record_investigation` refuses past `Investigation::MAX_STATEMENT_CHARS` (20,000). Text
+  with few spaces is a handful of words however long it runs, so a long Chinese or Japanese
+  paste passed the 3,000-word rule and produced a guaranteed refusal. `Sources::Paste` now
+  also refuses past `MAX_CHARS`, the same constant.
+- **The same paste twice opened two sets of tasks.** The source and its locations are the
+  same entries the second time (the idempotency key), but tasks have no such key. A paste
+  whose source already has extraction tasks now opens none, and the paste is one
+  transaction, so a refusal partway leaves no source without its tasks.
+- **The notice counted rows, not claims.** Two identical rows are one `CREATE_CLAIM`; the
+  notice now counts what was appended.

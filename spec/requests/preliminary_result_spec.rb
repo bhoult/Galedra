@@ -172,6 +172,42 @@ RSpec.describe "A preliminary result while the sources are read (Stage 45)", typ
     get "/investigations/#{Investigation.last.id}"
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("This first reading was taken down")
+    # Its expectation survives redaction but is not repeated: the share line
+    # and the og title read the two readings still standing, not the removed
+    # "not to hold up" that made the whole "only in part".
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css(".share-line").text).to start_with("Preliminary (AI, not yet sourced): expected to hold up\n")
+    expect(page.at_css('meta[property="og:title"]')["content"]).to eq("Preliminary (AI, not yet sourced): expected to hold up")
+    expect(response.body).not_to include("1 not to hold up")
+  end
+
+  it "loads who recorded each reading once for the page, not once per claim" do
+    count = lambda do |claims|
+      bundle = first_pass.merge("statement" => "#{claims} parts", "claims" => Array.new(claims) { |i| { "handle" => "c#{i}", "text" => "Brackenridge part #{i} of #{claims} holds.", "type" => "OBSERVATIONAL", "preliminary" => preliminary("EXPECTED_TO_HOLD") } })
+      data, err = call_tool("record_investigation", bundle)
+      expect(err).to be(false), data.inspect
+      n = 0
+      counter = ->(*, payload) { n += 1 if payload[:sql].to_s.match?(/FROM "contributors"/) }
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get data["url"] }
+      expect(response.body).to include("Recorded by")
+      n
+    end
+    expect(count.call(5)).to eq(count.call(2))
+  end
+
+  it "refuses an overlong lead under the bundle's own path, as the applier would" do
+    long = "https://example.org/#{'a' * PreliminaryResult::MAX_LEAD_CHARS}"
+    bundle = first_pass.merge("claims" => [ first_pass["claims"].first.merge("preliminary" => preliminary("EXPECTED_TO_HOLD").merge("leads" => [ long ])) ])
+    data, err = call_tool("record_investigation", bundle)
+    expect(err).to be(true)
+    expect(data["errors"].first).to include("path" => "$.claims[0].preliminary.leads")
+    expect(PreliminaryResult.count).to eq(0)
+  end
+
+  it "says what one part said, whatever the parts with no expectation beside it" do
+    expect(Investigations::Preliminary.phrase(%w[EXPECTED_TO_HOLD_IN_PART])).to eq("expected to hold up in part")
+    expect(Investigations::Preliminary.phrase(%w[EXPECTED_TO_HOLD_IN_PART NO_EXPECTATION])).to eq("expected to hold up in part")
+    expect(Investigations::Preliminary.phrase(%w[EXPECTED_TO_HOLD EXPECTED_NOT_TO_HOLD NO_EXPECTATION])).to eq("expected to hold up only in part")
   end
 
   it "shows each check only its own reading on a shared claim, and the claim page shows both (acceptance 8)" do

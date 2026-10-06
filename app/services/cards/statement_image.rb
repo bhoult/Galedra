@@ -12,13 +12,11 @@ module Cards
       seq = Contribution.maximum(:seq)
       model = Scoring::Registry.default_model
       claims = investigation.claims
-      cards = claims.map { |c| Cards::ClaimCard.call(c, seq, model) }
+      # Scored once, as a set, and handed to the cards and the verdict.
+      results = Scoring::Score.call_many(claims, seq, model)
       canvas = (Vips::Image.black(Image::WIDTH, Image::HEIGHT) + Image::PAPER).cast("uchar").copy(interpretation: :srgb)
       canvas = canvas.draw_rect(Image::ACCENT, 0, 0, 14, Image::HEIGHT, fill: true)
       y = Image::MARGIN
-      results = Scoring::Score.call_many(claims, seq, model)
-      verdict = Investigations::Verdict.call(claims, seq, model, results: results)
-      summary = Investigation.summary(cards, verdict)
       # Stage 45: while only an assistant's first reading exists, the card says
       # so where the headline goes, in words and never as a badge.
       reading = Investigations::Preliminary.reading(claims, results, Investigations::Preliminary.for_investigation(investigation, seq))
@@ -32,6 +30,9 @@ module Cards
         canvas, = Image.stamp(canvas, footer, "sans 18", Image::MUTED, Image::HEIGHT - Image::MARGIN - 24)
         return canvas.write_to_buffer(".png")
       end
+      cards = claims.map { |c| Cards::ClaimCard.call(c, seq, model, results[c.id]) }
+      verdict = Investigations::Verdict.call(claims, seq, model, results: results)
+      summary = Investigation.summary(cards, verdict)
       canvas, y = Image.stamp(canvas, summary[:headline], "sans 34", Image::ACCENT, y + 18)
       canvas, y = Image.stamp(canvas, "#{summary[:detail]}.", "sans 24", Image::INK, y + 8) if summary[:detail].present?
       canvas, y = Image.stamp(canvas, summary[:stated], "sans 20", Image::MUTED, y + 6) if summary[:stated]

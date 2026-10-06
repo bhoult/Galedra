@@ -142,9 +142,38 @@ RSpec.describe "The atomic breakdown comes from an assistant (Stage 46)", type: 
     post "/sources/#{source.id}/claims", params: { claims: {
       "0" => { canonical_text: "Einstein failed mathematics in school.", claim_type: "HISTORICAL", affirms_not_private_individual: "1" },
       "1" => { canonical_text: "x" * (Claim::MAX_TEXT_CHARS + 1), claim_type: "HISTORICAL", affirms_not_private_individual: "1" } } }
-    expect(flash[:alert]).to be_present
+    # Refused on this page with what was typed kept, not redirected back: after
+    # "Check wording" the referer is the POST-only claims URL, which has no GET.
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("SCHEMA_INVALID").and include("Nothing was recorded")
+    expect(Nokogiri::HTML(response.body).at_css("input[name='claims[0][canonical_text]']")["value"]).to eq("Einstein failed mathematics in school.")
     expect(Contribution.count).to eq(count)
     expect(Task.where(task_type: "CLAIM_EXTRACTION", target_id: source.id).pluck(:status)).to eq([ "OPEN" ])
+  end
+
+  it "answers the form outside Turbo, since Check wording renders rather than redirects" do
+    sign_up("paster@example.com")
+    post "/analyze", params: { title: "Memo", text: STATEMENTS[1] }
+    get "/sources/#{Source.find_by!(title: 'Memo').id}/analyze"
+    expect(Nokogiri::HTML(response.body).at_xpath("//form[.//input[@name='check']]")["data-turbo"]).to eq("false")
+  end
+
+  it "opens no second set of extraction tasks when the same text is pasted again under the same title" do
+    sign_up("paster@example.com")
+    2.times { post "/analyze", params: { title: "Twice", text: STATEMENTS[2] } }
+    expect(Source.where(title: "Twice").count).to eq(1)
+    expect(Task.where(task_type: "CLAIM_EXTRACTION", target_id: Source.find_by!(title: "Twice").id).count).to eq(1)
+  end
+
+  it "refuses a paste under the word limit but over the statement's character limit, which the prompt could not hand on" do
+    sign_up("paster@example.com")
+    count = Contribution.count
+    unspaced = "字" * (Investigation::MAX_STATEMENT_CHARS + 1)
+    expect(unspaced.split.size).to be < Guidance::MAX_CHECK_WORDS
+    post "/analyze", params: { title: "Unspaced", text: unspaced }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("#{(Investigation::MAX_STATEMENT_CHARS + 1).to_fs(:delimited)} characters")
+    expect(Contribution.count).to eq(count)
   end
 
   it "points Analyze text and Record an investigation at each other (acceptance 6)" do

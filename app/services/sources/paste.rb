@@ -15,13 +15,19 @@ module Sources
     # The same number the size rule gives assistants: past it, one check reads
     # only part of the text, so the text belongs in an outline.
     MAX_WORDS = Guidance::MAX_CHECK_WORDS
+    # The prompt hands the text to an assistant as record_investigation's
+    # `statement`, whole, and that is refused past this many characters. Words
+    # alone do not bound it: text with few spaces (Chinese, Japanese, a block of
+    # links) is a handful of "words" however long it runs.
+    MAX_CHARS = Investigation::MAX_STATEMENT_CHARS
 
     class TooLong < StandardError
-      attr_reader :words
+      attr_reader :words, :chars
 
-      def initialize(words)
+      def initialize(words, chars)
         @words = words
-        super("#{words} words is over #{MAX_WORDS.to_fs(:delimited)}")
+        @chars = chars
+        super("#{words} words and #{chars} characters is over #{MAX_WORDS.to_fs(:delimited)} words or #{MAX_CHARS.to_fs(:delimited)} characters")
       end
     end
 
@@ -29,20 +35,27 @@ module Sources
 
     def call(user, text:, title: nil, source_type: "OTHER")
       words = text.split.size
-      raise TooLong, words if words > MAX_WORDS
+      raise TooLong.new(words, text.length) if words > MAX_WORDS || text.length > MAX_CHARS
 
-      payload = { "source_type" => source_type, "title" => title.presence || "Pasted text #{Time.now.utc.iso8601}",
-                  "content" => text, "content_hash" => Crypto::Hashing.bytes(text) }
-      result = Ui::Write.call(user, "CREATE_SOURCE", payload)
-      source = Source.find(Ledger::Ids.derive(result.contribution.id, "source"))
-      # The whole text, as before: what "Create verification tasks" points a
-      # claim's evidence check at.
-      whole = location(user, source, 0, source.content_length)
-      ranges = windows(source.content)
-      readers = ranges.size == 1 ? [ whole ] : ranges.map { |start, finish| location(user, source, start, finish) }
-      creator = Ui::Write.contributor_for(user)
-      readers.each { |loc| Tasks::Create.call(task_type: "CLAIM_EXTRACTION", target: source, location: loc, created_by: creator) }
-      source
+      # One transaction, so a refusal partway leaves no source without its
+      # tasks; the same text pasted again under the same title is the same
+      # entries (the idempotency key) and opens no second set of tasks.
+      Contribution.transaction do
+        payload = { "source_type" => source_type, "title" => title.presence || "Pasted text #{Time.now.utc.iso8601}",
+                    "content" => text, "content_hash" => Crypto::Hashing.bytes(text) }
+        result = Ui::Write.call(user, "CREATE_SOURCE", payload)
+        source = Source.find(Ledger::Ids.derive(result.contribution.id, "source"))
+        next source if Task.exists?(task_type: "CLAIM_EXTRACTION", target_type: "SOURCE", target_id: source.id)
+
+        # The whole text, as before: what "Create verification tasks" points a
+        # claim's evidence check at.
+        whole = location(user, source, 0, source.content_length)
+        ranges = windows(source.content)
+        readers = ranges.size == 1 ? [ whole ] : ranges.map { |start, finish| location(user, source, start, finish) }
+        creator = Ui::Write.contributor_for(user)
+        readers.each { |loc| Tasks::Create.call(task_type: "CLAIM_EXTRACTION", target: source, location: loc, created_by: creator) }
+        source
+      end
     end
 
     # The text's own principal broke it down, by hand or through its own

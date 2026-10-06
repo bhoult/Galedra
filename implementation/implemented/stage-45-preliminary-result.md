@@ -330,3 +330,35 @@ own. The reading never reaches a score or a packet.
   also lack the `redacted_by_seq` column that `Redaction.apply!` writes. This stage gave
   `preliminary_results` both, and its spec takes one down.
 
+
+### Code review, 2026-10-05
+
+Found after the stage closed and fixed the same day. Each fix has an example in
+`spec/requests/preliminary_result_spec.rb` that fails against the code above.
+
+- **A taken-down reading still spoke for the check.** Redaction clears `rationale`, `leads`
+  and `model` but keeps `expectation`, and `Investigations::Preliminary.reading` counted it.
+  The share line, the og title, the card and the top count went on repeating a reading
+  whose own card said it was taken down. Readings with `redacted_by_seq` now keep their stub
+  beneath the claim and are left out of the whole; `beneath` and `declared` say "taken down".
+- **Who recorded each reading was loaded per claim** on the check page: a contribution and a
+  contributor for every card (two statements per claim). The controller preloads them for
+  the set, as `ClaimsController#show` does. The example counts `contributors` statements for
+  a two-claim and a five-claim check and requires them equal.
+- **The bundle check had drifted from the applier.** `check_preliminary` did not cap a
+  lead's length or refuse an `attach_to` claim already placed in an outline, so the applier
+  refused both mid-transaction under `$.payload.…`, which does not say which claim. Both are
+  now refused under `$.claims[i].preliminary`.
+- **One part "in part" read as "mostly".** `phrase` took its one-reading shortcut before
+  setting aside `NO_EXPECTATION`, so `[IN_PART]` said "in part" and `[IN_PART,
+  NO_EXPECTATION]` said "expected to mostly hold up".
+- **The share card scored every claim twice**, once per card and once for the set, and built
+  the scored headline even when it drew the preliminary one. It now scores once and builds
+  the cards only when it uses them.
+
+**Reported, not changed.** A check stays preliminary while every checkable claim is at
+`INSUFFICIENT_EVIDENCE`, as decided above. A claim whose only counted evidence is `QUALIFY`
+or `NEUTRAL`, or weighs nothing, sits there too. Its check then says "not yet checked
+against sources" and "None has been checked against a source yet" after a quoted source was
+read and linked. Whether the rule should look at the trace's counted links, or the words
+should change, is the owner's call.
