@@ -234,7 +234,12 @@ its breakdown, and the server proposes nothing. The breakdown is done one of thr
   the extractor. CI's demo job runs it on push.
 - **The owner's decision on merging the two paste pages**, deferred until both are used.
 - **Real assistants given the prompt are unmeasured.** No run of the external-agent loop has
-  checked whether a connected assistant fills in `source` from the prompt.
+  checked whether a connected assistant fills in `source` from the prompt. There is a second
+  thing to read on the first live run. `galedra:` means "record the whole statement", so an
+  assistant reading that literally may record the prompt's instructions as part of
+  `investigations.statement`. The prompt now puts the text below a line and names it as the
+  statement, but only a run shows whether that is enough. If assistants ignore `source`, the
+  fix belongs in `Guidance`, which does not mention it yet.
 - **Deployment** waits on the owner.
 - **Found, not this stage's.** "Create verification tasks" on a source page points every
   claim's evidence check at the location over the whole text. That packet's excerpt stops at

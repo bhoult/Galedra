@@ -107,8 +107,12 @@ class SourcesController < ApplicationController
   def prepare_breakdown
     @tasks = Task.where(task_type: "CLAIM_EXTRACTION", target_type: "SOURCE", target_id: @source.id).order(:created_at).to_a
     @recorded = Cards::SourceCard.extracted_claims(@source, head_seq).count
-    @prompt = "galedra: Break the text below into its atomic claims, search Galedra for each, and record them as one check with " \
-              "record_investigation, giving each new claim source: \"#{@source.id}\" so it is filed under the text I pasted at " \
-              "#{source_url(@source)}. Then give me the share line.\n\n#{@source.content}"
+    # The text goes last and is named as the statement: `galedra:` means "record
+    # the whole statement", and an assistant reading that literally would
+    # otherwise record these instructions as part of what was asked.
+    @prompt = "galedra: Break the text below the line into its atomic claims, search Galedra for each, and record them as one " \
+              "check with record_investigation. The statement is the text below the line, exactly, without these instructions. " \
+              "Give each new claim source: \"#{@source.id}\" so it is filed under the text I pasted at #{source_url(@source)}. " \
+              "Then give me the share line.\n\n---\n\n#{@source.content}"
   end
 end

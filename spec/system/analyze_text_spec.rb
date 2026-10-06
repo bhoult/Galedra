@@ -23,7 +23,7 @@ RSpec.describe "Analyze text (07 Phase 6 #3, 02 §4, 06 §5; Stage 46)", type: :
 
     expect(page).to have_text("Break this text into claims")
     expect(page).to have_text("Galedra does not break a text into claims itself")
-    expect(page).to have_css("pre.prompt", text: /galedra: Break the text below.*source: "/m)
+    expect(page).to have_css("pre.prompt", text: /galedra: Break the text below the line.*The statement is the text below the line.*source: "/m)
     expect(page).to have_text("1 claim-extraction task")
     expect(page).to have_field("claims[0][canonical_text]", with: "")
     expect(Claim.count).to eq(0)
