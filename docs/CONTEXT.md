@@ -417,6 +417,11 @@ into its own database. Fifteen commits in one session were pushed over it, each 
 green, and every Dependabot pull request looked broken for the same reason. `gh run list
 --branch master` after a push is the whole check.
 
+A red `scan_ruby` whose only output is "Brakeman X is not the latest version Y" is not a
+finding: `bin/brakeman` runs with `--ensure-latest`, so CI goes red the day Brakeman ships a
+release, whatever the code says (2026-10-05, 8.0.6 → 8.1.0). `bundle update brakeman
+--conservative` in the container, rerun it, and commit the lockfile alone.
+
 ## Scoring, briefly, because it is the sharp edge
 
 Scores are **versioned**: same seq and model give a byte-identical trace, so a
