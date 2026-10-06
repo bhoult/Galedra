@@ -159,7 +159,7 @@ Whether the two paste pages become one, decided once both have been used.
 
 ### What was resolved
 
-Deliverables 1 to 4, and acceptance 1, 2, 3, 5 and 6. Analyze text stores the text and opens
+Deliverables 1 to 4, and every acceptance criterion, 1 to 6 (4 by CI; see below). Analyze text stores the text and opens
 its breakdown, and the server proposes nothing. The breakdown is done one of three ways:
 
 - by the person's own assistant, through a prompt the page gives them;
@@ -229,9 +229,9 @@ its breakdown, and the server proposes nothing. The breakdown is done one of thr
 
 ### What remains
 
-- **Acceptance 4 (`bin/demo` prints PASS)** was not run locally. It resets the development
-  log, and that is someone's working data. A grep before the stage found the demo never used
-  the extractor. CI's demo job runs it on push.
+- ~~**Acceptance 4 (`bin/demo` prints PASS)** was not run locally.~~ **Met 2026-10-05:** CI's
+  demo job passed on the push of this stage (run 37392186114, commit `0e595bb`). It was not
+  run locally, because it resets the development log, and that is someone's working data.
 - **The owner's decision on merging the two paste pages**, deferred until both are used.
 - **Real assistants given the prompt are unmeasured.** No run of the external-agent loop has
   checked whether a connected assistant fills in `source` from the prompt. There is a second
