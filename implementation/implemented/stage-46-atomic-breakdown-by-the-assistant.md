@@ -240,7 +240,10 @@ its breakdown, and the server proposes nothing. The breakdown is done one of thr
   `investigations.statement`. The prompt now puts the text below a line and names it as the
   statement, but only a run shows whether that is enough. If assistants ignore `source`, the
   fix belongs in `Guidance`, which does not mention it yet.
-- **Deployment** waits on the owner.
+- ~~**Deployment** waits on the owner.~~ **Deployed 2026-10-05** at `7233817`
+  (`stage-46-atomic-breakdown-2-g7233817`), with the code review's fixes, on the owner's say-so.
+  The migration ran on boot, guidance `2026-10-05.2` is served, and the check, claim and card
+  pages answer 200.
 - **Found, not this stage's.** "Create verification tasks" on a source page points every
   claim's evidence check at the location over the whole text. That packet's excerpt stops at
   2,000 characters, so a claim taken from late in a long paste is checked against an excerpt

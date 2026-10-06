@@ -315,8 +315,10 @@ own. The reading never reaches a score or a packet.
 
 - **The per-model agreement measure** in question 10, and any use of it. It waits on Stage
   44's accuracy benchmark, as the plan said.
-- **Deployment.** Connected assistants receive guidance `2026-10-05.2`, and with it the first
-  pass, only once galedra.org is deployed. That waits on the owner.
+- ~~**Deployment** waits on the owner.~~ **Deployed 2026-10-05** at `7233817`
+  (`stage-46-atomic-breakdown-2-g7233817`), with the code review's fixes, on the owner's say-so.
+  The migration ran on boot, guidance `2026-10-05.2` is served, and the check, claim and card
+  pages answer 200.
 - **Real assistants following the new guidance are unmeasured.** No run of the external-agent
   loop in `docs/CONTEXT.md` has been made against this stage. Until one is, how often an
   assistant stops after the first pass, and how often it fills in `preliminary` at all, is
