@@ -50,7 +50,7 @@ gem "json", "~> 2.0"
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.1"
+gem "image_processing", "~> 2.2"
 # Cards::Image and Cards::StatementImage require "vips" directly. image_processing
 # brought it in until 2.0, which dropped its processor dependencies.
 gem "ruby-vips", "~> 2.3"
