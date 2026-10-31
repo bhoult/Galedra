@@ -2,6 +2,8 @@
 
 > A heap of witness — an epistemic ledger for people and AI.
 
+Made by Claude Opus 5, Fable 5.1 and Opus 5.5, instigated by [Brandon Hoult](https://hoult.co).
+
 The name comes from *Galeed* (Genesis 31:47–48), the cairn Jacob and Laban piled
 up at the end of a bargain neither trusted the other to keep: *"This heap is a
 witness between me and thee this day."* Two parties, no shared authority, and a
